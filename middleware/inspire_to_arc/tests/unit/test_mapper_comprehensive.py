@@ -1,9 +1,19 @@
 """Comprehensive unit tests for the Inspire Mapper."""
 
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy  # type: ignore[import]
+from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, Person  # type: ignore[import]
 
-from middleware.inspire_to_arc.harvester import Contact, InspireRecord, ResourceIdentifier
+from middleware.inspire_to_arc.harvester import (
+    ConformanceResult,
+    Contact,
+    DistributionFormat,
+    InspireDate,
+    InspireRecord,
+    OnlineResource,
+    ReferenceSystem,
+    ResourceIdentifier,
+    SpatialResolutionDistance,
+)
 from middleware.inspire_to_arc.mapper import InspireMapper
 
 
@@ -91,10 +101,13 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     assert pub.DOI == "10.1234/doi"
 
     # Check Comments (Metadata fields)
-    comments = [c.Name for c in inv.Comments]
-    assert "Language: eng" in comments
-    assert "Metadata Standard: ISO 19115 v2003/Cor.1:2006" in comments
-    assert "Access Constraints: Public Domain" in comments
+    comment_names = [c.Name for c in inv.Comments]
+    assert "Language" in comment_names
+    assert "Metadata Standard" in comment_names
+    assert "Access Constraints" in comment_names
+
+    lang_comment = next(c for c in inv.Comments if c.Name == "Language")
+    assert lang_comment.Value == "eng"
 
 
 def test_map_study(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -186,3 +199,79 @@ def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: Inspire
     # Check value
     temp_col = next(col for col in table.Columns if col.Header.ToTerm().Name == "Temporal Extent")
     assert temp_col.Cells[0].AsTerm.Name == "2020-01-01 to 2020-12-31"
+
+
+def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    # Add data for the assay table
+    sample_record.dataset_uri = "https://data.example.com/api"
+
+    sample_record.online_resources = [OnlineResource(name="Download", url="https://data.example.com/download")]
+    sample_record.graphic_overviews = ["https://data.example.com/preview.png"]
+
+    assay = mapper.map_assay(sample_record)
+
+    assert len(assay.Tables) == 1
+    table = assay.Tables[0]
+    assert table.Name == "Measurement"
+    # Headers: Input (1), Output (1 - combined)
+    assert table.ColumnCount == 2  # noqa: PLR2004
+
+    # Check comments too
+    preview_comments = [c for c in assay.Comments if c.Name == "Preview"]
+    assert len(preview_comments) == 1
+    assert preview_comments[0].Value == "https://data.example.com/preview.png"
+
+
+def test_create_spatial_sampling_complex(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    sample_record.reference_systems = [ReferenceSystem(code="4326", codespace="EPSG")]
+    sample_record.spatial_resolution_denominators = [5000]
+    sample_record.spatial_resolution_distances = [SpatialResolutionDistance(value=10.0, uom="m")]
+
+    table = mapper._create_spatial_sampling_protocol(sample_record)  # pylint: disable=protected-access
+
+    assert table is not None
+    # BBox, CRS, Scale, Distance
+    assert table.ColumnCount == 4  # noqa: PLR2004
+
+
+def test_create_data_processing_complex(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    sample_record.conformance_results = [ConformanceResult(specification_title="INSPIRE", degree="true")]
+    sample_record.distribution_formats = [DistributionFormat(name="GeoJSON", version="1.0")]
+    sample_record.dates = [InspireDate(date="2023-01-01", datetype="publication")]
+
+    table = mapper._create_data_processing_protocol(sample_record)  # pylint: disable=protected-access
+
+    assert table is not None
+    assert table.Name == "Data Processing"
+    # Lineage, Conformance, Format, Processing Date
+    assert table.ColumnCount == 4  # noqa: PLR2004
+
+
+def test_add_person_comments_branches(mapper: InspireMapper) -> None:
+    """Test branches in _add_person_comments (missing fields)."""
+    person_obj = Person.create(last_name="Doe")
+    contact = Contact(
+        name="John Doe",
+        position="Manager",
+        online_resource_url="http://doe.com",
+    )
+
+    mapper._add_person_comments(person_obj, contact)  # pylint: disable=protected-access
+
+    names = [c.Name for c in person_obj.Comments]
+    assert "Position" in names
+    assert "Online Resource" in names
+
+
+def test_generate_comments_branches(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    """Test branches in _generate_comments."""
+    sample_record.alternate_title = "Alt"
+    sample_record.purpose = "Purpose"
+    sample_record.supplemental_information = "Extra"
+
+    comments = mapper._generate_comments(sample_record)  # pylint: disable=protected-access
+
+    names = [c.Name for c in comments]
+    assert "Alternate Title" in names
+    assert "Purpose" in names
+    assert "Supplemental Information" in names

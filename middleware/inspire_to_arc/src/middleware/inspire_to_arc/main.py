@@ -57,6 +57,11 @@ async def run_harvest(config: Config) -> None:
                 record = item
                 record_url = csw_client.get_record_url(record.identifier)
 
+                # Skip non-dataset records (e.g., services)
+                if record.hierarchy and record.hierarchy.lower() not in ["dataset", "series", "nongeographicdataset"]:
+                    logger.info("Skipping non-dataset record %s (Type: %s)", record.identifier, record.hierarchy)
+                    continue
+
                 # Log the INSPIRE identifier (UUID)
                 logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
 

@@ -31,13 +31,13 @@ Metadata about the metadata record itself.
 | **dateStamp** | `datestamp` / `datetimestamp` | When metadata was created/updated | `Investigation.SubmissionDate` |
 | **metadataStandardName** | `stdname` | Standard name (ISO 19115, etc.) | `Investigation` comment (provenance) |
 | **metadataStandardVersion** | `stdver` | Standard version | `Investigation` comment (provenance) |
-| **dataSetURI** | `dataseturi` | Direct URI to the dataset | `Investigation` comment/remark |
+| **dataSetURI** | `dataseturi` | Direct URI to the dataset | **Assay Annotation Table** (Output: Data) |
 | **contact** | `contact` | Metadata point of contact | `Investigation.Contacts` (Person with role="metadata_contact") |
-| **referenceSystemInfo** | `referencesystem` | Coordinate Reference System (CRS) | Assay Technology Platform (e.g., "EPSG:4326") |
+| **referenceSystemInfo** | `referencesystem` | Coordinate Reference System (CRS) | **Spatial Sampling Protocol** parameter "CRS" |
 | **contentInfo** | `contentinfo` | Feature catalogue or image description | **Assay Protocol** "Feature Catalogue" or "Image Description" |
-| **distributionInfo** | `distribution` | How to obtain the data | **Study/Assay Protocol** "Data Distribution" |
+| **distributionInfo** | `distribution` | How to obtain the data | **Assay Annotation Table** (Output: Data) |
 | **dataQualityInfo** | `dataquality` | Data quality and lineage | **Protocol** "Data Processing" (conformance as parameters) |
-| **acquisitionInformation** | `acquisition` | Sensor/platform metadata (remote sensing) | **Assay Protocol** "Sensor Acquisition" |
+| **acquisitionInformation** | `acquisition` | Sensor/platform metadata (remote sensing) | **Assay Technology Platform** |
 
 ### 2. MD_DataIdentification (Resource Identification)
 
@@ -123,11 +123,11 @@ URLs for data access, services, or documentation.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
 | --- | --- | --- | --- |
-| **linkage** | `url` | URL | **Assay Comments** (Online Resources) |
-| **protocol** | `protocol`, `protocol_url` | Protocol (HTTP, FTP, OGC:WMS, etc.) | **Assay Comments** (Online Resources) |
-| **name** | `name`, `name_url` | Resource name | **Assay Comments** (Online Resources) |
-| **description** | `description`, `description_url` | Resource description | **Assay Comments** (Online Resources) |
-| **function** | `function` | Function code (download, information, etc.) | **Assay Comments** (Online Resources) |
+| **linkage** | `url` | URL | **Assay Annotation Table** (Output: Data) |
+| **protocol** | `protocol`, `protocol_url` | Protocol (HTTP, FTP, OGC:WMS, etc.) | **Assay Annotation Table** (Output: Data) |
+| **name** | `name`, `name_url` | Resource name | **Assay Annotation Table** (Output: Data) |
+| **description** | `description`, `description_url` | Resource description | **Assay Annotation Table** (Output: Data) |
+| **function** | `function` | Function code (download, information, etc.) | **Assay Annotation Table** (Output: Data) |
 
 ### 8. DQ_DataQuality (Data Quality)
 
@@ -203,11 +203,12 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate roles
 - **Publications**: Resource identifiers (DOIs, ISBNs) from citation/identifier and aggregationInfo
 - **Comments/Remarks**:
+  - All comments are stored as **Name/Value pairs** (using `Comment.create(name, value)`)
   - parentIdentifier (if hierarchy)
-  - dataSetURI
   - Metadata standard (name + version)
   - Language, charset, hierarchy level
   - Service metadata (if present)
+  - Constraints (access, use, classification)
 
 ### Study (Research Unit / Data Processing Workflow)
 
@@ -217,60 +218,44 @@ One INSPIRE record = One Study representing the data creation workflow.
 - **Title**: "Study for: " + [Investigation Title]
 - **Description**: Lineage statement + purpose + supplementalInformation
 
-**Process-Oriented Protocols** (representing actual workflow steps):
+**Process-Oriented Protocols**:
 
-#### Protocol 1: "Spatial Sampling" (if spatial information available)
-
-Represents the selection of geographic location(s) for data collection.
+#### Protocol 1: "Spatial Sampling"
 
 - **Input**: Geographic Region / Area of Interest
 - **Output**: Selected Location(s)
 - **Parameters**:
-  - Bounding Box (spatial_extent)
-  - Spatial Resolution (denominators or distance + uom)
-  - Geographic Description (if available)
+  - Bounding Box
+  - Coordinate Reference System (CRS)
+  - Spatial Resolution
 
-#### Protocol 2: "Data Acquisition" (if acquisition metadata or temporal extent available)
+#### Protocol 2: "Data Acquisition"
 
-Represents the actual data collection/sensing process.
-
-- **Input**: Selected Location(s) + Temporal Period
+- **Input**: Selected Location(s)
 - **Output**: Raw Sensor Data / Observations
 - **Parameters**:
-  - Platform (from acquisition metadata)
-  - Sensor/Instrument (from acquisition metadata)
-  - Temporal Extent (start/end dates)
-  - Acquisition Dates (from dates with type="creation")
-  - Image/Feature Description (from contentinfo if available)
+  - Platform/Sensor (from acquisition metadata)
+  - Temporal Extent
 
-#### Protocol 3: "Data Processing" (always created, from lineage)
+#### Protocol 3: "Data Processing"
 
-Represents processing from raw data to final published dataset.
-
-- **Input**: Raw Sensor Data (or previous output)
+- **Input**: Raw Sensor Data
 - **Output**: Processed/Published Dataset
 - **Parameters**:
-  - Lineage (processing description)
-  - Quality/Conformance Results (specification, pass/fail)
-  - Data Format (distribution format)
-  - Processing Date (from dates with type="revision" or "publication")
-
-**Metadata stored as Investigation/Study-level** (not as protocols):
-
-- Constraints (access, use, classification) → Investigation Comments
-- Distribution/Access Info → Investigation Comments or Study Description
-- Reference Systems → Assay TechnologyPlatform
+  - Lineage, Conformance, Output Format
 
 ### Assay (Measurement / Data Output)
 
 - **Identifier**: `[Investigation_ID]_assay`
 - **MeasurementType**: Derived from topicCategory (e.g., "biota" → "Biological Measurement")
-- **TechnologyType**: spatialRepresentationType (vector, raster, etc.) or "Spatial Data Acquisition"
-- **TechnologyPlatform**: Reference system code (EPSG:4326, etc.) from reference_systems
-- **Protocols**: Links to Study protocols (same workflow)
+- **TechnologyType**: "Data Collection"
+- **TechnologyPlatform**: `acquisitionInformation` (Satellite/Sensor platform)
+- **Annotation Table**:
+  - **Input**: "Dataset Source"
+  - **Output (Data)**: `dataSetURI`
+  - **Output (Data)**: All `OnlineResource` links (download URLs, formats)
 - **Comments/Remarks**:
-  - graphicOverview (thumbnail URLs)
-  - Online Resources (download URLs) for data access
+  - graphicOverview (Previews) stored as Name/Value pairs
 
 ### Person (Contacts)
 

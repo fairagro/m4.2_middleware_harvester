@@ -19,9 +19,23 @@ def mock_csw_cls() -> Iterator[MagicMock]:
 @pytest.fixture
 def mock_iso_record() -> MagicMock:
     """Create a mock ISO record with all fields populated."""
-    record = MagicMock(spec=MD_Metadata)
+    record = MagicMock()
     record.identifier = "uuid-123"
     record.datestamp = "2023-01-01"
+    # Core fields to avoid MagicMock leakage into Pydantic models
+    record.referencesystem = None
+    record.dataquality = None
+    record.distribution = None
+    record.contact = []
+    # Extension fields used in getattr
+    record.parentidentifier = None
+    record.language = "eng"
+    record.languagecode = None
+    record.charset = None
+    record.hierarchy = None
+    record.stdname = None
+    record.stdver = None
+    record.dataseturi = None
 
     # Identification
     ident = MagicMock()
@@ -31,15 +45,18 @@ def mock_iso_record() -> MagicMock:
     ident.topiccategory = ["biota"]
     ident.language = "eng"
     ident.status = "completed"
-
-    # Contacts
-    contact = MagicMock()
-    contact.name = "Test Person"
-    contact.organization = "Test Org"
-    contact.email = "test@example.com"
-    contact.role = "author"
-    ident.contact = [contact]
-    record.contact = []  # Metadata contacts
+    ident.contact = []
+    ident.uricode = []
+    ident.uricodespace = []
+    ident.denominators = []
+    ident.distance = []
+    ident.uom = []
+    ident.alternatetitle = None
+    ident.edition = None
+    ident.purpose = None
+    ident.supplementalinformation = None
+    ident.temporalextent_start = "2020-01-01"
+    ident.temporalextent_end = "2020-12-31"
 
     # Spatial
     bbox = MagicMock()
@@ -49,37 +66,7 @@ def mock_iso_record() -> MagicMock:
     bbox.maxy = "49.0"
     ident.bbox = bbox
 
-    # Temporal
-    ident.temporalextent_start = "2020-01-01"
-    ident.temporalextent_end = "2020-12-31"
-
     record.identification = ident
-
-    # Data Quality / Lineage
-    dq = MagicMock()
-    lineage = MagicMock()
-    lineage.statement = "Test Lineage"
-    dq.lineage = lineage
-    record.dataquality = dq
-
-    # Distribution
-    dist = MagicMock()
-    fmt = MagicMock()
-    fmt.format = "CSV"
-    # Explicitly set optional fields to None to avoid MagicMock leaking
-    dist.version = None
-    dist.specification = None
-    dist.format_url = None
-    dist.version_url = None
-    dist.specification_url = None
-    dist.online = []
-
-    dist.format = fmt.format  # Fix: assign string directly if that's what the code expects, or fix the mock structure
-    # Actually, looking at code: dist.format is accessed.
-    # If dist.format is a string in OWSLib, we should set it as string.
-    dist.format = "CSV"
-
-    record.distribution = dist
 
     return record
 
@@ -103,8 +90,15 @@ def test_get_records_success(mock_csw_cls: MagicMock, mock_iso_record: MagicMock
     mock_csw_cls.return_value = mock_instance
     mock_instance.records = {"uuid-123": mock_iso_record}
     mock_instance.results = {"matches": 1}
-    # Mock the getrecords method to set records
-    mock_instance.getrecords = MagicMock()
+    # Mock the getrecords2 method
+    mock_instance.getrecords2 = MagicMock()
+
+    # Setup lineage for this test
+    dq = MagicMock()
+    lineage = MagicMock()
+    lineage.statement = "Test Lineage"
+    dq.lineage = lineage
+    mock_iso_record.dataquality = dq
 
     # Patch isinstance to make the mock pass the MD_Metadata check
     def mock_isinstance(obj: object, cls: type) -> bool:  # type: ignore[name-defined]
@@ -179,16 +173,24 @@ def test_parse_iso_record_missing_abstract(mock_iso_record: MagicMock) -> None:
 
 
 def test_extract_contacts(mock_iso_record: MagicMock) -> None:
+    # Add resource contact
+    contact = MagicMock()
+    contact.name = "Test Person"
+    contact.organization = "Test Org"
+    contact.email = "test@example.com"
+    contact.role = "author"
+    mock_iso_record.identification.contact = [contact]
+
     client = CSWClient("http://dummy")
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
 
     assert len(rec.contacts) == 1
-    contact = rec.contacts[0]
-    assert contact.name == "Test Person"
-    assert contact.organization == "Test Org"
-    assert contact.email == "test@example.com"
-    assert contact.role == "author"
-    assert contact.type == "resource"
+    c = rec.contacts[0]
+    assert c.name == "Test Person"
+    assert c.organization == "Test Org"
+    assert c.email == "test@example.com"
+    assert c.role == "author"
+    assert c.type == "resource"
 
 
 def test_extract_spatial_extent_invalid(mock_iso_record: MagicMock) -> None:
@@ -215,6 +217,17 @@ def test_extract_resource_identifiers(mock_iso_record: MagicMock) -> None:
 
 
 def test_extract_distribution_formats(mock_iso_record: MagicMock) -> None:
+    # Setup distribution
+    dist = MagicMock()
+    dist.format = "CSV"
+    dist.version = None
+    dist.specification = None
+    dist.format_url = None
+    dist.version_url = None
+    dist.specification_url = None
+    dist.online = []
+    mock_iso_record.distribution = dist
+
     client = CSWClient("http://dummy")
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
 
@@ -295,3 +308,198 @@ def test_get_records_skip_generic_exception(mock_csw_cls: MagicMock) -> None:
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
     assert results[0].record_id == "uuid-error"
+
+
+def test_get_records_by_xml(mock_csw_cls: MagicMock, mock_iso_record: MagicMock) -> None:
+    """Test get_records using XML-based filtering."""
+    mock_instance = MagicMock()
+    mock_csw_cls.return_value = mock_instance
+    mock_instance.records = {"uuid-123": mock_iso_record}
+    mock_instance.results = {"matches": 1}
+
+    # Patch isinstance
+    original_isinstance = isinstance
+
+    def mock_isinstance(obj: object, cls: type) -> bool:
+        if cls == MD_Metadata:
+            return True
+        return original_isinstance(obj, cls)
+
+    client = CSWClient("http://example.com/csw")
+    with patch("middleware.inspire_to_arc.harvester.isinstance", side_effect=mock_isinstance):
+        # Trigger XML path
+        results = list(client.get_records(xml_request="<Filter>...</Filter>", max_records=1))
+
+    assert len(results) == 1
+    mock_instance.getrecords2.assert_called()
+    # Check if xml was used in call args if possible, or just ensure it didn't crash
+    kwargs = mock_instance.getrecords2.call_args.kwargs
+    assert "xml" in kwargs
+
+
+def test_get_records_by_constraints(mock_csw_cls: MagicMock, mock_iso_record: MagicMock) -> None:
+    """Test get_records using constraints."""
+    mock_instance = MagicMock()
+    mock_csw_cls.return_value = mock_instance
+    mock_instance.records = {"uuid-123": mock_iso_record}
+    mock_instance.results = {"matches": 1}
+
+    # Patch isinstance
+    original_isinstance = isinstance
+
+    def mock_isinstance(obj: object, cls: type) -> bool:
+        if cls == MD_Metadata:
+            return True
+        return original_isinstance(obj, cls)
+
+    client = CSWClient("http://example.com/csw")
+    with patch("middleware.inspire_to_arc.harvester.isinstance", side_effect=mock_isinstance):
+        # Trigger constraint path
+        results = list(client.get_records(constraints=["AnyText", "test"], max_records=1))
+
+    assert len(results) == 1
+    mock_instance.getrecords2.assert_called()
+    kwargs = mock_instance.getrecords2.call_args.kwargs
+    assert "constraints" in kwargs
+
+
+def test_extract_lineage_complex(mock_iso_record: MagicMock) -> None:
+    """Test extraction of lineage with a statement object."""
+    dq = MagicMock()
+    lineage = MagicMock()
+    lineage.statement = "Test Lineage Statement"
+    dq.lineage = lineage
+    # Set other dq fields to None
+    dq.conformancetitle = []
+    dq.conformancedegree = []
+    dq.lineage_url = None
+    mock_iso_record.dataquality = dq
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert rec.lineage == "Test Lineage Statement"
+
+
+def test_extract_spatial_extent_variations(mock_iso_record: MagicMock) -> None:
+    """Test different spatial extent scenarios."""
+    client = CSWClient("http://dummy")
+
+    # 1. Valid numbers as strings
+    mock_iso_record.identification.bbox.minx = "10.1"
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-1")  # pylint: disable=protected-access
+    assert rec.spatial_extent == [10.1, 48.0, 11.0, 49.0]
+
+    # 2. None values
+    mock_iso_record.identification.bbox.minx = None
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-2")  # pylint: disable=protected-access
+    assert rec.spatial_extent is None
+
+
+def test_extract_resolution(mock_iso_record: MagicMock) -> None:
+    """Test scale and distance extraction."""
+    ident = mock_iso_record.identification
+    ident.denominators = ["5000"]
+    ident.distance = ["10"]
+    ident.uom = ["m"]
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert 5000 in rec.spatial_resolution_denominators  # noqa: PLR2004
+    assert len(rec.spatial_resolution_distances) == 1
+    assert rec.spatial_resolution_distances[0].value == 10.0  # noqa: PLR2004
+    assert rec.spatial_resolution_distances[0].uom == "m"
+
+
+def test_extract_distribution_formats_complex(mock_iso_record: MagicMock) -> None:
+    """Test distribution formats properly."""
+    dist = MagicMock()
+    dist.format = "Format1"
+    dist.version = "1.0"
+    dist.specification = None
+    dist.format_url = None
+    dist.version_url = None
+    dist.specification_url = None
+    dist.online = []
+    mock_iso_record.distribution = dist
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert len(rec.distribution_formats) == 1
+    assert rec.distribution_formats[0].name == "Format1"
+    assert rec.distribution_formats[0].version == "1.0"
+
+
+def test_extract_online_resources(mock_iso_record: MagicMock) -> None:
+    """Test online resource extraction."""
+    dist = MagicMock()
+    dist.format = None
+    res = MagicMock()
+    res.url = "http://data.com"
+    res.protocol = "WWW:LINK"
+    res.protocol_url = None
+    res.name = "Data"
+    res.name_url = None
+    res.description = "Desc"
+    res.description_url = None
+    res.function = None
+    dist.online = [res]
+    mock_iso_record.distribution = dist
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert len(rec.online_resources) == 1
+    assert rec.online_resources[0].url == "http://data.com"
+
+
+def test_extract_conformance(mock_iso_record: MagicMock) -> None:
+    """Test conformance results extraction."""
+    dq = MagicMock()
+    dq.lineage = None
+    dq.lineage_url = None
+    dq.conformancetitle = ["INSPIRE"]
+    dq.conformancetitle_url = [None]
+    dq.conformancedate = [None]
+    dq.conformancedatetype = [None]
+    dq.conformancedegree = ["true"]
+    mock_iso_record.dataquality = dq
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert len(rec.conformance_results) == 1
+    assert rec.conformance_results[0].specification_title == "INSPIRE"
+    assert rec.conformance_results[0].degree == "true"
+
+
+def test_extract_reference_systems(mock_iso_record: MagicMock) -> None:
+    """Test reference system extraction."""
+    ref = MagicMock()
+    ref.code = "EPSG:4326"
+    ref.code_url = None
+    ref.codeSpace = None
+    ref.codeSpace_url = None
+    ref.version = None
+    ref.version_url = None
+    mock_iso_record.referencesystem = ref
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    assert len(rec.reference_systems) == 1
+    assert rec.reference_systems[0].code == "EPSG:4326"
+
+
+def test_extract_contacts_metadata_level(mock_iso_record: MagicMock) -> None:
+    """Test contacts at metadata level."""
+    contact = MagicMock()
+    contact.name = "Meta Person"
+    contact.organization = None
+    contact.email = None
+    contact.role = None
+    mock_iso_record.contact = [contact]
+
+    client = CSWClient("http://dummy")
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    # rec.contacts should have 2 contacts now: 1 resource (if added), but in minimal mock it's empty
+    # Wait, ident.contact = [] in fixture.
+    assert len(rec.contacts) == 1
+    assert rec.contacts[0].name == "Meta Person"
+    assert rec.contacts[0].type == "metadata"
