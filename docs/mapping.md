@@ -1,61 +1,10 @@
-# INSPIRE to ARC Converter
+# INSPIRE to ARC Mapping Documentation
 
-This tool converts INSPIRE-compliant metadata (ISO 19139 XML) into ARC (ARChival Research & Data) objects.
-It is designed to harvest metadata from GDI-DE (Geodateninfrastruktur Deutschland) and other INSPIRE-compatible catalogs via CSW (Catalogue Service for the Web).
-
-## Usage Examples
-
-### Basic Querying
-
-```python
-from middleware.inspire_to_arc.harvester import CSWClient
-
-# Connect to GDI-DE CSW
-client = CSWClient("https://gdk.gdi-de.org/gdi-de/srv/eng/csw")
-client.connect()
-
-# Fetch records
-records = list(client.get_records(max_records=10))
-```
-
-### Advanced Filtering with FES
-
-Use OWSLib's Filter Encoding Specification (FES) for readable, type-safe queries:
-
-```python
-from owslib.fes import And, PropertyIsEqualTo, PropertyIsLike
-
-# Query for weather radar data from DWD
-constraints = [
-    And([
-        PropertyIsLike("AnyText", "*radar*"),
-        PropertyIsEqualTo("OrganisationName", "Deutscher Wetterdienst"),
-    ])
-]
-
-records = list(client.get_records(constraints=constraints, max_records=100))
-```
-
-### Raw XML Queries
-
-For complex queries, you can also use raw XML:
-
-```python
-xml_request = b"""<?xml version="1.0" encoding="UTF-8"?>
-<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-                service="CSW" version="2.0.2">
-  <csw:Query typeNames="csw:Record">
-    <csw:ElementSetName>full</csw:ElementSetName>
-  </csw:Query>
-</csw:GetRecords>"""
-
-records = list(client.get_records(xml_request=xml_request))
-```
+This document describes how INSPIRE-compliant geospatial metadata (ISO 19139 XML) is mapped to the ISA (Investigation, Study, Assay) model used by ARC.
 
 ## Concept
 
-The goal is to map geospatial metadata (INSPIRE) to the ISA (Investigation, Study, Assay) model used by ARC.
-Since INSPIRE metadata describes *datasets* (results), while ARC describes the *research process* (investigation/study/assay), we apply the following mapping strategy:
+The goal is to map geospatial metadata (INSPIRE) to the ISA model. Since INSPIRE metadata describes *datasets* (results), while ARC describes the *research process* (investigation/study/assay), we apply a mapping strategy that preserves provenance.
 
 ### Protocol-Based Mapping Philosophy
 
@@ -249,7 +198,7 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 
 - **Identifier**: fileIdentifier
 - **Title**: citation/title
-- **Description**: abstract + purposepx
+- **Description**: abstract + purpose
 - **SubmissionDate**: dateStamp
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate roles
 - **Publications**: Resource identifiers (DOIs, ISBNs) from citation/identifier and aggregationInfo
@@ -363,24 +312,3 @@ Map all CI_ResponsibleParty objects with full details:
 ### 3. Complex Nested Structures
 
 **acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on the metadata content.
-
-### 4. Multiple Language Support
-
-**locales** (PT_Locale): OWSLib supports alternate languages. Currently not mapped to ARC, but could be added as Investigation comments if needed.
-
-### 5. Bounding Polygons
-
-**EX_BoundingPolygon**: More precise than bounding boxes. Currently we extract bounding boxes. Polygons could be serialized (e.g., WKT) and added as Protocol parameters if needed.
-
-## Architecture
-
-- **Source**: CSW (Catalogue Service for the Web) endpoint (e.g., GDI-DE).
-- **Parser**: `OWSLib` for ISO 19139 XML.
-- **Mapper**: Converts `InspireRecord` (Pydantic model) to `arctrl` objects.
-- **Output**: ARC objects sent to the Middleware API (using `api_client`).
-
-## Implementation Status
-
-**Current**: ~10 fields mapped (basic identification, contacts, lineage, extent, constraints)
-
-**Planned**: 50+ fields mapped with comprehensive protocol-based approach as documented above.
