@@ -22,7 +22,7 @@ The ISO 19139 standard (via OWSLib) provides **50+ metadata fields** organized a
 Metadata about the metadata record itself.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **fileIdentifier** | `identifier` | UUID of the metadata record | `Investigation.Identifier` |
 | **parentIdentifier** | `parentidentifier` | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment) |
 | **language** | `language` / `languagecode` | Language of the metadata | `Investigation` comment/remark |
@@ -44,7 +44,7 @@ Metadata about the metadata record itself.
 Core descriptive metadata about the dataset.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **citation/title** | `title` | Dataset title | `Investigation.Title` |
 | **citation/alternateTitle** | `alternatetitle` | Alternative title | `Investigation` comment |
 | **citation/identifier** | `uricode`, `uricodespace` | Resource identifiers (DOI, ISBN, etc.) | `Investigation.Publications` (if DOI/ISBN) |
@@ -70,7 +70,7 @@ Core descriptive metadata about the dataset.
 Descriptive keywords with optional thesaurus information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **keyword** | `keywords[].name` | Keyword text | `OntologyAnnotation` (TAG) |
 | **keyword@xlink:href** | `keywords[].url` | Keyword URI (if gmx:Anchor) | `OntologyAnnotation.TermAccessionNumber` |
 | **type** | `type` | Keyword type (theme, place, temporal, etc.) | `OntologyAnnotation` comment or custom field |
@@ -81,7 +81,7 @@ Descriptive keywords with optional thesaurus information.
 Detailed contact information for persons and organizations.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **individualName** | `name` | Person name | `Person.LastName` (split to First/Last if possible) |
 | **organisationName** | `organization` | Organization name | `Person.Affiliation` |
 | **positionName** | `position` | Job title | `Person` comment or custom field |
@@ -97,7 +97,7 @@ Detailed contact information for persons and organizations.
 Access and use restrictions.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **useLimitation** | `uselimitation`, `uselimitation_url` | Usage limitations | **Investigation Comments** |
 | **accessConstraints** | `accessconstraints` | Legal access restrictions (e.g., "restricted") | **Investigation Comments** |
 | **useConstraints** | `useconstraints` | Legal use restrictions (e.g., "license") | **Investigation Comments** |
@@ -110,7 +110,7 @@ Access and use restrictions.
 Information about how to obtain the dataset.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **distributionFormat/name** | `format`, `format_url` | Data format (GeoTIFF, Shapefile, etc.) | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributionFormat/version** | `version`, `version_url` | Format version | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributionFormat/specification** | `specification`, `specification_url` | Format specification | **Protocol** "Data Processing" parameter "Output Format" |
@@ -122,7 +122,7 @@ Information about how to obtain the dataset.
 URLs for data access, services, or documentation.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **linkage** | `url` | URL | **Assay Comments** (Online Resources) |
 | **protocol** | `protocol`, `protocol_url` | Protocol (HTTP, FTP, OGC:WMS, etc.) | **Assay Comments** (Online Resources) |
 | **name** | `name`, `name_url` | Resource name | **Assay Comments** (Online Resources) |
@@ -134,7 +134,7 @@ URLs for data access, services, or documentation.
 Quality and conformance information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **lineage/statement** | `lineage`, `lineage_url` | Lineage statement (provenance) | `Study.Description` |
 | **conformanceResult/specification** | `conformancetitle`, `conformancetitle_url` | INSPIRE/ISO specification title | **Protocol** "Data Processing" parameter "Conformance" |
 | **conformanceResult/date** | `conformancedate`, `conformancedatetype` | Specification date | **Protocol** "Data Processing" parameter "Conformance" |
@@ -145,7 +145,7 @@ Quality and conformance information.
 Spatial reference system information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **referenceSystemIdentifier/code** | `code`, `code_url` | CRS code (e.g., "EPSG:4326") | `Assay.TechnologyPlatform` or Protocol parameter |
 | **referenceSystemIdentifier/codeSpace** | `codeSpace`, `codeSpace_url` | Authority (e.g., "EPSG") | Protocol parameter "CRS Authority" |
 | **referenceSystemIdentifier/version** | `version`, `version_url` | CRS version | Protocol parameter "CRS Version" |
@@ -181,7 +181,7 @@ Technical schema information for feature data or imagery.
 Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **serviceType** | `type` | Service type (WMS, WFS, CSW, etc.) | **No clear mapping** (see note) |
 | **serviceTypeVersion** | `version` | Service version | **No clear mapping** (see note) |
 | **fees** | `fees` | Cost information | Investigation comment |
