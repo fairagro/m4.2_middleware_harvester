@@ -1,7 +1,7 @@
 log_level: DEBUG
 
-# csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
-csw_url: https://stable.demo.geonode.org/catalogue/csw
+csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
+# csw_url: https://stable.demo.geonode.org/catalogue/csw
 rdi: "bonares"
 query: ~
 xml_request: ~

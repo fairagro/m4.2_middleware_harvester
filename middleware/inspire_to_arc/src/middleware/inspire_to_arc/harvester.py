@@ -704,7 +704,8 @@ class CSWClient:
         """Extract thumbnail/preview image URLs."""
         if identification is None:
             return []
-        return getattr(identification, "graphicoverview", [])
+        urls = getattr(identification, "graphicoverview", [])
+        return [str(u) for u in urls if u]
 
     def _extract_resolution_denominators(self, identification: MD_DataIdentification | None) -> list[int]:
         """Extract spatial resolution as scale denominators."""
@@ -753,31 +754,36 @@ class CSWClient:
         """Extract access constraints."""
         if identification is None:
             return []
-        return getattr(identification, "accessconstraints", [])
+        constraints = getattr(identification, "accessconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_use_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract use constraints."""
         if identification is None:
             return []
-        return getattr(identification, "useconstraints", [])
+        constraints = getattr(identification, "useconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_classification(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract classification constraints."""
         if identification is None:
             return []
-        return getattr(identification, "classification", [])
+        constraints = getattr(identification, "classification", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_other_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints text."""
         if identification is None:
             return []
-        return getattr(identification, "otherconstraints", [])
+        constraints = getattr(identification, "otherconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_other_constraints_url(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints URLs."""
         if identification is None:
             return []
-        return getattr(identification, "otherconstraints_url", [])
+        urls = getattr(identification, "otherconstraints_url", [])
+        return [str(u) for u in urls if u]
 
     def _extract_distribution_formats(self, iso: MD_Metadata) -> list[DistributionFormat]:
         """Extract distribution format information."""
