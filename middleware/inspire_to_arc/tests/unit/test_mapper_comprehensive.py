@@ -244,13 +244,25 @@ def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecor
     assert len(assay.Tables) == 1
     table = assay.Tables[0]
     assert table.Name == "Measurement"
-    # Headers: Input (1), Output (1 - combined)
+    # Headers: Input, Resource Name (Parameter), Output
     assert table.ColumnCount == 3  # noqa: PLR2004
+    assert table.RowCount == 3  # noqa: PLR2004
 
-    # Check comments too
-    preview_comments = [c for c in assay.Comments if c.Name == "Preview"]
-    assert len(preview_comments) == 1
-    assert preview_comments[0].Value == "https://data.example.com/preview.png"
+    # Check table content
+    param_col = table.Columns[1]
+    output_col = table.Columns[2]
+
+    assert param_col.Cells[0].AsTerm.Name == "Dataset URI"
+    assert output_col.Cells[0].AsData.Name == "https://data.example.com/api"
+
+    assert param_col.Cells[1].AsTerm.Name == "Download"
+    assert output_col.Cells[1].AsData.Name == "https://data.example.com/download"
+
+    assert param_col.Cells[2].AsTerm.Name == "Graphic Overview"
+    assert output_col.Cells[2].AsData.Name == "https://data.example.com/preview.png"
+
+    # Assay comments should now be empty (moved to table)
+    assert len(assay.Comments) == 0
 
 
 def test_create_spatial_sampling_complex(mapper: InspireMapper, sample_record: InspireRecord) -> None:

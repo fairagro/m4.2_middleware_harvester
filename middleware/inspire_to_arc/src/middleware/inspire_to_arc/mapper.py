@@ -469,9 +469,8 @@ class InspireMapper:
         # Set Technology Platform (user suggested acquisitionInformation)
         assay.TechnologyPlatform = OntologyAnnotation(name="Satellite/Sensor Acquisition")
 
-        self._add_assay_comments(assay, record)
-
         # Add an annotation table to the assay (as requested by user)
+        # These diverse outputs (online resources, overviews) are now in the table, not comments.
         assay_table = self._create_assay_table(record)
         if assay_table:
             assay.AddTable(assay_table)
@@ -485,6 +484,8 @@ class InspireMapper:
             outputs.append(("Dataset URI", record.dataset_uri))
         for res in record.online_resources:
             outputs.append((res.name or "Online Resource", res.url))
+        for url in record.graphic_overviews:
+            outputs.append(("Graphic Overview", url))
 
         if not outputs:
             return None
@@ -518,13 +519,3 @@ class InspireMapper:
             tan="http://purl.obolibrary.org/obo/NCIT_C19026",
             tsr="NCIT",
         )
-
-    def _add_assay_comments(self, assay: ArcAssay, record: InspireRecord) -> None:
-        """Add comments to assay from graphic overviews and online resources."""
-        if record.graphic_overviews:
-            for url in record.graphic_overviews:
-                assay.Comments.append(Comment.create("Preview", url))
-        if record.online_resources:
-            for res in record.online_resources:
-                name = res.name or "Online Resource"
-                assay.Comments.append(Comment.create(name, res.url))
