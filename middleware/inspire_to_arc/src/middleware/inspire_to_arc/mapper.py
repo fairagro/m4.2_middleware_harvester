@@ -121,7 +121,11 @@ class InspireMapper:
 
     def map_investigation(self, record: InspireRecord) -> ArcInvestigation:
         """Map to ArcInvestigation with enhanced metadata-level fields."""
+        # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
+        if identifier and ("://" in identifier or "/" in identifier):
+            identifier = self._to_identifier_slug(record.title) or identifier.split("/")[-1]
+
         title = record.title
         description = record.abstract
         submission_date = record.date_stamp
@@ -197,6 +201,7 @@ class InspireMapper:
 
         # Simple string-based fields
         fields = [
+            ("Metadata Standard", record.metadata_standard_name),
             ("Parent Identifier", record.parent_identifier),
             ("Language", record.language),
             ("Edition", record.edition),

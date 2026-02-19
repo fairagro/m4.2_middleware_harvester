@@ -1,7 +1,13 @@
 """Comprehensive unit tests for the Inspire Mapper."""
 
+import os
+import tempfile
+
 import pytest
 from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, Person  # type: ignore[import]
+from arctrl.py.Contract.contract import DTO  # type: ignore[import]
+from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
+from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
 
 from middleware.inspire_to_arc.harvester import (
     ConformanceResult,
@@ -128,6 +134,7 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     # Check Comments (Metadata fields)
     comment_names = [c.Name for c in inv.Comments]
     assert "Language" in comment_names
+    assert "Metadata Standard" in comment_names
     assert "Access Constraints" in comment_names
 
     lang_comment = next(c for c in inv.Comments if c.Name == "Language")
@@ -299,3 +306,30 @@ def test_generate_comments_branches(mapper: InspireMapper, sample_record: Inspir
     assert "Alternate Title" in names
     assert "Purpose" in names
     assert "Supplemental Information" in names
+
+
+def test_map_record_adds_xml_file(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    """Test that mapping a record with raw_xml adds the iso19115.xml file to the ARC with correct content."""
+    sample_record.raw_xml = b"<xml>test content</xml>"
+    arc = mapper.map_record(sample_record)
+
+    # Check that the file is in the FileSystem tree
+    assert "iso19115.xml" in arc.FileSystem.Tree.ToFilePaths()
+
+    # Verify that we can write the ARC with content
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Get all write contracts
+        contracts = list(arc.GetWriteContracts())
+
+        # Set the content for the XML file
+        xml_contract = next((c for c in contracts if c.Path == "iso19115.xml"), None)
+        assert xml_contract is not None
+        xml_contract.DTO = DTO(1, sample_record.raw_xml.decode("utf-8"))
+
+        # Write the ARC to the temporary directory
+        run_synchronously(full_fill_contract_batch_async(tmpdir, contracts))
+
+        xml_file_path = os.path.join(tmpdir, "iso19115.xml")
+        assert os.path.exists(xml_file_path)
+        with open(xml_file_path, encoding="utf-8") as f:
+            assert f.read() == "<xml>test content</xml>"
