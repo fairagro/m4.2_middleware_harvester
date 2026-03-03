@@ -54,7 +54,7 @@ Core descriptive metadata about the dataset.
 | **purpose** | `purpose` | Why the dataset was created | `Study.Description` (in addition to lineage) |
 | **status** | `status` | Progress: completed, onGoing, planned, etc. | `Study` comment or Protocol parameter |
 | **pointOfContact** | `contact`, `creator`, `publisher`, `contributor` | Resource contacts by role | `Investigation.Contacts` (Person) split by role |
-| **graphicOverview** | `graphicoverview` | Thumbnail/preview image URLs | `Assay` comment/remark |
+| **graphicOverview** | `graphicoverview` | Thumbnail/preview image URLs | **Assay Annotation Table** (Output: Data) |
 | **resourceConstraints** | Various constraint fields (see below) | Legal and security constraints | **Investigation Comments** |
 | **spatialRepresentationType** | `spatialrepresentationtype` | Vector, grid, TIN, etc. | `Assay.TechnologyType` or comment |
 | **spatialResolution** | `denominators`, `distance`, `uom` | Resolution (scale or distance) | **Study Protocol** "Spatial Resolution" with parameters |
@@ -115,7 +115,7 @@ Information about how to obtain the dataset.
 | **distributionFormat/version** | `version`, `version_url` | Format version | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributionFormat/specification** | `specification`, `specification_url` | Format specification | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributor/contact** | `distributor[].contact` | Distributor contact information | `Person` with role="distributor" |
-| **transferOptions/onLine** | `online` (list of CI_OnlineResource) | Download/access URLs | **Assay Comments** (Online Resources) |
+| **transferOptions/onLine** | `online` (list of CI_OnlineResource) | Download/access URLs | **Assay Annotation Table** (Output: Data) |
 
 ### 7. CI_OnlineResource (Online Resources)
 
@@ -252,10 +252,9 @@ One INSPIRE record = One Study representing the data creation workflow.
 - **TechnologyPlatform**: `acquisitionInformation` (Satellite/Sensor platform)
 - **Annotation Table**:
   - **Input**: "Dataset Source"
-  - **Output (Data)**: `dataSetURI`
-  - **Output (Data)**: All `OnlineResource` links (download URLs, formats)
-- **Comments/Remarks**:
-  - graphicOverview (Previews) stored as Name/Value pairs
+  - **Parameter**: Resource Name (e.g., "Download", "Graphic Overview", "Dataset URI")
+  - **Output (Data)**: Resource URL (from `dataSetURI`, `online_resources`, or `graphic_overviews`)
+- **Comments/Remarks**: (none for resource links)
 
 ### Person (Contacts)
 
