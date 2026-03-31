@@ -164,7 +164,7 @@ jobs:
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
       - name: Security scan with Trivy (Image)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # Pinned to v0.35.0 (verified safe commit)
         with:
           image-ref: ${{ env.IMAGE_TAG }}
           format: sarif
@@ -173,7 +173,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Security scan with Trivy (SBOM)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # Pinned to v0.35.0 (verified safe commit)
         with:
           scan-type: sbom
           input: sboms/sbom-${{ matrix.component }}.spdx.json
