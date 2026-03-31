@@ -76,13 +76,13 @@ async def run_harvest(config: Config) -> None:
                         arc=arc,
                     )
 
-                    arc_id = response.arc.id if hasattr(response, "arc") and hasattr(response.arc, "id") else response
+                    arc_id = response.arc_id
                     logger.info(
                         "Successfully uploaded record %s (ARC ID: %s) - URL: %s", record.identifier, arc_id, record_url
                     )
                     count += 1
 
-                except Exception as e:  # pylint: disable=broad-exception-caught
+                except Exception as e:  # noqa: BLE001
                     logger.error("Failed to map/upload record %s: %s (URL: %s)", record.identifier, e, record_url)
                     continue
 

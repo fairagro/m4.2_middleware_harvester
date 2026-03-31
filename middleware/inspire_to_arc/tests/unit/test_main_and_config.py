@@ -61,7 +61,7 @@ async def test_run_harvest_success() -> None:
         mock_api = mock_api_class.return_value
         mock_api.__aenter__.return_value = mock_api
         mock_api.create_or_update_arc = AsyncMock()
-        mock_api.create_or_update_arc.return_value = MagicMock(arc=MagicMock(id="arc-1"))
+        mock_api.create_or_update_arc.return_value = MagicMock(arc_id="arc-1")
 
         mock_mapper = mock_mapper_class.return_value
         mock_mapper.map_record.return_value = MagicMock()
@@ -79,8 +79,6 @@ async def test_run_harvest_with_error() -> None:
     mock_config.api_client = MagicMock()
     mock_config.query = None
     mock_config.xml_request = None
-    mock_config.constraints = None
-    mock_config.max_records = 10
 
     mock_error = RecordProcessingError("Failed", record_id="err-1")
     mock_records = [mock_error]

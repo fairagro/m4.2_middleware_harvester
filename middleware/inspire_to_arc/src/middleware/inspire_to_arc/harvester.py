@@ -207,6 +207,7 @@ class CSWClient:
                 csw_title = getattr(self._csw.identification, "title", None)
             logger.info("Connected to CSW: %s", csw_title)
         except (OSError, TimeoutError, ValueError) as e:
+            logger.exception("Failed to connect to CSW at %s", self._url)
             raise ConnectionError(f"Failed to connect to CSW at {self._url}: {e}") from e
 
     def get_record_url(self, record_id: str) -> str:
@@ -270,13 +271,20 @@ class CSWClient:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
+
+        # If xml_request is a string with an encoding declaration,
+        # ensure it's converted to bytes to avoid lxml error:
+        # "Unicode strings with encoding declaration are not supported."
+        if isinstance(xml_request, str) and ("<?xml" in xml_request and "encoding" in xml_request):
+            xml_request = xml_request.encode("utf-8")
+
         self._csw.getrecords2(xml=xml_request)
         if self._csw.records:
             for uuid, record in self._csw.records.items():
                 if isinstance(record, MD_Metadata):
                     try:
                         yield self._parse_iso_record(record, record_uuid=uuid)
-                    except Exception as e:  # pylint: disable=broad-exception-caught
+                    except Exception as e:  # noqa: BLE001
                         # We yield instead of raising to allow the generator to continue
                         yield RecordProcessingError(str(e), uuid, original_error=e)
 
@@ -372,6 +380,7 @@ class CSWClient:
                 self._csw.getrecords2(**kwargs)
             return True
         except (OSError, TimeoutError, ValueError) as e:
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
             raise ConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
     def _yield_records_with_stable_ids(
@@ -418,7 +427,8 @@ class CSWClient:
 
                     yield self._parse_iso_record(record, record_uuid=stable_id)
                     records_yielded += 1
-                except Exception as e:  # pylint: disable=broad-exception-caught
+                except Exception as e:  # noqa: BLE001
+                    # We yield instead of raising to allow the generator to continue
                     yield RecordProcessingError(str(e), stable_id, original_error=e)
 
     def _all_records_fetched(self, start_position: int) -> bool:

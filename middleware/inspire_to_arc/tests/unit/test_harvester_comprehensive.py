@@ -1,5 +1,7 @@
 """Comprehensive unit tests for the Inspire Harvester."""
 
+# ruff: noqa: SLF001, PLR2004
+
 from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
@@ -81,8 +83,8 @@ def mock_iso_record(create_mock_identification: MagicMock) -> MagicMock:
 
 def test_csw_client_init() -> None:
     client = CSWClient("http://example.com/csw")
-    assert client._url == "http://example.com/csw"  # pylint: disable=protected-access
-    assert client._timeout == 30  # pylint: disable=protected-access  # noqa: PLR2004
+    assert client._url == "http://example.com/csw"
+    assert client._timeout == 30
 
 
 def test_csw_client_connect(mock_csw_cls: MagicMock) -> None:
@@ -152,7 +154,7 @@ def test_parse_iso_record_minimal(mock_iso_record: MagicMock) -> None:
     mock_iso_record.distribution = None
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert rec.identifier == "uuid-123"
     assert rec.title == "Test Title"
@@ -168,7 +170,7 @@ def test_parse_iso_record_missing_title(mock_iso_record: MagicMock) -> None:
 
     client = CSWClient("http://dummy")
     with pytest.raises(SemanticError, match="missing a title"):
-        client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+        client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
 
 def test_parse_iso_record_missing_abstract(mock_iso_record: MagicMock) -> None:
@@ -177,7 +179,7 @@ def test_parse_iso_record_missing_abstract(mock_iso_record: MagicMock) -> None:
 
     client = CSWClient("http://dummy")
     with pytest.raises(SemanticError, match="missing an abstract"):
-        client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+        client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
 
 def test_extract_contacts(mock_iso_record: MagicMock) -> None:
@@ -190,7 +192,7 @@ def test_extract_contacts(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.contact = [contact]
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.contacts) == 1
     c = rec.contacts[0]
@@ -206,7 +208,7 @@ def test_extract_spatial_extent_invalid(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.bbox.minx = "invalid"
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert rec.spatial_extent is None
 
 
@@ -216,7 +218,7 @@ def test_extract_resource_identifiers(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.uricodespace = ["DOI"]
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.resource_identifiers) == 1
     res_id = rec.resource_identifiers[0]
@@ -237,7 +239,7 @@ def test_extract_distribution_formats(mock_iso_record: MagicMock) -> None:
     mock_iso_record.distribution = dist
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.distribution_formats) == 1
     fmt = rec.distribution_formats[0]
@@ -384,7 +386,7 @@ def test_extract_lineage_complex(mock_iso_record: MagicMock) -> None:
     mock_iso_record.dataquality = dq
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert rec.lineage == "Test Lineage Statement"
 
 
@@ -394,12 +396,12 @@ def test_extract_spatial_extent_variations(mock_iso_record: MagicMock) -> None:
 
     # 1. Valid numbers as strings
     mock_iso_record.identification.bbox.minx = "10.1"
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-1")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-1")
     assert rec.spatial_extent == [10.1, 48.0, 11.0, 49.0]
 
     # 2. None values
     mock_iso_record.identification.bbox.minx = None
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-2")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-2")
     assert rec.spatial_extent is None
 
 
@@ -411,10 +413,10 @@ def test_extract_resolution(mock_iso_record: MagicMock) -> None:
     ident.uom = ["m"]
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
-    assert 5000 in rec.spatial_resolution_denominators  # noqa: PLR2004
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
+    assert 5000 in rec.spatial_resolution_denominators
     assert len(rec.spatial_resolution_distances) == 1
-    assert rec.spatial_resolution_distances[0].value == 10.0  # noqa: PLR2004
+    assert rec.spatial_resolution_distances[0].value == 10.0
     assert rec.spatial_resolution_distances[0].uom == "m"
 
 
@@ -431,7 +433,7 @@ def test_extract_distribution_formats_complex(mock_iso_record: MagicMock) -> Non
     mock_iso_record.distribution = dist
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.distribution_formats) == 1
     assert rec.distribution_formats[0].name == "Format1"
     assert rec.distribution_formats[0].version == "1.0"
@@ -454,7 +456,7 @@ def test_extract_online_resources(mock_iso_record: MagicMock) -> None:
     mock_iso_record.distribution = dist
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.online_resources) == 1
     assert rec.online_resources[0].url == "http://data.com"
 
@@ -472,7 +474,7 @@ def test_extract_conformance(mock_iso_record: MagicMock) -> None:
     mock_iso_record.dataquality = dq
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.conformance_results) == 1
     assert rec.conformance_results[0].specification_title == "INSPIRE"
     assert rec.conformance_results[0].degree == "true"
@@ -490,7 +492,7 @@ def test_extract_reference_systems(mock_iso_record: MagicMock) -> None:
     mock_iso_record.referencesystem = ref
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.reference_systems) == 1
     assert rec.reference_systems[0].code == "EPSG:4326"
 
@@ -505,9 +507,89 @@ def test_extract_contacts_metadata_level(mock_iso_record: MagicMock) -> None:
     mock_iso_record.contact = [contact]
 
     client = CSWClient("http://dummy")
-    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")  # pylint: disable=protected-access
+    rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     # rec.contacts should have 2 contacts now: 1 resource (if added), but in minimal mock it's empty
     # Wait, ident.contact = [] in fixture.
     assert len(rec.contacts) == 1
     assert rec.contacts[0].name == "Meta Person"
     assert rec.contacts[0].type == "metadata"
+
+
+def test_dwd_filter_xml_request(mock_csw_cls: MagicMock) -> None:
+    """
+    Test that the DWD filter XML request is valid and can be used.
+
+    This validates the XML configuration from config_dwd_gdi_de.yaml.
+    The XML should contain a proper OGC FES PropertyIsEqualTo filter
+    for apiso:organisationName = "Deutscher Wetterdienst".
+    """
+    # The exact XML from config_dwd_gdi_de.yaml
+    dwd_xml_request = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <csw:GetRecords
+        xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
+        xmlns:ogc="http://www.opengis.net/ogc"
+        service="CSW"
+        version="2.0.2"
+        resultType="results"
+        outputSchema="http://www.isotc211.org/2005/gmd"
+        startPosition="1"
+        maxRecords="50">
+      <csw:Query typeNames="csw:Record">
+        <csw:ElementSetName>full</csw:ElementSetName>
+        <csw:Constraint version="1.1.0">
+          <ogc:Filter>
+            <ogc:PropertyIsEqualTo>
+              <ogc:PropertyName>apiso:organisationName</ogc:PropertyName>
+              <ogc:Literal>Deutscher Wetterdienst</ogc:Literal>
+            </ogc:PropertyIsEqualTo>
+          </ogc:Filter>
+        </csw:Constraint>
+      </csw:Query>
+    </csw:GetRecords>"""
+
+    # Verify XML is valid (can be parsed)
+    import xml.etree.ElementTree as ET  # pylint: disable=import-outside-toplevel
+
+    try:
+        root = ET.fromstring(dwd_xml_request)
+        assert root.tag == "{http://www.opengis.net/cat/csw/2.0.2}GetRecords"
+        assert root.get("service") == "CSW"
+        assert root.get("version") == "2.0.2"
+
+        # Verify filter is present
+        namespaces = {"csw": "http://www.opengis.net/cat/csw/2.0.2", "ogc": "http://www.opengis.net/ogc"}
+        constraint = root.find(".//csw:Constraint", namespaces)
+        assert constraint is not None, "Constraint should be present"
+
+        filter_elem = constraint.find(".//ogc:Filter", namespaces)
+        assert filter_elem is not None, "Filter should be present"
+
+        prop_equal = filter_elem.find(".//ogc:PropertyIsEqualTo", namespaces)
+        assert prop_equal is not None, "PropertyIsEqualTo should be present"
+
+        prop_name = prop_equal.find("ogc:PropertyName", namespaces)
+        assert prop_name is not None
+        assert prop_name.text == "apiso:organisationName"
+
+        literal = prop_equal.find("ogc:Literal", namespaces)
+        assert literal is not None
+        assert literal.text == "Deutscher Wetterdienst"
+
+    except ET.ParseError as e:
+        pytest.fail(f"DWD XML request is invalid: {e}")
+
+    # Create a client and verify it can handle XML requests
+    mock_csw_instance = MagicMock()
+    mock_csw_instance.records = {}
+    mock_csw_instance.results = {"matches": 200}
+    mock_csw_cls.return_value = mock_csw_instance
+
+    client = CSWClient("http://dummy-csw")
+    client.connect()
+
+    # get_record_count should work with the DWD XML
+    count = client.get_record_count(xml_request=dwd_xml_request)
+    assert count == 200, "Should get record count from CSW"
+
+    # Verify getrecords2 was called with the XML
+    mock_csw_instance.getrecords2.assert_called()
