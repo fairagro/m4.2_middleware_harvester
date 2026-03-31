@@ -25,6 +25,7 @@ env:
 jobs:
   code-quality:
     name: CodeQuality/Check
+    needs: []
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -102,7 +103,7 @@ jobs:
 
   container-structure-test:
     name: ContainerStructureTests/Check
-    needs: []
+    needs: [] # In a real scenario, this should not need 'build' if it only needs the artifact
     strategy:
       matrix:
         component: ${{ fromJson(inputs.components) }}
@@ -133,7 +134,7 @@ jobs:
 
   security-scan:
     name: SecurityScan/Check
-    needs: []
+    needs: [] # Requires build (for image) and generate-sbom (for SBOM)
     strategy:
       matrix:
         component: ${{ fromJson(inputs.components) }}

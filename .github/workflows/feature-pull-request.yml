@@ -25,7 +25,6 @@ jobs:
 
   check:
     name: Check
-    needs: build
     uses: ./.github/workflows/reusable-check.yml
     with:
       version: ${{ needs.build.outputs.version }}
