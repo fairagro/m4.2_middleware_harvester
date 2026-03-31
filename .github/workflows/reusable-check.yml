@@ -19,6 +19,8 @@ on:
 
 env:
   IMAGE_BASE_NAME: ${{ vars.IMAGE_BASE_NAME || 'fairagro-advanced-middleware' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 
 jobs:
   code-quality:
