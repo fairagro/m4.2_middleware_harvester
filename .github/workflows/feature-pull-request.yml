@@ -2,6 +2,7 @@ name: Feature Pull Request
 
 permissions:
   contents: read
+  security-events: write
 
 
 on:
