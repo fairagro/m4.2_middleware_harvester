@@ -20,6 +20,9 @@ on:
       version:
         description: 'Calculated version'
         value: ${{ jobs.version.outputs.version }}
+      pep440_version:
+        description: 'PEP 440 compliant version for Python package builds'
+        value: ${{ jobs.version.outputs.pep440_version }}
       components:
         description: 'A JSON string array of components that were built'
         value: ${{ inputs.components }}
@@ -36,6 +39,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.calc-version.outputs.version }}
+      pep440_version: ${{ steps.calc-version.outputs.pep440_version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -61,14 +65,39 @@ jobs:
           BASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
           if [[ "$GITHUB_REF_NAME" == feature/* ]]; then
+            # Pre-release: use sequential dev build counter (github.run_number)
             BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            NEW_VERSION="${BASE_VERSION}-${BRANCH_LABEL}.${SHORT_SHA}"
+            NEW_VERSION="${BASE_VERSION}-rc.${{ github.run_number }}.${BRANCH_LABEL}"
+
+            # PEP 440 compliant variant for Python package builds (hatch-vcs / setuptools-scm).
+            # Format: X.Y.Z.devN+branch.name
+            PEP440_BRANCH=$(echo "$GITHUB_REF_NAME" \
+              | sed 's|feature/||' \
+              | tr '[:upper:]' '[:lower:]' \
+              | sed -E 's/[^a-z0-9]+/./g; s/^\.+//; s/\.+$//; s/\.{2,}/./g' \
+              | cut -c1-30)
+            if [[ -z "$PEP440_BRANCH" ]]; then
+              PEP440_BRANCH="feature"
+            fi
+            PEP440_VERSION="${BASE_VERSION}.dev${{ github.run_number }}+${PEP440_BRANCH}"
           else
             NEW_VERSION="${BASE_VERSION}"
+            PEP440_VERSION="${BASE_VERSION}"
           fi
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "pep440_version=$PEP440_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Report versions to summary
+        run: |
+          echo "## 📦 Docker Build Versions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Version Type | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Tag** | \`${{ steps.calc-version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Python Build** | \`${{ steps.calc-version.outputs.pep440_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
 
   docker-build:
     name: Docker Build
@@ -97,7 +126,7 @@ jobs:
           load: true
           tags: local/${{ env.IMAGE_BASE_NAME }}-${{ matrix.component }}:${{ needs.version.outputs.version }}
           build-args: |
-            APP_VERSION=${{ needs.version.outputs.version }}
+            APP_VERSION=${{ needs.version.outputs.pep440_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

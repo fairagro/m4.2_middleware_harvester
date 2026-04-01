@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
+# Pretend version for hatch-vcs (used during uv build of inspire_to_arc wheel)
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
-ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSPIRE_TO_ARC=${APP_VERSION}
 
 RUN uv build --package inspire_to_arc --wheel
 
@@ -37,8 +37,8 @@ RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
+# Pretend version for hatch-vcs (used when installing git dependencies)
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
-ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSPIRE_TO_ARC=${APP_VERSION}
 
 # Bring in the pre-built wheel and project metadata
 COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
@@ -54,13 +54,19 @@ COPY middleware ./middleware
 #    as pre-built wheels on PyPI.
 # 3. Thus, we use 'uv sync' to create a virtual environment (.venv) and resolve all
 #    complex dependencies exactly as specified in the uv.lock.
-RUN uv sync --no-dev
+# 4. We skip workspace installation here to avoid editable builds of the root package,
+#    which can fail in shallow/branch builds when hatch-vcs parses non-PEP440 refs.
+# 5. We also skip direct installation of git-based hatch-vcs packages during sync
+#    and install them explicitly later to keep versioning deterministic in CI.
+RUN uv sync --no-dev --no-install-workspace \
+    --no-install-package api-client \
+    --no-install-package shared
 
-# 4. Install the application wheel.
+# 5. Install the application wheel.
 #    This replaces the editable install from 'uv sync' with the optimized wheel.
 RUN uv pip install /tmp/wheels/*.whl pyinstaller
 
-# 5. FIX: Manually reinstall git dependencies using their INTERNAL names (underscore)
+# 6. FIX: Manually reinstall git dependencies using their INTERNAL names (underscore)
 #    to ensure proper namespace installation. We do this AFTER installing the wheel
 #    to ensure the namespace merging happens correctly.
 RUN . .venv/bin/activate && \
