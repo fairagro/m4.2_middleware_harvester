@@ -60,7 +60,7 @@ repos:
         language: system
         types: [python]
         files: ^middleware/
-        args: [--configfile, .bandit]
+        args: [-c, .bandit, -ll]
 
       # pylint - Code quality
       - id: pylint

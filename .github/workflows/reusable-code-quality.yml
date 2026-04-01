@@ -48,7 +48,7 @@ jobs:
           uv run mypy middleware/ --ignore-missing-imports --strict-optional
 
       - name: Security check with bandit
-        run: uv run bandit -r middleware/ --exclude middleware/tests/ --skip B101 -ll
+        run: uv run bandit -r middleware/ -c .bandit -ll
 
       - name: Run tests
         run: uv run pytest middleware/inspire_to_arc/tests/ -v --junitxml=pytest-report.xml
