@@ -1,0 +1,41 @@
+@startuml workflows
+!include <C4/C4_Component>
+
+Container_Boundary(featurePullRequest, "Feature Pull Request") {
+}
+
+Container_Boundary(mainRelease, "Release of main") {
+}
+
+Container_Boundary(preRelease, "PreRelease of feature branch") {
+}
+
+Container_Boundary(check, "Check") {
+  rectangle "Licence Check" as licenceCheck
+  rectangle "Security Check" as securityCheck
+  rectangle "Container Structure Tests" as containerStructureTests
+  rectangle "Code Quality Check" as codeQualityCheck
+}
+
+Container_Boundary(build, "Build") {
+  rectangle "Determine Version" as determineVersion
+  rectangle "Generate SBOM" as generateSbom
+  rectangle "Docker Build" as dockerBuild
+  Rel(generateSbom, dockerBuild, "")
+  Rel(dockerBuild, determineVersion, "")
+}
+
+Container_Boundary(release, "Release") {
+  rectangle "GitHub Release" as gitHubRelease
+  rectangle "Docker Push" as dockerPush
+  rectangle "Create Release Tag" as createReleaseTag
+  Rel(createReleaseTag, gitHubRelease, "")
+  Rel(dockerPush, gitHubRelease, "")
+}
+
+Rel(featurePullRequest, check, "triggers")
+Rel(check, build, "")
+Rel(mainRelease, release, "triggers")
+Rel(preRelease, release, "triggers")
+Rel(release, build, "triggers")
+@enduml

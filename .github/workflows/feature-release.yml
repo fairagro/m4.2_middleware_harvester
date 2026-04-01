@@ -1,13 +1,20 @@
 name: Feature Release
 
 permissions:
-  contents: read
-
+  contents: write
+  packages: write
 
 on:
   workflow_dispatch:
 
 jobs:
+  code-quality:
+    name: Code Quality
+    uses: ./.github/workflows/reusable-code-quality.yml
+    with:
+      components: '["inspire_to_arc"]'
+    secrets: inherit
+
   build:
     name: Build
     uses: ./.github/workflows/reusable-build.yml
@@ -24,4 +31,5 @@ jobs:
       version: ${{ needs.build.outputs.version }}
       components: '["inspire_to_arc"]'
       release_type: 'feature'
+      create_github_release: false
     secrets: inherit

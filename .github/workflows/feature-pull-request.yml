@@ -7,7 +7,6 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -15,12 +14,17 @@ on:
       - 'main'
 
 jobs:
+  code-quality:
+    name: Code Quality
+    uses: ./.github/workflows/reusable-code-quality.yml
+    with:
+      components: '["inspire_to_arc"]'
+    secrets: inherit
+
   build:
     name: Build
-    needs: check
     uses: ./.github/workflows/reusable-build.yml
     with:
-      version_bump: 'patch'
       components: '["inspire_to_arc"]'
     secrets: inherit
 

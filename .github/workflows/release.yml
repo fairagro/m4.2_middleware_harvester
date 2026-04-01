@@ -2,7 +2,7 @@ name: Release
 
 permissions:
   contents: read
-
+  security-events: write
 
 on:
   workflow_dispatch:
@@ -16,8 +16,22 @@ on:
         - major
         - minor
         - patch
+  workflow_call:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: string
 
 jobs:
+  code-quality:
+    name: Code Quality
+    uses: ./.github/workflows/reusable-code-quality.yml
+    with:
+      components: '["inspire_to_arc"]'
+    secrets: inherit
+
   build:
     name: Build
     uses: ./.github/workflows/reusable-build.yml
@@ -37,7 +51,7 @@ jobs:
 
   release:
     name: Release
-    needs: [build, check]
+    needs: [build, check, code-quality]
     uses: ./.github/workflows/reusable-release.yml
     with:
       version: ${{ needs.build.outputs.version }}
