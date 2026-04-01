@@ -3,7 +3,6 @@ name: Reusable Release
 permissions:
   contents: read
 
-
 on:
   workflow_call:
     inputs:
@@ -20,6 +19,11 @@ on:
         description: 'Type of release (feature or final)'
         required: true
         type: string
+      create_github_release:
+        description: 'Whether to create a GitHub release'
+        required: false
+        type: boolean
+        default: true
     secrets:
       DOCKERHUB_USER:
         required: true
@@ -78,7 +82,6 @@ jobs:
           echo "✅ Pushed to DockerHub: $DH_TAG"
 
           # GHCR
-          # GHCR requires lowercase repository name
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           GHCR_TAG="ghcr.io/$REPO_LOWER/${{ matrix.component }}:${{ inputs.version }}"
           docker tag ${{ env.LOCAL_TAG }} $GHCR_TAG
@@ -87,6 +90,7 @@ jobs:
 
   create-release-tag:
     name: CreateReleaseTag/Release
+    if: inputs.create_github_release == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,13 +105,12 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ inputs.version }}
-          tag_prefix: "v" 
-          create_annotated_tag: true
+          tag_prefix: ""
 
   github-release:
-    name: GithubRelease/Release
+    name: GitHubRelease/Release
+    if: inputs.create_github_release == true
     needs: [docker-push, create-release-tag]
-    if: inputs.release_type == 'final'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -116,7 +119,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ inputs.version }}"
-          name: "Release v${{ inputs.version }}"
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          draft: false
+          prerelease: ${{ inputs.release_type == 'feature' }}
           generate_release_notes: true
-          make_latest: true

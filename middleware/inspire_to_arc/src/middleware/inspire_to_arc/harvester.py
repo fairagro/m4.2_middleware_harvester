@@ -176,6 +176,9 @@ class InspireRecord(BaseModel):
     # Supplemental (new)
     supplemental_information: str | None = None
 
+    # Raw XML for archival
+    raw_xml: bytes | None = None
+
     # Note: acquisition and contentinfo are complex nested objects that will be
     # handled separately if needed (mapped as Assay Protocols in the mapper)
 
@@ -204,6 +207,7 @@ class CSWClient:
                 csw_title = getattr(self._csw.identification, "title", None)
             logger.info("Connected to CSW: %s", csw_title)
         except (OSError, TimeoutError, ValueError) as e:
+            logger.exception("Failed to connect to CSW at %s", self._url)
             raise ConnectionError(f"Failed to connect to CSW at {self._url}: {e}") from e
 
     def get_record_url(self, record_id: str) -> str:
@@ -267,13 +271,20 @@ class CSWClient:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
+
+        # If xml_request is a string with an encoding declaration,
+        # ensure it's converted to bytes to avoid lxml error:
+        # "Unicode strings with encoding declaration are not supported."
+        if isinstance(xml_request, str) and ("<?xml" in xml_request and "encoding" in xml_request):
+            xml_request = xml_request.encode("utf-8")
+
         self._csw.getrecords2(xml=xml_request)
         if self._csw.records:
             for uuid, record in self._csw.records.items():
                 if isinstance(record, MD_Metadata):
                     try:
                         yield self._parse_iso_record(record, record_uuid=uuid)
-                    except Exception as e:  # pylint: disable=broad-exception-caught
+                    except Exception as e:  # noqa: BLE001
                         # We yield instead of raising to allow the generator to continue
                         yield RecordProcessingError(str(e), uuid, original_error=e)
 
@@ -369,6 +380,7 @@ class CSWClient:
                 self._csw.getrecords2(**kwargs)
             return True
         except (OSError, TimeoutError, ValueError) as e:
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
             raise ConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
     def _yield_records_with_stable_ids(
@@ -415,7 +427,8 @@ class CSWClient:
 
                     yield self._parse_iso_record(record, record_uuid=stable_id)
                     records_yielded += 1
-                except Exception as e:  # pylint: disable=broad-exception-caught
+                except Exception as e:  # noqa: BLE001
+                    # We yield instead of raising to allow the generator to continue
                     yield RecordProcessingError(str(e), stable_id, original_error=e)
 
     def _all_records_fetched(self, start_position: int) -> bool:
@@ -521,6 +534,8 @@ class CSWClient:
             reference_systems=self._extract_reference_systems(iso),
             # Supplemental (new)
             supplemental_information=self._extract_identification_str("supplementalinformation", identification),
+            # Raw XML
+            raw_xml=getattr(iso, "xml", None),
         )
 
     def _extract_identification(self, iso: MD_Metadata) -> MD_DataIdentification | None:
@@ -699,7 +714,8 @@ class CSWClient:
         """Extract thumbnail/preview image URLs."""
         if identification is None:
             return []
-        return getattr(identification, "graphicoverview", [])
+        urls = getattr(identification, "graphicoverview", [])
+        return [str(u) for u in urls if u]
 
     def _extract_resolution_denominators(self, identification: MD_DataIdentification | None) -> list[int]:
         """Extract spatial resolution as scale denominators."""
@@ -748,31 +764,36 @@ class CSWClient:
         """Extract access constraints."""
         if identification is None:
             return []
-        return getattr(identification, "accessconstraints", [])
+        constraints = getattr(identification, "accessconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_use_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract use constraints."""
         if identification is None:
             return []
-        return getattr(identification, "useconstraints", [])
+        constraints = getattr(identification, "useconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_classification(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract classification constraints."""
         if identification is None:
             return []
-        return getattr(identification, "classification", [])
+        constraints = getattr(identification, "classification", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_other_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints text."""
         if identification is None:
             return []
-        return getattr(identification, "otherconstraints", [])
+        constraints = getattr(identification, "otherconstraints", [])
+        return [str(c) for c in constraints if c]
 
     def _extract_other_constraints_url(self, identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints URLs."""
         if identification is None:
             return []
-        return getattr(identification, "otherconstraints_url", [])
+        urls = getattr(identification, "otherconstraints_url", [])
+        return [str(u) for u in urls if u]
 
     def _extract_distribution_formats(self, iso: MD_Metadata) -> list[DistributionFormat]:
         """Extract distribution format information."""

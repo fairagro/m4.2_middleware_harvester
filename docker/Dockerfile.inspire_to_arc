@@ -8,18 +8,14 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY middleware ./middleware
 
 # Upgrade pip and install uv
-RUN pip install --no-cache-dir --upgrade pip==25.3 uv==0.9.27
+RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
+ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSPIRE_TO_ARC=${APP_VERSION}
 
-# We prefer to build a wheel for our package first. This ensures we have a clean,
-# distributable artifact that contains only the necessary files.
-# We set HATCH_VCS_PRETEND_VERSION so hatch-vcs can work without .git folder.
-# We also set SETUPTOOLS_SCM_PRETEND_VERSION for compatibility with related tools.
-RUN HATCH_VCS_PRETEND_VERSION=${APP_VERSION#v} \
-    SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION#v} \
-    uv build --package inspire_to_arc --wheel
+RUN uv build --package inspire_to_arc --wheel
 
 
 # ---- Binary Build Stage ----
@@ -31,16 +27,18 @@ RUN apk add --no-cache \
     python3-dev=3.12.12-r0 \
     libffi-dev=3.5.2-r0 \
     openssl-dev=3.5.5-r0 \
-    cargo=1.91.1-r0 \
+    cargo=1.91.1-r1 \
     git=2.52.0-r0
 
 WORKDIR /build
 
 # Install uv core tool
-RUN pip install --no-cache-dir --upgrade pip==25.3 uv==0.9.27
+RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
+ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSPIRE_TO_ARC=${APP_VERSION}
 
 # Bring in the pre-built wheel and project metadata
 COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
@@ -56,13 +54,11 @@ COPY middleware ./middleware
 #    as pre-built wheels on PyPI.
 # 3. Thus, we use 'uv sync' to create a virtual environment (.venv) and resolve all
 #    complex dependencies exactly as specified in the uv.lock.
-RUN SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION#v} \
-    uv sync --no-dev
+RUN uv sync --no-dev
 
 # 4. Install the application wheel.
 #    This replaces the editable install from 'uv sync' with the optimized wheel.
-RUN SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION#v} \
-    uv pip install /tmp/wheels/*.whl pyinstaller
+RUN uv pip install /tmp/wheels/*.whl pyinstaller
 
 # 5. FIX: Manually reinstall git dependencies using their INTERNAL names (underscore)
 #    to ensure proper namespace installation. We do this AFTER installing the wheel
@@ -90,6 +86,9 @@ FROM alpine:3.23.3
 
 WORKDIR /middleware
 
+
+RUN apk add --no-cache --upgrade \
+    zlib=1.3.2-r0
 # Create non-root user and group
 RUN addgroup -S inspire_to_arc && \
     adduser -S -H -G inspire_to_arc inspire_to_arc

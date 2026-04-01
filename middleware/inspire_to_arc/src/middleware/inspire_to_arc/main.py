@@ -57,6 +57,11 @@ async def run_harvest(config: Config) -> None:
                 record = item
                 record_url = csw_client.get_record_url(record.identifier)
 
+                # Skip non-dataset records (e.g., services)
+                if record.hierarchy and record.hierarchy.lower() not in ["dataset", "series", "nongeographicdataset"]:
+                    logger.info("Skipping non-dataset record %s (Type: %s)", record.identifier, record.hierarchy)
+                    continue
+
                 # Log the INSPIRE identifier (UUID)
                 logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
 
@@ -71,13 +76,13 @@ async def run_harvest(config: Config) -> None:
                         arc=arc,
                     )
 
-                    arc_id = response.arc.id if hasattr(response, "arc") and hasattr(response.arc, "id") else response
+                    arc_id = response.arc_id
                     logger.info(
                         "Successfully uploaded record %s (ARC ID: %s) - URL: %s", record.identifier, arc_id, record_url
                     )
                     count += 1
 
-                except Exception as e:  # pylint: disable=broad-exception-caught
+                except Exception as e:  # noqa: BLE001
                     logger.error("Failed to map/upload record %s: %s (URL: %s)", record.identifier, e, record_url)
                     continue
 

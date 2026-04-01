@@ -4,6 +4,8 @@ This module provides the InspireMapper class, which maps InspireRecord data
 to ARC Investigation, Study, Assay, and related objects.
 """
 
+import re
+
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
     ArcAssay,
@@ -13,10 +15,12 @@ from arctrl import (  # type: ignore[import-untyped]
     Comment,
     CompositeCell,
     CompositeHeader,
+    IOType,
     OntologyAnnotation,
     Person,
     Publication,
 )
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
 from .harvester import Contact, InspireRecord
 
@@ -39,7 +43,24 @@ class InspireMapper:
         study.RegisterAssay(assay.Identifier)
 
         # 4. Wrap in ARC
-        return ARC.from_arc_investigation(investigation)
+        arc = ARC.from_arc_investigation(investigation)
+
+        # 5. Add raw XML as file
+        if record.raw_xml:
+            arc.FileSystem = arc.FileSystem.AddFile("iso19115.xml")
+
+        return arc
+
+    def _to_identifier_slug(self, title: str) -> str:
+        """Convert a title to a machine-readable identifier slug."""
+        if not title:
+            return "untitled"
+        # Lowercase, replace non-alphanumeric with underscores
+        slug = re.sub(r"[^a-z0-9]+", "_", title.lower())
+        # Remove leading/trailing underscores
+        slug = slug.strip("_")
+        # Truncate to a reasonable length
+        return slug[:80]
 
     def map_person(self, contact: Contact) -> Person | None:
         """Map contact object to Person with full CI_ResponsibleParty details."""
@@ -92,20 +113,19 @@ class InspireMapper:
 
     def _add_person_comments(self, person: Person, contact: Contact) -> None:
         """Add comments to person from position and online resources."""
-        comments = []
         if contact.position:
-            comments.append(f"Position: {contact.position}")
+            person.Comments.append(Comment.create("Position", contact.position))
         if contact.online_resource_url:
-            if contact.online_resource_name:
-                comments.append(f"{contact.online_resource_name}: {contact.online_resource_url}")
-            else:
-                comments.append(contact.online_resource_url)
-        if comments:
-            person.Comments.extend(comments)
+            name = contact.online_resource_name or "Online Resource"
+            person.Comments.append(Comment.create(name, contact.online_resource_url))
 
     def map_investigation(self, record: InspireRecord) -> ArcInvestigation:
         """Map to ArcInvestigation with enhanced metadata-level fields."""
+        # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
+        if identifier and ("://" in identifier or "/" in identifier):
+            identifier = self._to_identifier_slug(record.title) or identifier.split("/")[-1]
+
         title = record.title
         description = record.abstract
         submission_date = record.date_stamp
@@ -117,8 +137,20 @@ class InspireMapper:
         self._add_contacts(inv, record)
         self._add_publications(inv, record)
         self._add_comments(inv, record)
+        self._add_ontology_sources(inv, record)
 
         return inv
+
+    def _add_ontology_sources(self, inv: ArcInvestigation, record: InspireRecord) -> None:
+        """Add ontology source references from metadata standard."""
+        if record.metadata_standard_name:
+            inv.OntologySourceReferences.append(
+                OntologySourceReference.create(
+                    name=record.metadata_standard_name,
+                    version=record.metadata_standard_version or "",
+                    description="INSPIRE Metadata Standard",
+                )
+            )
 
     def _add_contacts(self, inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add all contacts to the investigation."""
@@ -161,51 +193,45 @@ class InspireMapper:
         """Add metadata-level comments to the investigation."""
         comments = self._generate_comments(record)
         for comment in comments:
-            inv.Comments.append(Comment(comment))
+            inv.Comments.append(comment)
 
-    def _generate_comments(self, record: InspireRecord) -> list[str]:
+    def _generate_comments(self, record: InspireRecord) -> list[Comment]:
         """Generate metadata-level comments from record fields."""
         comments = []
 
         # Simple string-based fields
         fields = [
+            ("Metadata Standard", record.metadata_standard_name),
             ("Parent Identifier", record.parent_identifier),
-            ("Hierarchy Level", record.hierarchy),
-            ("Dataset URI", record.dataset_uri),
             ("Language", record.language),
-            ("Character Set", record.charset),
             ("Edition", record.edition),
             ("Status", record.status),
+            ("Alternate Title", record.alternate_title),
+            ("Purpose", record.purpose),
+            ("Supplemental Information", record.supplemental_information),
         ]
         for label, value in fields:
             if value:
-                comments.append(f"{label}: {value}")
-
-        # Metadata Standard (with version)
-        if record.metadata_standard_name:
-            std = record.metadata_standard_name
-            if record.metadata_standard_version:
-                std += f" v{record.metadata_standard_version}"
-            comments.append(f"Metadata Standard: {std}")
+                comments.append(Comment.create(label, value))
 
         self._add_constraint_comments(comments, record)
         return comments
 
-    def _add_constraint_comments(self, comments: list[str], record: InspireRecord) -> None:
+    def _add_constraint_comments(self, comments: list[Comment], record: InspireRecord) -> None:
         """Add constraint-related comments."""
         if record.access_constraints:
-            comments.append(f"Access Constraints: {', '.join(record.access_constraints)}")
+            comments.append(Comment.create("Access Constraints", ", ".join(record.access_constraints)))
         if record.use_constraints:
-            comments.append(f"Use Constraints: {', '.join(record.use_constraints)}")
+            comments.append(Comment.create("Use Constraints", ", ".join(record.use_constraints)))
         if record.classification:
-            comments.append(f"Classification: {', '.join(record.classification)}")
+            comments.append(Comment.create("Classification", ", ".join(record.classification)))
         if record.other_constraints:
-            comments.append(f"Other Constraints: {'; '.join(record.other_constraints[:3])}")
+            comments.append(Comment.create("Other Constraints", "; ".join(record.other_constraints[:3])))
 
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
-        identifier = f"{record.identifier}_study"
-        title = f"Study for: {record.title}"
+        identifier = self._to_identifier_slug(record.title)
+        title = record.title
 
         # Enhanced description with lineage, purpose, and supplemental info
         desc_parts = []
@@ -246,7 +272,12 @@ class InspireMapper:
         Input: Geographic Region / Area of Interest
         Output: Selected Location(s)
         """
-        if not (record.spatial_extent or record.spatial_resolution_denominators or record.spatial_resolution_distances):
+        if not (
+            record.spatial_extent
+            or record.spatial_resolution_denominators
+            or record.spatial_resolution_distances
+            or record.reference_systems
+        ):
             return None
 
         table = ArcTable.init("Spatial Sampling")
@@ -258,6 +289,15 @@ class InspireMapper:
             bbox_str = f"[{', '.join(map(str, record.spatial_extent))}]"
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Bounding Box")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=bbox_str)))
+
+        # CRS (Coordinate Reference System)
+        if record.reference_systems:
+            crs_list = []
+            for rs in record.reference_systems:
+                crs_str = f"{rs.codespace}:{rs.code}" if rs.codespace else rs.code
+                crs_list.append(crs_str)
+            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Coordinate Reference System")))
+            cells.append(CompositeCell.term(OntologyAnnotation(name=", ".join(crs_list))))
 
         # Spatial Resolution - Denominators (Scale)
         if record.spatial_resolution_denominators:
@@ -272,8 +312,18 @@ class InspireMapper:
             cells.append(CompositeCell.term(OntologyAnnotation(name=dist_str)))
 
         if headers:
+            # Add Input Column
+            table.AddColumn(
+                CompositeHeader.input(IOType.source()),
+                [CompositeCell.free_text("Geographic Region")],
+            )
             for i, header in enumerate(headers):
                 table.AddColumn(header, [cells[i]])
+            # Add Output Column
+            table.AddColumn(
+                CompositeHeader.output(IOType.sample()),
+                [CompositeCell.free_text("Selected Location")],
+            )
             return table
         return None
 
@@ -305,12 +355,21 @@ class InspireMapper:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Acquisition Date")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
 
-        # Platform/Sensor (from acquisition metadata - would need to be extracted)
         # NOTE: acquisition is complex nested - not implemented in extraction phase
 
         if headers:
+            # Add Input Column
+            table.AddColumn(
+                CompositeHeader.input(IOType.sample()),
+                [CompositeCell.free_text("Selected Location")],
+            )
             for i, header in enumerate(headers):
                 table.AddColumn(header, [cells[i]])
+            # Add Output Column
+            table.AddColumn(
+                CompositeHeader.output(IOType.data()),
+                [CompositeCell.create_data_from_string("Raw Data")],
+            )
             return table
         return None
 
@@ -360,35 +419,91 @@ class InspireMapper:
             cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
 
         if headers:
+            # Add Input Column (Data column -> Data cell)
+            table.AddColumn(
+                CompositeHeader.input(IOType.data()),
+                [CompositeCell.create_data_from_string("Raw Data")],
+            )
             for i, header in enumerate(headers):
                 table.AddColumn(header, [cells[i]])
+            # Add Output Column (Data column -> Data cell)
+            table.AddColumn(
+                CompositeHeader.output(IOType.data()),
+                [CompositeCell.create_data_from_string("Processed Data")],
+            )
             return table
 
         # If no headers, create minimal protocol with just a note
         if record.lineage or record.dates:
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Note")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name="Data processing details from INSPIRE metadata")))
-            table.AddColumn(headers[0], [cells[0]])
+            table.AddColumn(
+                CompositeHeader.input(IOType.data()),
+                [CompositeCell.create_data_from_string("Raw Data")],
+            )
+            table.AddColumn(
+                CompositeHeader.parameter(OntologyAnnotation(name="Note")),
+                [CompositeCell.term(OntologyAnnotation(name="Data processing details from INSPIRE metadata"))],
+            )
+            table.AddColumn(
+                CompositeHeader.output(IOType.data()),
+                [CompositeCell.create_data_from_string("Processed Data")],
+            )
             return table
 
         return None
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
-        """Map to ArcAssay with reference systems as TechnologyPlatform."""
-        identifier = f"{record.identifier}_assay"
+        """Map to ArcAssay with enhanced technology platform and annotation table."""
+        identifier = self._to_identifier_slug(record.title)
+        title = record.title
 
         measurement_type = self._get_measurement_type(record)
-        technology_type = OntologyAnnotation(name="Data Collection", tan="", tsr="")
+        technology_type = OntologyAnnotation(name="Data Collection")
 
         assay = ArcAssay.create(
-            identifier=identifier, measurement_type=measurement_type, technology_type=technology_type
+            identifier=identifier,
+            title=title,
+            measurement_type=measurement_type,
+            technology_type=technology_type,
         )
 
-        tech_platform = self._get_technology_platform(record)
-        assay.TechnologyPlatform = OntologyAnnotation(name=tech_platform) if tech_platform else None
-        self._add_assay_comments(assay, record)
+        # Set Technology Platform (user suggested acquisitionInformation)
+        assay.TechnologyPlatform = OntologyAnnotation(name="Satellite/Sensor Acquisition")
+
+        # Add an annotation table to the assay (as requested by user)
+        # These diverse outputs (online resources, overviews) are now in the table, not comments.
+        assay_table = self._create_assay_table(record)
+        if assay_table:
+            assay.AddTable(assay_table)
 
         return assay
+
+    def _create_assay_table(self, record: InspireRecord) -> ArcTable | None:
+        """Create annotation table for the assay, linking to final data outputs."""
+        outputs = []
+        if record.dataset_uri:
+            outputs.append(("Dataset URI", record.dataset_uri))
+        for res in record.online_resources:
+            outputs.append((res.name or "Online Resource", res.url))
+        for url in record.graphic_overviews:
+            outputs.append(("Graphic Overview", url))
+
+        if not outputs:
+            return None
+
+        table = ArcTable.init("Measurement")
+
+        # Create parallel lists of cells for each column
+        num_rows = len(outputs)
+        input_cells = [CompositeCell.free_text("Dataset Source")] * num_rows
+        name_cells = [CompositeCell.term(OntologyAnnotation(name=name)) for name, url in outputs]
+        url_cells = [CompositeCell.create_data_from_string(url) for name, url in outputs]
+
+        # Add columns with their respective cell lists
+        table.AddColumn(CompositeHeader.input(IOType.source()), input_cells)
+        table.AddColumn(CompositeHeader.parameter(OntologyAnnotation(name="Resource Name")), name_cells)
+        table.AddColumn(CompositeHeader.output(IOType.data()), url_cells)
+
+        return table
 
     def _get_measurement_type(self, record: InspireRecord) -> OntologyAnnotation:
         """Get measurement type from topic category."""
@@ -404,26 +519,3 @@ class InspireMapper:
             tan="http://purl.obolibrary.org/obo/NCIT_C19026",
             tsr="NCIT",
         )
-
-    def _get_technology_platform(self, record: InspireRecord) -> str | None:
-        """Get TechnologyPlatform from Reference Systems (CRS)."""
-        if record.reference_systems:
-            for ref_sys in record.reference_systems:
-                if ref_sys.code:
-                    return ref_sys.code
-        return None
-
-    def _add_assay_comments(self, assay: ArcAssay, record: InspireRecord) -> None:
-        """Add comments to assay from graphic overviews and online resources."""
-        comments = []
-        if record.graphic_overviews:
-            for url in record.graphic_overviews:
-                comments.append(f"Preview: {url}")
-        if record.online_resources:
-            for res in record.online_resources:
-                if res.name:
-                    comments.append(f"{res.name}: {res.url}")
-                else:
-                    comments.append(res.url)
-        for comment in comments:
-            assay.Comments.append(Comment(comment))

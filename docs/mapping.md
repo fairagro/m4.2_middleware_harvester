@@ -1,61 +1,10 @@
-# INSPIRE to ARC Converter
+# INSPIRE to ARC Mapping Documentation
 
-This tool converts INSPIRE-compliant metadata (ISO 19139 XML) into ARC (ARChival Research & Data) objects.
-It is designed to harvest metadata from GDI-DE (Geodateninfrastruktur Deutschland) and other INSPIRE-compatible catalogs via CSW (Catalogue Service for the Web).
-
-## Usage Examples
-
-### Basic Querying
-
-```python
-from middleware.inspire_to_arc.harvester import CSWClient
-
-# Connect to GDI-DE CSW
-client = CSWClient("https://gdk.gdi-de.org/gdi-de/srv/eng/csw")
-client.connect()
-
-# Fetch records
-records = list(client.get_records(max_records=10))
-```
-
-### Advanced Filtering with FES
-
-Use OWSLib's Filter Encoding Specification (FES) for readable, type-safe queries:
-
-```python
-from owslib.fes import And, PropertyIsEqualTo, PropertyIsLike
-
-# Query for weather radar data from DWD
-constraints = [
-    And([
-        PropertyIsLike("AnyText", "*radar*"),
-        PropertyIsEqualTo("OrganisationName", "Deutscher Wetterdienst"),
-    ])
-]
-
-records = list(client.get_records(constraints=constraints, max_records=100))
-```
-
-### Raw XML Queries
-
-For complex queries, you can also use raw XML:
-
-```python
-xml_request = b"""<?xml version="1.0" encoding="UTF-8"?>
-<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-                service="CSW" version="2.0.2">
-  <csw:Query typeNames="csw:Record">
-    <csw:ElementSetName>full</csw:ElementSetName>
-  </csw:Query>
-</csw:GetRecords>"""
-
-records = list(client.get_records(xml_request=xml_request))
-```
+This document describes how INSPIRE-compliant geospatial metadata (ISO 19139 XML) is mapped to the ISA (Investigation, Study, Assay) model used by ARC.
 
 ## Concept
 
-The goal is to map geospatial metadata (INSPIRE) to the ISA (Investigation, Study, Assay) model used by ARC.
-Since INSPIRE metadata describes *datasets* (results), while ARC describes the *research process* (investigation/study/assay), we apply the following mapping strategy:
+The goal is to map geospatial metadata (INSPIRE) to the ISA model. Since INSPIRE metadata describes *datasets* (results), while ARC describes the *research process* (investigation/study/assay), we apply a mapping strategy that preserves provenance.
 
 ### Protocol-Based Mapping Philosophy
 
@@ -73,7 +22,7 @@ The ISO 19139 standard (via OWSLib) provides **50+ metadata fields** organized a
 Metadata about the metadata record itself.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **fileIdentifier** | `identifier` | UUID of the metadata record | `Investigation.Identifier` |
 | **parentIdentifier** | `parentidentifier` | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment) |
 | **language** | `language` / `languagecode` | Language of the metadata | `Investigation` comment/remark |
@@ -82,20 +31,20 @@ Metadata about the metadata record itself.
 | **dateStamp** | `datestamp` / `datetimestamp` | When metadata was created/updated | `Investigation.SubmissionDate` |
 | **metadataStandardName** | `stdname` | Standard name (ISO 19115, etc.) | `Investigation` comment (provenance) |
 | **metadataStandardVersion** | `stdver` | Standard version | `Investigation` comment (provenance) |
-| **dataSetURI** | `dataseturi` | Direct URI to the dataset | `Investigation` comment/remark |
+| **dataSetURI** | `dataseturi` | Direct URI to the dataset | **Assay Annotation Table** (Output: Data) |
 | **contact** | `contact` | Metadata point of contact | `Investigation.Contacts` (Person with role="metadata_contact") |
-| **referenceSystemInfo** | `referencesystem` | Coordinate Reference System (CRS) | Assay Technology Platform (e.g., "EPSG:4326") |
+| **referenceSystemInfo** | `referencesystem` | Coordinate Reference System (CRS) | **Spatial Sampling Protocol** parameter "CRS" |
 | **contentInfo** | `contentinfo` | Feature catalogue or image description | **Assay Protocol** "Feature Catalogue" or "Image Description" |
-| **distributionInfo** | `distribution` | How to obtain the data | **Study/Assay Protocol** "Data Distribution" |
+| **distributionInfo** | `distribution` | How to obtain the data | **Assay Annotation Table** (Output: Data) |
 | **dataQualityInfo** | `dataquality` | Data quality and lineage | **Protocol** "Data Processing" (conformance as parameters) |
-| **acquisitionInformation** | `acquisition` | Sensor/platform metadata (remote sensing) | **Assay Protocol** "Sensor Acquisition" |
+| **acquisitionInformation** | `acquisition` | Sensor/platform metadata (remote sensing) | **Assay Technology Platform** |
 
 ### 2. MD_DataIdentification (Resource Identification)
 
 Core descriptive metadata about the dataset.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **citation/title** | `title` | Dataset title | `Investigation.Title` |
 | **citation/alternateTitle** | `alternatetitle` | Alternative title | `Investigation` comment |
 | **citation/identifier** | `uricode`, `uricodespace` | Resource identifiers (DOI, ISBN, etc.) | `Investigation.Publications` (if DOI/ISBN) |
@@ -105,7 +54,7 @@ Core descriptive metadata about the dataset.
 | **purpose** | `purpose` | Why the dataset was created | `Study.Description` (in addition to lineage) |
 | **status** | `status` | Progress: completed, onGoing, planned, etc. | `Study` comment or Protocol parameter |
 | **pointOfContact** | `contact`, `creator`, `publisher`, `contributor` | Resource contacts by role | `Investigation.Contacts` (Person) split by role |
-| **graphicOverview** | `graphicoverview` | Thumbnail/preview image URLs | `Assay` comment/remark |
+| **graphicOverview** | `graphicoverview` | Thumbnail/preview image URLs | **Assay Annotation Table** (Output: Data) |
 | **resourceConstraints** | Various constraint fields (see below) | Legal and security constraints | **Investigation Comments** |
 | **spatialRepresentationType** | `spatialrepresentationtype` | Vector, grid, TIN, etc. | `Assay.TechnologyType` or comment |
 | **spatialResolution** | `denominators`, `distance`, `uom` | Resolution (scale or distance) | **Study Protocol** "Spatial Resolution" with parameters |
@@ -121,7 +70,7 @@ Core descriptive metadata about the dataset.
 Descriptive keywords with optional thesaurus information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **keyword** | `keywords[].name` | Keyword text | `OntologyAnnotation` (TAG) |
 | **keyword@xlink:href** | `keywords[].url` | Keyword URI (if gmx:Anchor) | `OntologyAnnotation.TermAccessionNumber` |
 | **type** | `type` | Keyword type (theme, place, temporal, etc.) | `OntologyAnnotation` comment or custom field |
@@ -132,7 +81,7 @@ Descriptive keywords with optional thesaurus information.
 Detailed contact information for persons and organizations.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **individualName** | `name` | Person name | `Person.LastName` (split to First/Last if possible) |
 | **organisationName** | `organization` | Organization name | `Person.Affiliation` |
 | **positionName** | `position` | Job title | `Person` comment or custom field |
@@ -148,7 +97,7 @@ Detailed contact information for persons and organizations.
 Access and use restrictions.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **useLimitation** | `uselimitation`, `uselimitation_url` | Usage limitations | **Investigation Comments** |
 | **accessConstraints** | `accessconstraints` | Legal access restrictions (e.g., "restricted") | **Investigation Comments** |
 | **useConstraints** | `useconstraints` | Legal use restrictions (e.g., "license") | **Investigation Comments** |
@@ -161,31 +110,31 @@ Access and use restrictions.
 Information about how to obtain the dataset.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **distributionFormat/name** | `format`, `format_url` | Data format (GeoTIFF, Shapefile, etc.) | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributionFormat/version** | `version`, `version_url` | Format version | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributionFormat/specification** | `specification`, `specification_url` | Format specification | **Protocol** "Data Processing" parameter "Output Format" |
 | **distributor/contact** | `distributor[].contact` | Distributor contact information | `Person` with role="distributor" |
-| **transferOptions/onLine** | `online` (list of CI_OnlineResource) | Download/access URLs | **Assay Comments** (Online Resources) |
+| **transferOptions/onLine** | `online` (list of CI_OnlineResource) | Download/access URLs | **Assay Annotation Table** (Output: Data) |
 
 ### 7. CI_OnlineResource (Online Resources)
 
 URLs for data access, services, or documentation.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
-| **linkage** | `url` | URL | **Assay Comments** (Online Resources) |
-| **protocol** | `protocol`, `protocol_url` | Protocol (HTTP, FTP, OGC:WMS, etc.) | **Assay Comments** (Online Resources) |
-| **name** | `name`, `name_url` | Resource name | **Assay Comments** (Online Resources) |
-| **description** | `description`, `description_url` | Resource description | **Assay Comments** (Online Resources) |
-| **function** | `function` | Function code (download, information, etc.) | **Assay Comments** (Online Resources) |
+| --- | --- | --- | --- |
+| **linkage** | `url` | URL | **Assay Annotation Table** (Output: Data) |
+| **protocol** | `protocol`, `protocol_url` | Protocol (HTTP, FTP, OGC:WMS, etc.) | **Assay Annotation Table** (Output: Data) |
+| **name** | `name`, `name_url` | Resource name | **Assay Annotation Table** (Output: Data) |
+| **description** | `description`, `description_url` | Resource description | **Assay Annotation Table** (Output: Data) |
+| **function** | `function` | Function code (download, information, etc.) | **Assay Annotation Table** (Output: Data) |
 
 ### 8. DQ_DataQuality (Data Quality)
 
 Quality and conformance information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **lineage/statement** | `lineage`, `lineage_url` | Lineage statement (provenance) | `Study.Description` |
 | **conformanceResult/specification** | `conformancetitle`, `conformancetitle_url` | INSPIRE/ISO specification title | **Protocol** "Data Processing" parameter "Conformance" |
 | **conformanceResult/date** | `conformancedate`, `conformancedatetype` | Specification date | **Protocol** "Data Processing" parameter "Conformance" |
@@ -196,7 +145,7 @@ Quality and conformance information.
 Spatial reference system information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **referenceSystemIdentifier/code** | `code`, `code_url` | CRS code (e.g., "EPSG:4326") | `Assay.TechnologyPlatform` or Protocol parameter |
 | **referenceSystemIdentifier/codeSpace** | `codeSpace`, `codeSpace_url` | Authority (e.g., "EPSG") | Protocol parameter "CRS Authority" |
 | **referenceSystemIdentifier/version** | `version`, `version_url` | CRS version | Protocol parameter "CRS Version" |
@@ -232,7 +181,7 @@ Technical schema information for feature data or imagery.
 Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **serviceType** | `type` | Service type (WMS, WFS, CSW, etc.) | **No clear mapping** (see note) |
 | **serviceTypeVersion** | `version` | Service version | **No clear mapping** (see note) |
 | **fees** | `fees` | Cost information | Investigation comment |
@@ -249,16 +198,17 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 
 - **Identifier**: fileIdentifier
 - **Title**: citation/title
-- **Description**: abstract + purposepx
+- **Description**: abstract + purpose
 - **SubmissionDate**: dateStamp
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate roles
 - **Publications**: Resource identifiers (DOIs, ISBNs) from citation/identifier and aggregationInfo
 - **Comments/Remarks**:
+  - All comments are stored as **Name/Value pairs** (using `Comment.create(name, value)`)
   - parentIdentifier (if hierarchy)
-  - dataSetURI
   - Metadata standard (name + version)
   - Language, charset, hierarchy level
   - Service metadata (if present)
+  - Constraints (access, use, classification)
 
 ### Study (Research Unit / Data Processing Workflow)
 
@@ -268,60 +218,43 @@ One INSPIRE record = One Study representing the data creation workflow.
 - **Title**: "Study for: " + [Investigation Title]
 - **Description**: Lineage statement + purpose + supplementalInformation
 
-**Process-Oriented Protocols** (representing actual workflow steps):
+**Process-Oriented Protocols**:
 
-#### Protocol 1: "Spatial Sampling" (if spatial information available)
-
-Represents the selection of geographic location(s) for data collection.
+#### Protocol 1: "Spatial Sampling"
 
 - **Input**: Geographic Region / Area of Interest
 - **Output**: Selected Location(s)
 - **Parameters**:
-  - Bounding Box (spatial_extent)
-  - Spatial Resolution (denominators or distance + uom)
-  - Geographic Description (if available)
+  - Bounding Box
+  - Coordinate Reference System (CRS)
+  - Spatial Resolution
 
-#### Protocol 2: "Data Acquisition" (if acquisition metadata or temporal extent available)
+#### Protocol 2: "Data Acquisition"
 
-Represents the actual data collection/sensing process.
-
-- **Input**: Selected Location(s) + Temporal Period
+- **Input**: Selected Location(s)
 - **Output**: Raw Sensor Data / Observations
 - **Parameters**:
-  - Platform (from acquisition metadata)
-  - Sensor/Instrument (from acquisition metadata)
-  - Temporal Extent (start/end dates)
-  - Acquisition Dates (from dates with type="creation")
-  - Image/Feature Description (from contentinfo if available)
+  - Platform/Sensor (from acquisition metadata)
+  - Temporal Extent
 
-#### Protocol 3: "Data Processing" (always created, from lineage)
+#### Protocol 3: "Data Processing"
 
-Represents processing from raw data to final published dataset.
-
-- **Input**: Raw Sensor Data (or previous output)
+- **Input**: Raw Sensor Data
 - **Output**: Processed/Published Dataset
 - **Parameters**:
-  - Lineage (processing description)
-  - Quality/Conformance Results (specification, pass/fail)
-  - Data Format (distribution format)
-  - Processing Date (from dates with type="revision" or "publication")
-
-**Metadata stored as Investigation/Study-level** (not as protocols):
-
-- Constraints (access, use, classification) → Investigation Comments
-- Distribution/Access Info → Investigation Comments or Study Description
-- Reference Systems → Assay TechnologyPlatform
+  - Lineage, Conformance, Output Format
 
 ### Assay (Measurement / Data Output)
 
 - **Identifier**: `[Investigation_ID]_assay`
 - **MeasurementType**: Derived from topicCategory (e.g., "biota" → "Biological Measurement")
-- **TechnologyType**: spatialRepresentationType (vector, raster, etc.) or "Spatial Data Acquisition"
-- **TechnologyPlatform**: Reference system code (EPSG:4326, etc.) from reference_systems
-- **Protocols**: Links to Study protocols (same workflow)
-- **Comments/Remarks**:
-  - graphicOverview (thumbnail URLs)
-  - Online Resources (download URLs) for data access
+- **TechnologyType**: "Data Collection"
+- **TechnologyPlatform**: `acquisitionInformation` (Satellite/Sensor platform)
+- **Annotation Table**:
+  - **Input**: "Dataset Source"
+  - **Parameter**: Resource Name (e.g., "Download", "Graphic Overview", "Dataset URI")
+  - **Output (Data)**: Resource URL (from `dataSetURI`, `online_resources`, or `graphic_overviews`)
+- **Comments/Remarks**: (none for resource links)
 
 ### Person (Contacts)
 
@@ -363,24 +296,3 @@ Map all CI_ResponsibleParty objects with full details:
 ### 3. Complex Nested Structures
 
 **acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on the metadata content.
-
-### 4. Multiple Language Support
-
-**locales** (PT_Locale): OWSLib supports alternate languages. Currently not mapped to ARC, but could be added as Investigation comments if needed.
-
-### 5. Bounding Polygons
-
-**EX_BoundingPolygon**: More precise than bounding boxes. Currently we extract bounding boxes. Polygons could be serialized (e.g., WKT) and added as Protocol parameters if needed.
-
-## Architecture
-
-- **Source**: CSW (Catalogue Service for the Web) endpoint (e.g., GDI-DE).
-- **Parser**: `OWSLib` for ISO 19139 XML.
-- **Mapper**: Converts `InspireRecord` (Pydantic model) to `arctrl` objects.
-- **Output**: ARC objects sent to the Middleware API (using `api_client`).
-
-## Implementation Status
-
-**Current**: ~10 fields mapped (basic identification, contacts, lineage, extent, constraints)
-
-**Planned**: 50+ fields mapped with comprehensive protocol-based approach as documented above.
