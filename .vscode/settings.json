@@ -9,7 +9,13 @@
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.testing.cwd": "${workspaceFolder}",
-  "python-envs.pythonProjects": [],
+  "python-envs.pythonProjects": [
+    {
+      "path": "${workspaceFolder}",
+      "envManager": "ms-python.python:venv",
+      "envPath": "${workspaceFolder}/.venv"
+    }
+  ],
 
   // Code formatting - use ruff for both linting and formatting
   "[python]": {
@@ -33,10 +39,6 @@
   "ruff.importStrategy": "fromEnvironment",
   "python-envs.defaultEnvManager": "ms-python.python:venv",
   "python.analysis.extraPaths": [
-    "middleware/api/src",
-    "middleware/api_client/src",
-    "middleware/shared/src",
-    "middleware/sql_to_arc/src",
     "middleware/inspire_to_arc/src"
   ],
 
