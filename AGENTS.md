@@ -1,6 +1,6 @@
 # AGENTS.md - Instructions for AI Assistants
 
-This file contains critical context about the FAIRagro INSPIRE-to-ARC Harvester project for AI assistants (GitHub Antigravity, Claude, etc.).
+This file contains critical context about the FAIRagro INSPIRE-to-ARC Harvester project for AI assistants (GitHub Copilot, Google Antigravity, Claude, etc.).
 
 ## 📋 Tech Stack
 
@@ -16,8 +16,27 @@ This file contains critical context about the FAIRagro INSPIRE-to-ARC Harvester 
 ## 📁 Project Structure
 
 ```text
+.agents/
+└── skills/                # Agent Skills (agentskills.io standard)
+    ├── arctrl/            # arctrl Python library reference
+    ├── config-wrapper/    # ConfigWrapper / ConfigBase pattern
+    └── create-specifica-feature/  # How to create a new Specifica feature
+
+docs/
+└── ai_workflow.md         # AI agent workflow documentation
+
+spec/                      # Project-level architecture & design
+├── principles.md          # Project principles and foundation contract
+├── configuration/         # Config loading, env overrides, secrets
+└── demo-environment/      # Local demo / deployment setup
+
 middleware/
 └── inspire_to_arc/        # INSPIRE to ARC harvester (Core logic)
+    ├── spec/              # Component-level architecture & design
+    │   ├── csw-harvesting/          # CSW connections and logic
+    │   ├── inspire-to-arc-mapping/  # Mapping to ARC concepts
+    │   ├── api-upload/              # API upload semantics
+    │   └── workflow-execution/      # The processing loop
     ├── src/middleware/inspire_to_arc/
     │   ├── main.py        # Entry point & processing loop
     │   ├── harvester.py   # CSW client and ISO 19139 parser
@@ -37,6 +56,13 @@ middleware/
 # Run tests for the harvester
 uv run pytest middleware/inspire_to_arc/tests/ -v
 
+# Run individual quality tools
+uv run ruff check .
+uv run ruff format .
+uv run mypy middleware/inspire_to_arc/
+uv run pylint middleware/inspire_to_arc/
+uv run bandit -r middleware/inspire_to_arc/src/
+
 # Install/Update all dependencies
 uv sync --dev --all-packages
 ```
@@ -47,6 +73,25 @@ uv sync --dev --all-packages
 # Run the harvester with a config file
 uv run python -m middleware.inspire_to_arc.main -c config.yaml
 ```
+
+## Architecture & Design
+
+Before generating or modifying code, read the relevant spec folders.
+
+**Project-level** (`spec/`) — cross-cutting concerns:
+
+- **[`spec/principles.md`](spec/principles.md)** — Project principles and foundation contract (start here).
+- **[`spec/configuration/`](spec/configuration/)** — Config loading and secrets.
+- **[`spec/demo-environment/`](spec/demo-environment/)** — Local demo / deployment setup.
+
+**Component-level** (`middleware/inspire_to_arc/spec/`) — inspire_to_arc internals:
+
+- **[`middleware/inspire_to_arc/spec/csw-harvesting/`](middleware/inspire_to_arc/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
+- **[`middleware/inspire_to_arc/spec/inspire-to-arc-mapping/`](middleware/inspire_to_arc/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
+- **[`middleware/inspire_to_arc/spec/api-upload/`](middleware/inspire_to_arc/spec/api-upload/)** — Logic controlling ARC uploads to the Middleware.
+- **[`middleware/inspire_to_arc/spec/workflow-execution/`](middleware/inspire_to_arc/spec/workflow-execution/)** — Global orchestrator workflow loop.
+
+---
 
 ## 📝 Key Implementation Details
 
@@ -80,7 +125,19 @@ The harvester uses the `api_client` to upload ARCs to the FAIRagro Middleware AP
 
 Agents are expected to maintain high code quality by addressing issues reported by the project's configured tools: **Ruff, MyPy, Pylint, and Bandit**.
 
+- **Automatic Fixes**: Actively check for and fix code smells, warnings, and notices.
+- **Real Fixes vs. Suppression**: Issues must be resolved with actual code changes. Using comments to suppress warnings (e.g., `# noqa`, `# type: ignore`, `# pylint: disable`) is an **option of last resort**.
+- **When to Suppress**: Only suppress if a fix is technically impossible or would result in unnecessarily complex or unreadable code.
+
+## 📚 File Modifications Pattern
+
+When editing files:
+
+1. **Always check current state** - Use file viewing tools to see current content.
+2. **Review for quality** - Check the VS Code **Problems** tab.
+3. **Format and test after changes** - Run `uv run ruff format .` to auto-format, then `uv run pytest` to verify.
+
 ---
 
-**Last Updated**: 2026-02-12
+**Last Updated**: 2026-04-14
 **Maintainer Notes**: This repository is the standalone INSPIRE harvester. It is decoupled from the main Middleware API.
