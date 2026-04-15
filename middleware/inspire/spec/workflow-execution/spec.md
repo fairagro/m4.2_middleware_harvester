@@ -10,4 +10,3 @@ Exposes an asynchronous generator that iterates over CSW records and yields seri
 - [ ] Use the `InspireMapper` class to transform each valid parsed record into an ARC object.
 - [ ] Serialize each ARC via `arc.ToROCrateJsonString()` and `yield` the resulting JSON string to the calling Harvester.
 - [ ] Do not include a `main()` function, argument parsing, or `ApiClient` upload logic.
-- [ ] Error isolation: If the parsing or mapping of a single record fails, the plugin must log the error and continue yielding subsequent records without aborting.

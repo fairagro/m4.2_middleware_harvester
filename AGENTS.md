@@ -32,13 +32,11 @@ middleware/
 ├── harvester/             # Central orchestrator and configuration
 │   └── spec/              # Component-level architecture & design
 │       ├── harvester-orchestration/  # Orchestration loop and plugin contract
-│       ├── configuration/            # Config loading, env overrides, secrets
 │       └── demo-environment/         # Local demo / deployment setup
 ├── inspire/        # INSPIRE to ARC harvester (Core logic)
 │   ├── spec/              # Component-level architecture & design
     │   ├── csw-harvesting/          # CSW connections and logic
     │   ├── inspire-to-arc-mapping/  # Mapping to ARC concepts
-    │   ├── api-upload/              # API upload semantics
     │   └── workflow-execution/      # The processing loop
     ├── src/middleware/inspire/
     │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
@@ -74,8 +72,7 @@ uv sync --dev --all-packages
 ### Execution
 
 ```bash
-# Run the harvester with a config file
-uv run python -m middleware.inspire.main -c config.yaml
+uv run python -m middleware.harvester.main -c config.yaml
 ```
 
 ## Architecture & Design
@@ -89,7 +86,6 @@ Before generating or modifying code, read the relevant spec folders.
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
 - **[`middleware/harvester/spec/harvester-orchestration/`](middleware/harvester/spec/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
-- **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Config loading, env overrides, secrets, and typed-config rules.
 - **[`middleware/harvester/spec/demo-environment/`](middleware/harvester/spec/demo-environment/)** — Local demo / deployment setup.
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:

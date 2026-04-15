@@ -10,4 +10,3 @@ The central harvester acts as an orchestrator that loads a unified configuration
 - [ ] Instantiate and invoke the appropriate `xxx_to_arc` plugin based on the plugin type key in the repository configuration.
 - [ ] Consume the output of each plugin via an `AsyncGenerator[str, None]` that yields serialized ARC representations (JSON strings).
 - [ ] Upload the yielded ARCs to the target Remote Data Infrastructure (RDI) using the configured `api_client`.
-- [ ] Handle plugin-level and record-level exceptions robustly, continuing to process remaining records and repositories upon failure.
