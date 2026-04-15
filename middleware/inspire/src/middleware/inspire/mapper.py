@@ -107,9 +107,33 @@ class InspireMapper:
         return ", ".join(address_parts) if address_parts else None
 
     def _add_role(self, person: Person, contact: Contact) -> None:
-        """Add role to person if available."""
-        if contact.role:
-            person.Roles.append(OntologyAnnotation(name=contact.role))
+        """Add role to person with ontology mapping if available."""
+        if not contact.role:
+            return
+
+        # Map INSPIRE role codes to ontology terms
+        role_mapping = {
+            "pointOfContact": ("Point of Contact", "http://purl.obolibrary.org/obo/NCIT_C70902", "NCIT"),
+            "custodian": ("Custodian", "http://purl.obolibrary.org/obo/NCIT_C70903", "NCIT"),
+            "owner": ("Owner", "http://purl.obolibrary.org/obo/NCIT_C70904", "NCIT"),
+            "user": ("User", "http://purl.obolibrary.org/obo/NCIT_C70905", "NCIT"),
+            "distributor": ("Distributor", "http://purl.obolibrary.org/obo/NCIT_C70906", "NCIT"),
+            "originator": ("Originator", "http://purl.obolibrary.org/obo/NCIT_C70907", "NCIT"),
+            "publisher": ("Publisher", "http://purl.obolibrary.org/obo/NCIT_C70908", "NCIT"),
+            "author": ("Author", "http://purl.obolibrary.org/obo/NCIT_C70909", "NCIT"),
+            "principalInvestigator": ("Principal Investigator", "http://purl.obolibrary.org/obo/NCIT_C70910", "NCIT"),
+            "processor": ("Processor", "http://purl.obolibrary.org/obo/NCIT_C70911", "NCIT"),
+            "metadataContact": ("Metadata Contact", "http://purl.obolibrary.org/obo/NCIT_C70912", "NCIT"),
+        }
+
+        # Use mapped role or fall back to original
+        mapped_role = role_mapping.get(contact.role.lower(), (contact.role, None, None))
+        role_name, tan, tsr = mapped_role
+
+        if tan and tsr:
+            person.Roles.append(OntologyAnnotation(name=role_name, tan=tan, tsr=tsr))
+        else:
+            person.Roles.append(OntologyAnnotation(name=role_name))
 
     def _add_person_comments(self, person: Person, contact: Contact) -> None:
         """Add comments to person from position and online resources."""
@@ -142,13 +166,32 @@ class InspireMapper:
         return inv
 
     def _add_ontology_sources(self, inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add ontology source references from metadata standard."""
+        """Add ontology source references from metadata standard and common ontologies."""
+        # Add metadata standard as ontology source
         if record.metadata_standard_name:
             inv.OntologySourceReferences.append(
                 OntologySourceReference.create(
                     name=record.metadata_standard_name,
                     version=record.metadata_standard_version or "",
                     description="INSPIRE Metadata Standard",
+                )
+            )
+
+        # Add common ontology sources for proper referencing
+        common_ontologies = [
+            ("NCIT", "http://purl.obolibrary.org/obo/ncit.owl", "NCI Thesaurus"),
+            ("GEMET", "http://www.eionet.europa.eu/gemet", "GEMET Thesaurus"),
+            ("EDAM", "http://edamontology.org", "EDAM Bioinformatics Ontology"),
+            ("ISO", "http://www.isotc211.org/2005/gco", "ISO Geospatial Metadata"),
+        ]
+
+        for name, url, desc in common_ontologies:
+            inv.OntologySourceReferences.append(
+                OntologySourceReference.create(
+                    name=name,
+                    file=url,
+                    version="",
+                    description=desc,
                 )
             )
 
@@ -174,7 +217,6 @@ class InspireMapper:
             first_initial = f"{p.FirstName[0]}." if p.FirstName else ""
             author_strings.append(f"{p.LastName}, {first_initial}")
         authors_str = "; ".join(author_strings) if author_strings else None
-
         for res_id in record.resource_identifiers:
             codespace_str = str(res_id.codespace) if res_id.codespace else ""
             if res_id.code and (
@@ -214,8 +256,22 @@ class InspireMapper:
             if value:
                 comments.append(Comment.create(label, value))
 
+        self._add_hierarchy_comments(comments, record)
         self._add_constraint_comments(comments, record)
         return comments
+
+    def _add_hierarchy_comments(self, comments: list[Comment], record: InspireRecord) -> None:
+        """Add hierarchy level information as comments if not standard dataset."""
+        if not record.hierarchy:
+            return
+
+        # Ignore standard dataset types
+        hierarchy_lower = record.hierarchy.lower()
+        if hierarchy_lower in ["dataset", "nongeographicdataset"]:
+            return
+
+        # Document non-standard hierarchy levels
+        comments.append(Comment.create("Hierarchy Level", record.hierarchy))
 
     def _add_constraint_comments(self, comments: list[Comment], record: InspireRecord) -> None:
         """Add constraint-related comments."""
@@ -227,6 +283,8 @@ class InspireMapper:
             comments.append(Comment.create("Classification", ", ".join(record.classification)))
         if record.other_constraints:
             comments.append(Comment.create("Other Constraints", "; ".join(record.other_constraints[:3])))
+        if record.other_constraints_url:
+            comments.append(Comment.create("Other Constraints URLs", "; ".join(record.other_constraints_url[:3])))
 
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
@@ -271,7 +329,13 @@ class InspireMapper:
         Represents: Selection of geographic location(s) for data collection.
         Input: Geographic Region / Area of Interest
         Output: Selected Location(s)
+
+        Note: Only created for geographic datasets, not for nonGeographicDataset hierarchy level.
         """
+        # Skip for non-geographic datasets
+        if record.hierarchy and record.hierarchy.lower() == "nongeographicdataset":
+            return None
+
         if not (
             record.spatial_extent
             or record.spatial_resolution_denominators
@@ -380,76 +444,111 @@ class InspireMapper:
         Input: Raw Sensor Data
         Output: Processed/Published Dataset
         """
-        table = ArcTable.init("Data Processing")
-        headers = []
-        cells = []
-
-        # Lineage (processing description)
-        if record.lineage:
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage[:500])))  # Truncate if too long
-
-        # Quality/Conformance Results
-        if record.conformance_results:
-            for conf in record.conformance_results:
-                spec_name = conf.specification_title
-                pass_str = (
-                    "PASS"
-                    if conf.degree and conf.degree.lower() in ["true", "pass"]
-                    else "FAIL"
-                    if conf.degree
-                    else "Unknown"
-                )
-                conf_str = f"{spec_name}: {pass_str}"
-                headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Conformance")))
-                cells.append(CompositeCell.term(OntologyAnnotation(name=conf_str)))
-
-        # Data Format
-        if record.distribution_formats:
-            for fmt in record.distribution_formats:
-                fmt_str = f"{fmt.name}" + (f" v{fmt.version}" if fmt.version else "")
-                headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Output Format")))
-                cells.append(CompositeCell.term(OntologyAnnotation(name=fmt_str)))
-
-        # Processing/Publication Dates
-        pub_dates = [d.date for d in record.dates if d.datetype in ["publication", "revision"]]
-        if pub_dates:
-            dates_str = ", ".join(pub_dates)
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Date")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
+        headers, cells = self._build_processing_protocol_columns(record)
 
         if headers:
-            # Add Input Column (Data column -> Data cell)
-            table.AddColumn(
-                CompositeHeader.input(IOType.data()),
-                [CompositeCell.create_data_from_string("Raw Data")],
-            )
-            for i, header in enumerate(headers):
-                table.AddColumn(header, [cells[i]])
-            # Add Output Column (Data column -> Data cell)
-            table.AddColumn(
-                CompositeHeader.output(IOType.data()),
-                [CompositeCell.create_data_from_string("Processed Data")],
-            )
-            return table
+            return self._assemble_processing_table_with_headers(headers, cells)
 
-        # If no headers, create minimal protocol with just a note
         if record.lineage or record.dates:
-            table.AddColumn(
-                CompositeHeader.input(IOType.data()),
-                [CompositeCell.create_data_from_string("Raw Data")],
-            )
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="Note")),
-                [CompositeCell.term(OntologyAnnotation(name="Data processing details from INSPIRE metadata"))],
-            )
-            table.AddColumn(
-                CompositeHeader.output(IOType.data()),
-                [CompositeCell.create_data_from_string("Processed Data")],
-            )
-            return table
+            return self._create_minimal_processing_table()
 
         return None
+
+    def _build_processing_protocol_columns(
+        self, record: InspireRecord
+    ) -> tuple[list[CompositeHeader], list[CompositeCell]]:
+        """Build headers and cells for data processing protocol."""
+        headers: list[CompositeHeader] = []
+        cells: list[CompositeCell] = []
+
+        self._add_lineage_columns(record, headers, cells)
+        self._add_conformance_columns(record, headers, cells)
+        self._add_format_columns(record, headers, cells)
+        self._add_date_columns(record, headers, cells)
+
+        return headers, cells
+
+    def _add_lineage_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+        """Add lineage-related columns to processing protocol."""
+        if record.lineage:
+            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")))
+            cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage[:500])))
+
+        if record.lineage_url:
+            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Lineage Documentation URL")))
+            cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage_url)))
+
+    def _add_conformance_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+        """Add conformance result columns to processing protocol."""
+        if not record.conformance_results:
+            return
+
+        for conf in record.conformance_results:
+            spec_name = conf.specification_title
+            pass_str = self._format_conformance_status(conf.degree)
+            conf_str = f"{spec_name}: {pass_str}"
+            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Conformance")))
+            cells.append(CompositeCell.term(OntologyAnnotation(name=conf_str)))
+
+    def _format_conformance_status(self, degree: str | None) -> str:
+        """Format conformance degree to PASS/FAIL/Unknown."""
+        if degree and degree.lower() in ["true", "pass"]:
+            return "PASS"
+        if degree:
+            return "FAIL"
+        return "Unknown"
+
+    def _add_format_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+        """Add data format columns to processing protocol."""
+        if not record.distribution_formats:
+            return
+
+        for fmt in record.distribution_formats:
+            fmt_str = f"{fmt.name}" + (f" v{fmt.version}" if fmt.version else "")
+            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Output Format")))
+            cells.append(CompositeCell.term(OntologyAnnotation(name=fmt_str)))
+
+    def _add_date_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+        """Add processing date columns to processing protocol."""
+        pub_dates = [d.date for d in record.dates if d.datetype in ["publication", "revision"]]
+        if not pub_dates:
+            return
+
+        dates_str = ", ".join(pub_dates)
+        headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Date")))
+        cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
+
+    def _assemble_processing_table_with_headers(self, headers: list[CompositeHeader], cells: list) -> ArcTable:
+        """Assemble processing table with input, parameter, and output columns."""
+        table = ArcTable.init("Data Processing")
+        table.AddColumn(
+            CompositeHeader.input(IOType.data()),
+            [CompositeCell.create_data_from_string("Raw Data")],
+        )
+        for i, header in enumerate(headers):
+            table.AddColumn(header, [cells[i]])
+        table.AddColumn(
+            CompositeHeader.output(IOType.data()),
+            [CompositeCell.create_data_from_string("Processed Data")],
+        )
+        return table
+
+    def _create_minimal_processing_table(self) -> ArcTable:
+        """Create minimal processing table with just a note."""
+        table = ArcTable.init("Data Processing")
+        table.AddColumn(
+            CompositeHeader.input(IOType.data()),
+            [CompositeCell.create_data_from_string("Raw Data")],
+        )
+        table.AddColumn(
+            CompositeHeader.parameter(OntologyAnnotation(name="Note")),
+            [CompositeCell.term(OntologyAnnotation(name="Data processing details from INSPIRE metadata"))],
+        )
+        table.AddColumn(
+            CompositeHeader.output(IOType.data()),
+            [CompositeCell.create_data_from_string("Processed Data")],
+        )
+        return table
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""
@@ -481,7 +580,7 @@ class InspireMapper:
         """Create annotation table for the assay, linking to final data outputs."""
         outputs = []
         if record.dataset_uri:
-            outputs.append(("Dataset URI", record.dataset_uri))
+            outputs.append(("Dataset Landing Page", record.dataset_uri))
         for res in record.online_resources:
             outputs.append((res.name or "Online Resource", res.url))
         for url in record.graphic_overviews:
@@ -506,14 +605,47 @@ class InspireMapper:
         return table
 
     def _get_measurement_type(self, record: InspireRecord) -> OntologyAnnotation:
-        """Get measurement type from topic category."""
+        """Get measurement type from topic category with ontology mapping."""
+        # Topic category to ontology mapping
+        topic_mapping = {
+            "biota": ("Biological Measurement", "http://purl.obolibrary.org/obo/NCIT_C19026", "NCIT"),
+            "boundaries": ("Boundary Measurement", "http://purl.obolibrary.org/obo/NCIT_C19027", "NCIT"),
+            "climatologyMeteorologyAtmosphere": (
+                "Atmospheric Measurement",
+                "http://purl.obolibrary.org/obo/ENVO_01000818",
+                "ENVO",
+            ),
+            "economy": ("Economic Measurement", "http://purl.obolibrary.org/obo/NCIT_C19029", "NCIT"),
+            "elevation": ("Elevation Measurement", "http://purl.obolibrary.org/obo/ENVO_00002001", "ENVO"),
+            "environment": ("Environmental Measurement", "http://purl.obolibrary.org/obo/ENVO_01000819", "ENVO"),
+            "farming": ("Agricultural Measurement", "http://purl.obolibrary.org/obo/AGRO_00000001", "AGRO"),
+            "geoscientificInformation": (
+                "Geoscientific Measurement",
+                "http://purl.obolibrary.org/obo/ENVO_01000820",
+                "ENVO",
+            ),
+            "health": ("Health Measurement", "http://purl.obolibrary.org/obo/NCIT_C19034", "NCIT"),
+            "imageryBaseMapsEarthCover": (
+                "Remote Sensing Measurement",
+                "http://purl.obolibrary.org/obo/ENVO_01000817",
+                "ENVO",
+            ),
+            "inlandWaters": ("Hydrological Measurement", "http://purl.obolibrary.org/obo/ENVO_01000821", "ENVO"),
+            "intelligenceMilitary": ("Military Measurement", "http://purl.obolibrary.org/obo/NCIT_C19037", "NCIT"),
+            "location": ("Location Measurement", "http://purl.obolibrary.org/obo/NCIT_C19038", "NCIT"),
+            "oceans": ("Oceanographic Measurement", "http://purl.obolibrary.org/obo/ENVO_00000015", "ENVO"),
+            "planningCadastre": ("Cadastre Measurement", "http://purl.obolibrary.org/obo/NCIT_C19040", "NCIT"),
+            "society": ("Social Measurement", "http://purl.obolibrary.org/obo/NCIT_C19041", "NCIT"),
+            "structure": ("Structural Measurement", "http://purl.obolibrary.org/obo/NCIT_C19042", "NCIT"),
+            "transportation": ("Transportation Measurement", "http://purl.obolibrary.org/obo/NCIT_C19043", "NCIT"),
+            "utilitiesCommunication": ("Utility Measurement", "http://purl.obolibrary.org/obo/NCIT_C19044", "NCIT"),
+        }
+
         if record.topic_categories:
             topic = record.topic_categories[0]
-            return OntologyAnnotation(
-                name=topic,
-                tan="http://purl.obolibrary.org/obo/NCIT_C19026",
-                tsr="NCIT",
-            )
+            mapped_topic = topic_mapping.get(topic, (topic, "http://purl.obolibrary.org/obo/NCIT_C19026", "NCIT"))
+            return OntologyAnnotation(name=mapped_topic[0], tan=mapped_topic[1], tsr=mapped_topic[2])
+
         return OntologyAnnotation(
             name="Spatial Data Acquisition",
             tan="http://purl.obolibrary.org/obo/NCIT_C19026",

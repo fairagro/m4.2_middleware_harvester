@@ -27,11 +27,11 @@ Metadata about the metadata record itself.
 | **parentIdentifier** | `parentidentifier` | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment) |
 | **language** | `language` / `languagecode` | Language of the metadata | `Investigation` comment/remark |
 | **characterSet** | `charset` | Character encoding (UTF-8, etc.) | `Investigation` comment |
-| **hierarchyLevel** | `hierarchy` | Scope: dataset, series, service, etc. | `Investigation` comment |
+| **hierarchyLevel** | `hierarchy` | Scope: dataset, series, service, etc. | `Investigation` comment (non-standard levels documented) |
 | **dateStamp** | `datestamp` / `datetimestamp` | When metadata was created/updated | `Investigation.SubmissionDate` |
 | **metadataStandardName** | `stdname` | Standard name (ISO 19115, etc.) | `Investigation` comment (provenance) |
 | **metadataStandardVersion** | `stdver` | Standard version | `Investigation` comment (provenance) |
-| **dataSetURI** | `dataseturi` | Direct URI to the dataset | **Assay Annotation Table** (Output: Data) |
+| **dataSetURI** | `dataseturi` | Direct URI to the dataset | **Assay Annotation Table** (Output: Data, labeled "Dataset Landing Page") |
 | **contact** | `contact` | Metadata point of contact | `Investigation.Contacts` (Person with role="metadata_contact") |
 | **referenceSystemInfo** | `referencesystem` | Coordinate Reference System (CRS) | **Spatial Sampling Protocol** parameter "CRS" |
 | **contentInfo** | `contentinfo` | Feature catalogue or image description | **Assay Protocol** "Feature Catalogue" or "Image Description" |
@@ -59,7 +59,7 @@ Core descriptive metadata about the dataset.
 | **spatialRepresentationType** | `spatialrepresentationtype` | Vector, grid, TIN, etc. | `Assay.TechnologyType` or comment |
 | **spatialResolution** | `denominators`, `distance`, `uom` | Resolution (scale or distance) | **Study Protocol** "Spatial Resolution" with parameters |
 | **language** | `resourcelanguage`, `resourcelanguagecode` | Language of the dataset | `Investigation` comment |
-| **topicCategory** | `topiccategory` | ISO topic category (biota, environment, etc.) | `Assay.MeasurementType` (via ontology mapping) |
+| **topicCategory** | `topiccategory` | ISO topic category (biota, environment, etc.) | `Assay.MeasurementType` (via ontology mapping to domain-specific ontologies) |
 | **extent/geographicElement** | `bbox`, `boundingPolygon`, `description_code` | Spatial extent (bounding box or polygon) | **Study Protocol** "Data Collection" parameter "Spatial Extent" |
 | **extent/temporalElement** | `temporalextent_start`, `temporalextent_end` | Temporal extent (start/end dates) | **Study Protocol** "Data Collection" parameter "Temporal Extent" |
 | **supplementalInformation** | `supplementalinformation` | Additional free text | `Study.Description` or comment |
@@ -90,7 +90,7 @@ Detailed contact information for persons and organizations.
 | **contactInfo/address** | `address`, `city`, `region`, `postcode`, `country` | Full postal address | `Person.Address` (formatted) |
 | **contactInfo/electronicMailAddress** | `email` | Email address | `Person.Email` |
 | **contactInfo/onlineResource** | `onlineresource` (CI_OnlineResource) | Website URL | `Person` comment (ORCID or website) |
-| **role** | `role` | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping) |
+| **role** | `role` | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms) |
 
 ### 5. MD_Constraints (Legal and Security Constraints)
 
@@ -135,7 +135,7 @@ Quality and conformance information.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
 | --- | --- | --- | --- |
-| **lineage/statement** | `lineage`, `lineage_url` | Lineage statement (provenance) | `Study.Description` |
+| **lineage/statement** | `lineage`, `lineage_url` | Lineage statement (provenance) | `Study.Description` and **Data Processing Protocol** parameter |
 | **conformanceResult/specification** | `conformancetitle`, `conformancetitle_url` | INSPIRE/ISO specification title | **Protocol** "Data Processing" parameter "Conformance" |
 | **conformanceResult/date** | `conformancedate`, `conformancedatetype` | Specification date | **Protocol** "Data Processing" parameter "Conformance" |
 | **conformanceResult/pass** | `conformancedegree` | Pass/fail (true/false) | **Protocol** "Data Processing" parameter "Conformance" |
@@ -247,7 +247,7 @@ One INSPIRE record = One Study representing the data creation workflow.
 ### Assay (Measurement / Data Output)
 
 - **Identifier**: `[Investigation_ID]_assay`
-- **MeasurementType**: Derived from topicCategory (e.g., "biota" → "Biological Measurement")
+- **MeasurementType**: Derived from topicCategory with ontology mapping (e.g., "biota" → "Biological Measurement" [NCIT:C19026])
 - **TechnologyType**: "Data Collection"
 - **TechnologyPlatform**: `acquisitionInformation` (Satellite/Sensor platform)
 - **Annotation Table**:
@@ -265,7 +265,16 @@ Map all CI_ResponsibleParty objects with full details:
 - **Phone / Fax**: contact phone/fax
 - **Address**: Formatted from address, city, region, postcode, country
 - **Affiliation**: organisationName
-- **Roles**: Map role codes to ontology terms (custodian, owner, author, originator, publisher, etc.)
+- **Roles**: Map role codes to ontology terms (via NCIT ontology mapping):
+  - pointOfContact → NCIT:C70902 (Point of Contact)
+  - author → NCIT:C70909 (Author)
+  - publisher → NCIT:C70908 (Publisher)
+  - custodian → NCIT:C70903 (Custodian)
+  - distributor → NCIT:C70906 (Distributor)
+  - originator → NCIT:C70907 (Originator)
+  - principalInvestigator → NCIT:C70910 (Principal Investigator)
+  - processor → NCIT:C70911 (Processor)
+  - metadataContact → NCIT:C70912 (Metadata Contact)
 - **Comments**: positionName, onlineResource (ORCID or website URL)
 
 ### OntologyAnnotation (Keywords)
@@ -273,7 +282,36 @@ Map all CI_ResponsibleParty objects with full details:
 - **AnnotationValue**: Keyword name
 - **TermAccessionNumber**: Keyword URL (if gmx:Anchor)
 - **TermSourceREF**: Thesaurus title/URI (e.g., "GEMET")
-- **Comments**: Keyword type (theme, place, temporal, etc.)
+- **Comments**: Keyword type (theme, place, temporal, etc)
+
+### Topic Category Ontology Mapping
+
+INSPIRE topic categories are mapped to specific ontology terms for precise semantic annotation:
+
+| Topic Category | Measurement Type | Ontology Term | Ontology Source |
+| -------------- | ----------------- | ------------- | --------------- |
+| biota | Biological Measurement | NCIT:C19026 | NCIT |
+| boundaries | Boundary Measurement | NCIT:C19027 | NCIT |
+| climatologyMeteorologyAtmosphere | Atmospheric Measurement | ENVO:01000818 | ENVO |
+| economy | Economic Measurement | NCIT:C19029 | NCIT |
+| elevation | Elevation Measurement | ENVO:00002001 | ENVO |
+| environment | Environmental Measurement | ENVO:01000819 | ENVO |
+| farming | Agricultural Measurement | AGRO:00000001 | AGRO |
+| geoscientificInformation | Geoscientific Measurement | ENVO:01000820 | ENVO |
+| health | Health Measurement | NCIT:C19034 | NCIT |
+| imageryBaseMapsEarthCover | Remote Sensing Measurement | ENVO:01000817 | ENVO |
+| inlandWaters | Hydrological Measurement | ENVO:01000821 | ENVO |
+| intelligenceMilitary | Military Measurement | NCIT:C19037 | NCIT |
+| location | Location Measurement | NCIT:C19038 | NCIT |
+| oceans | Oceanographic Measurement | ENVO:00000015 | ENVO |
+| planningCadastre | Cadastre Measurement | NCIT:C19040 | NCIT |
+| society | Social Measurement | NCIT:C19041 | NCIT |
+| structure | Structural Measurement | NCIT:C19042 | NCIT |
+| transportation | Transportation Measurement | NCIT:C19043 | NCIT |
+| utilitiesCommunication | Utility Measurement | NCIT:C19044 | NCIT |
+
+> [!NOTE]
+> Keywords are currently mapped as Investigation comments with ontology references (e.g., "keyword [GEMET]") due to limitations in the ARC OntologyAnnotation collection structure.
 
 ### Publication (Related Resources)
 
@@ -285,14 +323,33 @@ Map all CI_ResponsibleParty objects with full details:
 
 ## Special Cases and Limitations
 
-### 1. Opaque Fields
+### 1. Hierarchy Level Handling
+
+**hierarchyLevel**: The following hierarchy levels are handled specifically:
+
+- **dataset** (default): Normal mapping to Investigation/Study/Assay
+- **nonGeographicDataset**: Normal mapping, but without Spatial Sampling protocol
+- **series, collection**: Currently ignored (will be implemented in future versions)
+- **tile**: Ignored (spatial tiles are not harvested as individual datasets)
+- **service, model, application**: Ignored (no scientific relevance)
+
+> [!NOTE]
+> Series and collection handling is planned for future implementation to support hierarchical dataset relationships.
+
+### 2. Dataset URI and Lineage URL
+
+**dataSetURI**: Mapped to Assay Annotation Table as "Dataset Landing Page" output resource.
+
+**lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
+
+### 3. Opaque Fields
 
 **aggregationInfo**: OWSLib returns this as raw XML text. We will attempt to parse it for citations/identifiers, create Publications, and add a comment explaining the relationship.
 
-### 2. Service Metadata
+### 4. Service Metadata
 
 **SV_ServiceIdentification**: Primarily relevant for OGC web services. If present in a dataset record, it may indicate hierarchical metadata or linked services. We document this in Investigation comments but do not create dedicated ARC structures.
 
-### 3. Complex Nested Structures
+### 5. Complex Nested Structures
 
 **acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on the metadata content.
