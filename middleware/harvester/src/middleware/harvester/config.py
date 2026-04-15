@@ -20,6 +20,10 @@ class RepositoryConfig(BaseModel):
               rdi: "my-rdi"
     """
 
+    rdi: Annotated[
+        str,
+        Field(description="RDI identifier (e.g. inspire-import)"),
+    ]
     inspire: Annotated[
         InspireConfig | None,
         Field(description="INSPIRE CSW plugin configuration"),
@@ -29,7 +33,8 @@ class RepositoryConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> "RepositoryConfig":
         """Ensure exactly one plugin key is set."""
-        set_fields = [f for f, v in self.__dict__.items() if v is not None]
+        # Exclude shared fields from the plugin key check
+        set_fields = [f for f, v in self.__dict__.items() if v is not None and f != "rdi"]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self

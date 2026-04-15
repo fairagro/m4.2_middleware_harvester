@@ -16,9 +16,9 @@ def test_harvester_config_loading() -> None:
         },
         "repositories": [
             {
+                "rdi": "test-import",
                 "inspire": {
                     "csw_url": "https://csw.example.com",
-                    "rdi": "test-import",
                 }
             }
         ],
@@ -32,8 +32,8 @@ def test_harvester_config_loading() -> None:
     repo: RepositoryConfig = config.repositories[0]
     assert repo.plugin_type == "inspire"
     assert isinstance(repo.plugin_config, InspireConfig)
+    assert repo.rdi == "test-import"
     assert repo.plugin_config.csw_url == "https://csw.example.com"
-    assert repo.plugin_config.rdi == "test-import"
 
 
 def test_repository_config_rejects_no_plugin() -> None:

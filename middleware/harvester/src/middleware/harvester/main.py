@@ -34,7 +34,7 @@ async def run_orchestrator(config: Config) -> None:
                     arc = ARC.from_rocrate_json_string(arc_json)
 
                     response = await client.create_or_update_arc(
-                        rdi=plugin_config.rdi,
+                        rdi=repo.rdi,
                         arc=arc,
                     )
                     logger.info("Successfully uploaded %s ARC ID: %s", repo.plugin_type, response.arc_id)

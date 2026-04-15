@@ -17,19 +17,16 @@ def test_config_loading(tmp_path: Path) -> None:
     config_file = tmp_path / "config.yaml"
     config_file.write_text("""
 csw_url: https://csw.example.com
-rdi: test-rdi
 """)
 
     config = Config.from_yaml_file(config_file)
     assert config.csw_url == "https://csw.example.com"
-    assert config.rdi == "test-rdi"
 
 
 @pytest.mark.asyncio
 async def test_run_plugin_success() -> None:
     mock_config = MagicMock(spec=Config)
     mock_config.csw_url = "https://csw.example.com"
-    mock_config.rdi = "test-rdi"
     mock_config.query = None
     mock_config.xml_request = None
 

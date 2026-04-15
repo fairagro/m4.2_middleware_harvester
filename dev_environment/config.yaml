@@ -1,9 +1,9 @@
 log_level: DEBUG
 
 repositories:
-  - inspire:
+  - rdi: "dwd"
+    inspire:
       csw_url: "https://www.geodatenkatalog.de/geonetwork/srv/ger/csw"
-      rdi: "dwd"
       query: ~
       # CSW-Abfrage nach DWD Datensaetzen. Die Zahl der Treffer unterscheidet sich von der
       # Web-GUI (https://www.geoportal.de/search.html?q=Deutscher%20Wetterdienst,
