@@ -1,5 +1,5 @@
 [project]
-name = "inspire_to_arc"
+name = "inspire"
 version = "0.1.0"
 description = "Harvester for INSPIRE metadata to ARC conversion"
 requires-python = ">=3.12"

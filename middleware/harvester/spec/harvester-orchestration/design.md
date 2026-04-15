@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The project consists of a core orchestrator module (`middleware/harvester`) and several plugin modules (like `middleware/inspire_to_arc`). The orchestrator translates unified configuration into specific plugin invocations, completely separating the metadata extraction logic from the publishing logic.
+The project consists of a core orchestrator module (`middleware/harvester`) and several plugin modules (like `middleware/inspire`). The orchestrator translates unified configuration into specific plugin invocations, completely separating the metadata extraction logic from the publishing logic.
 
 ## Key Decisions
 

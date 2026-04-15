@@ -11,8 +11,8 @@ from arctrl.py.Contract.contract import DTO  # type: ignore[import]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
 from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
 
-from middleware.inspire_to_arc.mapper import InspireMapper
-from middleware.inspire_to_arc.models import (
+from middleware.inspire.mapper import InspireMapper
+from middleware.inspire.models import (
     ConformanceResult,
     Contact,
     DistributionFormat,

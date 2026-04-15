@@ -7,7 +7,7 @@ This repository contains the Middleware Harvester. It acts as an orchestrator th
 ### Basic Querying
 
 ```python
-from middleware.inspire_to_arc.harvester import CSWClient
+from middleware.inspire.harvester import CSWClient
 
 # Connect to GDI-DE CSW
 client = CSWClient("https://gdk.gdi-de.org/gdi-de/srv/eng/csw")
@@ -65,11 +65,11 @@ The definitive entry point for AI Agents and architecture is:
 👉 **[AGENTS.md](AGENTS.md)**
 
 The detailed strategy for mapping INSPIRE/ISO 19139 fields to the ISA model is documented in:
-👉 **[docs/inspire_to_arc_mapping.md](docs/inspire_to_arc_mapping.md)**
+👉 **[docs/inspire_mapping.md](docs/inspire_mapping.md)**
 
 ## 📁 Project Structure
 
-- `middleware/inspire_to_arc`: The core harvesting and mapping logic.
+- `middleware/inspire`: The core harvesting and mapping logic.
 - `docker/`: Dockerfiles and container structure tests.
 - `dev_environment/`: Local development setup with Docker Compose.
 - `scripts/`: Quality check and utility scripts.

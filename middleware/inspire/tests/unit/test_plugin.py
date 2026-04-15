@@ -1,4 +1,4 @@
-"""Unit tests for the inspire_to_arc plugin generator and config modules."""
+"""Unit tests for the inspire plugin generator and config modules."""
 
 # ruff: noqa: SLF001, PLR2004
 
@@ -7,10 +7,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from middleware.inspire_to_arc.config import Config
-from middleware.inspire_to_arc.errors import RecordProcessingError
-from middleware.inspire_to_arc.models import InspireRecord
-from middleware.inspire_to_arc.plugin import run_plugin
+from middleware.inspire.config import Config
+from middleware.inspire.errors import RecordProcessingError
+from middleware.inspire.models import InspireRecord
+from middleware.inspire.plugin import run_plugin
 
 
 def test_config_loading(tmp_path: Path) -> None:
@@ -41,8 +41,8 @@ async def test_run_plugin_success() -> None:
     mock_records = [mock_record]
 
     with (
-        patch("middleware.inspire_to_arc.plugin.CSWClient") as mock_csw_class,
-        patch("middleware.inspire_to_arc.plugin.InspireMapper") as mock_mapper_class,
+        patch("middleware.inspire.plugin.CSWClient") as mock_csw_class,
+        patch("middleware.inspire.plugin.InspireMapper") as mock_mapper_class,
     ):
         mock_csw = mock_csw_class.return_value
         mock_csw.get_records.return_value = mock_records
@@ -68,7 +68,7 @@ async def test_run_plugin_with_error() -> None:
     mock_error = RecordProcessingError("Failed", record_id="err-1")
     mock_records = [mock_error]
 
-    with patch("middleware.inspire_to_arc.plugin.CSWClient") as mock_csw_class:
+    with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.get_records.return_value = mock_records
         mock_csw.get_record_url.return_value = "http://url"

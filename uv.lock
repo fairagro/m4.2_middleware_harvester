@@ -10,7 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "harvester",
-    "inspire-to-arc",
+    "inspire",
     "m4-2-middleware-harvester",
 ]
 
@@ -371,7 +371,7 @@ source = { editable = "middleware/harvester" }
 dependencies = [
     { name = "api-client" },
     { name = "arctrl" },
-    { name = "inspire-to-arc" },
+    { name = "inspire" },
     { name = "pydantic" },
     { name = "shared" },
 ]
@@ -380,7 +380,7 @@ dependencies = [
 requires-dist = [
     { name = "api-client", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fapi_client&branch=main" },
     { name = "arctrl", specifier = ">=3.0.0b0" },
-    { name = "inspire-to-arc", editable = "middleware/inspire_to_arc" },
+    { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "shared", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fshared&branch=main" },
 ]
@@ -453,9 +453,9 @@ wheels = [
 ]
 
 [[package]]
-name = "inspire-to-arc"
+name = "inspire"
 version = "0.1.0"
-source = { editable = "middleware/inspire_to_arc" }
+source = { editable = "middleware/inspire" }
 dependencies = [
     { name = "api-client" },
     { name = "arctrl" },
@@ -627,7 +627,7 @@ name = "m4-2-middleware-harvester"
 source = { editable = "." }
 dependencies = [
     { name = "harvester" },
-    { name = "inspire-to-arc" },
+    { name = "inspire" },
 ]
 
 [package.dev-dependencies]
@@ -649,7 +649,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "harvester", editable = "middleware/harvester" },
-    { name = "inspire-to-arc", editable = "middleware/inspire_to_arc" },
+    { name = "inspire", editable = "middleware/inspire" },
 ]
 
 [package.metadata.requires-dev]

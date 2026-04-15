@@ -5,7 +5,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field, model_validator
 
 from middleware.api_client.config import Config as ApiClientConfig
-from middleware.inspire_to_arc.config import Config as InspireToArcConfig
+from middleware.inspire.config import Config as InspireConfig
 from middleware.shared.config.config_base import ConfigBase
 
 
@@ -21,7 +21,7 @@ class RepositoryConfig(BaseModel):
     """
 
     inspire: Annotated[
-        InspireToArcConfig | None,
+        InspireConfig | None,
         Field(description="INSPIRE CSW plugin configuration"),
     ] = None
     # future plugin types go here as additional optional fields
@@ -31,9 +31,7 @@ class RepositoryConfig(BaseModel):
         """Ensure exactly one plugin key is set."""
         set_fields = [f for f, v in self.__dict__.items() if v is not None]
         if len(set_fields) != 1:
-            raise ValueError(
-                f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}"
-            )
+            raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self
 
     @property
@@ -44,7 +42,7 @@ class RepositoryConfig(BaseModel):
         raise RuntimeError("No plugin key set — did model validation run?")  # pragma: no cover
 
     @property
-    def plugin_config(self) -> InspireToArcConfig:
+    def plugin_config(self) -> InspireConfig:
         """Return the active plugin configuration object."""
         if self.inspire is not None:
             return self.inspire

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.inspire_to_arc.config import Config as InspireToArcConfig
+from middleware.inspire.config import Config as InspireConfig
 
 
 def test_harvester_config_loading() -> None:
@@ -31,7 +31,7 @@ def test_harvester_config_loading() -> None:
     assert len(config.repositories) == 1
     repo: RepositoryConfig = config.repositories[0]
     assert repo.plugin_type == "inspire"
-    assert isinstance(repo.plugin_config, InspireToArcConfig)
+    assert isinstance(repo.plugin_config, InspireConfig)
     assert repo.plugin_config.csw_url == "https://csw.example.com"
     assert repo.plugin_config.rdi == "test-import"
 

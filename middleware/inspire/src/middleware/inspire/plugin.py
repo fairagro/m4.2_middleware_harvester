@@ -7,10 +7,10 @@ central Harvester orchestrator. This module contains no CLI entry point.
 import logging
 from collections.abc import AsyncGenerator
 
-from middleware.inspire_to_arc.config import Config
-from middleware.inspire_to_arc.csw_client import CSWClient
-from middleware.inspire_to_arc.errors import RecordProcessingError
-from middleware.inspire_to_arc.mapper import InspireMapper
+from middleware.inspire.config import Config
+from middleware.inspire.csw_client import CSWClient
+from middleware.inspire.errors import RecordProcessingError
+from middleware.inspire.mapper import InspireMapper
 
 logger = logging.getLogger(__name__)
 

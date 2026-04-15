@@ -12,10 +12,10 @@ RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
-# Pretend version for hatch-vcs (used during uv build of inspire_to_arc wheel)
+# Pretend version for hatch-vcs (used during uv build of inspire wheel)
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 
-RUN uv build --package inspire_to_arc --wheel
+RUN uv build --package inspire --wheel
 
 
 # ---- Binary Build Stage ----
@@ -44,7 +44,7 @@ ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
 COPY pyproject.toml uv.lock README.md LICENSE ./
 
-# We still need the source code because uv sync requires all workspace members (e.g., middleware/inspire_to_arc)
+# We still need the source code because uv sync requires all workspace members (e.g., middleware/inspire)
 # to be physically present to validate the environment against the lockfile.
 COPY middleware ./middleware
 
@@ -80,11 +80,11 @@ RUN . .venv/bin/activate && \
 # --copy-metadata is still needed because the code checks its own version at runtime.
 RUN . .venv/bin/activate && \
     .venv/bin/python -m PyInstaller --onedir \
-    --name inspire_to_arc \
-    --copy-metadata inspire_to_arc \
+    --name inspire \
+    --copy-metadata inspire \
     --copy-metadata api_client \
     --copy-metadata shared \
-    .venv/lib/python3.12/site-packages/middleware/inspire_to_arc/main.py
+    .venv/lib/python3.12/site-packages/middleware/inspire/main.py
 
 
 # ---- Runtime Stage ----
@@ -96,13 +96,13 @@ WORKDIR /middleware
 RUN apk add --no-cache --upgrade \
     zlib=1.3.2-r0
 # Create non-root user and group
-RUN addgroup -S inspire_to_arc && \
-    adduser -S -H -G inspire_to_arc inspire_to_arc
+RUN addgroup -S inspire && \
+    adduser -S -H -G inspire inspire
 
 # Copy the entire directory created by --onedir with correct ownership
-COPY --chown=inspire_to_arc:inspire_to_arc --from=binary-builder /build/dist/inspire_to_arc /middleware/inspire_to_arc
+COPY --chown=inspire:inspire --from=binary-builder /build/dist/inspire /middleware/inspire
 
-USER inspire_to_arc
+USER inspire
 
 # Execute the binary inside the directory
-CMD ["/middleware/inspire_to_arc/inspire_to_arc"]
+CMD ["/middleware/inspire/inspire"]

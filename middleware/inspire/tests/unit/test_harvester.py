@@ -1,4 +1,4 @@
-"""Unit tests for the CSWClient and InspireRecord classes in the inspire_to_arc.harvester module."""
+"""Unit tests for the CSWClient and InspireRecord classes in the inspire.csw_client module."""
 
 # ruff: noqa: SLF001, PLR2004
 
@@ -8,13 +8,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 
-from middleware.inspire_to_arc.csw_client import CSWClient
-from middleware.inspire_to_arc.models import InspireRecord
+from middleware.inspire.csw_client import CSWClient
+from middleware.inspire.models import InspireRecord
 
 
 @pytest.fixture
 def mock_csw_cls() -> Iterator[MagicMock]:
-    with patch("middleware.inspire_to_arc.csw_client.CatalogueServiceWeb") as mock:
+    with patch("middleware.inspire.csw_client.CatalogueServiceWeb") as mock:
         yield mock
 
 

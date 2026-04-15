@@ -9,7 +9,7 @@ from arctrl import ARC
 
 from middleware.api_client import ApiClient
 from middleware.harvester.config import Config
-from middleware.inspire_to_arc.plugin import run_plugin
+from middleware.inspire.plugin import run_plugin
 
 logger = logging.getLogger(__name__)
 

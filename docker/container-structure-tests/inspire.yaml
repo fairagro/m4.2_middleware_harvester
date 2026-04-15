@@ -7,7 +7,7 @@ schemaVersion: 2.0.0
 # File existence tests
 fileExistenceTests:
   - name: 'INSPIRE to ARC executable'
-    path: '/middleware/inspire_to_arc/inspire_to_arc'
+    path: '/middleware/inspire/inspire'
     shouldExist: true
     permissions: '-rwxr-xr-x'  # Executable
 
@@ -27,11 +27,11 @@ fileExistenceTests:
 fileContentTests:
   - name: 'Non-root user created'
     path: '/etc/passwd'
-    expectedContents: ['inspire_to_arc:.*']
+    expectedContents: ['inspire:.*']
 
   - name: 'Non-root group created'
     path: '/etc/group'
-    expectedContents: ['inspire_to_arc:.*']
+    expectedContents: ['inspire:.*']
 
 # Command tests
 commandTests:
@@ -57,7 +57,7 @@ commandTests:
 
   - name: 'INSPIRE to ARC binary is executable'
     command: 'test'
-    args: ['-x', '/middleware/inspire_to_arc/inspire_to_arc']
+    args: ['-x', '/middleware/inspire/inspire']
     exitCode: 0
 
   - name: 'Minimal package count (Alpine security)'
@@ -68,5 +68,5 @@ commandTests:
 
 # Metadata tests
 metadataTest:
-  user: 'inspire_to_arc'
+  user: 'inspire'
   workdir: '/middleware'
