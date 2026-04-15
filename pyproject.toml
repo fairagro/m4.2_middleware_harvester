@@ -142,7 +142,14 @@ convention = "pep257" # oder "numpy", oder "google"
 
 [tool.pytest.ini_options]
 # Test discovery
-testpaths = ["middleware/*/tests"]
+testpaths = [
+    "middleware/inspire/tests",
+    "middleware/harvester/tests"
+]
+pythonpath = [
+    "middleware/inspire/src",
+    "middleware/harvester/src"
+]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -152,12 +159,10 @@ addopts = [
     "-v",                        # Verbose output
     "--strict-markers",          # Treat unregistered markers as errors
     "--tb=short",                # Shorter traceback format
-    "--cov=middleware",          # Enable coverage for middleware packages
-    "--cov-report=term-missing", # Show missing lines in terminal
-    "--cov-report=html",         # Generate HTML coverage report
-    "--cov-report=xml",          # Generate XML coverage report (for CI)
-    "--cov-fail-under=80",       # Fail if coverage is below 80%
 ]
+# NOTE: Coverage flags (--cov, --cov-fail-under) are intentionally NOT in addopts.
+# Running them for every single test in VS Code would show falsely low coverage.
+# Use: uv run pytest --cov=middleware --cov-report=term-missing --cov-fail-under=80
 
 # Asyncio mode
 asyncio_mode = "auto"
@@ -166,12 +171,15 @@ asyncio_mode = "auto"
 markers = [
     "asyncio: marks tests as async",
     "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]
 
 [tool.coverage.run]
 # Coverage measurement settings
-source = ["middleware"]
+source = [
+    "middleware/inspire/src/middleware/inspire",
+    "middleware/harvester/src/middleware/harvester"
+]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

@@ -6,7 +6,7 @@ import os
 import tempfile
 
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, Person  # type: ignore[import]
+from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person  # type: ignore[import]
 from arctrl.py.Contract.contract import DTO  # type: ignore[import]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
 from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
@@ -92,6 +92,55 @@ def mapper() -> InspireMapper:
     return InspireMapper()
 
 
+def _create_minimal_record(
+    **kwargs: list
+    | str
+    | None
+    | list[Contact]
+    | list[ResourceIdentifier]
+    | list[InspireDate]
+    | list[DistributionFormat]
+    | list[OnlineResource]
+    | list[ConformanceResult]
+    | list[ReferenceSystem]
+    | list[float]
+    | list[SpatialResolutionDistance]
+    | tuple[str | None, str | None]
+    | bytes,
+) -> InspireRecord:
+    """Create a minimal InspireRecord with default values for all required fields."""
+    defaults: dict = {
+        "identifier": "test",
+        "title": "Test",
+        "abstract": "Test abstract",
+        "keywords": [],
+        "topic_categories": [],
+        "contacts": [],
+        "constraints": [],
+        "resource_identifiers": [],
+        "resource_language": [],
+        "graphic_overviews": [],
+        "dates": [],
+        "spatial_resolution_denominators": [],
+        "spatial_resolution_distances": [],
+        "creators": [],
+        "publishers": [],
+        "contributors": [],
+        "access_constraints": [],
+        "use_constraints": [],
+        "classification": [],
+        "other_constraints": [],
+        "other_constraints_url": [],
+        "distribution_formats": [],
+        "online_resources": [],
+        "conformance_results": [],
+        "reference_systems": [],
+    }
+    # Update defaults with provided kwargs
+    defaults.update(kwargs)
+    return InspireRecord(**defaults)
+
+
 def test_map_record_e2e(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test end-to-end mapping from InspireRecord to ARC."""
     arc = mapper.map_record(sample_record)
@@ -166,7 +215,9 @@ def test_map_assay(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     assert isinstance(assay, ArcAssay)
     assert assay.Identifier == "test_dataset"
     assert assay.MeasurementType is not None
-    assert assay.MeasurementType.Name == "biota"
+    assert assay.MeasurementType.Name == "Biological Measurement"
+    assert assay.MeasurementType.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C19026"
+    assert assay.MeasurementType.TermSourceREF == "NCIT"
 
 
 def test_map_person(mapper: InspireMapper) -> None:
@@ -254,7 +305,7 @@ def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecor
     param_col = table.Columns[1]
     output_col = table.Columns[2]
 
-    assert param_col.Cells[0].AsTerm.Name == "Dataset URI"
+    assert param_col.Cells[0].AsTerm.Name == "Dataset Landing Page"
     assert output_col.Cells[0].AsData.Name == "https://data.example.com/api"
 
     assert param_col.Cells[1].AsTerm.Name == "Download"
@@ -320,6 +371,370 @@ def test_generate_comments_branches(mapper: InspireMapper, sample_record: Inspir
     assert "Alternate Title" in names
     assert "Purpose" in names
     assert "Supplemental Information" in names
+
+
+def test_add_role_with_ontology_mapping(mapper: InspireMapper) -> None:
+    """Test that roles are mapped to proper ontology annotations."""
+    # Test known role with ontology mapping
+    contact = Contact(role="author", name="John Doe")
+    person = mapper.map_person(contact)
+
+    assert person is not None
+    assert len(person.Roles) == 1
+    role_annotation = person.Roles[0]
+    assert role_annotation.Name == "Author"
+    assert role_annotation.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C70909"
+    assert role_annotation.TermSourceREF == "NCIT"
+
+    # Test another known role
+    contact = Contact(role="publisher", name="Jane Smith")
+    person = mapper.map_person(contact)
+
+    assert person is not None
+    assert len(person.Roles) == 1
+    role_annotation = person.Roles[0]
+    assert role_annotation.Name == "Publisher"
+    assert role_annotation.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C70908"
+    assert role_annotation.TermSourceREF == "NCIT"
+
+    # Test unknown role (fallback)
+    contact = Contact(role="unknownRole", name="Empty Role")
+    person = mapper.map_person(contact)
+
+    assert person is not None
+    assert len(person.Roles) == 1
+    assert person.Roles[0].Name == "unknownRole"
+    assert person.Roles[0].TermAccessionNumber is None
+    assert person.Roles[0].TermSourceREF is None
+
+    # Test empty role
+    contact = Contact(role=None, name="No Role")
+    person = mapper.map_person(contact)
+    assert person is not None
+    assert len(person.Roles) == 0
+
+
+def test_hierarchy_level_handling(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    """Test hierarchy level handling in comment generation and protocol creation."""
+    # Test standard dataset (no comment, with spatial protocol)
+    sample_record.hierarchy = "dataset"
+    comments = mapper._generate_comments(sample_record)
+    assert not any(c.Name == "Hierarchy Level" for c in comments)
+
+    spatial_protocol = mapper._create_spatial_sampling_protocol(sample_record)
+    assert spatial_protocol is not None
+
+    # Test nonGeographicDataset (no comment, no spatial protocol)
+    sample_record.hierarchy = "nonGeographicDataset"
+    comments = mapper._generate_comments(sample_record)
+    assert not any(c.Name == "Hierarchy Level" for c in comments)
+
+    spatial_protocol = mapper._create_spatial_sampling_protocol(sample_record)
+    assert spatial_protocol is None
+
+    # Test series (comment, with spatial protocol)
+    sample_record.hierarchy = "series"
+    comments = mapper._generate_comments(sample_record)
+    hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
+    assert len(hierarchy_comments) == 1
+    assert "series" in hierarchy_comments[0].Value
+
+    spatial_protocol = mapper._create_spatial_sampling_protocol(sample_record)
+    assert spatial_protocol is not None
+
+    # Test tile (comment, with spatial protocol)
+    sample_record.hierarchy = "tile"
+    comments = mapper._generate_comments(sample_record)
+    hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
+    assert len(hierarchy_comments) == 1
+    assert "tile" in hierarchy_comments[0].Value
+
+    # Test service (comment, with spatial protocol)
+    sample_record.hierarchy = "service"
+    comments = mapper._generate_comments(sample_record)
+    hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
+    assert len(hierarchy_comments) == 1
+    assert "service" in hierarchy_comments[0].Value
+
+
+def test_add_ontology_sources(mapper: InspireMapper) -> None:
+    """Test that ontology sources are properly added to investigation."""
+    record = _create_minimal_record(
+        metadata_standard_name="ISO 19115",
+        metadata_standard_version="2003",
+    )
+
+    inv = mapper.map_investigation(record)
+
+    # Check that metadata standard is added
+    metadata_sources = [osr for osr in inv.OntologySourceReferences if osr.Name == "ISO 19115"]
+    assert len(metadata_sources) == 1
+
+    # Check that common ontologies are added
+    common_ontologies = ["NCIT", "GEMET", "EDAM", "ISO"]
+    for ontology in common_ontologies:
+        sources = [osr for osr in inv.OntologySourceReferences if osr.Name == ontology]
+        assert len(sources) == 1, f"Missing ontology source: {ontology}"
+
+
+def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_record: InspireRecord) -> None:
+    """Test dataset URI and lineage URL mapping in assay table and data processing protocol."""
+    # Test dataset URI in assay table
+    sample_record.dataset_uri = "https://example.com/dataset"
+    assay = mapper.map_assay(sample_record)
+
+    assert len(assay.Tables) == 1
+    assay_table = assay.Tables[0]
+
+    # Find Dataset Landing Page row
+    param_col = assay_table.Columns[1]  # Resource Name column
+    output_col = assay_table.Columns[2]  # Output Data column
+
+    landing_page_rows = [i for i, cell in enumerate(param_col.Cells) if cell.AsTerm.Name == "Dataset Landing Page"]
+
+    assert len(landing_page_rows) == 1
+    assert output_col.Cells[landing_page_rows[0]].AsData.Name == "https://example.com/dataset"
+
+    # Test lineage URL in data processing protocol
+    sample_record.lineage_url = "https://example.com/lineage"
+    study = mapper.map_study(sample_record)
+
+    processing_protocols = [t for t in study.Tables if t.Name == "Data Processing"]
+    assert len(processing_protocols) == 1
+
+    protocol = processing_protocols[0]
+    lineage_url_params = [col for col in protocol.Columns if col.Header.ToTerm().Name == "Lineage Documentation URL"]
+
+    assert len(lineage_url_params) == 1
+    assert lineage_url_params[0].Cells[0].AsTerm.Name == "https://example.com/lineage"
+
+
+def test_to_identifier_slug(mapper: InspireMapper) -> None:
+    """Test conversion of titles to identifier slugs."""
+    test_cases = [
+        ("Test Dataset", "test_dataset"),
+        ("Dataset with Spaces", "dataset_with_spaces"),
+        ("Dataset-with-dashes", "dataset_with_dashes"),
+        ("Dataset_with_underscores", "dataset_with_underscores"),
+        ("Dataset with numbers 123", "dataset_with_numbers_123"),
+        ("Dataset with special chars!@#", "dataset_with_special_chars"),
+        ("", "untitled"),
+        ("http://example.com/dataset", "http_example_com_dataset"),  # URL should be converted
+        ("dataset/with/slashes", "dataset_with_slashes"),  # Slashes should be converted
+    ]
+
+    for title, expected in test_cases:
+        result = mapper._to_identifier_slug(title)
+        assert result == expected
+        assert len(result) <= 80  # Should be truncated to 80 chars
+
+
+def test_split_name(mapper: InspireMapper) -> None:
+    """Test splitting of full names into first and last name."""
+    test_cases = [
+        ("John Doe", ("John", "Doe")),
+        ("Doe, John", ("Doe,", "John")),  # Handle comma format - current implementation doesn't handle this
+        ("Jane", ("", "Jane")),  # Single name
+        ("", ("", "")),  # Empty name
+        ("Dr. John Michael Doe", ("Dr. John Michael", "Doe")),  # Multiple middle names (current implementation)
+    ]
+
+    for full_name, expected in test_cases:
+        first, last = mapper._split_name(full_name)
+        assert (first, last) == expected
+
+
+def test_format_address(mapper: InspireMapper) -> None:
+    """Test formatting of contact address components."""
+    contact = Contact(
+        name="Test", address="123 Main St", city="Berlin", region="Berlin", postcode="10115", country="Germany"
+    )
+
+    address = mapper._format_address(contact)
+    assert address == "123 Main St, Berlin, Berlin, 10115, Germany"
+
+    # Test missing components
+    contact = Contact(name="Test", address="123 Main St")
+    address = mapper._format_address(contact)
+    assert address == "123 Main St"
+
+    # Test empty contact
+    contact = Contact(name="Test")
+    address = mapper._format_address(contact)
+    assert address is None
+
+
+def test_add_person_comments(mapper: InspireMapper) -> None:
+    """Test adding comments to person from contact information."""
+    person = Person.create(last_name="Doe", first_name="John")
+    contact = Contact(
+        name="John Doe",
+        position="Researcher",
+        online_resource_url="https://orcid.org/0000-0000-0000-0000",
+        online_resource_name="ORCID",
+    )
+
+    mapper._add_person_comments(person, contact)
+
+    assert len(person.Comments) == 2
+    comment_names = [c.Name for c in person.Comments]
+    assert "Position" in comment_names
+    assert "ORCID" in comment_names
+
+    # Test with missing fields
+    person = Person.create(last_name="Doe")
+    contact = Contact(name="John Doe")
+    mapper._add_person_comments(person, contact)
+    assert len(person.Comments) == 0
+
+
+def test_add_contacts(mapper: InspireMapper) -> None:
+    """Test adding multiple contacts to investigation."""
+    record = _create_minimal_record(
+        contacts=[Contact(name="Contact 1", role="author")],
+        creators=[Contact(name="Creator 1", role="creator")],
+        publishers=[Contact(name="Publisher 1", role="publisher")],
+        contributors=[Contact(name="Contributor 1", role="contributor")],
+    )
+
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+
+    assert len(inv.Contacts) == 4
+
+    # Check that roles are properly mapped
+    roles = [role.Name for contact in inv.Contacts for role in contact.Roles]
+    assert "Author" in roles
+    # Note: creator, publisher, contributor roles are not mapped to ontology terms in current implementation
+    assert "creator" in roles
+    assert "Publisher" in roles
+    assert "contributor" in roles
+
+
+def test_add_publications(mapper: InspireMapper) -> None:
+    """Test adding publications from resource identifiers."""
+    # Create investigation with author contacts
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    author = Person.create(last_name="Doe", first_name="John")
+    author.Roles.append(OntologyAnnotation(name="Author"))
+    inv.Contacts.append(author)
+
+    record = _create_minimal_record(
+        title="Test Dataset",
+        resource_identifiers=[
+            ResourceIdentifier(code="10.1234/doi", codespace="DOI"),
+            ResourceIdentifier(code="ISBN:123456789", codespace="ISBN"),
+            ResourceIdentifier(code="not-a-doi", codespace="OTHER"),
+        ],
+    )
+
+    mapper._add_publications(inv, record)
+
+    # Current implementation creates publications for all identifiers
+    assert len(inv.Publications) == 3
+
+    # Check DOI publication
+    doi_pub = next(p for p in inv.Publications if p.DOI == "10.1234/doi")
+    assert doi_pub.Title == "Test Dataset"
+    # Note: Authors field is not set in current implementation
+    assert doi_pub.Authors is None
+
+    # Check ISBN publication
+    isbn_pub = next(p for p in inv.Publications if p.DOI == "ISBN:123456789")
+    assert isbn_pub.Title == "Test Dataset"
+
+    # Check OTHER publication
+    other_pub = next(p for p in inv.Publications if p.DOI == "not-a-doi")
+    assert other_pub.Title == "Test Dataset"
+
+
+def test_generate_comments(mapper: InspireMapper) -> None:
+    """Test generation of investigation comments from record fields."""
+    record = _create_minimal_record(
+        parent_identifier="parent-123",
+        language="eng",
+        edition="1.0",
+        status="completed",
+        alternate_title="Alternative Title",
+        purpose="Test purpose",
+        supplemental_information="Extra info",
+        hierarchy="series",
+    )
+
+    comments = mapper._generate_comments(record)
+
+    comment_names = [c.Name for c in comments]
+    assert "Parent Identifier" in comment_names
+    assert "Language" in comment_names
+    assert "Edition" in comment_names
+    assert "Status" in comment_names
+    assert "Alternate Title" in comment_names
+    assert "Purpose" in comment_names
+    assert "Supplemental Information" in comment_names
+    assert "Hierarchy Level" in comment_names
+
+
+def test_add_constraint_comments(mapper: InspireMapper) -> None:
+    """Test adding constraint-related comments."""
+    record = _create_minimal_record(
+        access_constraints=["restricted"],
+        use_constraints=["license"],
+        classification=["confidential"],
+        other_constraints=["None"],
+        other_constraints_url=["https://example.com/constraints"],
+    )
+
+    comments: list = []
+    mapper._add_constraint_comments(comments, record)
+
+    assert len(comments) == 5
+    comment_names = [c.Name for c in comments]
+    assert "Access Constraints" in comment_names
+    assert "Use Constraints" in comment_names
+    assert "Classification" in comment_names
+    assert "Other Constraints" in comment_names
+    assert "Other Constraints URLs" in comment_names
+
+
+def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
+    """Test topic category to measurement type ontology mapping."""
+    # Test known topic categories
+    test_cases = [
+        ("biota", "Biological Measurement", "http://purl.obolibrary.org/obo/NCIT_C19026", "NCIT"),
+        ("farming", "Agricultural Measurement", "http://purl.obolibrary.org/obo/AGRO_00000001", "AGRO"),
+        ("oceans", "Oceanographic Measurement", "http://purl.obolibrary.org/obo/ENVO_00000015", "ENVO"),
+        (
+            "climatologyMeteorologyAtmosphere",
+            "Atmospheric Measurement",
+            "http://purl.obolibrary.org/obo/ENVO_01000818",
+            "ENVO",
+        ),
+        ("environment", "Environmental Measurement", "http://purl.obolibrary.org/obo/ENVO_01000819", "ENVO"),
+    ]
+
+    for topic, expected_name, expected_tan, expected_tsr in test_cases:
+        record = _create_minimal_record(topic_categories=[topic])
+
+        measurement_type = mapper._get_measurement_type(record)
+        assert measurement_type.Name == expected_name
+        assert measurement_type.TermAccessionNumber == expected_tan
+        assert measurement_type.TermSourceREF == expected_tsr
+
+    # Test unknown topic category (fallback)
+    record = _create_minimal_record(topic_categories=["unknownTopic"])
+
+    measurement_type = mapper._get_measurement_type(record)
+    assert measurement_type.Name == "unknownTopic"
+    assert measurement_type.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C19026"
+    assert measurement_type.TermSourceREF == "NCIT"
+
+    # Test empty topic categories
+    record = _create_minimal_record(topic_categories=[])
+
+    measurement_type = mapper._get_measurement_type(record)
+    assert measurement_type.Name == "Spatial Data Acquisition"
+    assert measurement_type.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C19026"
+    assert measurement_type.TermSourceREF == "NCIT"
 
 
 def test_map_record_adds_xml_file(mapper: InspireMapper, sample_record: InspireRecord) -> None:
