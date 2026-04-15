@@ -4,15 +4,13 @@ Query the Catalogue Service for Web (CSW) endpoints and parse ISO 19139 XML into
 
 ## Requirements
 
-- [ ] Support large response fetches utilizing OWSLib's internal CSW connections.
-- [ ] Connect securely to `csw_url` via `CSWClient`.
-- [ ] Support both raw `xml_request` parsing and standard paginated requests.
-- [ ] Utilize Dublin Core schemas `getrecords2(esn="brief")` to extract stable identifiers (`_fetch_dc_ids`) before loading the full `esn="full"` ISO metadata.
-- [ ] Align resulting identifiers and gracefully handle alignment faults by yielding a `RecordProcessingError`.
-- [ ] Parse `MD_Metadata` outputs recursively targeting temporal, resolution, contact lists, referencing formats, and spatial extents.
-- [ ] Support parsing graphic overviews and dataset URLs.
+- [ ] Connect securely to the configured `csw_url` and retrieve all available metadata records.
+- [ ] Support both standard paginated requests and raw XML request pass-through.
+- [ ] Fetch stable record identifiers before loading full ISO metadata to ensure consistent pagination across CSW servers.
+- [ ] Parse ISO 19139 `MD_Metadata` into a fully typed `InspireRecord`, extracting: temporal extent, spatial resolution, contacts, reference formats, spatial extents, graphic overviews, and dataset URLs.
+- [ ] Yield a `RecordProcessingError` for any record whose identifier cannot be aligned or whose XML cannot be parsed.
 
 ## Edge Cases
 
-- `ows_random_*` mock IDs might be yielded by bad CSW servers; the system overrides these with the stable fetched Dublin Core ID.
-- Broken XML responses or invalid attributes internally trigger `SemanticError` or `ValueError`, which are yielded as `RecordProcessingError`.
+- Some CSW servers yield random identifiers under pagination; the stable identifier obtained in the pre-fetch step must override any such value.
+- Broken XML responses or invalid attribute access → yield `RecordProcessingError`, continue iteration.

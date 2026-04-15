@@ -1,12 +1,12 @@
-# CSW Harvesting Design
+# CSW Harvesting — Design
 
 ## Key Decisions
 
-— Using an explicit dual-pass stable ID mechanism (extracting DC then full ISO).
-Some CSW servers behave differently under pagination, yielding records in unexpected orders when sorting is ambiguous. By locking onto the quick Dublin Core identifier strings, if the ISO parse shifts, we detect the `Alignment mismatch` but continue.
+1. **Dual-pass stable ID mechanism (Dublin Core pre-fetch before full ISO fetch)**
+   — Some CSW servers yield records in unpredictable order under pagination when sort order is ambiguous. By locking onto the Dublin Core identifier strings obtained in the first pass, mismatches between the pre-fetch and the full ISO response are detected; the record is skipped with a `RecordProcessingError` instead of silently producing wrong data.
 
-— Returning `RecordProcessingError` inside the generator.
-Because OWSLib fetching can throw arbitrary network and XML parse faults in `_yield_records_with_stable_ids`, we yield out an error entity rather than raising the exception. This lets `main.py` explicitly log the fault without crushing the iterator generator.
+2. **Yield `RecordProcessingError` instead of raising from the generator**
+   — OWSLib fetching can throw arbitrary network and XML parse exceptions mid-iteration. Raising would terminate the entire generator and abort the harvest run. Yielding the error lets the orchestrator log it and continue to the next record, satisfying the failure-isolation principle.
 
-— Encompassing `MD_Metadata` parsing into an inner comprehensive `InspireRecord`.
-While we technically get `MD_Metadata` from OWSLib, we map these immediately into `InspireRecord` (a pure Pydantic model with cleanly typed arrays of strings, Contacts, and Constraints). By dropping OWSLib as early as possible, the `mapper` no longer needs to deal with vague `str | list | ElementMap` returns.
+3. **Convert `MD_Metadata` to `InspireRecord` immediately after parsing**
+   — OWSLib returns `MD_Metadata` with attributes typed as `str | list | ElementMap`. Mapping to `InspireRecord` (a fully typed Pydantic model) at the boundary of `CSWClient` means `mapper.py` never has to deal with OWSLib internals or ambiguous types.

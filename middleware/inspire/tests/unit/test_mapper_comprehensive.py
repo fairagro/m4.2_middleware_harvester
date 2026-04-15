@@ -437,7 +437,7 @@ def test_hierarchy_level_handling(mapper: InspireMapper, sample_record: InspireR
     comments = mapper._generate_comments(sample_record)
     hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
     assert len(hierarchy_comments) == 1
-    assert "series" in hierarchy_comments[0].Value
+    assert hierarchy_comments[0].Value is not None and "series" in hierarchy_comments[0].Value
 
     spatial_protocol = mapper._create_spatial_sampling_protocol(sample_record)
     assert spatial_protocol is not None
@@ -447,14 +447,14 @@ def test_hierarchy_level_handling(mapper: InspireMapper, sample_record: InspireR
     comments = mapper._generate_comments(sample_record)
     hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
     assert len(hierarchy_comments) == 1
-    assert "tile" in hierarchy_comments[0].Value
+    assert hierarchy_comments[0].Value is not None and "tile" in hierarchy_comments[0].Value
 
     # Test service (comment, with spatial protocol)
     sample_record.hierarchy = "service"
     comments = mapper._generate_comments(sample_record)
     hierarchy_comments = [c for c in comments if c.Name == "Hierarchy Level"]
     assert len(hierarchy_comments) == 1
-    assert "service" in hierarchy_comments[0].Value
+    assert hierarchy_comments[0].Value is not None and "service" in hierarchy_comments[0].Value
 
 
 def test_add_ontology_sources(mapper: InspireMapper) -> None:
