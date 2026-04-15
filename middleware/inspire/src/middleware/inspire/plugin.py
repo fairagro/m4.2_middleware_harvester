@@ -9,14 +9,14 @@ from collections.abc import AsyncGenerator
 
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
-from middleware.inspire.errors import RecordProcessingError
+from middleware.harvester.errors import RecordProcessingError, HarvesterError
 from middleware.inspire.mapper import InspireMapper
 
 logger = logging.getLogger(__name__)
 
 
-async def run_plugin(config: Config) -> AsyncGenerator[str, None]:
-    """Run the harvest process and yield serialized RO-Crate ARCs."""
+async def run_plugin(config: Config) -> AsyncGenerator[str | HarvesterError, None]:
+    """Run the harvest process and yield serialized RO-Crate ARCs or Harvester errors."""
     # 1. Setup CSW Client
     logger.info("Connecting to CSW at %s...", config.csw_url)
     csw_client = CSWClient(config.csw_url)
@@ -36,16 +36,9 @@ async def run_plugin(config: Config) -> AsyncGenerator[str, None]:
         )
 
         for item in records_iter:
-            # Handle potential processing errors emitted by the harvester
+            # Yield potential processing errors emitted by the fetcher upstream
             if isinstance(item, RecordProcessingError):
-                record_id = item.record_id
-                record_url = csw_client.get_record_url(record_id)
-                logger.error(
-                    "Failed to parse/fetch record %s: %s (URL: %s)",
-                    record_id,
-                    item.original_error or item,
-                    record_url,
-                )
+                yield item
                 continue
 
             record = item
@@ -71,7 +64,7 @@ async def run_plugin(config: Config) -> AsyncGenerator[str, None]:
                 count += 1
 
             except Exception as e:  # noqa: BLE001
-                logger.error("Failed to map/upload record %s: %s (URL: %s)", record.identifier, e, record_url)
+                yield RecordProcessingError(f"Failed to map record: {e}", record.identifier, e)
                 continue
 
         logger.info("Harvest generator exhausted. Processed %d records.", count)

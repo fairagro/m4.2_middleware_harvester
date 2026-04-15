@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from middleware.inspire.config import Config
-from middleware.inspire.errors import RecordProcessingError
+from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.models import InspireRecord
 from middleware.inspire.plugin import run_plugin
 
@@ -70,6 +70,7 @@ async def test_run_plugin_with_error() -> None:
         mock_csw.get_records.return_value = mock_records
         mock_csw.get_record_url.return_value = "http://url"
 
-        results = [arc async for arc in run_plugin(mock_config)]
-        # Should log error and continue (no exception raised)
-        assert len(results) == 0
+        results = [item async for item in run_plugin(mock_config)]
+        # Should yield the error object explicitly to the orchestrator
+        assert len(results) == 1
+        assert isinstance(results[0], RecordProcessingError)

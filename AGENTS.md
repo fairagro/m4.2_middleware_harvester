@@ -82,6 +82,7 @@ Before generating or modifying code, read the relevant spec folders.
 **Project-level** (`spec/`) — cross-cutting concerns:
 
 - **[`spec/principles.md`](spec/principles.md)** — Project principles and foundation contract (start here).
+- **[`spec/error-handling/`](spec/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 

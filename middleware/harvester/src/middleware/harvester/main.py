@@ -9,6 +9,7 @@ from arctrl import ARC
 
 from middleware.api_client import ApiClient
 from middleware.harvester.config import Config
+from middleware.harvester.errors import HarvesterError
 from middleware.inspire.plugin import run_plugin
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,14 @@ async def run_orchestrator(config: Config) -> None:
                 continue
 
             count = 0
-            async for arc_json in plugin_gen:
+            async for item in plugin_gen:
+                if isinstance(item, HarvesterError):
+                    logger.error("Processing error in plugin '%s': %s", repo.plugin_type, item)
+                    continue
+
                 try:
                     # Deserialize back to ARC for the API Client
-                    arc = ARC.from_rocrate_json_string(arc_json)
+                    arc = ARC.from_rocrate_json_string(item)
 
                     response = await client.create_or_update_arc(
                         rdi=repo.rdi,

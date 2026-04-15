@@ -9,7 +9,8 @@ from urllib.parse import urlencode
 from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
-from .errors import RecordProcessingError, SemanticError
+from middleware.harvester.errors import RecordProcessingError
+from .errors import SemanticError
 from .models import (
     ConformanceResult,
     Contact,
