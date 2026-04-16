@@ -14,7 +14,7 @@ client = CSWClient("https://gdk.gdi-de.org/gdi-de/srv/eng/csw")
 client.connect()
 
 # Fetch records
-records = list(client.get_records(max_records=10))
+records = list(client.get_records(chunk_size=10))
 ```
 
 ### Advanced Filtering with FES
@@ -32,7 +32,7 @@ constraints = [
     ])
 ]
 
-records = list(client.get_records(constraints=constraints, max_records=100))
+records = list(client.get_records(constraints=constraints, chunk_size=100))
 ```
 
 ### Raw XML Queries

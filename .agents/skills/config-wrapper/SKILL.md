@@ -133,7 +133,29 @@ config: dict[str, Any]
 config: Annotated[InspireToArcConfig, Field(description="Inspire plugin configuration")]
 ```
 
-For plugin registries where each entry may hold one of several typed configs, use a model with one optional field per plugin type and a `model_validator` that enforces exactly one is set:
+---
+
+## Defaults Rule
+
+**All defaults belong in the `Config` class — never in application code.**
+
+If application code needs a fallback value (e.g. `sys.maxsize`, a hardcoded constant, or a magic number), that value belongs as a Pydantic field default in the relevant `Config` class instead. This makes the default visible, overridable via env/secret/YAML, and documented.
+
+```python
+# ✗ Wrong — default hidden in application code, not overridable
+effective_max = config.max_records if config.max_records is not None else sys.maxsize
+
+# ✓ Correct — default declared in Config, code uses it directly
+class Config(BaseModel):
+    chunk_size: Annotated[int, Field(description="Records per page.", ge=1)] = 10
+
+# in code:
+records_iter = csw_client.get_records(chunk_size=config.chunk_size)
+```
+
+---
+
+## Plugin Config Pattern
 
 ```python
 class RepositoryConfig(BaseModel):

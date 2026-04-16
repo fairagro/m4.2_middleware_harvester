@@ -11,3 +11,7 @@ class Config(BaseModel):
     csw_url: Annotated[str, Field(description="URL of the CSW endpoint")]
     query: Annotated[str | None, Field(description="CQL query string for filtering records")] = None
     xml_request: Annotated[str | None, Field(description="Raw XML request for advanced queries")] = None
+    chunk_size: Annotated[
+        int,
+        Field(description="Number of records to fetch per paginated request.", ge=1),
+    ] = 10

@@ -1,4 +1,5 @@
 csw_url: "https://www.geodatenkatalog.de/geonetwork/srv/ger/csw"
+# chunk_size: 10  # Optional: records per paginated request (default: 10).
 api_client:
   api_url: "http://localhost:8000"
   client_cert_path: "/path/to/cert.pem"

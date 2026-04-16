@@ -35,7 +35,7 @@ async def run_plugin(config: PluginConfig) -> AsyncGenerator[str | HarvesterErro
         records_iter = csw_client.get_records(
             _query=inspire_config.query,
             xml_request=inspire_config.xml_request,
-            max_records=1000000,  # Use a large number or implement proper pagination loop in main
+            chunk_size=inspire_config.chunk_size,
         )
 
         for item in records_iter:

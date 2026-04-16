@@ -123,7 +123,7 @@ def csw_client_with_mock(mock_csw: MagicMock) -> CSWClient:
 @pytest.mark.integration
 def test_harvester_with_mocked_csw(csw_client_with_mock: CSWClient) -> None:
     """Integration test: harvester can fetch and parse mocked CSW records."""
-    records = list(csw_client_with_mock.get_records(max_records=1))
+    records = list(csw_client_with_mock.get_records(chunk_size=1))
 
     assert len(records) == 1
     assert isinstance(records[0], InspireRecord)
@@ -144,7 +144,7 @@ def test_xml_request_with_mocked_csw(csw_client_with_mock: CSWClient) -> None:
       </csw:Query>
     </csw:GetRecords>"""
 
-    records = list(csw_client_with_mock.get_records(xml_request=xml_request, max_records=1))
+    records = list(csw_client_with_mock.get_records(xml_request=xml_request, chunk_size=1))
 
     assert len(records) == 1
     assert isinstance(records[0], InspireRecord)
@@ -162,7 +162,7 @@ def test_get_records_with_fes_constraints(csw_client_with_mock: CSWClient) -> No
     """Integration test: FES constraints are passed through and records are parsed."""
     constraints = [PropertyIsLike("AnyText", "*wetter*")]
 
-    records = list(csw_client_with_mock.get_records(constraints=constraints, max_records=1))
+    records = list(csw_client_with_mock.get_records(constraints=constraints, chunk_size=1))
 
     assert len(records) == 1
     assert isinstance(records[0], InspireRecord)

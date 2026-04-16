@@ -121,7 +121,7 @@ def test_get_records_success(mock_csw_cls: MagicMock, mock_iso_record: MagicMock
 
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         client = CSWClient("http://example.com/csw")
-        records = list(client.get_records(max_records=1))
+        records = list(client.get_records(chunk_size=1))
 
     assert len(records) == 1
     rec = records[0]
@@ -340,7 +340,7 @@ def test_get_records_by_xml(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
     client = CSWClient("http://example.com/csw")
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         # Trigger XML path
-        results = list(client.get_records(xml_request="<Filter>...</Filter>", max_records=1))
+        results = list(client.get_records(xml_request="<Filter>...</Filter>", chunk_size=1))
 
     assert len(results) == 1
     mock_instance.getrecords2.assert_called()
@@ -367,7 +367,7 @@ def test_get_records_by_constraints(mock_csw_cls: MagicMock, mock_iso_record: Ma
     client = CSWClient("http://example.com/csw")
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         # Trigger constraint path
-        results = list(client.get_records(constraints=["AnyText", "test"], max_records=1))
+        results = list(client.get_records(constraints=["AnyText", "test"], chunk_size=1))
 
     assert len(results) == 1
     mock_instance.getrecords2.assert_called()

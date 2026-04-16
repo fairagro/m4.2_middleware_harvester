@@ -57,7 +57,7 @@ def test_get_records(mock_csw_cls: MagicMock) -> None:
     mock_csw_instance.results = {"matches": 1}
 
     client = CSWClient("http://example.com/csw")
-    records = list(client.get_records(max_records=1))
+    records = list(client.get_records(chunk_size=1))
 
     assert len(records) == 1
     assert isinstance(records[0], InspireRecord)

@@ -82,7 +82,7 @@ class CSWClient:
         _query: str | None = None,
         xml_request: str | bytes | None = None,
         constraints: list | None = None,
-        max_records: int = 10,
+        chunk_size: int = 10,
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """
         Retrieve records from the CSW.
@@ -91,7 +91,7 @@ class CSWClient:
             query: Optional CQL query string (not fully implemented yet).
             xml_request: Optional raw XML request string or bytes.
             constraints: Optional list of OWSLib FES constraint objects (e.g., PropertyIsEqualTo, And).
-            max_records: Maximum number of records to retrieve.
+            chunk_size: Number of records to request per paginated batch.
 
         Yields:
             InspireRecord or RecordProcessingError objects.
@@ -104,9 +104,9 @@ class CSWClient:
         if xml_request:
             yield from self._get_records_by_xml(xml_request)
         elif constraints:
-            yield from self._get_records_by_constraints(constraints, max_records)
+            yield from self._get_records_by_constraints(constraints, chunk_size)
         else:
-            yield from self._get_records_standard(max_records)
+            yield from self._get_records_standard(chunk_size)
 
     def _get_records_by_xml(self, xml_request: str | bytes) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using a raw XML request."""
@@ -133,44 +133,36 @@ class CSWClient:
                         yield RecordProcessingError(str(e), uuid, original_error=e)
 
     def _get_records_by_constraints(
-        self, constraints: list, max_records: int
+        self, constraints: list, chunk_size: int
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using FES constraints with pagination."""
         logger.info("Using FES constraints for harvesting.")
-        yield from self._get_records_paged(max_records, constraints=constraints)
+        yield from self._get_records_paged(chunk_size, constraints=constraints)
 
-    def _get_records_standard(self, max_records: int) -> Iterator[InspireRecord | RecordProcessingError]:
+    def _get_records_standard(self, chunk_size: int) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using standard paged harvesting."""
-        yield from self._get_records_paged(max_records)
-
-    def _calculate_batch_size(self, max_records: int, records_yielded: int) -> int:
-        """Calculate the size of the next batch to fetch."""
-        return min(10, max_records - records_yielded)
+        yield from self._get_records_paged(chunk_size)
 
     def _get_records_paged(
-        self, max_records: int, constraints: list | None = None
+        self, chunk_size: int, constraints: list | None = None
     ) -> Iterator[InspireRecord | RecordProcessingError]:
-        """Retrieve records using pagination."""
+        """Retrieve all records using pagination, fetching chunk_size records per request."""
         start_position = 0
         records_yielded = 0
 
-        while records_yielded < max_records:
-            batch_size = self._calculate_batch_size(max_records, records_yielded)
-            if batch_size <= 0:
-                break
-
+        while True:
             # 1. Fetch Dublin Core IDs first (as a stable reference)
-            dc_ids = self._fetch_dc_ids(batch_size, start_position, constraints)
+            dc_ids = self._fetch_dc_ids(chunk_size, start_position, constraints)
             if not dc_ids:
                 break
 
             # 2. Fetch ISO records for the same batch
-            if not self._fetch_iso_batch(batch_size, start_position, constraints):
+            if not self._fetch_iso_batch(chunk_size, start_position, constraints):
                 break
 
             # 3. Yield records, using DC IDs for identification
             count = 0
-            for item in self._yield_records_with_stable_ids(dc_ids, max_records, records_yielded):
+            for item in self._yield_records_with_stable_ids(dc_ids):
                 yield item
                 if not isinstance(item, RecordProcessingError):
                     count += 1
@@ -227,9 +219,7 @@ class CSWClient:
             logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
             raise ConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
-    def _yield_records_with_stable_ids(
-        self, dc_ids: list[str], max_records: int, records_yielded: int
-    ) -> Iterator[InspireRecord | RecordProcessingError]:
+    def _yield_records_with_stable_ids(self, dc_ids: list[str]) -> Iterator[InspireRecord | RecordProcessingError]:
         """
         Yield parsed ISO records using stable DC IDs as reference.
 
@@ -244,9 +234,6 @@ class CSWClient:
         iso_items = list(self._csw.records.items())
 
         for i, (owslib_id, record) in enumerate(iso_items):
-            if records_yielded >= max_records:
-                break
-
             # Use DC ID as the stable identifier
             stable_id = dc_ids[i] if i < len(dc_ids) else owslib_id
 
@@ -270,7 +257,6 @@ class CSWClient:
                         record.identifier = stable_id
 
                     yield self._parse_iso_record(record, record_uuid=stable_id)
-                    records_yielded += 1
                 except Exception as e:  # noqa: BLE001
                     # We yield instead of raising to allow the generator to continue
                     yield RecordProcessingError(str(e), stable_id, original_error=e)
