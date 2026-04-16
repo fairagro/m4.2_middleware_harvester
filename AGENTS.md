@@ -89,6 +89,7 @@ Before generating or modifying code, read the relevant spec folders:
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
 - **[`middleware/harvester/spec/harvester-orchestration/`](middleware/harvester/spec/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
+- **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
 - **[`middleware/harvester/spec/demo-environment/`](middleware/harvester/spec/demo-environment/)** — Local demo / deployment setup.
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:

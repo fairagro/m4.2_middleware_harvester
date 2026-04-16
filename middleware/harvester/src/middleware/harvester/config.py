@@ -1,6 +1,6 @@
 """Configuration module for the Middleware Harvester core orchestrator."""
 
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -20,6 +20,9 @@ class RepositoryConfig(BaseModel):
               rdi: "my-rdi"
     """
 
+    _PLUGIN_FIELDS: ClassVar[frozenset[str]] = frozenset({"inspire"})
+    # When adding a new plugin, add its field name here AND as an optional field below.
+
     rdi: Annotated[
         str,
         Field(description="RDI identifier (e.g. inspire-import)"),
@@ -28,13 +31,11 @@ class RepositoryConfig(BaseModel):
         InspireConfig | None,
         Field(description="INSPIRE CSW plugin configuration"),
     ] = None
-    # future plugin types go here as additional optional fields
 
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> "RepositoryConfig":
         """Ensure exactly one plugin key is set."""
-        # Exclude shared fields from the plugin key check
-        set_fields = [f for f, v in self.__dict__.items() if v is not None and f != "rdi"]
+        set_fields = [f for f in self._PLUGIN_FIELDS if getattr(self, f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self

@@ -14,6 +14,3 @@ The project consists of a core orchestrator module (`middleware/harvester`) and 
 
 3. **Moving `api_client` configuration to the Harvester core**
    — Individual plugins should not know about or be responsible for uploading data to the FAIRagro Middleware API. By lifting `api_client` into the central harvester configuration, we ensure single-point authentication, unified connection handling, and centralized error logging for all uploads.
-
-4. **Keyed-map format for repository entries instead of `{type, config}`**
-   — Each repository entry in the YAML is a single-key dict (`{plugin_type: {plugin_config}}`). This avoids the untyped `config` field that would otherwise require `dict[str, Any]`, and instead maps directly to a concrete Pydantic field per plugin type. Adding a future plugin is an additive change (new optional field on `RepositoryConfig`) with no schema ambiguity.
