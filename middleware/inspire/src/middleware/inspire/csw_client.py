@@ -10,6 +10,7 @@ from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-unt
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
+
 from .errors import SemanticError
 from .models import (
     ConformanceResult,

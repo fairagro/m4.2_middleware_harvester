@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from middleware.inspire.config import Config
 from middleware.harvester.errors import RecordProcessingError
+from middleware.inspire.config import Config
 from middleware.inspire.models import InspireRecord
 from middleware.inspire.plugin import run_plugin
 

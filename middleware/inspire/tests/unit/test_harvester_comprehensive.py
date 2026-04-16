@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore
 
-from middleware.inspire.csw_client import CSWClient
 from middleware.harvester.errors import RecordProcessingError
+from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import SemanticError
 from middleware.inspire.models import InspireRecord
 

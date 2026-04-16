@@ -16,8 +16,8 @@ import pytest
 from owslib.fes import PropertyIsLike  # type: ignore
 from owslib.iso import MD_Metadata  # type: ignore
 
-from middleware.inspire.csw_client import CSWClient
 from middleware.harvester.errors import RecordProcessingError
+from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.models import InspireRecord
 
 

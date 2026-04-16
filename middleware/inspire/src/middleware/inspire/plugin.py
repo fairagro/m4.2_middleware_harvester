@@ -7,9 +7,9 @@ central Harvester orchestrator. This module contains no CLI entry point.
 import logging
 from collections.abc import AsyncGenerator
 
+from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
-from middleware.harvester.errors import RecordProcessingError, HarvesterError
 from middleware.inspire.mapper import InspireMapper
 
 logger = logging.getLogger(__name__)
