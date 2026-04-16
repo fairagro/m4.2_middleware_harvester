@@ -33,7 +33,7 @@
   "ruff.importStrategy": "fromEnvironment",
 
   "python.analysis.extraPaths": [
-    "middleware/inspire_to_arc/src"
+    "middleware/inspire/src"
   ],
 
   // Pylint Extension Settings
