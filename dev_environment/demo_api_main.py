@@ -98,9 +98,11 @@ def _derive_safe_arc_id(base_dir: Path, raw_id: object) -> tuple[str, Path]:
 
     # Normalize with realpath and verify containment *before* returning the path.
     # This is the CodeQL-recommended pattern for preventing path traversal:
-    # construct → realpath → startswith-check.
+    # construct → realpath → relative_to-check (structural, not string-based).
     candidate_real = Path(os.path.realpath(base_real / safe_name))
-    if not str(candidate_real).startswith(str(base_real) + os.sep):
+    try:
+        candidate_real.relative_to(base_real)
+    except ValueError:
         return _fallback()
 
     return safe_name, candidate_real
