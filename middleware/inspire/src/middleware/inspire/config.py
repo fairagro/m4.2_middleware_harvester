@@ -1,8 +1,8 @@
 """Configuration module for the Inspire to ARC middleware."""
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Config(BaseModel):
@@ -28,3 +28,12 @@ class Config(BaseModel):
         int,
         Field(description="CSW connection timeout in seconds.", ge=1),
     ] = 30
+
+    @model_validator(mode="after")
+    def _check_mutually_exclusive_filters(self) -> Self:
+        """Ensure at most one of cql_query and xml_query is set."""
+        if self.cql_query is not None and self.xml_query is not None:
+            raise ValueError(
+                "Config conflict: cql_query and xml_query are mutually exclusive. Provide at most one of them."
+            )
+        return self

@@ -92,6 +92,18 @@ def test_csw_client_init() -> None:
     assert client._config.timeout == 30
 
 
+def test_config_mutually_exclusive_filters_raises() -> None:
+    """Config must reject cql_query and xml_query set simultaneously."""
+    from pydantic import ValidationError  # pylint: disable=import-outside-toplevel
+
+    with pytest.raises(ValidationError, match="mutually exclusive"):
+        Config(
+            csw_url="http://example.com/csw",
+            cql_query="AnyText LIKE '%test%'",
+            xml_query="<Filter/>",
+        )
+
+
 def test_csw_client_connect(mock_csw_cls: MagicMock) -> None:
     client = CSWClient(Config(csw_url="http://example.com/csw"))
     client.connect()
