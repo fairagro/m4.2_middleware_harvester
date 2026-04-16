@@ -32,28 +32,31 @@ async def run_orchestrator(config: Config) -> None:
                 logger.error("Unknown repository type '%s', skipping...", repo.plugin_type)
                 continue
 
-            plugin_gen = plugin_runner(repo.plugin_config)
+            try:
+                plugin_gen = plugin_runner(repo.plugin_config)
 
-            count = 0
-            async for item in plugin_gen:
-                if isinstance(item, HarvesterError):
-                    logger.error("Processing error in plugin '%s': %s", repo.plugin_type, item)
-                    continue
+                count = 0
+                async for item in plugin_gen:
+                    if isinstance(item, HarvesterError):
+                        logger.error("Processing error in plugin '%s': %s", repo.plugin_type, item)
+                        continue
 
-                try:
-                    # Deserialize back to ARC for the API Client
-                    arc = ARC.from_rocrate_json_string(item)
+                    try:
+                        # Deserialize back to ARC for the API Client
+                        arc = ARC.from_rocrate_json_string(item)
 
-                    response = await client.create_or_update_arc(
-                        rdi=repo.rdi,
-                        arc=arc,
-                    )
-                    logger.info("Successfully uploaded %s ARC ID: %s", repo.plugin_type, response.arc_id)
-                    count += 1
-                except Exception as e:  # noqa: BLE001
-                    logger.error("Failed to upload ARC for %s: %s", repo.plugin_type, e)
+                        response = await client.create_or_update_arc(
+                            rdi=repo.rdi,
+                            arc=arc,
+                        )
+                        logger.info("Successfully uploaded %s ARC ID: %s", repo.plugin_type, response.arc_id)
+                        count += 1
+                    except Exception as e:  # noqa: BLE001
+                        logger.error("Failed to upload ARC for %s: %s", repo.plugin_type, e)
 
-            logger.info("Finished processing repository %s with %d ARCs uploaded.", repo.plugin_type, count)
+                logger.info("Finished processing repository %s with %d ARCs uploaded.", repo.plugin_type, count)
+            except Exception as e:  # noqa: BLE001
+                logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
 
 
 def main() -> None:
