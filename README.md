@@ -1,80 +1,80 @@
 # FAIRagro Middleware Harvester
 
-This repository contains the Middleware Harvester. It acts as an orchestrator that runs specialized harvesting plugins (like the INSPIRE-to-ARC converter). It harvests metadata from configured sources, converts them into ARC objects, and uploads them to the FAIRagro Middleware API.
+This repository contains the Middleware Harvester, a core component of the FAIRagro advanced middleware architecture. It acts as an orchestrator that runs specialized harvesting plugins (like the INSPIRE-to-ARC converter). It enables Research Data Infrastructure (RDI) providers to harvest metadata from standardized sources (like CSW), transform them into standardized Annotated Research Context (ARC) objects, and transmit them to the central FAIRagro Middleware API.
 
-## 🚀 Usage Examples
+## 📁 Repository Structure
 
-### Basic Querying
+| Path | Description |
+| :--- | :--- |
+| [`middleware/harvester/`](middleware/harvester/README.md) | Source code of the central orchestrator and plugin contract. |
+| [`middleware/inspire/`](middleware/inspire/README.md) | Source code of the INSPIRE-to-ARC harvester plugin. |
+| `docs/` | Architectural design, mapping specifications, and AI workflow. |
+| `spec/` | Project-level architecture and design (cross-cutting concerns). |
+| `dev_environment/` | Docker-based local development setup (Mock API, Harvester). |
+| `scripts/` | Tooling for quality checks, environment setup, and Git LFS. |
+| `docker/` | Dockerfiles and container structure tests. |
 
-```python
-from middleware.inspire.harvester import CSWClient
+## 🌟 Quick Start (Full Local Demo)
 
-# Connect to GDI-DE CSW
-client = CSWClient("https://gdk.gdi-de.org/gdi-de/srv/eng/csw")
-client.connect()
+For the best out-of-the-box experience, you can run a complete local demonstration. This setup starts a local Mock Middleware API and the Harvester to process and save results locally:
 
-# Fetch records
-records = list(client.get_records(chunk_size=10))
+```bash
+# Start the full demo stack (requires Docker)
+./dev_environment/start.sh
 ```
 
-### Advanced Filtering with FES
+Note: Generated ARCs will be saved to `dev_environment/demo_output/`.
 
-Use OWSLib's Filter Encoding Specification (FES) for readable, type-safe queries:
+## 🚀 Getting Started (Development)
 
-```python
-from owslib.fes import And, PropertyIsEqualTo, PropertyIsLike
+The preferred method for working with this repository is using the **Dev Container (VS Code)**.
 
-# Query for weather radar data from DWD
-constraints = [
-    And([
-        PropertyIsLike("AnyText", "*radar*"),
-        PropertyIsEqualTo("OrganisationName", "Deutscher Wetterdienst"),
-    ])
-]
+### 1. Prerequisites (for manual setups only)
 
-records = list(client.get_records(constraints=constraints, chunk_size=100))
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv) (Dependency Management & Workspace Orchestration)
+- Docker & Docker Compose
+- Git LFS (installed via `./scripts/setup-git-lfs.sh`)
+
+### 2. Environment Setup
+
+Clone the repository and install all workspace dependencies:
+
+```bash
+uv sync --all-packages
 ```
 
-### Raw XML Queries
+### 3. Start Local Development Environment
 
-For complex queries, you can also use raw XML:
+The `dev_environment` folder provides a full stack including a Mock API. Please refer to the [Development Environment README](dev_environment/README.md) for detailed instructions.
 
-```python
-xml_request = b"""<?xml version="1.0" encoding="UTF-8"?>
-<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
-                service="CSW" version="2.0.2">
-  <csw:Query typeNames="csw:Record">
-    <csw:ElementSetName>full</csw:ElementSetName>
-  </csw:Query>
-</csw:GetRecords>"""
+## 🔧 Component Documentation
 
-records = list(client.get_records(xml_request=xml_request))
+Detailed information on how to use, configure, and deploy the specific components can be found in their respective subdirectories:
+
+- **[Harvester Orchestrator README](middleware/harvester/README.md)**: Configuration (YAML/Env), CLI options, and orchestration loop.
+- **[INSPIRE Plugin README](middleware/inspire/README.md)**: Metadata mapping rules and CSW connection settings.
+- **[Architectural Design](docs/ARCHITECTURAL_DESIGN.md)**: Deep dive into the concurrency model and data flow.
+- **[INSPIRE Mapping Spec](docs/mapping.md)**: The rules for transforming INSPIRE/ISO19139 metadata into ARC objects.
+
+## 🤖 AI-Native Development
+
+This project uses **Spec-Driven Development (SDD)**. Every feature and architectural decision is documented in `spec/` (project-level) or `middleware/*/spec/` (component-level) before or during implementation.
+
+AI agents (like GitHub Copilot) use these specs along with `AGENTS.md` and `.agents/skills/` to provide high-context assistance.
+
+- See **[AI Agent Workflow](docs/ai_workflow.md)** for details on how to use agents effectively in this project.
+
+## 🧪 Quality Standards
+
+We maintain high code quality through automated checks:
+
+```bash
+# Run all quality checks (Ruff, Mypy, Pylint, Bandit)
+./scripts/quality-check.sh
+
+# Run unit and integration tests
+uv run pytest middleware/
 ```
 
-## 🏗 Architecture
-
-The middleware consists of three main layers:
-
-1. **Orchestrator (`main.py`):** Manages the processing loop, configuration loading, and interaction with the API Client.
-2. **Harvester (`harvester.py`):** Interaction layer with CSW endpoints using `owslib`. It parses ISO 19139 XML records into an internal `InspireRecord` Pydantic model.
-3. **Mapper (`mapper.py`):** Specialized logic for translating INSPIRE/ISO fields into ARC objects (Investigation, Study, Assay) using `arctrl`.
-
-## 🗺 Overview & Documentation
-
-The definitive entry point for AI Agents and architecture is:
-👉 **[AGENTS.md](AGENTS.md)**
-
-The detailed strategy for mapping INSPIRE/ISO 19139 fields to the ISA model is documented in:
-👉 **[docs/inspire_mapping.md](docs/inspire_mapping.md)**
-
-## 📁 Project Structure
-
-- `middleware/inspire`: The core harvesting and mapping logic.
-- `docker/`: Dockerfiles and container structure tests.
-- `dev_environment/`: Local development setup with Docker Compose.
-- `scripts/`: Quality check and utility scripts.
-
-## 📊 Implementation Status
-
-**Current**: ~10 fields mapped (basic identification, contacts, lineage, extent, constraints).
-**Planned**: 50+ fields mapped with a comprehensive protocol-based approach.
+Maintained by: **FAIRagro Middleware Team** | License: [LICENSE](LICENSE)

@@ -94,7 +94,7 @@ It stays short and current.
 
 ---
 
-## Spec-Driven Development: `spec/` and `middleware/*/spec/`
+## Specifica: `spec/` and `middleware/*/spec/`
 
 Specs follow the [Specifica](https://specifica.org) convention: each feature
 lives in its own folder with a `spec.md` (what it does) and optionally a
@@ -105,30 +105,33 @@ lives in its own folder with a `spec.md` (what it does) and optionally a
 ```text
 spec/                          ← Project-level (cross-cutting concerns)
 ├── principles.md              # Foundation contract, project values
-├── configuration/             # ConfigWrapper pattern, env overrides, secrets
+├── error-handling/            # Exception hierarchy
 └── demo-environment/          # Local deployment setup
 
 middleware/
+├── harvester/
+│   └── spec/                  ← Component-level (harvester internals)
+│       ├── harvester-orchestration/
+│       └── configuration/
 └── inspire/
     └── spec/                  ← Component-level (inspire internals)
         ├── csw-harvesting/
         ├── inspire-to-arc-mapping/
-        ├── api-upload/
         └── workflow-execution/
 ```
 
-**Project-level specs** cover concerns that cut across components or that don't
+Project-level specs cover concerns that cut across components or that don't
 belong to any single component (deployment, shared patterns, principles).
 
-**Component-level specs** live next to the code they describe
+Component-level specs live next to the code they describe
 (`middleware/<component>/spec/`). Each future component gets its own `spec/`
 folder. This makes specs portable and keeps context close to the code.
 
-### spec.md vs design.md
+### Requirement vs. Design Decisions
 
-- **`spec.md`** — requirements: what the feature must do, acceptance criteria,
+- `spec.md` — **requirements**: what the feature must do, acceptance criteria,
   interface contracts. Written before implementation.
-- **`design.md`** — decisions: *why* it was built this way, key trade-offs,
+- `design.md` — **decisions**: why it was built this way, key trade-offs,
   alternatives rejected. Written alongside or after implementation.
 
 ---
@@ -150,17 +153,17 @@ Markdown instructions.
         └── SKILL.md                  # How to create a new Specifica feature folder
 ```
 
-Skills are **project-neutral** — they document a library or pattern in general
+Skills are project-neutral — they document a library or pattern in general
 terms. Project-specific usage (concrete prefixes, mock paths, accepted
 trade-offs) lives in the corresponding feature spec, not in the skill.
 
-### How Agents Use Skills
+### Skill Lifecycle
 
-1. **Discovery**: At startup, agents see only the `name` and `description` from
-   each skill's frontmatter — just enough to know when a skill might apply.
-2. **Activation**: When a task matches a skill's description, the agent loads
+1. **Discovery:** At startup, agents see only the `name` and `description`
+   from each skill's frontmatter — just enough to know when a skill might apply.
+2. **Activation:** When a task matches a skill's description, the agent loads
    the full `SKILL.md` into context.
-3. **Execution**: The agent follows the instructions, optionally loading
+3. **Execution:** The agent follows the instructions, optionally loading
    referenced files or scripts.
 
 Skills are activated on demand, keeping the agent's context window lean.
@@ -175,96 +178,69 @@ When an agent starts a task it:
 2. If the task touches a feature → reads the relevant `spec.md` / `design.md`.
 3. If the task requires library knowledge → loads the matching skill.
 4. After editing → runs `uv run ruff format .` and `uv run pytest`, checks the
-   VS Code **Problems** tab for Pylance / Mypy / Ruff diagnostics.
+   VS Code Problems tab for Pylance / Mypy / Ruff diagnostics.
 
-### Example: Adding a New Config Field
+### Scenario: Adding a New Config Field
 
 1. `AGENTS.md` links to `spec/configuration/`.
-2. Agent reads `spec/configuration/spec.md` → learns the constraints
-   (no `os.environ`, add to `Config`, use `SecretStr` for secrets).
+2. Agent reads `spec/configuration/spec.md` → learns the constraints (no
+   `os.environ`, add to `Config`, use `SecretStr` for secrets).
 3. Agent loads the `config-wrapper` skill → learns the exact Pydantic pattern
    and how to write the test.
 4. Agent edits `config.py`, formats, and runs the tests.
 
-### Example: Fixing an ARC Serialization Bug
+### Scenario: Fixing an ARC Serialization Bug
 
-1. `AGENTS.md` links to `middleware/inspire/spec/arc-building/`.
-2. Agent reads `arc-building/design.md` → understands key decisions (no
-   `OntologySourceReference`, 7-tuple column key, explicit GC).
+1. `AGENTS.md` links to `middleware/inspire/spec/inspire-to-arc-mapping/`.
+2. Agent reads `inspire-to-arc-mapping/design.md` → understands key decisions.
 3. Agent loads the `arctrl` skill → gets the correct API surface.
-4. Agent edits `builder.py` or `mapper.py`, formats, runs tests.
+4. Agent edits `mapper.py`, formats, runs tests.
 
 ---
 
 ## Adding New Skills or Specs
 
+### New Feature Spec with `create-specifica-feature`
+
+The `create-specifica-feature` skill guides Copilot through the full process.
+
+Example prompt (Copilot Chat, Agent mode):
+
+> Use the `create-specifica-feature` skill to create a new component-level spec
+> for a "result-export" feature in `middleware/inspire`. The feature writes ARC
+> RO-Crate files to a local output directory.
+
+Copilot will:
+
+1. Load the `create-specifica-feature` skill.
+2. Choose the right location: `middleware/inspire/spec/result-export/`.
+3. Create `spec.md` with requirements and edge cases.
+4. Create `design.md` with key decisions.
+5. Add a link to `AGENTS.md` under Architecture & Design.
+
 ### New Skill with VS Code and Copilot Chat
 
-VS Code has built-in support for creating and managing skills
-(see [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills)).
+VS Code has built-in support for creating and managing skills (see [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills)).
 
 #### Option A — AI-generated skill (recommended)
 
 Type `/create-skill` in the Copilot Chat input and describe what you need:
 
-> `/create-skill` a skill for the `httpx` library covering async requests,
-> timeout handling, and authentication headers
+> `/create-skill` a skill for the `httpx` library covering async requests, timeout handling, and authentication headers
 
-Copilot asks clarifying questions and writes the complete
-`.agents/skills/httpx/SKILL.md` with valid frontmatter and instructions.
+Copilot asks clarifying questions and writes the complete `.agents/skills/httpx/SKILL.md` with valid frontmatter and instructions.
 
 #### Option B — Manual creation via the Skills menu
 
-Type `/skills` in the Chat input to open the **Configure Skills** menu directly.
-Select **New Skill (Workspace)**, choose a location, and enter a name.
-VS Code creates the folder and an empty `SKILL.md` scaffold to fill in.
+Type `/skills` in the Chat input to open the Configure Skills menu directly. Select **New Skill (Workspace)**, choose a location, and enter a name. VS Code creates the folder and an empty `SKILL.md` scaffold to fill in.
 
-Alternatively, open **Chat: Open Customizations** from the Command Palette
-(`Ctrl+Shift+P`), select the **Skills** tab, and choose **New Skill** from
-the dropdown.
+Alternatively, open **Chat: Open Customizations** from the Command Palette (`Ctrl+Shift+P`), select the **Skills** tab, and choose **New Skill** from the dropdown.
 
-**Verify** the new skill appears under the Skills tab in
-**Chat: Open Customizations** after saving the file.
+Verify the new skill appears under the Skills tab in Chat: Open Customizations after saving the file.
 
-Rules that apply regardless of creation method:
+**Rules for skills:**
 
 - `name` must match the folder name; lowercase letters and hyphens only.
-- `description` must say both *what* the skill does and *when to use it*.
-- Keep the skill **project-neutral** — no FAIRagro-specific paths or prefixes.
-  Project-specific constraints belong in the corresponding feature spec.
+- `description` must say both what the skill does and when to use it.
+- Keep the skill project-neutral — no FAIRagro-specific paths or prefixes.
 - Reference the skill from the relevant feature spec so agents know to load it.
-
----
-
-### New Feature Spec with `create-specifica-feature`
-
-The `create-specifica-feature` skill guides Copilot through the full process.
-
-**Example prompt** (Copilot Chat, Agent mode):
-
-> Use the `create-specifica-feature` skill to create a new component-level
-> spec for a "result-export" feature in `middleware/inspire`. The feature
-> writes ARC RO-Crate files to a local output directory as a fallback when
-> the API is unreachable.
-
-Copilot will:
-
-1. Load the `create-specifica-feature` skill.
-2. Choose the right location: `middleware/inspire/spec/result-export/`
-   (component-level, not project-level — affects only this component).
-3. Create `spec.md` with a one-sentence purpose, `## Requirements` as
-   `- [ ]` checkboxes, and `## Edge Cases` as scenario → outcome pairs.
-4. Create `design.md` with a `## Key Decisions` section, each decision
-   preceded by a `—` reasoning clause.
-5. Add a link to `AGENTS.md` under **Architecture & Design**.
-
-The finished folder will look like:
-
-```text
-middleware/inspire/spec/result-export/
-├── spec.md    ← what it must do
-└── design.md  ← how it works and why
-```
-
-For detailed formatting rules, see
-[`.agents/skills/create-specifica-feature/SKILL.md`](../.agents/skills/create-specifica-feature/SKILL.md).
