@@ -113,7 +113,7 @@ docker build -f docker/Dockerfile.inspire_to_arc -t middleware-harvester:local .
 # Run with local config mount
 docker run --rm \
   -v $(pwd)/config.yaml:/etc/harvester/config.yaml:ro \
-  middleware-harvester:local
+  middleware-harvester:local -c /etc/harvester/config.yaml
 ```
 
 ## CLI Options
