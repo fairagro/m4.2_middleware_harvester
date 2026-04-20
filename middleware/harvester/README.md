@@ -126,6 +126,6 @@ docker run --rm \
 
 ## Documentation Links
 
-- **[Architectural Design](../../docs/ARCHITECTURAL_DESIGN.md)**: Details on the orchestration loop and plugin contract.
+- **[Architectural Design](spec/harvester-orchestration/design.md)**: Details on the orchestration loop and plugin contract.
 - **[INSPIRE Plugin](../inspire/README.md)**: Metadata mapping and CSW settings.
 - **[Specifica Workflow](../../docs/ai_workflow.md)**: Our spec-driven development approach.

@@ -50,7 +50,7 @@ The transformation from INSPIRE records to ARCs follows specific mapping rules:
 - **Abstract**: Maps to the ARC investigation description.
 - **Contacts**: Individual contacts are added as persons in the ARC investigation.
 
-For a detailed breakdown of all mapping rules, please refer to the **[INSPIRE Mapping Specification](../../docs/mapping.md)**.
+For a detailed breakdown of all mapping rules, please refer to the **[INSPIRE Mapping Specification](../../docs/inspire_mapping.md)**.
 
 ## External Documentation
 

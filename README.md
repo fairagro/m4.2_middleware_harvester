@@ -54,8 +54,8 @@ Detailed information on how to use, configure, and deploy the specific component
 
 - **[Harvester Orchestrator README](middleware/harvester/README.md)**: Configuration (YAML/Env), CLI options, and orchestration loop.
 - **[INSPIRE Plugin README](middleware/inspire/README.md)**: Metadata mapping rules and CSW connection settings.
-- **[Architectural Design](docs/ARCHITECTURAL_DESIGN.md)**: Deep dive into the concurrency model and data flow.
-- **[INSPIRE Mapping Spec](docs/mapping.md)**: The rules for transforming INSPIRE/ISO19139 metadata into ARC objects.
+- **[Architectural Design](middleware/harvester/spec/harvester-orchestration/design.md)**: Deep dive into the concurrency model and data flow.
+- **[INSPIRE Mapping Spec](docs/inspire_mapping.md)**: The rules for transforming INSPIRE/ISO19139 metadata into ARC objects.
 
 ## 🤖 AI-Native Development
 
