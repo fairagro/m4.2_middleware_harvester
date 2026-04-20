@@ -1,0 +1,149 @@
+"""Demo API Mock for the FAIRagro INSPIRE-to-ARC harvester.
+
+This module provides a lightweight FastAPI server that simulates the Middleware
+API. It receives ARC RO-Crate payloads, deserialises them using the arctrl
+library, and writes the resulting ARC directory structure to the local file
+system.
+"""
+
+# This file is a standalone demo artefact, not part of the main package.
+# Its dependencies (fastapi, uvicorn) are only available inside the demo
+# container, not in the project virtualenv.  Suppressing all import/type
+# errors at the file level is intentional.
+# pylint: disable=import-error
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
+import json
+import os
+import re
+import traceback
+from datetime import UTC, datetime
+from pathlib import Path
+
+from arctrl import ARC
+from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+# Root directory under which all ARC data and error logs are stored.
+OUTPUT_ROOT = Path("/data/arcs")
+
+
+def _get_target_owner() -> tuple[int, int] | None:
+    uid_value = os.environ.get("LOCAL_UID")
+    gid_value = os.environ.get("LOCAL_GID")
+    if uid_value is None or gid_value is None:
+        return None
+    try:
+        return int(uid_value), int(gid_value)
+    except ValueError:
+        print(f"Invalid LOCAL_UID/LOCAL_GID: {uid_value}/{gid_value}")
+        return None
+
+
+def _chown_tree(path: Path) -> None:
+    owner = _get_target_owner()
+    if owner is None or not path.exists():
+        return
+    uid, gid = owner
+
+    os.chown(path, uid, gid)
+    if path.is_dir():
+        for root, dirs, files in os.walk(path):
+            root_path = Path(root)
+            os.chown(root_path, uid, gid)
+            for name in dirs:
+                os.chown(root_path / name, uid, gid)
+            for name in files:
+                os.chown(root_path / name, uid, gid)
+
+
+def _handle_error(arc_dir: Path, rdi: str, arc_id: str, exc: Exception) -> None:
+    tb = traceback.format_exc()
+    print(f"Error writing ARC for {rdi}/{arc_id} (dir={arc_dir}): {exc}\n{tb}")
+
+
+# Pre-compiled pattern for safe ARC directory names (no path traversal, predictable charset).
+_SAFE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def _generate_random_arc_id() -> str:
+    return f"arc_{os.urandom(4).hex()}"
+
+
+def _derive_safe_arc_id(base_dir: Path, raw_id: object) -> tuple[str, Path]:
+    """Derive a safe ARC identifier and corresponding directory path.
+
+    Always returns a valid (arc_id, path) pair contained within base_dir.
+    Falls back to a random ID when the provided raw_id cannot be used safely.
+    """
+
+    def _fallback() -> tuple[str, Path]:
+        rid = _generate_random_arc_id()
+        return rid, base_dir / rid
+
+    if not (isinstance(raw_id, str) and raw_id.strip()):
+        return _fallback()
+
+    # os.path.basename strips all directory components, preventing path traversal.
+    safe_name = os.path.basename(raw_id.strip())
+    if not safe_name or safe_name in {".", ".."} or not _SAFE_NAME_PATTERN.match(safe_name):
+        return _fallback()
+
+    return safe_name, base_dir / safe_name
+
+
+@app.post("/v3/arcs")
+async def upload_arc(request: Request) -> dict[str, object]:
+    """Handle the submission of an ARC RO-Crate.
+
+    Receives the RO-Crate JSON-LD payload as ``{"rdi": "...", "arc": {...}}``,
+    validates it, and uses the arctrl library to reconstruct the ARC directory
+    structure. Results are saved to the local ``demo_output`` volume.
+    """
+    data = await request.json()
+    rdi: str = data.get("rdi", "unknown")
+    arc_payload: dict = data.get("arc", data)
+
+    output_path = OUTPUT_ROOT
+    output_path.mkdir(parents=True, exist_ok=True)
+    _chown_tree(output_path)
+
+    now = datetime.now(UTC).isoformat()
+
+    arc_id, arc_dir = _derive_safe_arc_id(output_path, arc_payload.get("identifier"))
+
+    payload_path = arc_dir.with_suffix(".payload.json")
+    with open(payload_path, "w", encoding="utf-8") as handle:
+        json.dump(arc_payload, handle, indent=2)
+    _chown_tree(payload_path)
+
+    try:
+        arc_json = json.dumps(arc_payload)
+        arc = ARC.from_rocrate_json_string(arc_json)
+        await start_as_task(arc.WriteAsync(str(arc_dir)))
+        _chown_tree(arc_dir)
+        print(f"Saved ARC structure for {rdi} as {arc_id} using arctrl")
+    except (json.JSONDecodeError, OSError, RuntimeError) as exc:
+        _handle_error(arc_dir, rdi, arc_id, exc)
+    except Exception as exc:  # noqa: BLE001
+        _handle_error(arc_dir, rdi, arc_id, exc)
+
+    return {
+        "arc_id": arc_id,
+        "status": "created",
+        "metadata": {
+            "arc_hash": "demo_hash",
+            "status": "ACTIVE",
+            "first_seen": now,
+            "last_seen": now,
+        },
+        "events": [],
+    }
+
+
+@app.get("/live")
+def live() -> dict[str, str]:
+    """Liveness probe for the demo API."""
+    return {"status": "ok"}
