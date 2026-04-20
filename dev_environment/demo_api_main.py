@@ -75,37 +75,23 @@ def _generate_random_arc_id() -> str:
 def _derive_safe_arc_id(base_dir: Path, raw_id: object) -> tuple[str, Path]:
     """Derive a safe ARC identifier and corresponding directory path.
 
-    Always returns a valid (arc_id, path) pair that is guaranteed to be
-    contained within base_dir. Falls back to a random ID when the provided
-    raw_id cannot be used safely.
+    Always returns a valid (arc_id, path) pair contained within base_dir.
+    Falls back to a random ID when the provided raw_id cannot be used safely.
     """
-    # Resolve symlinks on the base directory once so all comparisons are stable.
-    base_real = Path(os.path.realpath(base_dir))
 
     def _fallback() -> tuple[str, Path]:
         rid = _generate_random_arc_id()
-        return rid, base_real / rid
+        return rid, base_dir / rid
 
     if not (isinstance(raw_id, str) and raw_id.strip()):
         return _fallback()
 
-    # os.path.basename strips all directory components — CodeQL-recognised sanitizer
-    # for py/path-injection.  Equivalent to Path(...).name but explicitly listed in
-    # CodeQL's sanitizer set so taint-tracking stops here.
+    # os.path.basename strips all directory components, preventing path traversal.
     safe_name = os.path.basename(raw_id.strip())
     if not safe_name or safe_name in {".", ".."} or not _SAFE_NAME_PATTERN.match(safe_name):
         return _fallback()
 
-    # Normalize with realpath and verify containment *before* returning the path.
-    # This is the CodeQL-recommended pattern for preventing path traversal:
-    # construct → realpath → relative_to-check (structural, not string-based).
-    candidate_real = Path(os.path.realpath(base_real / safe_name))
-    try:
-        candidate_real.relative_to(base_real)
-    except ValueError:
-        return _fallback()
-
-    return safe_name, candidate_real
+    return safe_name, base_dir / safe_name
 
 
 @app.post("/v3/arcs")
