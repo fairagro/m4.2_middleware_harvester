@@ -120,8 +120,7 @@ docker run --rm \
 
 | Option | Description |
 | :--- | :--- |
-| `-c, --config` | Path to the YAML configuration file (Default: `config.yaml`). |
-| `-v, --version` | Show the version and exit. |
+| `-c, --config` | Path to the YAML configuration file. |
 | `-h, --help` | Show help message and exit. |
 
 ## Documentation Links
