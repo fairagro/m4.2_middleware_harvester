@@ -113,15 +113,14 @@ docker build -f docker/Dockerfile.inspire_to_arc -t middleware-harvester:local .
 # Run with local config mount
 docker run --rm \
   -v $(pwd)/config.yaml:/etc/harvester/config.yaml:ro \
-  middleware-harvester:local
+  middleware-harvester:local -c /etc/harvester/config.yaml
 ```
 
 ## CLI Options
 
 | Option | Description |
 | :--- | :--- |
-| `-c, --config` | Path to the YAML configuration file (Default: `config.yaml`). |
-| `-v, --version` | Show the version and exit. |
+| `-c, --config` | Path to the YAML configuration file. |
 | `-h, --help` | Show help message and exit. |
 
 ## Documentation Links
