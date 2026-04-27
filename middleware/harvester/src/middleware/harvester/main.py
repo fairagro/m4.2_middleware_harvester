@@ -5,8 +5,6 @@ import asyncio
 import logging
 from pathlib import Path
 
-from arctrl import ARC
-
 from middleware.api_client import ApiClient
 from middleware.harvester.config import Config
 from middleware.harvester.errors import HarvesterError
@@ -42,12 +40,9 @@ async def run_orchestrator(config: Config) -> None:
                         continue
 
                     try:
-                        # Deserialize back to ARC for the API Client
-                        arc = ARC.from_rocrate_json_string(item)
-
                         response = await client.create_or_update_arc(
                             rdi=repo.rdi,
-                            arc=arc,
+                            arc=item,
                         )
                         logger.info("Successfully uploaded %s ARC ID: %s", repo.plugin_type, response.arc_id)
                         count += 1

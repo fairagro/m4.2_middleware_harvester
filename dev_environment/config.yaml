@@ -96,7 +96,7 @@ repositories:
 api_client:
   api_url: "https://middleware.fairagro.net"
   timeout: 60.0
-  client_cert_path: "/etc/inspire/client.crt"
+  client_cert_path: "/etc/harvester/client.crt"
   client_key_path: "/run/secrets/client.key"
   verify_ssl: true
   max_retries: 3

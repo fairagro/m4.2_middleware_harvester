@@ -51,7 +51,6 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
     with (
         patch("middleware.harvester.main._PLUGIN_RUNNERS", {"inspire": runner}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
-        patch("middleware.harvester.main.ARC.from_rocrate_json_string", return_value=MagicMock()),
     ):
         await run_orchestrator(mock_config)
 
@@ -86,7 +85,6 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
     with (
         patch("middleware.harvester.main._PLUGIN_RUNNERS", {"inspire": runner}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
-        patch("middleware.harvester.main.ARC.from_rocrate_json_string", return_value=MagicMock()),
     ):
         await run_orchestrator(mock_config)
 
@@ -110,7 +108,6 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     with (
         patch("middleware.harvester.main._PLUGIN_RUNNERS", {"inspire": runner}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
-        patch("middleware.harvester.main.ARC.from_rocrate_json_string", return_value=MagicMock()),
     ):
         await run_orchestrator(mock_config)
 

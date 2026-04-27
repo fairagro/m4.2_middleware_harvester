@@ -108,7 +108,7 @@ Build and run using the provided Dockerfile:
 
 ```bash
 # Build (from repository root)
-docker build -f docker/Dockerfile.inspire_to_arc -t middleware-harvester:local .
+docker build -f docker/Dockerfile.harvester -t middleware-harvester:local .
 
 # Run with local config mount
 docker run --rm \
