@@ -37,15 +37,6 @@ wheels = [
 ]
 
 [[package]]
-name = "api-client"
-version = "8.6.0"
-source = { git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fapi_client&branch=main#4a93a5d9c140de1e2dbc5f3be6901943b0baaea7" }
-dependencies = [
-    { name = "httpx" },
-    { name = "pydantic" },
-]
-
-[[package]]
 name = "arctrl"
 version = "3.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -294,6 +285,36 @@ wheels = [
 ]
 
 [[package]]
+name = "fairagro-middleware-api-client"
+version = "8.6.4.dev7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/21/904ac64861d438444dbd50481e2d64664cb6fb777da0d2897dc2c0ca5d64/fairagro_middleware_api_client-8.6.4.dev7.tar.gz", hash = "sha256:5b8d05b35f43eb703794646cfe15cda77c96547d652f777d46385c048197c511", size = 21132, upload-time = "2026-04-27T12:12:17.616Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/f0/ee545991855d26cbde2d572f00efdd476fef5cc0d99c625618fd61ca1bae/fairagro_middleware_api_client-8.6.4.dev7-py3-none-any.whl", hash = "sha256:88cbe830774ac4435a0b157431d893baa7d58236e90dac08a8c4805b7fc99076", size = 12194, upload-time = "2026-04-27T12:12:15.761Z" },
+]
+
+[[package]]
+name = "fairagro-middleware-shared"
+version = "8.6.4.dev7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-instrumentation-logging" },
+    { name = "opentelemetry-sdk" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/db/05/6e8aa6224d41c60fbb598b3ff98c01bdb5500529a9b19b99111ba44bb113/fairagro_middleware_shared-8.6.4.dev7.tar.gz", hash = "sha256:cd7741ffe5b44baff579f0f9edc8663a1a63cfab2621b7d27b252ed9c9cf39bd", size = 16177, upload-time = "2026-04-27T12:12:16.563Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/ef/b5fa88b932b672eb7b546304c6219970bf849e605db548592899c1286805/fairagro_middleware_shared-8.6.4.dev7-py3-none-any.whl", hash = "sha256:be349126e819674ccda8114ee8f61e6cac3a3a369afdabb3c0da9de9fc8aa405", size = 15107, upload-time = "2026-04-27T12:12:14.926Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "3.28.0"
 source = { registry = "https://pypi.org/simple" }
@@ -369,20 +390,20 @@ name = "harvester"
 version = "0.1.0"
 source = { editable = "middleware/harvester" }
 dependencies = [
-    { name = "api-client" },
     { name = "arctrl" },
+    { name = "fairagro-middleware-api-client" },
+    { name = "fairagro-middleware-shared" },
     { name = "inspire" },
     { name = "pydantic" },
-    { name = "shared" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "api-client", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fapi_client&branch=main" },
     { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "fairagro-middleware-api-client", specifier = "==8.6.4.dev7" },
+    { name = "fairagro-middleware-shared", specifier = "==8.6.4.dev7" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "shared", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fshared&branch=main" },
 ]
 
 [[package]]
@@ -457,20 +478,20 @@ name = "inspire"
 version = "0.1.0"
 source = { editable = "middleware/inspire" }
 dependencies = [
-    { name = "api-client" },
     { name = "arctrl" },
+    { name = "fairagro-middleware-api-client" },
+    { name = "fairagro-middleware-shared" },
     { name = "owslib" },
     { name = "pydantic" },
-    { name = "shared" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "api-client", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fapi_client&branch=main" },
     { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "fairagro-middleware-api-client", specifier = "==8.6.4.dev7" },
+    { name = "fairagro-middleware-shared", specifier = "==8.6.4.dev7" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "shared", git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fshared&branch=main" },
 ]
 
 [[package]]
@@ -1322,19 +1343,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/88/27/0195d15fe7a897cbcba0904792c4b7c9fdd958456c3a17d2ea6093716a9a/ruff-0.15.11-py3-none-win32.whl", hash = "sha256:476a2aa56b7da0b73a3ee80b6b2f0e19cce544245479adde7baa65466664d5f3", size = 10655535, upload-time = "2026-04-16T18:46:12.47Z" },
     { url = "https://files.pythonhosted.org/packages/3a/5e/c927b325bd4c1d3620211a4b96f47864633199feed60fa936025ab27e090/ruff-0.15.11-py3-none-win_amd64.whl", hash = "sha256:8b6756d88d7e234fb0c98c91511aae3cd519d5e3ed271cae31b20f39cb2a12a3", size = 11779692, upload-time = "2026-04-16T18:46:17.268Z" },
     { url = "https://files.pythonhosted.org/packages/63/b6/aeadee5443e49baa2facd51131159fd6301cc4ccfc1541e4df7b021c37dd/ruff-0.15.11-py3-none-win_arm64.whl", hash = "sha256:063fed18cc1bbe0ee7393957284a6fe8b588c6a406a285af3ee3f46da2391ee4", size = 11032614, upload-time = "2026-04-16T18:46:34.487Z" },
-]
-
-[[package]]
-name = "shared"
-version = "8.6.0"
-source = { git = "https://github.com/fairagro/m4.2_advanced_middleware_api.git?subdirectory=middleware%2Fshared&branch=main#4a93a5d9c140de1e2dbc5f3be6901943b0baaea7" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "opentelemetry-instrumentation-logging" },
-    { name = "opentelemetry-sdk" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
 ]
 
 [[package]]

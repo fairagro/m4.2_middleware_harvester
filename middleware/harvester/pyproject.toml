@@ -6,8 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "arctrl>=3.0.0b0",
     "pydantic>=2.0.0",
-    "api_client",
-    "shared",
+    "fairagro-middleware-api-client==8.6.4.dev7",
+    "fairagro-middleware-shared==8.6.4.dev7",
     "inspire",
 ]
 

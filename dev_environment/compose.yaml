@@ -1,6 +1,6 @@
 services:
-  inspire:
-    image: inspire:latest
+  harvester:
+    image: harvester:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile.harvester
@@ -9,9 +9,9 @@ services:
     tmpfs:
       - /run/secrets:mode=1777
     volumes:
-      - ./config.yaml:/etc/inspire/config.yaml:ro
-      - ./client.crt:/etc/inspire/client.crt:ro
+      - ./config.yaml:/etc/harvester/config.yaml:ro
+      - ./client.crt:/etc/harvester/client.crt:ro
     command: >
       sh -c "printf '%s' \"$$CLIENT_KEY_DATA\" > /run/secrets/client.key &&
-            /middleware/inspire/inspire -c /etc/inspire/config.yaml"
+            /middleware/harvester/harvester -c /etc/harvester/config.yaml"
     restart: no
