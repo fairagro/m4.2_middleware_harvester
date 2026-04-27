@@ -20,7 +20,7 @@ dev = [
   "pytest-mock>=3.10.0",
   "mypy>=1.20.1",
   "bandit>=1.7.0",
-  "ruff>=0.15.11",
+  "ruff>=0.15.12",
   "pre-commit>=4.0.0",
   "respx>=0.23.1",
 ]
