@@ -13,6 +13,7 @@ members = [
     "harvester",
     "inspire",
     "m4-2-middleware-harvester",
+    "schema-org",
 ]
 
 [[package]]
@@ -72,6 +73,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/aa/c3/0cb80dfe0f3076e5da7e4c5ad8e57bac6ac357ff4a6406205501cade4965/bandit-1.9.4.tar.gz", hash = "sha256:b589e5de2afe70bd4d53fa0c1da6199f4085af666fde00e8a034f152a52cd628", size = 4242677, upload-time = "2026-02-25T06:44:15.503Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/a4/a26d5b25671d27e03afb5401a0be5899d94ff8fab6a698b1ac5be3ec29ef/bandit-1.9.4-py3-none-any.whl", hash = "sha256:f89ffa663767f5a0585ea075f01020207e966a9c0f2b9ef56a57c7963a3f6f8e", size = 134741, upload-time = "2026-02-25T06:44:13.694Z" },
+]
+
+[[package]]
+name = "cachetools"
+version = "7.0.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/7b/1755ed2c6bfabd1d98b37ae73152f8dcf94aa40fee119d163c19ed484704/cachetools-7.0.6.tar.gz", hash = "sha256:e5d524d36d65703a87243a26ff08ad84f73352adbeafb1cde81e207b456aaf24", size = 37526, upload-time = "2026-04-20T19:02:23.289Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/c4/cf76242a5da1410917107ff14551764aa405a5fd10cd10cf9a5ca8fa77f4/cachetools-7.0.6-py3-none-any.whl", hash = "sha256:4e94956cfdd3086f12042cdd29318f5ced3893014f7d0d059bf3ead3f85b7f8b", size = 13976, upload-time = "2026-04-20T19:02:21.187Z" },
 ]
 
 [[package]]
@@ -322,6 +332,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b5/fe/997687a931ab51049acce6fa1f23e8f01216374ea81374ddee763c493db5/filelock-3.29.0.tar.gz", hash = "sha256:69974355e960702e789734cb4871f884ea6fe50bd8404051a3530bc07809cf90", size = 57571, upload-time = "2026-04-19T15:39:10.068Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/47/dd9a212ef6e343a6857485ffe25bba537304f1913bdbed446a23f7f592e1/filelock-3.29.0-py3-none-any.whl", hash = "sha256:96f5f6344709aa1572bbf631c640e4ebeeb519e08da902c39a001882f30ac258", size = 39812, upload-time = "2026-04-19T15:39:08.752Z" },
+]
+
+[[package]]
+name = "frozendict"
+version = "2.4.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/b2/2a3d1374b7780999d3184e171e25439a8358c47b481f68be883c14086b4c/frozendict-2.4.7.tar.gz", hash = "sha256:e478fb2a1391a56c8a6e10cc97c4a9002b410ecd1ac28c18d780661762e271bd", size = 317082, upload-time = "2025-11-11T22:40:14.251Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/74/f94141b38a51a553efef7f510fc213894161ae49b88bffd037f8d2a7cb2f/frozendict-2.4.7-py3-none-any.whl", hash = "sha256:972af65924ea25cf5b4d9326d549e69a9a4918d8a76a9d3a7cd174d98b237550", size = 16264, upload-time = "2025-11-11T22:40:12.836Z" },
 ]
 
 [[package]]
@@ -650,6 +669,7 @@ source = { editable = "." }
 dependencies = [
     { name = "harvester" },
     { name = "inspire" },
+    { name = "schema-org" },
 ]
 
 [package.dev-dependencies]
@@ -672,6 +692,7 @@ dev = [
 requires-dist = [
     { name = "harvester", editable = "middleware/harvester" },
     { name = "inspire", editable = "middleware/inspire" },
+    { name = "schema-org", editable = "middleware/schema_org" },
 ]
 
 [package.metadata.requires-dev]
@@ -1116,6 +1137,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pyld"
+version = "3.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cachetools" },
+    { name = "frozendict" },
+    { name = "lxml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/67/2c69359f671f50b551821dcdf6b85beb52f2b0115da933ae0c179f90092b/pyld-3.0.0.tar.gz", hash = "sha256:b1913a06054f35a31e4d9916d184852909b2a3c5fea55c341bd00917cf8b22ef", size = 85056, upload-time = "2026-04-02T09:10:16.001Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/68/51a87c1bdf9beb0fdda6bbff67d32a1689d399e2fc74fe8fb9ada08f1f90/pyld-3.0.0-py3-none-any.whl", hash = "sha256:bfe0f5a476c67d8766d47c445ef2170b868a72654e535dbebc89c8e040b1fe88", size = 76837, upload-time = "2026-04-02T09:10:14.457Z" },
+]
+
+[[package]]
 name = "pylint"
 version = "4.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1344,6 +1379,29 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/f9/0ae446942c846b8266059ad8a30702a35afae55f5cdc54c5adf8d7afdc27/ruff-0.15.12-py3-none-win32.whl", hash = "sha256:d0185894e038d7043ba8fd6aee7499ece6462dc0ea9f1e260c7451807c714c20", size = 10657277, upload-time = "2026-04-24T18:17:18.591Z" },
     { url = "https://files.pythonhosted.org/packages/33/f1/9614e03e1cdcbf9437570b5400ced8a720b5db22b28d8e0f1bda429f660d/ruff-0.15.12-py3-none-win_amd64.whl", hash = "sha256:c87a162d61ab3adca47c03f7f717c68672edec7d1b5499e652331780fe74950d", size = 11837758, upload-time = "2026-04-24T18:17:00.113Z" },
     { url = "https://files.pythonhosted.org/packages/c0/98/6beb4b351e472e5f4c4613f7c35a5290b8be2497e183825310c4c3a3984b/ruff-0.15.12-py3-none-win_arm64.whl", hash = "sha256:a538f7a82d061cee7be55542aca1d86d1393d55d81d4fcc314370f4340930d4f", size = 11120821, upload-time = "2026-04-24T18:16:57.979Z" },
+]
+
+[[package]]
+name = "schema-org"
+version = "0.1.0"
+source = { editable = "middleware/schema_org" }
+dependencies = [
+    { name = "arctrl" },
+    { name = "fairagro-middleware-api-client" },
+    { name = "fairagro-middleware-shared" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pyld" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "fairagro-middleware-api-client", specifier = ">=8.7.0" },
+    { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pyld", specifier = ">=2.0.4" },
 ]
 
 [[package]]

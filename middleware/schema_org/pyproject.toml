@@ -1,0 +1,27 @@
+[project]
+name = "schema_org"
+version = "0.1.0"
+description = "Harvester for Schema.org metadata to ARC conversion"
+requires-python = ">=3.12"
+dependencies = [
+    "arctrl>=3.0.0b0",
+    "pydantic>=2.0.0",
+    "pyld>=2.0.4",
+    "httpx>=0.27.0",
+    "fairagro-middleware-api-client>=8.7.0",
+    "fairagro-middleware-shared>=8.7.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/middleware"]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]

@@ -9,6 +9,7 @@ from middleware.api_client import ApiClient
 from middleware.harvester.config import Config
 from middleware.harvester.errors import HarvesterError
 from middleware.inspire.plugin import run_plugin as run_inspire_plugin
+from middleware.schema_org.plugin import run_plugin as run_schema_org_plugin
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 # To add a new plugin: import its run_plugin and add an entry here.
 _PLUGIN_RUNNERS = {
     "inspire": run_inspire_plugin,
+    "schema_org": run_schema_org_plugin,
 }
 
 
