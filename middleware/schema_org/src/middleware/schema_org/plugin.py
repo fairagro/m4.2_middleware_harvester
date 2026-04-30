@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.schema_org.config import Config
-from middleware.schema_org.interfaces import Dataset, SchemaOrgMapper, Sitemap
+from middleware.schema_org.dataset import Dataset
+from middleware.schema_org.schema_org_mapper import SchemaOrgMapper
+from middleware.schema_org.sitemap import Sitemap
 
 if TYPE_CHECKING:
     from middleware.harvester.plugin_config import PluginConfig

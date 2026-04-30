@@ -6,26 +6,15 @@ import httpx
 from rdflib import Graph
 
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
-from middleware.schema_org.interfaces import DummyDataset, DummySchemaOrgMapper, DummySitemap
+from middleware.schema_org.dataset import DummyDataset
 from middleware.schema_org.plugin import create_mapper, create_sitemap
+from middleware.schema_org.schema_org_mapper import DummySchemaOrgMapper
 from middleware.schema_org.sitemap import XmlSitemap
 
 
 def test_dummy_dataset_returns_graph() -> None:
     dataset = DummyDataset("urn:test")
     assert dataset.identifier == "urn:test"
-
-
-def test_dummy_sitemap_discover_yields_nothing() -> None:
-    config = Config(
-        sitemap_urls=["https://example.org/sitemap.xml"],
-        sitemap_type=SitemapType.xml,
-        dataset_type=DatasetType.dummy,
-        payload_type=PayloadType.dummy,
-    )
-    sitemap = DummySitemap(config)
-    results = asyncio.run(_collect_sitemap(sitemap))
-    assert results == []
 
 
 def test_dummy_mapper_returns_jsonld() -> None:
@@ -67,7 +56,7 @@ def test_xml_sitemap_discover_urlset() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, client=client)
+            sitemap = XmlSitemap(config, DummyDataset, client=client)
             return [dataset.identifier async for dataset in sitemap.discover()]
 
     results = asyncio.run(collect())
@@ -83,7 +72,3 @@ def test_create_mapper_from_config() -> None:
     )
     mapper = create_mapper(config)
     assert isinstance(mapper, DummySchemaOrgMapper)
-
-
-async def _collect_sitemap(sitemap: DummySitemap) -> list[object]:
-    return [item async for item in sitemap.discover()]

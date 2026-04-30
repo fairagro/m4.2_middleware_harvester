@@ -2,13 +2,49 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
+from typing import TypeVar
 
 import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
 from .config import Config, SitemapType
-from .interfaces import Dataset, DummyDataset, Sitemap
+from .dataset import Dataset, DummyDataset
+
+S = TypeVar("S", bound="Sitemap")
+
+
+class Sitemap(ABC):
+    """Abstract sitemap provider that yields Dataset objects asynchronously."""
+
+    registry: dict[SitemapType, type[Sitemap]] = {}
+
+    def __init__(
+        self,
+        config: Config,
+        dataset_factory: Callable[[str], Dataset] | None = None,
+    ) -> None:
+        """Create a new Sitemap configured for a specific source."""
+        self.config = config
+        self.dataset_factory = dataset_factory
+
+    @classmethod
+    def register(cls, sitemap_type: SitemapType) -> Callable[[type[S]], type[S]]:
+        """Register a concrete Sitemap implementation for the given sitemap type."""
+
+        def decorator(subclass: type[S]) -> type[S]:
+            cls.registry[sitemap_type] = subclass
+            return subclass
+
+        return decorator
+
+    @abstractmethod
+    async def discover(self) -> AsyncGenerator[Dataset, None]:
+        """Asynchronously yield Dataset objects found in the configured sitemap."""
+        if False:  # pragma: no cover
+            yield DummyDataset("unused")
+        raise NotImplementedError
 
 
 @Sitemap.register(SitemapType.xml)
