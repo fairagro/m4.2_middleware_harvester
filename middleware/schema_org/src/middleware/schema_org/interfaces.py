@@ -3,15 +3,32 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
+from typing import TypeVar
 
 from rdflib import Graph
 
-from .config import Config
+from .config import Config, DatasetType, PayloadType, SitemapType
+
+T = TypeVar("T", bound="Dataset")
+S = TypeVar("S", bound="Sitemap")
+M = TypeVar("M", bound="SchemaOrgMapper")
 
 
 class Dataset(ABC):
     """Abstract wrapper around a Schema.org dataset payload."""
+
+    registry: dict[DatasetType, type[Dataset]] = {}
+
+    @classmethod
+    def register(cls, dataset_type: DatasetType) -> Callable[[type[T]], type[T]]:
+        """Register a concrete Dataset implementation for the given dataset type."""
+
+        def decorator(subclass: type[T]) -> type[T]:
+            cls.registry[dataset_type] = subclass
+            return subclass
+
+        return decorator
 
     @property
     @abstractmethod
@@ -28,9 +45,26 @@ class Dataset(ABC):
 class Sitemap(ABC):
     """Abstract sitemap provider that yields Dataset objects asynchronously."""
 
-    def __init__(self, config: Config) -> None:
+    registry: dict[SitemapType, type[Sitemap]] = {}
+
+    def __init__(
+        self,
+        config: Config,
+        dataset_factory: Callable[[str], Dataset] | None = None,
+    ) -> None:
         """Create a new Sitemap configured for a specific source."""
         self.config = config
+        self.dataset_factory = dataset_factory
+
+    @classmethod
+    def register(cls, sitemap_type: SitemapType) -> Callable[[type[S]], type[S]]:
+        """Register a concrete Sitemap implementation for the given sitemap type."""
+
+        def decorator(subclass: type[S]) -> type[S]:
+            cls.registry[sitemap_type] = subclass
+            return subclass
+
+        return decorator
 
     @abstractmethod
     async def discover(self) -> AsyncGenerator[Dataset, None]:
@@ -43,12 +77,25 @@ class Sitemap(ABC):
 class SchemaOrgMapper(ABC):
     """Maps a parsed Schema.org RDF graph to ARC RO-Crate JSON-LD."""
 
+    registry: dict[PayloadType, type[SchemaOrgMapper]] = {}
+
+    @classmethod
+    def register(cls, payload_type: PayloadType) -> Callable[[type[M]], type[M]]:
+        """Register a concrete SchemaOrgMapper implementation for the given payload type."""
+
+        def decorator(subclass: type[M]) -> type[M]:
+            cls.registry[payload_type] = subclass
+            return subclass
+
+        return decorator
+
     @abstractmethod
     def map_graph(self, graph: Graph) -> str:
         """Return a serialized RO-Crate JSON-LD string for the given graph."""
         raise NotImplementedError
 
 
+@Dataset.register(DatasetType.dummy)
 class DummyDataset(Dataset):
     """Minimal Dataset implementation used as a placeholder."""
 
@@ -76,6 +123,7 @@ class DummySitemap(Sitemap):
             yield DummyDataset("unused")
 
 
+@SchemaOrgMapper.register(PayloadType.dummy)
 class DummySchemaOrgMapper(SchemaOrgMapper):
     """Minimal mapper implementation that returns an empty RO-Crate JSON-LD stub."""
 

@@ -7,6 +7,7 @@ Harvest Schema.org dataset metadata from configured sitemap sources, parse it in
 - [ ] Provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the main `middleware.harvester.config.Config` plugin config schema.
 - [ ] Require explicit sitemap configuration in `Config`; do not infer sitemap type or dataset payload format automatically.
 - [ ] Support explicit sitemap kinds via configuration as distinct values such as `xml`, `edal`, and `thunen`.
+- [ ] Parse XML sitemaps according to the sitemap protocol and yield dataset URLs as `Dataset` descriptors.
 - [ ] Support explicit dataset kinds via configuration as distinct values such as `edal` and `bonares`.
 - [ ] Define an abstract `Sitemap` interface whose async iterator yields dataset descriptors.
 - [ ] Define an abstract `Dataset` interface whose concrete implementations expose the payload as an `rdflib.Graph`.

@@ -5,13 +5,8 @@ from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
-from middleware.schema_org.config import (
-    Config,
-    DatasetType,
-    PayloadType,
-    SitemapType,
-)
-from middleware.schema_org.interfaces import DummySchemaOrgMapper, DummySitemap, SchemaOrgMapper, Sitemap
+from middleware.schema_org.config import Config
+from middleware.schema_org.interfaces import Dataset, SchemaOrgMapper, Sitemap
 
 if TYPE_CHECKING:
     from middleware.harvester.plugin_config import PluginConfig
@@ -19,20 +14,27 @@ if TYPE_CHECKING:
 
 def create_sitemap(config: Config) -> Sitemap:
     """Create the sitemap implementation for the configured sitemap type."""
-    if config.sitemap_type == SitemapType.xml:
-        if config.dataset_type == DatasetType.dummy:
-            return DummySitemap(config)
-        raise ValueError(f"Unsupported dataset type: {config.dataset_type}")
+    try:
+        sitemap_cls = Sitemap.registry[config.sitemap_type]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
 
-    raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}")
+    try:
+        dataset_cls = Dataset.registry[config.dataset_type]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported dataset type: {config.dataset_type}") from exc
+
+    return sitemap_cls(config, dataset_factory=dataset_cls)
 
 
 def create_mapper(config: Config) -> SchemaOrgMapper:
     """Create the mapper implementation for the configured payload type."""
-    if config.payload_type == PayloadType.dummy:
-        return DummySchemaOrgMapper()
+    try:
+        mapper_cls = SchemaOrgMapper.registry[config.payload_type]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
 
-    raise ValueError(f"Unsupported payload type: {config.payload_type}")
+    return mapper_cls()
 
 
 logger = logging.getLogger(__name__)

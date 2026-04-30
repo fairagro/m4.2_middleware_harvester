@@ -5,6 +5,7 @@ description = "Schema.org harvester plugin for FAIRagro Middleware Harvester"
 requires-python = ">=3.12"
 dependencies = [
     "arctrl>=3.0.0b0",
+    "defusedxml>=0.7.1",
     "pydantic>=2.0.0",
     "rdflib>=7.0.0",
     "fairagro-middleware-shared>=8.7.0",
