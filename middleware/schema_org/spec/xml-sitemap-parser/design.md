@@ -4,7 +4,9 @@
 
 The XML sitemap parser is responsible for a single concern: translating sitemap documents into dataset URLs. It does not parse dataset payloads or map graphs to ARC.
 
-The parser consumes a single configured sitemap URL as its entry point, and follows nested sitemap indexes recursively if the document contains them.
+The parser consumes a single configured sitemap URL as its entry point and preserves a stable, deduplicated set of dataset URLs across discovery.
+
+The public contract is dataset-level deduplication: output must suppress duplicate dataset URLs, while sitemap-level fetch repetition is an implementation detail used only to safely support nested sitemap indexes. The implementation must also prevent cycles in nested sitemap indexes by tracking already visited sitemap URLs.
 
 ## Key Decisions
 

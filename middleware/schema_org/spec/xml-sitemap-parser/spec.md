@@ -8,7 +8,9 @@ Parse standard XML sitemap documents to discover dataset URLs for Schema.org har
 - [ ] Accept a single sitemap entry point URL in plugin configuration.
 - [ ] Parse XML sitemap documents according to the sitemap protocol.
 - [ ] Support both `urlset` and `sitemapindex` roots.
-- [ ] Recursively follow nested sitemap indexes and deduplicate discovered dataset URLs.
+- [ ] Recursively follow nested sitemap indexes if present.
+- [ ] Prevent sitemap loops by tracking already visited sitemap URLs.
+- [ ] Deduplicate discovered dataset URLs before yielding them.
 - [ ] Emit `Dataset` descriptors for each discovered dataset URL without parsing dataset payloads.
 - [ ] Use safe XML parsing for untrusted content.
 - [ ] Fail fast when the sitemap type is unsupported.

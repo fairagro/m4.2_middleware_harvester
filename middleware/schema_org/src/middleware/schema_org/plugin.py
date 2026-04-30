@@ -4,6 +4,8 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, cast
 
+import httpx
+
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.schema_org.config import Config
 from middleware.schema_org.dataset import Dataset
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
     from middleware.harvester.plugin_config import PluginConfig
 
 
-def create_sitemap(config: Config) -> Sitemap:
+def create_sitemap(config: Config, client: httpx.AsyncClient | None = None) -> Sitemap:
     """Create the sitemap implementation for the configured sitemap type."""
     try:
         sitemap_cls = Sitemap.registry[config.sitemap_type]
@@ -26,7 +28,7 @@ def create_sitemap(config: Config) -> Sitemap:
     except KeyError as exc:
         raise ValueError(f"Unsupported dataset type: {config.dataset_type}") from exc
 
-    return sitemap_cls(config, dataset_factory=dataset_cls)
+    return sitemap_cls(config, dataset_factory=dataset_cls, client=client)
 
 
 def create_mapper(config: Config) -> SchemaOrgMapper:

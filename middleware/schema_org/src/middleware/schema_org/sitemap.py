@@ -24,10 +24,30 @@ class Sitemap(ABC):
         self,
         config: Config,
         dataset_factory: Callable[[str], Dataset] | None = None,
+        client: httpx.AsyncClient | None = None,
     ) -> None:
         """Create a new Sitemap configured for a specific source."""
         self.config = config
         self.dataset_factory = dataset_factory
+        self._client = client
+
+    async def discover(self) -> AsyncGenerator[Dataset, None]:
+        """Asynchronously yield Dataset objects using the configured HTTP client."""
+        if self._client is not None:
+            async for dataset in self._discover(self._client):
+                yield dataset
+            return
+
+        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
+            async for dataset in self._discover(client):
+                yield dataset
+
+    @abstractmethod
+    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
+        """Discover datasets using the provided HTTP client."""
+        if False:  # pragma: no cover
+            yield DummyDataset("unused")
+        raise NotImplementedError
 
     @classmethod
     def register(cls, sitemap_type: SitemapType) -> Callable[[type[S]], type[S]]:
@@ -38,13 +58,6 @@ class Sitemap(ABC):
             return subclass
 
         return decorator
-
-    @abstractmethod
-    async def discover(self) -> AsyncGenerator[Dataset, None]:
-        """Asynchronously yield Dataset objects found in the configured sitemap."""
-        if False:  # pragma: no cover
-            yield DummyDataset("unused")
-        raise NotImplementedError
 
 
 @Sitemap.register(SitemapType.xml)
@@ -58,31 +71,14 @@ class XmlSitemap(Sitemap):
         client: httpx.AsyncClient | None = None,
     ) -> None:
         """Initialize an XML sitemap parser with optional dataset construction."""
-        super().__init__(config)
+        super().__init__(config, dataset_factory=dataset_factory, client=client)
         self._dataset_factory = dataset_factory
-        self._client = client
 
-    async def discover(self) -> AsyncGenerator[Dataset, None]:
-        """Asynchronously yield Dataset objects from configured XML sitemap URLs."""
+    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
         seen_sitemaps: set[str] = set()
-        yielded_datasets: set[str] = set()
+        seen_dataset_urls: set[str] = set()
 
-        if self._client is not None:
-            async for dataset in self._discover_with_client(self._client, seen_sitemaps, yielded_datasets):
-                yield dataset
-            return
-
-        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
-            async for dataset in self._discover_with_client(client, seen_sitemaps, yielded_datasets):
-                yield dataset
-
-    async def _discover_with_client(
-        self,
-        client: httpx.AsyncClient,
-        seen_sitemaps: set[str],
-        yielded_datasets: set[str],
-    ) -> AsyncGenerator[Dataset, None]:
-        async for dataset in self._fetch_sitemap(self.config.sitemap_url, client, seen_sitemaps, yielded_datasets):
+        async for dataset in self._fetch_sitemap(self.config.sitemap_url, client, seen_sitemaps, seen_dataset_urls):
             yield dataset
 
     async def _fetch_sitemap(
@@ -90,7 +86,7 @@ class XmlSitemap(Sitemap):
         sitemap_url: str,
         client: httpx.AsyncClient,
         seen_sitemaps: set[str],
-        yielded_datasets: set[str],
+        seen_dataset_urls: set[str],
     ) -> AsyncGenerator[Dataset, None]:
         if sitemap_url in seen_sitemaps:
             return
@@ -108,10 +104,10 @@ class XmlSitemap(Sitemap):
                     continue
 
                 dataset_url = loc.text.strip()
-                if dataset_url in yielded_datasets:
+                if dataset_url in seen_dataset_urls:
                     continue
 
-                yielded_datasets.add(dataset_url)
+                seen_dataset_urls.add(dataset_url)
                 yield self._dataset_factory(dataset_url)
 
             return
@@ -119,7 +115,13 @@ class XmlSitemap(Sitemap):
         if root_name == "sitemapindex":
             for loc in root.findall(".//{*}loc"):
                 if loc.text:
-                    async for dataset in self._fetch_sitemap(loc.text.strip(), client, seen_sitemaps, yielded_datasets):
+                    nested_sitemap_url = loc.text.strip()
+                    async for dataset in self._fetch_sitemap(
+                        nested_sitemap_url,
+                        client,
+                        seen_sitemaps,
+                        seen_dataset_urls,
+                    ):
                         yield dataset
             return
 
