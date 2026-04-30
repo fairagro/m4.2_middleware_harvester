@@ -6,18 +6,20 @@ central Harvester orchestrator. This module contains no CLI entry point.
 
 import logging
 from collections.abc import AsyncGenerator
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
-from middleware.harvester.plugin_config import PluginConfig
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.mapper import InspireMapper
 
+if TYPE_CHECKING:
+    from middleware.harvester.plugin_config import PluginConfig
+
 logger = logging.getLogger(__name__)
 
 
-async def run_plugin(config: PluginConfig) -> AsyncGenerator[str | HarvesterError, None]:
+async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterError, None]:
     """Run the harvest process and yield serialized RO-Crate ARCs or Harvester errors."""
     inspire_config = cast(Config, config)
     # 1. Setup CSW Client

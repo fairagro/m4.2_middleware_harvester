@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.harvester.plugin_config import PluginConfig
 from middleware.inspire.config import Config as InspireConfig
+from middleware.schema_org.config import Config as SchemaOrgConfig
 from middleware.shared.config.config_base import ConfigBase
 
 
@@ -21,7 +22,7 @@ class RepositoryConfig(BaseModel):
               rdi: "my-rdi"
     """
 
-    _PLUGIN_FIELDS: ClassVar[frozenset[str]] = frozenset({"inspire"})
+    _PLUGIN_FIELDS: ClassVar[frozenset[str]] = frozenset({"inspire", "schema_org"})
     # When adding a new plugin, add its field name here AND as an optional field below.
 
     rdi: Annotated[
@@ -31,6 +32,10 @@ class RepositoryConfig(BaseModel):
     inspire: Annotated[
         InspireConfig | None,
         Field(description="INSPIRE CSW plugin configuration"),
+    ] = None
+    schema_org: Annotated[
+        SchemaOrgConfig | None,
+        Field(description="Schema.org harvesting plugin configuration"),
     ] = None
 
     @model_validator(mode="after")
@@ -46,6 +51,8 @@ class RepositoryConfig(BaseModel):
         """Return the active plugin type name."""
         if self.inspire is not None:
             return "inspire"
+        if self.schema_org is not None:
+            return "schema_org"
         raise RuntimeError("No plugin key set — did model validation run?")  # pragma: no cover
 
     @property
@@ -53,6 +60,8 @@ class RepositoryConfig(BaseModel):
         """Return the active plugin configuration object."""
         if self.inspire is not None:
             return self.inspire
+        if self.schema_org is not None:
+            return self.schema_org
         raise RuntimeError("No plugin config set — did model validation run?")  # pragma: no cover
 
 

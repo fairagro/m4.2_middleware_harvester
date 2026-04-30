@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
   "inspire",
   "harvester",
+  "schema_org",
 ]
 
 [dependency-groups]
@@ -28,11 +29,13 @@ dev = [
 [tool.uv.sources]
 inspire = { workspace = true }
 harvester = { workspace = true }
+schema_org = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "middleware/inspire",
     "middleware/harvester",
+    "middleware/schema_org",
 ]
 
 [tool.ruff]
@@ -108,6 +111,7 @@ namespace_packages = true
 mypy_path = [
   "middleware/inspire/src",
   "middleware/harvester/src",
+  "middleware/schema_org/src",
 ]
 
 # Exclude directories from type checking
@@ -144,11 +148,13 @@ convention = "pep257" # oder "numpy", oder "google"
 # Test discovery
 testpaths = [
     "middleware/inspire/tests",
-    "middleware/harvester/tests"
+    "middleware/harvester/tests",
+    "middleware/schema_org/tests"
 ]
 pythonpath = [
     "middleware/inspire/src",
-    "middleware/harvester/src"
+    "middleware/harvester/src",
+    "middleware/schema_org/src"
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -178,7 +184,8 @@ markers = [
 # Coverage measurement settings
 source = [
     "middleware/inspire/src/middleware/inspire",
-    "middleware/harvester/src/middleware/harvester"
+    "middleware/harvester/src/middleware/harvester",
+    "middleware/schema_org/src/middleware/schema_org"
 ]
 omit = [
     "*/tests/*",

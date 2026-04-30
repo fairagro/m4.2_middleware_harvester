@@ -1,15 +1,13 @@
 [project]
-name = "harvester"
+name = "schema_org"
 version = "0.1.0"
-description = "Core orchestrator for FAIRagro Middleware Harvester"
+description = "Schema.org harvester plugin for FAIRagro Middleware Harvester"
 requires-python = ">=3.12"
 dependencies = [
     "arctrl>=3.0.0b0",
     "pydantic>=2.0.0",
-    "fairagro-middleware-api-client>=8.7.0",
+    "rdflib>=7.0.0",
     "fairagro-middleware-shared>=8.7.0",
-    "inspire",
-    "schema_org",
 ]
 
 [build-system]
@@ -22,3 +20,6 @@ packages = ["src/middleware"]
 [tool.pytest.ini_options]
 pythonpath = "src"
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]

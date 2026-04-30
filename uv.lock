@@ -13,6 +13,7 @@ members = [
     "harvester",
     "inspire",
     "m4-2-middleware-harvester",
+    "schema-org",
 ]
 
 [[package]]
@@ -396,6 +397,7 @@ dependencies = [
     { name = "fairagro-middleware-shared" },
     { name = "inspire" },
     { name = "pydantic" },
+    { name = "schema-org" },
 ]
 
 [package.metadata]
@@ -405,6 +407,7 @@ requires-dist = [
     { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "schema-org", editable = "middleware/schema_org" },
 ]
 
 [[package]]
@@ -650,6 +653,7 @@ source = { editable = "." }
 dependencies = [
     { name = "harvester" },
     { name = "inspire" },
+    { name = "schema-org" },
 ]
 
 [package.dev-dependencies]
@@ -672,6 +676,7 @@ dev = [
 requires-dist = [
     { name = "harvester", editable = "middleware/harvester" },
     { name = "inspire", editable = "middleware/inspire" },
+    { name = "schema-org", editable = "middleware/schema_org" },
 ]
 
 [package.metadata.requires-dev]
@@ -1134,6 +1139,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyparsing"
+version = "3.3.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/91/9c6ee907786a473bf81c5f53cf703ba0957b23ab84c264080fb5a450416f/pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc", size = 6851574, upload-time = "2026-01-21T03:57:59.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", size = 122781, upload-time = "2026-01-21T03:57:55.912Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1282,6 +1296,18 @@ wheels = [
 ]
 
 [[package]]
+name = "rdflib"
+version = "7.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyparsing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/f5/18bb77b7af9526add0c727a3b2048959847dc5fb030913e2918bf384fec3/rdflib-7.6.0.tar.gz", hash = "sha256:6c831288d5e4a5a7ece85d0ccde9877d512a3d0f02d7c06455d00d6d0ea379df", size = 4943826, upload-time = "2026-02-13T07:15:55.938Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/c2/6604a71269e0c1bd75656d5a001432d16f2cc5b8c057140ec797155c295e/rdflib-7.6.0-py3-none-any.whl", hash = "sha256:30c0a3ebf4c0e09215f066be7246794b6492e054e782d7ac2a34c9f70a15e0dd", size = 615416, upload-time = "2026-02-13T07:15:46.487Z" },
+]
+
+[[package]]
 name = "requests"
 version = "2.33.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1344,6 +1370,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/f9/0ae446942c846b8266059ad8a30702a35afae55f5cdc54c5adf8d7afdc27/ruff-0.15.12-py3-none-win32.whl", hash = "sha256:d0185894e038d7043ba8fd6aee7499ece6462dc0ea9f1e260c7451807c714c20", size = 10657277, upload-time = "2026-04-24T18:17:18.591Z" },
     { url = "https://files.pythonhosted.org/packages/33/f1/9614e03e1cdcbf9437570b5400ced8a720b5db22b28d8e0f1bda429f660d/ruff-0.15.12-py3-none-win_amd64.whl", hash = "sha256:c87a162d61ab3adca47c03f7f717c68672edec7d1b5499e652331780fe74950d", size = 11837758, upload-time = "2026-04-24T18:17:00.113Z" },
     { url = "https://files.pythonhosted.org/packages/c0/98/6beb4b351e472e5f4c4613f7c35a5290b8be2497e183825310c4c3a3984b/ruff-0.15.12-py3-none-win_arm64.whl", hash = "sha256:a538f7a82d061cee7be55542aca1d86d1393d55d81d4fcc314370f4340930d4f", size = 11120821, upload-time = "2026-04-24T18:16:57.979Z" },
+]
+
+[[package]]
+name = "schema-org"
+version = "0.1.0"
+source = { editable = "middleware/schema_org" }
+dependencies = [
+    { name = "arctrl" },
+    { name = "fairagro-middleware-shared" },
+    { name = "pydantic" },
+    { name = "rdflib" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "rdflib", specifier = ">=7.0.0" },
 ]
 
 [[package]]
