@@ -5,6 +5,7 @@ Parse standard XML sitemap documents to discover dataset URLs for Schema.org har
 ## Requirements
 
 - [ ] Support `SitemapType.xml` in plugin configuration.
+- [ ] Accept a single sitemap entry point URL in plugin configuration.
 - [ ] Parse XML sitemap documents according to the sitemap protocol.
 - [ ] Support both `urlset` and `sitemapindex` roots.
 - [ ] Recursively follow nested sitemap indexes and deduplicate discovered dataset URLs.

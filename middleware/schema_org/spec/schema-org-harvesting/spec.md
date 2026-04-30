@@ -16,7 +16,7 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 
 ## Feature split
 
-- `middleware/schema_org/spec/xml-sitemap-parser/spec.md` — XML sitemap discovery and dataset URL extraction.
+- `middleware/schema_org/spec/xml-sitemap-parser/spec.md` — XML sitemap discovery from a single sitemap URL and dataset URL extraction.
 - `middleware/schema_org/spec/schemaorg-dataset-abstraction/spec.md` — Dataset payload abstraction and provider-specific dataset wrappers.
 - `middleware/schema_org/spec/schemaorg-mapper/spec.md` — Graph-to-ARC mapping and RO-Crate serialization.
 

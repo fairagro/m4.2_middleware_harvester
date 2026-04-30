@@ -25,7 +25,7 @@ def test_dummy_mapper_returns_jsonld() -> None:
 
 def test_create_sitemap_from_config() -> None:
     config = Config(
-        sitemap_urls=["https://example.org/sitemap.xml"],
+        sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.dummy,
         payload_type=PayloadType.dummy,
@@ -36,7 +36,7 @@ def test_create_sitemap_from_config() -> None:
 
 def test_xml_sitemap_discover_urlset() -> None:
     config = Config(
-        sitemap_urls=["https://example.org/sitemap.xml"],
+        sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.dummy,
         payload_type=PayloadType.dummy,
@@ -65,7 +65,7 @@ def test_xml_sitemap_discover_urlset() -> None:
 
 def test_create_mapper_from_config() -> None:
     config = Config(
-        sitemap_urls=["https://example.org/sitemap.xml"],
+        sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.dummy,
         payload_type=PayloadType.dummy,

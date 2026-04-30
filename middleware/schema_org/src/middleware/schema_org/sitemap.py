@@ -82,9 +82,8 @@ class XmlSitemap(Sitemap):
         seen_sitemaps: set[str],
         yielded_datasets: set[str],
     ) -> AsyncGenerator[Dataset, None]:
-        for sitemap_url in self.config.sitemap_urls:
-            async for dataset in self._fetch_sitemap(sitemap_url, client, seen_sitemaps, yielded_datasets):
-                yield dataset
+        async for dataset in self._fetch_sitemap(self.config.sitemap_url, client, seen_sitemaps, yielded_datasets):
+            yield dataset
 
     async def _fetch_sitemap(
         self,

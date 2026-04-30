@@ -1,9 +1,9 @@
 """Configuration model for the Schema.org harvester plugin."""
 
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class SitemapType(StrEnum):
@@ -27,15 +27,8 @@ class PayloadType(StrEnum):
 class Config(BaseModel):
     """Configuration model for the Schema.org harvesting plugin."""
 
-    sitemap_urls: Annotated[list[str], Field(description="List of sitemap entry points.", min_length=1)]
+    sitemap_url: Annotated[str, Field(description="Sitemap entry point URL.")]
     sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
     payload_type: Annotated[PayloadType, Field(description="Expected dataset payload type.")]
     timeout: Annotated[int, Field(description="HTTP timeout seconds.", ge=1)] = 30
-
-    @model_validator(mode="after")
-    def validate_config(self) -> Self:
-        """Validate the schema.org plugin configuration after model creation."""
-        if not self.sitemap_urls:
-            raise ValueError("sitemap_urls must contain at least one sitemap entry point.")
-        return self

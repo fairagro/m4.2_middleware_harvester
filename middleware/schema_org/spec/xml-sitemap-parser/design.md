@@ -4,6 +4,8 @@
 
 The XML sitemap parser is responsible for a single concern: translating sitemap documents into dataset URLs. It does not parse dataset payloads or map graphs to ARC.
 
+The parser consumes a single configured sitemap URL as its entry point, and follows nested sitemap indexes recursively if the document contains them.
+
 ## Key Decisions
 
 1. **Implement sitemap parsing in a dedicated `XmlSitemap` module**
