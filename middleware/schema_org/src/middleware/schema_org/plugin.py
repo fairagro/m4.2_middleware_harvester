@@ -24,11 +24,11 @@ def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
         raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
 
     try:
-        dataset_cls = Dataset.registry[config.dataset_type]
+        Dataset.registry[config.dataset_type]
     except KeyError as exc:
         raise ValueError(f"Unsupported dataset type: {config.dataset_type}") from exc
 
-    return sitemap_cls(config, client, dataset_cls)
+    return sitemap_cls(config, client)
 
 
 def create_mapper(config: Config) -> SchemaOrgMapper:
@@ -56,7 +56,18 @@ async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterEr
     async with httpx.AsyncClient(timeout=schema_config.timeout, limits=limits) as http_client:
         sitemap = create_sitemap(schema_config, client=http_client)
         try:
-            async for dataset in sitemap.discover():
+            async for discovery_result in sitemap.discover():
+                try:
+                    dataset_cls = Dataset.registry[schema_config.dataset_type]
+                    dataset = dataset_cls.from_discovery_result(discovery_result)
+                except (RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+                    yield RecordProcessingError(
+                        f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
+                        str(discovery_result),
+                        exc,
+                    )
+                    continue
+
                 try:
                     graph = await dataset.to_graph()
                     yield mapper.map_graph(graph)

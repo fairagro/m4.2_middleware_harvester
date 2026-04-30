@@ -4,11 +4,25 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TypeVar
 
 from rdflib import Graph
 
 from .config import DatasetType
+
+
+@dataclass
+class DiscoveryResult:
+    """Base class for results yielded by Sitemap discovery."""
+
+
+@dataclass
+class UrlDiscoveryResult(DiscoveryResult):
+    """Discovery result representing a dataset URL."""
+
+    url: str
+
 
 T = TypeVar("T", bound="Dataset")
 
@@ -39,6 +53,12 @@ class Dataset(ABC):
         """Return the dataset payload as an RDF graph."""
         raise NotImplementedError
 
+    @classmethod
+    @abstractmethod
+    def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
+        """Create a Dataset instance from a discovery result."""
+        raise NotImplementedError
+
 
 @Dataset.register(DatasetType.dummy)
 class DummyDataset(Dataset):
@@ -53,6 +73,13 @@ class DummyDataset(Dataset):
     def identifier(self) -> str:
         """Return the stable identifier for this dataset."""
         return self._identifier
+
+    @classmethod
+    def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
+        """Construct a DummyDataset from a discovery result."""
+        if isinstance(discovery_result, UrlDiscoveryResult):
+            return cls(discovery_result.url)
+        return cls(str(discovery_result))
 
     async def to_graph(self) -> Graph:
         """Return the dataset payload as an rdflib.Graph."""

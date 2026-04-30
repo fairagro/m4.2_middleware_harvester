@@ -10,37 +10,31 @@ import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
 from .config import Config, SitemapType
-from .dataset import Dataset, DummyDataset
+from .dataset import DiscoveryResult, UrlDiscoveryResult
 
 S = TypeVar("S", bound="Sitemap")
 
 
 class Sitemap(ABC):
-    """Abstract sitemap provider that yields Dataset objects asynchronously."""
+    """Abstract sitemap provider that yields discovery results asynchronously."""
 
     registry: dict[SitemapType, type[Sitemap]] = {}
 
-    def __init__(
-        self,
-        config: Config,
-        client: httpx.AsyncClient,
-        dataset_factory: Callable[[str], Dataset] | None = None,
-    ) -> None:
+    def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
         """Create a new Sitemap configured for a specific source."""
         self.config = config
-        self.dataset_factory = dataset_factory
         self._client = client
 
-    async def discover(self) -> AsyncGenerator[Dataset, None]:
-        """Asynchronously yield Dataset objects using the provided HTTP client."""
-        async for dataset in self._discover(self._client):
-            yield dataset
+    async def discover(self) -> AsyncGenerator[DiscoveryResult, None]:
+        """Asynchronously yield raw discovery results using the provided HTTP client."""
+        async for result in self._discover(self._client):
+            yield result
 
     @abstractmethod
-    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
-        """Discover datasets using the provided HTTP client."""
+    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[DiscoveryResult, None]:
+        """Discover dataset sources using the provided HTTP client."""
         if False:  # pragma: no cover
-            yield DummyDataset("unused")
+            yield UrlDiscoveryResult("")
         raise NotImplementedError
 
     @classmethod
@@ -58,22 +52,17 @@ class Sitemap(ABC):
 class XmlSitemap(Sitemap):
     """Sitemap parser for XML sitemap protocol sources."""
 
-    def __init__(
-        self,
-        config: Config,
-        client: httpx.AsyncClient,
-        dataset_factory: Callable[[str], Dataset] = DummyDataset,
-    ) -> None:
-        """Initialize an XML sitemap parser with optional dataset construction."""
-        super().__init__(config, client=client, dataset_factory=dataset_factory)
-        self._dataset_factory = dataset_factory
-
-    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
+    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[DiscoveryResult, None]:
         seen_sitemaps: set[str] = set()
         seen_dataset_urls: set[str] = set()
 
-        async for dataset in self._fetch_sitemap(self.config.sitemap_url, client, seen_sitemaps, seen_dataset_urls):
-            yield dataset
+        async for discovery_result in self._fetch_sitemap(
+            self.config.sitemap_url,
+            client,
+            seen_sitemaps,
+            seen_dataset_urls,
+        ):
+            yield discovery_result
 
     async def _fetch_sitemap(
         self,
@@ -81,7 +70,7 @@ class XmlSitemap(Sitemap):
         client: httpx.AsyncClient,
         seen_sitemaps: set[str],
         seen_dataset_urls: set[str],
-    ) -> AsyncGenerator[Dataset, None]:
+    ) -> AsyncGenerator[DiscoveryResult, None]:
         if sitemap_url in seen_sitemaps:
             return
 
@@ -102,7 +91,7 @@ class XmlSitemap(Sitemap):
                     continue
 
                 seen_dataset_urls.add(dataset_url)
-                yield self._dataset_factory(dataset_url)
+                yield UrlDiscoveryResult(dataset_url)
 
             return
 

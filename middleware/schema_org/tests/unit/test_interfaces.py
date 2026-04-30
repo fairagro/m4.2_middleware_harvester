@@ -6,7 +6,7 @@ import httpx
 from rdflib import Graph
 
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
-from middleware.schema_org.dataset import DummyDataset
+from middleware.schema_org.dataset import DummyDataset, UrlDiscoveryResult
 from middleware.schema_org.plugin import create_mapper, create_sitemap
 from middleware.schema_org.schema_org_mapper import DummySchemaOrgMapper
 from middleware.schema_org.sitemap import XmlSitemap
@@ -61,8 +61,8 @@ def test_xml_sitemap_discover_urlset() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, client, DummyDataset)
-            return [dataset.identifier async for dataset in sitemap.discover()]
+            sitemap = XmlSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
     results = asyncio.run(collect())
     assert results == ["https://example.org/dataset/1", "https://example.org/dataset/2"]
@@ -90,8 +90,8 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, client, DummyDataset)
-            return [dataset.identifier async for dataset in sitemap.discover()]
+            sitemap = XmlSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
     results = asyncio.run(collect())
     assert results == ["https://example.org/dataset/1"]
@@ -137,8 +137,8 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, client, DummyDataset)
-            return [dataset.identifier async for dataset in sitemap.discover()]
+            sitemap = XmlSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
     results = asyncio.run(collect())
     assert results == ["https://example.org/dataset/1"]
