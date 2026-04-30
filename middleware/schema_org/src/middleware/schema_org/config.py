@@ -32,3 +32,10 @@ class Config(BaseModel):
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
     payload_type: Annotated[PayloadType, Field(description="Expected dataset payload type.")]
     timeout: Annotated[int, Field(description="HTTP timeout seconds.", ge=1)] = 30
+    max_connections: Annotated[
+        int,
+        Field(
+            description="Maximum number of concurrent HTTP connections used for sitemap downloads.",
+            ge=1,
+        ),
+    ] = 10

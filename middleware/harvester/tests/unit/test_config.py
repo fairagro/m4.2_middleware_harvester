@@ -46,3 +46,7 @@ def test_repository_config_rejects_unknown_plugin() -> None:
     """RepositoryConfig must reject an entry with an unrecognised plugin key."""
     with pytest.raises(ValidationError):
         RepositoryConfig.model_validate({"unknown_plugin": {"some_field": "value"}})
+
+
+# max_concurrent_http_connections is intentionally removed from the harvester core config.
+# Connection limits are now configured per-plugin where supported.

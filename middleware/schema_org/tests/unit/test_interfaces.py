@@ -30,8 +30,13 @@ def test_create_sitemap_from_config() -> None:
         dataset_type=DatasetType.dummy,
         payload_type=PayloadType.dummy,
     )
-    sitemap = create_sitemap(config)
-    assert isinstance(sitemap, XmlSitemap)
+
+    async def create() -> None:
+        async with httpx.AsyncClient(timeout=config.timeout) as client:
+            sitemap = create_sitemap(config, client=client)
+            assert isinstance(sitemap, XmlSitemap)
+
+    asyncio.run(create())
 
 
 def test_xml_sitemap_discover_urlset() -> None:
@@ -56,7 +61,7 @@ def test_xml_sitemap_discover_urlset() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, DummyDataset, client=client)
+            sitemap = XmlSitemap(config, client, DummyDataset)
             return [dataset.identifier async for dataset in sitemap.discover()]
 
     results = asyncio.run(collect())
@@ -85,7 +90,7 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, DummyDataset, client=client)
+            sitemap = XmlSitemap(config, client, DummyDataset)
             return [dataset.identifier async for dataset in sitemap.discover()]
 
     results = asyncio.run(collect())
@@ -132,7 +137,7 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
 
     async def collect() -> list[str]:
         async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
-            sitemap = XmlSitemap(config, DummyDataset, client=client)
+            sitemap = XmlSitemap(config, client, DummyDataset)
             return [dataset.identifier async for dataset in sitemap.discover()]
 
     results = asyncio.run(collect())

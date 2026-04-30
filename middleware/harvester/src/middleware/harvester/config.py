@@ -70,7 +70,7 @@ class Config(ConfigBase):
 
     api_client: Annotated[
         ApiClientConfig,
-        Field(description="API Client configuration for FAIRagro Middleware API"),
+        Field(description="API Client configuration for FAIRAgro Middleware API"),
     ]
     repositories: Annotated[
         list[RepositoryConfig],

@@ -23,8 +23,8 @@ class Sitemap(ABC):
     def __init__(
         self,
         config: Config,
+        client: httpx.AsyncClient,
         dataset_factory: Callable[[str], Dataset] | None = None,
-        client: httpx.AsyncClient | None = None,
     ) -> None:
         """Create a new Sitemap configured for a specific source."""
         self.config = config
@@ -32,15 +32,9 @@ class Sitemap(ABC):
         self._client = client
 
     async def discover(self) -> AsyncGenerator[Dataset, None]:
-        """Asynchronously yield Dataset objects using the configured HTTP client."""
-        if self._client is not None:
-            async for dataset in self._discover(self._client):
-                yield dataset
-            return
-
-        async with httpx.AsyncClient(timeout=self.config.timeout) as client:
-            async for dataset in self._discover(client):
-                yield dataset
+        """Asynchronously yield Dataset objects using the provided HTTP client."""
+        async for dataset in self._discover(self._client):
+            yield dataset
 
     @abstractmethod
     async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
@@ -67,11 +61,11 @@ class XmlSitemap(Sitemap):
     def __init__(
         self,
         config: Config,
+        client: httpx.AsyncClient,
         dataset_factory: Callable[[str], Dataset] = DummyDataset,
-        client: httpx.AsyncClient | None = None,
     ) -> None:
         """Initialize an XML sitemap parser with optional dataset construction."""
-        super().__init__(config, dataset_factory=dataset_factory, client=client)
+        super().__init__(config, client=client, dataset_factory=dataset_factory)
         self._dataset_factory = dataset_factory
 
     async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[Dataset, None]:
