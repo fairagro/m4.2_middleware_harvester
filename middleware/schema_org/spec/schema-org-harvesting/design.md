@@ -36,7 +36,7 @@ The current implementation supports only one concrete type per enum, but the plu
    — The plugin only needs `PluginConfig` for type checking, and the runtime import would create a circular dependency. Using a quoted type annotation avoids the unnecessary `from __future__ import annotations` import while keeping the module runtime-safe.
 
 8. **Implement the `Sitemap.discover()` contract as an async generator**
-   — The abstract method explicitly returns `AsyncGenerator[Dataset, None]`, so concrete sitemap implementations can asynchronously yield dataset descriptors and the plugin can consume them with `async for` consistently.
+   — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.
 
 9. **Keep dummy concrete implementations minimal and clearly isolated**
    — `DummySitemap`, `DummyDataset`, and `DummySchemaOrgMapper` are intentionally simple placeholders. They demonstrate the interface contract without adding parsing or network behavior, so future real implementations can replace them with provider-specific subclasses.

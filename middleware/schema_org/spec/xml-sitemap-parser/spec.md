@@ -11,7 +11,7 @@ Parse standard XML sitemap documents to discover dataset URLs for Schema.org har
 - [ ] Recursively follow nested sitemap indexes if present.
 - [ ] Prevent sitemap loops by tracking already visited sitemap URLs.
 - [ ] Deduplicate discovered dataset URLs before yielding them.
-- [ ] Emit `Dataset` descriptors for each discovered dataset URL without parsing dataset payloads.
+- [ ] Emit `DiscoveryResult` objects for each discovered dataset source without parsing dataset payloads.
 - [ ] Use safe XML parsing for untrusted content.
 - [ ] Fail fast when the sitemap type is unsupported.
 - [ ] On HTTP fetch or XML parse errors, emit a dataset-level processing error and continue with remaining sitemaps.

@@ -14,3 +14,6 @@ The dataset abstraction separates payload handling from sitemap discovery and ma
 
 3. **Use the dataset identifier as the stable processing key**
    — The identifier is used for error reporting, deduplication, and downstream mapping.
+
+4. **Construct dataset wrappers from discovery results**
+   — Dataset implementations expose `from_discovery_result(...)` so the plugin can instantiate provider-specific payload handlers from a raw sitemap discovery result.

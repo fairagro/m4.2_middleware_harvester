@@ -13,8 +13,8 @@ The public contract is dataset-level deduplication: output must suppress duplica
 1. **Implement sitemap parsing in a dedicated `XmlSitemap` module**
    — This isolates protocol-specific XML handling from the rest of the plugin and makes it easier to add additional sitemap sources later.
 
-2. **Keep dataset construction injectable via a dataset factory**
-   — `XmlSitemap` accepts a `dataset_factory` so it can produce provider-specific dataset wrappers without depending on the dataset abstraction implementation.
+2. **Keep dataset construction separate from sitemap parsing**
+   — `XmlSitemap` should yield discovery results, not dataset wrappers. The plugin is responsible for mapping those discovery results to provider-specific dataset implementations.
 
 3. **Use safe XML parsing for untrusted sitemap content**
    — The parser uses `defusedxml` to mitigate XML entity attacks and fulfill security requirements.
