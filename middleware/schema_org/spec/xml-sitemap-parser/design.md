@@ -2,19 +2,17 @@
 
 ## Architecture overview
 
-The XML sitemap parser is responsible for a single concern: translating sitemap documents into dataset URLs. It does not parse dataset payloads or map graphs to ARC.
+`XmlSitemap` translates standard XML sitemap documents into `UrlDiscoveryResult` objects. It does not parse dataset payloads, instantiate `Dataset` objects, or perform any mapping.
 
-The parser consumes a single configured sitemap URL as its entry point and preserves a stable, deduplicated set of dataset URLs across discovery.
-
-The public contract is dataset-level deduplication: output must suppress duplicate dataset URLs, while sitemap-level fetch repetition is an implementation detail used only to safely support nested sitemap indexes. The implementation must also prevent cycles in nested sitemap indexes by tracking already visited sitemap URLs.
+The parser starts from a single configured URL and traverses nested `sitemapindex` documents recursively. Deduplication operates at two levels: sitemap-level (visited sitemap URLs, to prevent cycles) and dataset-level (visited dataset URLs, to suppress duplicates).
 
 ## Key Decisions
 
-1. **Implement sitemap parsing in a dedicated `XmlSitemap` module**
-   — This isolates protocol-specific XML handling from the rest of the plugin and makes it easier to add additional sitemap sources later.
+1. **Implement sitemap parsing in `XmlSitemap` inside `sitemap.py`**
+   — This isolates XML protocol handling and allows additional sitemap source types to be added as separate registered subclasses.
 
-2. **Keep dataset construction separate from sitemap parsing**
-   — `XmlSitemap` should yield discovery results, not dataset wrappers. The plugin is responsible for mapping those discovery results to provider-specific dataset implementations.
+2. **Yield `UrlDiscoveryResult` objects, not `Dataset` instances**
+   — The sitemap parser only knows URL strings. Constructing a `Dataset` from a URL requires provider-specific knowledge (e.g., whether to fetch the URL, whether to parse embedded JSON-LD). That responsibility belongs to the `Dataset` subclass via `from_discovery_result()`.
 
-3. **Use safe XML parsing for untrusted sitemap content**
-   — The parser uses `defusedxml` to mitigate XML entity attacks and fulfill security requirements.
+3. **Use `defusedxml` for XML parsing**
+   — Sitemap content comes from external sources and must be treated as untrusted. `defusedxml` prevents XML entity attacks.

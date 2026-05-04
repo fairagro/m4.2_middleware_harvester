@@ -1,16 +1,15 @@
 # Schema.org Dataset Abstraction
 
-Define the dataset payload abstraction used by Schema.org sitemap implementations.
+Abstract payload handling for individual dataset records discovered during Schema.org harvesting.
 
 ## Requirements
 
-- [ ] Provide a `Dataset` interface whose concrete implementations expose a stable identifier and an async `to_graph()` method returning an `rdflib.Graph`.
-- [ ] Select `Dataset` implementations using `dataset_type` configuration values.
-- [ ] Keep sitemap discovery and payload parsing responsibilities separate.
-- [ ] Allow dataset wrappers to be provider-specific while exposing the same public contract.
-- [ ] Use the dataset identifier as the stable dataset key for error reporting and mapping.
+- [ ] Provide a `Dataset` interface that exposes a stable identifier and an async `to_graph()` method returning an `rdflib.Graph`.
+- [ ] Provide a `Dataset.from_discovery_result(result: DiscoveryResult) -> Dataset` class method so the plugin can construct dataset instances from raw discovery results.
+- [ ] Keep dataset wrappers independent of sitemap discovery and HTTP fetching.
+- [ ] Use the dataset identifier as the stable key for error reporting and downstream mapping.
 
 ## Edge Cases
 
-- A dataset implementation must handle missing or malformed payload content by raising a parse error or returning an empty graph as appropriate.
-- Dataset wrappers must not perform top-level plugin orchestration or HTTP fetching.
+- A dataset implementation receiving an unsupported `DiscoveryResult` subtype → raise a descriptive error.
+- A dataset implementation must not perform top-level plugin orchestration.

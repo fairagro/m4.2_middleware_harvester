@@ -1,24 +1,23 @@
 # XML Sitemap Parser
 
-Parse standard XML sitemap documents to discover dataset URLs for Schema.org harvesting.
+Parse standard XML sitemap documents and yield discovery results for Schema.org harvesting.
 
 ## Requirements
 
 - [ ] Support `SitemapType.xml` in plugin configuration.
 - [ ] Accept a single sitemap entry point URL in plugin configuration.
 - [ ] Parse XML sitemap documents according to the sitemap protocol.
-- [ ] Support both `urlset` and `sitemapindex` roots.
-- [ ] Recursively follow nested sitemap indexes if present.
+- [ ] Support both `urlset` and `sitemapindex` document roots.
+- [ ] Recursively follow nested sitemap indexes.
 - [ ] Prevent sitemap loops by tracking already visited sitemap URLs.
-- [ ] Deduplicate discovered dataset URLs before yielding them.
-- [ ] Emit `DiscoveryResult` objects for each discovered dataset source without parsing dataset payloads.
-- [ ] Use safe XML parsing for untrusted content.
-- [ ] Fail fast when the sitemap type is unsupported.
-- [ ] On HTTP fetch or XML parse errors, emit a dataset-level processing error and continue with remaining sitemaps.
+- [ ] Deduplicate discovered dataset URLs before yielding results.
+- [ ] Yield one `UrlDiscoveryResult` per unique dataset URL found in a `urlset`.
+- [ ] Use safe XML parsing (`defusedxml`) for untrusted content.
+- [ ] Fail fast with a `ValueError` when the root element is neither `urlset` nor `sitemapindex`.
 
 ## Edge Cases
 
-- Duplicate dataset URLs across sitemaps must be suppressed.
-- Empty sitemap documents must yield zero datasets.
-- Sitemap documents with unsupported root elements must fail with an explicit error.
-- Missing or empty `<loc>` elements must be skipped without stopping discovery.
+- Duplicate dataset URLs across nested sitemaps → yield only the first occurrence.
+- A sitemap URL already visited in the current traversal → skip silently.
+- Missing or empty `<loc>` elements → skip without stopping discovery.
+- Empty `urlset` → yield zero results and exit cleanly.

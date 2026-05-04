@@ -23,8 +23,8 @@ The current implementation supports only one concrete type per enum, but the plu
 3. **Extract dataset and mapper abstractions into separate modules**
    — `dataset.py` and `schema_org_mapper.py` isolate responsibility for dataset payloads and graph-to-ARC mapping. `sitemap.py` now owns the sitemap abstraction and XML sitemap implementation.
 
-4. **Inject the dataset implementation class into `XmlSitemap` instead of hardcoding `DummyDataset`**
-   — Decoupling dataset type selection from sitemap parsing keeps `XmlSitemap` focused on the sitemap protocol and lets the plugin factory choose the provider-specific dataset wrapper at runtime.
+4. **Yield `DiscoveryResult` objects from `Sitemap.discover()` and construct `Dataset` instances in the plugin**
+   — Sitemap implementations are responsible for locating dataset sources and representing them as typed `DiscoveryResult` values (e.g., `UrlDiscoveryResult`). The plugin instantiates the configured `Dataset` class by calling `Dataset.from_discovery_result(...)`. This keeps sitemap parsing and dataset payload handling fully separate, and allows a sitemap that yields raw content (e.g., inline JSON-LD) to coexist with one that yields URLs to fetch.
 
 5. **Implement `XmlSitemap` as the XML sitemap parser for the `xml` sitemap type**
    — The XML sitemap protocol is a distinct source format, so it is isolated in its own implementation file and can evolve separately from dataset parsing and mapping. This also keeps the plugin factory focused on type selection, not parsing details.
@@ -39,4 +39,4 @@ The current implementation supports only one concrete type per enum, but the plu
    — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.
 
 9. **Keep dummy concrete implementations minimal and clearly isolated**
-   — `DummySitemap`, `DummyDataset`, and `DummySchemaOrgMapper` are intentionally simple placeholders. They demonstrate the interface contract without adding parsing or network behavior, so future real implementations can replace them with provider-specific subclasses.
+   — `DummyDataset` and `DummySchemaOrgMapper` are intentionally simple placeholders. They demonstrate the interface contract without adding parsing or network behavior, so future real implementations can replace them with provider-specific subclasses.
