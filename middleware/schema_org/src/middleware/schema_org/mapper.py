@@ -1,11 +1,12 @@
-"""Mapper module for converting Schema.org Dataset objects to ARC objects.
+"""Mapper module for converting Schema.org RDF graphs to ARC objects.
 
-This module provides the SchemaOrgMapper class, which maps Schema.org metadata
-to ARC Investigation, Study, Assay, and related objects.
+THIS IS AN EXAMPLE IMPLEMENTATION. A PRODUCTION-READY IMPLEMENTATION WOULD
+REQUIRE A DEFINITIVE SPEC HOW TO MAP SCHEMA.ORG TO ARC IN A MEANINGFUL WAY.
+GeneralSchemaOrgMapper works directly on rdflib.Graph throughout —
+no intermediate model layer is created between the graph and the ARC output.
 """
 
 import re
-from collections.abc import Sequence
 from typing import cast
 
 from arctrl import (  # type: ignore[import-untyped]
@@ -23,175 +24,134 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import Graph  # type: ignore[import-untyped]
+from rdflib import Graph, Literal, Namespace  # type: ignore[import-untyped]
+from rdflib.namespace import RDF
+from rdflib.term import Node
 
-from .models import Organization, Person as SchemaOrgPerson, SchemaOrgDataset
-from .schema_org_mapper import SchemaOrgMapper
 
+class GeneralSchemaOrgMapper:
+    """Maps a Schema.org RDF graph to ARC objects.
 
-class GeneralSchemaOrgMapper(SchemaOrgMapper):
-    """Maps SchemaOrgDataset to ARC objects using the general Schema.org mapping rules."""
+    Works entirely on rdflib.Graph — no intermediate model layer is constructed.
+    """
+
+    SCHEMA_URIS = [
+        Namespace("https://schema.org/"),
+        Namespace("http://schema.org/"),
+    ]
+
+    def __init__(self) -> None:
+        """Initialize mapper state for the active Schema.org namespace."""
+        self._active_schema: Namespace | None = None
+
+    def _schema(self) -> Namespace:
+        return self._active_schema or self.SCHEMA_URIS[0]
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def map_graph(self, graph: Graph) -> str:
         """Map an RDF graph to a serialized RO-Crate JSON-LD string."""
-        dataset = self._parse_graph(graph)
-        arc = self.map_dataset(dataset)
+        schema, subject = self._find_dataset_subject(graph)
+        if subject is None:
+            raise ValueError("Graph does not contain a Schema.org Dataset entity")
+
+        self._active_schema = schema
+        try:
+            arc = self._map_arc(graph, subject)
+        finally:
+            self._active_schema = None
+
         return cast(str, arc.ToROCrateJsonString())
 
-    def _parse_graph(self, graph: Graph) -> SchemaOrgDataset:
-        """Convert the supplied RDF graph into a SchemaOrgDataset object."""
-        raise NotImplementedError(
-            "GeneralSchemaOrgMapper requires a graph-to-SchemaOrgDataset parser before it can be used."  # noqa: E501
-        )
+    # ------------------------------------------------------------------
+    # Graph traversal helpers
+    # ------------------------------------------------------------------
 
-    def map_dataset(self, dataset: SchemaOrgDataset) -> ARC:
-        """Map SchemaOrgDataset to ARC."""
-        # 1. Create Investigation
-        investigation = self.map_investigation(dataset)
+    def _find_dataset_subject(self, graph: Graph) -> tuple[Namespace, Node | None]:
+        for schema in self.SCHEMA_URIS:
+            subjects = list(graph.subjects(RDF.type, schema.Dataset))
+            if subjects:
+                return schema, subjects[0]
+        return self.SCHEMA_URIS[0], next(iter(graph.subjects()), None)
 
-        # 2. Create Study
-        study = self.map_study(dataset)
-        investigation.AddStudy(study)
+    def _obj(self, graph: Graph, subject: Node, predicate: Node) -> Node | None:
+        return graph.value(subject, predicate)
 
-        # 3. Create Assay
-        assay = self.map_assay(dataset)
-        investigation.AddAssay(assay)
-        study.RegisterAssay(assay.Identifier)
+    def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
+        value = self._obj(graph, subject, predicate)
+        return str(value) if value is not None else None
 
-        # 4. Wrap in ARC
-        arc = ARC.from_arc_investigation(investigation)
+    def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
+        return [str(obj) for obj in graph.objects(subject, predicate) if obj is not None]
 
-        return arc
+    def _is_type(self, graph: Graph, node: Node, rdf_type: Node) -> bool:
+        return (node, RDF.type, rdf_type) in graph
+
+    # ------------------------------------------------------------------
+    # Identifier helpers
+    # ------------------------------------------------------------------
 
     def _to_identifier_slug(self, title: str) -> str:
-        """Convert a title to a machine-readable identifier slug."""
         if not title:
             return "untitled"
-        # Lowercase, replace non-alphanumeric with underscores
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower())
-        # Remove leading/trailing underscores
-        slug = slug.strip("_")
-        # Truncate to a reasonable length
+        slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
         return slug[:80]
 
-    def _dataset_title(self, dataset: SchemaOrgDataset, default: str = "") -> str:
-        """Return the dataset title or a fallback string."""
-        if dataset.identification and dataset.identification.name:
-            return dataset.identification.name
-        return default
-
-    def _extract_doi(self, dataset: SchemaOrgDataset) -> str | None:
-        """Extract DOI from dataset identifier or id field."""
-        if (
-            dataset.identification
-            and dataset.identification.identifier
-            and isinstance(dataset.identification.identifier, str)
-            and dataset.identification.identifier.startswith("10.")
-        ):
-            return dataset.identification.identifier
-        if dataset.identification and dataset.identification.id:
-            # Check if id contains a DOI URL and return the DOI prefix only
-            doi_match = re.search(r"doi\.org/(?P<doi>10\.[^/?#]+)", dataset.identification.id, re.IGNORECASE)
-            if doi_match:
-                return doi_match.group("doi")
-            if dataset.identification.id.startswith("10."):
-                return dataset.identification.id
+    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+        identifier = self._str(graph, subject, self._schema().identifier)
+        if identifier and identifier.startswith("10."):
+            return identifier
+        subject_str = str(subject)
+        doi_match = re.search(r"doi\.org/(?P<doi>10\.[^/?#]+)", subject_str, re.IGNORECASE)
+        if doi_match:
+            return doi_match.group("doi")
+        if subject_str.startswith("10."):
+            return subject_str
         return None
 
-    def map_person(self, person: SchemaOrgPerson | Organization) -> Person | None:
-        """Map Schema.org Person or Organization to ARC Person."""
-        if isinstance(person, Organization):
-            return self._map_organization(person)
+    # ------------------------------------------------------------------
+    # ARC assembly
+    # ------------------------------------------------------------------
 
-        if not (person.given_name or person.family_name or person.name):
-            return None
+    def _map_arc(self, graph: Graph, subject: Node) -> ARC:
+        investigation = self._map_investigation(graph, subject)
+        study = self._map_study(graph, subject)
+        investigation.AddStudy(study)
+        assay = self._map_assay(graph, subject)
+        investigation.AddAssay(assay)
+        study.RegisterAssay(assay.Identifier)
+        return ARC.from_arc_investigation(investigation)
 
-        first_name, last_name = self._split_person_name(person)
-        address = self._format_person_address(person)
-
-        arc_person = Person.create(
-            last_name=last_name,
-            first_name=first_name,
-            email=person.email,
-            address=address,
-        )
-
-        if person.url:
-            arc_person.Comments.append(Comment.create("URL", person.url))
-
-        return arc_person
-
-    def _map_organization(self, organization: Organization) -> Person | None:
-        if not organization.name:
-            return None
-        return Person.create(
-            last_name=organization.name,
-            first_name="",
-            affiliation=organization.name,
-        )
-
-    def _split_person_name(self, person: SchemaOrgPerson) -> tuple[str, str]:
-        first_name = person.given_name or ""
-        last_name = person.family_name or ""
-
-        if not first_name and not last_name and person.name:
-            name_parts = person.name.split(" ")
-            last_name = name_parts[-1] if name_parts else ""
-            first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else person.name
-
-        return first_name, last_name
-
-    def _format_person_address(self, person: SchemaOrgPerson) -> str | None:
-        if not person.address:
-            return None
-        if isinstance(person.address, str):
-            return person.address
-
-        address_parts = []
-        if person.address.street_address:
-            address_parts.append(person.address.street_address)
-        if person.address.postal_code:
-            address_parts.append(person.address.postal_code)
-        if person.address.address_country:
-            address_parts.append(person.address.address_country)
-
-        return ", ".join(address_parts) if address_parts else None
-
-    def map_investigation(self, dataset: SchemaOrgDataset) -> ArcInvestigation:
-        """Map to ArcInvestigation with metadata fields."""
-        # Get identifier - prefer DOI or @id
-        identifier = (
-            self._extract_doi(dataset)
-            or (dataset.identification.id if dataset.identification else None)
-            or self._to_identifier_slug(self._dataset_title(dataset))
-        )
-
-        # Clean identifier for filesystem compatibility
+    def _map_investigation(self, graph: Graph, subject: Node) -> ArcInvestigation:
+        doi = self._extract_doi(graph, subject)
+        title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
+        identifier = doi or str(subject) or self._to_identifier_slug(title)
         if identifier and ("://" in identifier or "/" in identifier):
-            identifier = self._to_identifier_slug(self._dataset_title(dataset)) or identifier.split("/")[-1]
+            identifier = self._to_identifier_slug(title) or identifier.split("/")[-1]
 
-        title = (dataset.identification.name if dataset.identification else None) or "Untitled Dataset"
-        description = (dataset.identification.description if dataset.identification else None) or ""
+        description = self._str(graph, subject, self._schema().description) or ""
         submission_date = (
-            (dataset.dates.date_published if dataset.dates else None)
-            or (dataset.dates.date_modified if dataset.dates else None)
+            self._str(graph, subject, self._schema().datePublished)
+            or self._str(graph, subject, self._schema().dateModified)
             or ""
         )
 
         inv = ArcInvestigation.create(
-            identifier=identifier, title=title, description=description, submission_date=submission_date
+            identifier=identifier,
+            title=title,
+            description=description,
+            submission_date=submission_date,
         )
 
-        self._add_contacts(inv, dataset)
-        self._add_publications(inv, dataset)
-        self._add_comments(inv, dataset)
+        self._add_contacts(inv, graph, subject)
+        self._add_publications(inv, graph, subject, doi)
+        self._add_investigation_comments(inv, graph, subject)
         self._add_ontology_sources(inv)
-
         return inv
 
     def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
-        """Add ontology source references."""
-        # Add Schema.org as ontology source
         inv.OntologySourceReferences.append(
             OntologySourceReference.create(
                 name="SCHEMAORG",
@@ -200,328 +160,269 @@ class GeneralSchemaOrgMapper(SchemaOrgMapper):
                 description="Schema.org vocabulary for structured data",
             )
         )
-
-        # Add common ontology sources
-        common_ontologies = [
+        for name, url, desc in [
             ("NCIT", "http://purl.obolibrary.org/obo/ncit.owl", "NCI Thesaurus"),
             ("EDAM", "http://edamontology.org", "EDAM Bioinformatics Ontology"),
-        ]
-
-        for name, url, desc in common_ontologies:
+        ]:
             inv.OntologySourceReferences.append(
-                OntologySourceReference.create(
-                    name=name,
-                    file=url,
-                    version="",
-                    description=desc,
+                OntologySourceReference.create(name=name, file=url, version="", description=desc)
+            )
+
+    # ------------------------------------------------------------------
+    # Contacts
+    # ------------------------------------------------------------------
+
+    def _add_contacts(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
+        for node in graph.objects(subject, self._schema().creator):
+            self._append_contact(inv, graph, node, "author")
+        for node in graph.objects(subject, self._schema().author):
+            if not self._contact_exists(inv, graph, node):
+                self._append_contact(inv, graph, node, "author")
+        for node in graph.objects(subject, self._schema().contributor):
+            self._append_contact(inv, graph, node, "contributor")
+        publisher_node = self._obj(graph, subject, self._schema().publisher)
+        if publisher_node is not None:
+            self._append_contact(inv, graph, publisher_node, "publisher")
+
+    def _append_contact(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
+        person = self._node_to_person(graph, node)
+        if person is None:
+            return
+        person.Roles.append(OntologyAnnotation(name=role))
+        inv.Contacts.append(person)
+
+    def _contact_exists(self, inv: ArcInvestigation, graph: Graph, node: Node) -> bool:
+        given = self._str(graph, node, self._schema().givenName) or ""
+        family = self._str(graph, node, self._schema().familyName) or ""
+        if not given and not family:
+            name = self._str(graph, node, self._schema().name) or ""
+            parts = name.split(" ")
+            family = parts[-1] if parts else ""
+            given = " ".join(parts[:-1]) if len(parts) > 1 else name
+        return any(c.FirstName == given and c.LastName == family for c in inv.Contacts)
+
+    def _node_to_person(self, graph: Graph, node: Node) -> Person | None:
+        if isinstance(node, Literal):
+            literal_name = str(node)
+            return Person.create(last_name=literal_name, first_name="") if literal_name else None
+
+        if self._is_type(graph, node, self._schema().Organization):
+            org_name = self._str(graph, node, self._schema().name)
+            return (
+                Person.create(last_name=org_name or "", first_name="", affiliation=org_name or "") if org_name else None
+            )
+
+        given = self._str(graph, node, self._schema().givenName) or ""
+        family = self._str(graph, node, self._schema().familyName) or ""
+        name = self._str(graph, node, self._schema().name)
+        email = self._str(graph, node, self._schema().email)
+        url = self._str(graph, node, self._schema().url)
+
+        if not given and not family and not name:
+            return None
+
+        if not given and not family and name:
+            parts = name.split(" ")
+            family = parts[-1] if parts else ""
+            given = " ".join(parts[:-1]) if len(parts) > 1 else name
+
+        address = self._extract_address(graph, node)
+        arc_person = Person.create(last_name=family, first_name=given, email=email, address=address)
+        if url:
+            arc_person.Comments.append(Comment.create("URL", url))
+        return arc_person
+
+    def _extract_address(self, graph: Graph, node: Node) -> str | None:
+        addr_node = self._obj(graph, node, self._schema().address)
+        if addr_node is None:
+            return None
+        if isinstance(addr_node, Literal):
+            return str(addr_node)
+        parts = [
+            self._str(graph, addr_node, self._schema().streetAddress),
+            self._str(graph, addr_node, self._schema().postalCode),
+            self._str(graph, addr_node, self._schema().addressCountry),
+        ]
+        return ", ".join(p for p in parts if p) or None
+
+    # ------------------------------------------------------------------
+    # Publications
+    # ------------------------------------------------------------------
+
+    def _add_publications(self, inv: ArcInvestigation, graph: Graph, subject: Node, doi: str | None) -> None:
+        if doi:
+            authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
+            author_strs: list[str] = []
+            for p in authors:
+                if p.FirstName and p.LastName:
+                    author_strs.append(f"{p.LastName}, {p.FirstName[0]}.")
+                elif p.LastName:
+                    author_strs.append(p.LastName)
+                elif p.FirstName:
+                    author_strs.append(p.FirstName)
+
+            inv.Publications.append(
+                Publication.create(
+                    title=self._str(graph, subject, self._schema().name) or "Untitled",
+                    authors="; ".join(author_strs) if author_strs else None,
+                    doi=doi,
                 )
             )
 
-    def _add_contacts(self, inv: ArcInvestigation, dataset: SchemaOrgDataset) -> None:
-        """Add all contacts to the investigation."""
-        self._add_author_contacts(inv, dataset.agents.creator if dataset.agents else None)
-        self._add_author_contacts(inv, dataset.agents.author if dataset.agents else None, skip_existing=True)
-        self._add_role_contacts(inv, dataset.agents.contributor if dataset.agents else None, "contributor")
-        if dataset.agents and dataset.agents.publisher:
-            self._add_role_contact(inv, dataset.agents.publisher, "publisher")
+        for citation in self._strs(graph, subject, self._schema().citation):
+            if citation and citation not in [p.DOI for p in inv.Publications]:
+                inv.Publications.append(Publication.create(title=citation[:200], authors=None))
 
-    def _add_author_contacts(
-        self,
-        inv: ArcInvestigation,
-        contacts: Sequence[SchemaOrgPerson | Organization] | None,
-        skip_existing: bool = False,
-    ) -> None:
-        if not contacts:
-            return
+    # ------------------------------------------------------------------
+    # Investigation comments
+    # ------------------------------------------------------------------
 
-        for contact in contacts:
-            if skip_existing and self._contact_exists(inv, contact):
-                continue
+    def _add_investigation_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
+        keywords = self._strs(graph, subject, self._schema().keywords)
+        if keywords:
+            inv.Comments.append(Comment.create("Keywords", ", ".join(keywords)))
 
-            person = self.map_person(contact)
-            if not person:
-                continue
-
-            person.Roles.append(OntologyAnnotation(name="author"))
-            inv.Contacts.append(person)
-
-    def _add_role_contacts(
-        self, inv: ArcInvestigation, contacts: Sequence[SchemaOrgPerson | Organization] | None, role_name: str
-    ) -> None:
-        if not contacts:
-            return
-
-        for contact in contacts:
-            person = self.map_person(contact)
-            if not person:
-                continue
-            person.Roles.append(OntologyAnnotation(name=role_name))
-            inv.Contacts.append(person)
-
-    def _add_role_contact(self, inv: ArcInvestigation, contact: SchemaOrgPerson | Organization, role_name: str) -> None:
-        person = self.map_person(contact)
-        if not person:
-            return
-        person.Roles.append(OntologyAnnotation(name=role_name))
-        inv.Contacts.append(person)
-
-    def _contact_exists(self, inv: ArcInvestigation, author: SchemaOrgPerson | Organization) -> bool:
-        if isinstance(author, SchemaOrgPerson):
-            author_first = author.given_name or ""
-            author_last = author.family_name or ""
-            for existing in inv.Contacts:
-                if existing.FirstName == author_first and existing.LastName == author_last:
-                    return True
-            return False
-
-        author_name = author.name or ""
-        return any(existing.LastName == author_name for existing in inv.Contacts)
-
-    def _add_publications(self, inv: ArcInvestigation, dataset: SchemaOrgDataset) -> None:
-        """Add publications from dataset."""
-        doi = self._extract_doi(dataset)
-        if doi:
-            # Format authors string
-            authors_list = [p for p in inv.Contacts if any(role.Name == "author" for role in p.Roles)]
-            author_strings = []
-            for p in authors_list:
-                first_initial = f"{p.FirstName[0]}." if p.FirstName else ""
-                author_strings.append(f"{p.LastName}, {first_initial}")
-            authors_str = "; ".join(author_strings) if author_strings else None
-
-            pub = Publication.create(
-                title=(dataset.identification.name if dataset.identification else None) or "Untitled",
-                authors=authors_str,
-                doi=doi,
-            )
-            inv.Publications.append(pub)
-
-        # Handle citations
-        if dataset.metadata and dataset.metadata.citation:
-            citations = (
-                [dataset.metadata.citation]
-                if isinstance(dataset.metadata.citation, str)
-                else list(dataset.metadata.citation)
-            )
-
-            for citation in citations:
-                if citation and citation not in [p.DOI for p in inv.Publications]:
-                    pub = Publication.create(
-                        title=citation[:200],  # Truncate long citations
-                        authors=None,
-                    )
-                    inv.Publications.append(pub)
-
-    def _add_comments(self, inv: ArcInvestigation, dataset: SchemaOrgDataset) -> None:
-        """Add metadata-level comments to the investigation."""
-        comments = self._generate_comments(dataset)
-        for comment in comments:
-            inv.Comments.append(comment)
-
-    def _generate_comments(self, dataset: SchemaOrgDataset) -> list[Comment]:
-        """Generate metadata-level comments from dataset fields."""
-        comments = []
-
-        # Simple string-based fields
-        keywords_value = dataset.metadata.keywords if dataset.metadata else None
-        fields = [
-            (
-                "Keywords",
-                keywords_value
-                if isinstance(keywords_value, str)
-                else ", ".join(keywords_value)
-                if keywords_value
-                else None,
-            ),
-            (
-                "License",
-                dataset.metadata.license if dataset.metadata and isinstance(dataset.metadata.license, str) else None,
-            ),
-            ("Language", dataset.metadata.in_language if dataset.metadata else None),
-            ("Version", dataset.metadata.version if dataset.metadata else None),
-            ("URL", dataset.distribution_info.url if dataset.distribution_info else None),
-        ]
-        for label, value in fields:
+        for label, predicate in [
+            ("License", self._schema().license),
+            ("Language", self._schema().inLanguage),
+            ("Version", self._schema().version),
+            ("URL", self._schema().url),
+        ]:
+            value = self._str(graph, subject, predicate)
             if value:
-                comments.append(Comment.create(label, value))
+                inv.Comments.append(Comment.create(label, value))
 
-        # Add conformsTo info
-        if dataset.distribution_info and dataset.distribution_info.conforms_to:
-            profile_id = (
-                dataset.distribution_info.conforms_to.get("@id", "")
-                if isinstance(dataset.distribution_info.conforms_to, dict)
-                else ""
-            )
-            if profile_id:
-                comments.append(Comment.create("Conforms To", profile_id))
+        conforms_to = self._obj(graph, subject, self._schema().conformsTo)
+        if conforms_to is not None:
+            inv.Comments.append(Comment.create("Conforms To", str(conforms_to)))
 
-        # Add distribution info
-        if dataset.distribution_info and dataset.distribution_info.distributions:
-            for dist in dataset.distribution_info.distributions[:3]:  # Limit to first 3
-                if isinstance(dist, dict):
-                    encoding_format = dist.get("encodingFormat", "")
-                    content_url = dist.get("contentUrl", "")
-                    if encoding_format or content_url:
-                        comments.append(Comment.create("Distribution", f"{encoding_format}: {content_url}"))
+        for dist_node in graph.objects(subject, self._schema().distribution):
+            if isinstance(dist_node, Literal):
+                continue
+            encoding = self._str(graph, dist_node, self._schema().encodingFormat) or ""
+            content_url = self._str(graph, dist_node, self._schema().contentUrl) or ""
+            if encoding or content_url:
+                inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
 
-        return comments
+    # ------------------------------------------------------------------
+    # Study
+    # ------------------------------------------------------------------
 
-    def map_study(self, dataset: SchemaOrgDataset) -> ArcStudy:
-        """Map to ArcStudy with process-oriented protocols."""
-        identifier = self._to_identifier_slug(self._dataset_title(dataset, "dataset"))
-        title = (dataset.identification.name if dataset.identification else None) or "Untitled Dataset"
-        description = (
-            dataset.identification.description if dataset.identification else None
-        ) or "Imported from Schema.org metadata"
+    def _map_study(self, graph: Graph, subject: Node) -> ArcStudy:
+        title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
+        identifier = self._to_identifier_slug(title) or "dataset"
+        description = self._str(graph, subject, self._schema().description) or "Imported from Schema.org metadata"
 
         study = ArcStudy.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=(dataset.dates.date_published if dataset.dates else None),
+            submission_date=self._str(graph, subject, self._schema().datePublished),
         )
 
-        # Add protocols
-        # Protocol 1: Data Collection (if keywords or description available)
-        collection_protocol = self._create_data_collection_protocol(dataset)
-        if collection_protocol:
-            study.AddTable(collection_protocol)
-
-        # Protocol 2: Data Processing (always created)
-        processing_protocol = self._create_data_processing_protocol(dataset)
-        if processing_protocol:
-            study.AddTable(processing_protocol)
-
+        collection_table = self._create_data_collection_table(graph, subject)
+        if collection_table:
+            study.AddTable(collection_table)
+        study.AddTable(self._create_data_processing_table(graph, subject))
         return study
 
-    def _create_data_collection_protocol(self, dataset: SchemaOrgDataset) -> ArcTable | None:
-        """Create Data Collection protocol if metadata available."""
-        metadata_keywords = dataset.metadata.keywords if dataset.metadata else None
-        metadata_description = dataset.identification.description if dataset.identification else None
-        if not (metadata_keywords or metadata_description):
+    def _create_data_collection_table(self, graph: Graph, subject: Node) -> ArcTable | None:
+        keywords = self._strs(graph, subject, self._schema().keywords)
+        description = self._str(graph, subject, self._schema().description)
+        if not (keywords or description):
             return None
 
         table = ArcTable.init("Data Collection")
-
-        headers = []
-        cells = []
-
-        # Keywords as parameters
-        if metadata_keywords:
-            keywords_str = metadata_keywords if isinstance(metadata_keywords, str) else ", ".join(metadata_keywords)
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Keywords")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=keywords_str)))
-
-        if headers:
+        table.AddColumn(
+            CompositeHeader.input(IOType.source()),
+            [CompositeCell.free_text("Research Subject")],
+        )
+        if keywords:
             table.AddColumn(
-                CompositeHeader.input(IOType.source()),
-                [CompositeCell.free_text("Research Subject")],
+                CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
+                [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
             )
-            for i, header in enumerate(headers):
-                table.AddColumn(header, [cells[i]])
-            table.AddColumn(
-                CompositeHeader.output(IOType.sample()),
-                [CompositeCell.free_text("")],
-            )
-            return table
-        return None
+        table.AddColumn(
+            CompositeHeader.output(IOType.sample()),
+            [CompositeCell.free_text("")],
+        )
+        return table
 
-    def _create_data_processing_protocol(self, dataset: SchemaOrgDataset) -> ArcTable | None:
-        """Create Data Processing protocol (keine free_text-Cells für IOType.data())."""
+    def _create_data_processing_table(self, graph: Graph, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
-
-        # Data input column: use create_data_from_string (ISA-konform wie INSPIRE)
         table.AddColumn(
             CompositeHeader.input(IOType.data()),
             [CompositeCell.create_data_from_string("Raw Data")],
         )
 
-        # Add processing description from metadata
-        processing_note = "Data processing and publication according to Schema.org metadata standard"
-        if dataset.agents and dataset.agents.publisher:
-            processing_note += f" | Publisher: {dataset.agents.publisher.name}"
+        note = "Data processing and publication according to Schema.org metadata standard"
+        publisher_node = self._obj(graph, subject, self._schema().publisher)
+        if publisher_node is not None:
+            publisher_name = self._str(graph, publisher_node, self._schema().name)
+            if publisher_name:
+                note += f" | Publisher: {publisher_name}"
 
         table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
-            [CompositeCell.term(OntologyAnnotation(name=processing_note))],
+            [CompositeCell.term(OntologyAnnotation(name=note))],
         )
-
-        # Data output column: use create_data_from_string (ISA-konform wie INSPIRE)
         table.AddColumn(
             CompositeHeader.output(IOType.data()),
             [CompositeCell.create_data_from_string("Published Dataset")],
         )
-
         return table
 
-    def map_assay(self, dataset: SchemaOrgDataset) -> ArcAssay:
-        """Map to ArcAssay with annotation table."""
-        identifier = self._to_identifier_slug(self._dataset_title(dataset, "dataset"))
-        title = (dataset.identification.name if dataset.identification else None) or "Untitled Dataset"
+    # ------------------------------------------------------------------
+    # Assay
+    # ------------------------------------------------------------------
 
-        measurement_type = OntologyAnnotation(name="Data Collection")
-        technology_type = OntologyAnnotation(name="Data Repository")
+    def _map_assay(self, graph: Graph, subject: Node) -> ArcAssay:
+        title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
+        identifier = self._to_identifier_slug(title) or "dataset"
 
         assay = ArcAssay.create(
             identifier=identifier,
             title=title,
-            measurement_type=measurement_type,
-            technology_type=technology_type,
+            measurement_type=OntologyAnnotation(name="Data Collection"),
+            technology_type=OntologyAnnotation(name="Data Repository"),
         )
-
-        # Set Technology Platform
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-
-        # Add the annotation table
-        assay.AddTable(self._create_assay_table(dataset))
-
+        assay.AddTable(self._create_assay_table(graph, subject))
         return assay
 
-    def _create_assay_table(self, dataset: SchemaOrgDataset) -> ArcTable:
-        """Create the assay annotation table.
-
-        Columns:
-        - Input [Source Name]                : "Dataset Source" (always present)
-        - Output [URI]                       : dataset URL or identifier
-        - Comment [License]                  : license information if available
-        - Comment [Publisher]                : publisher information
-        """
-        # Determine Output URI
-        output_uri = (
-            (dataset.distribution_info.url if dataset.distribution_info else None)
-            or (dataset.identification.id if dataset.identification else None)
-            or f"{self._to_identifier_slug(self._dataset_title(dataset))}_dataset"
-        )
+    def _create_assay_table(self, graph: Graph, subject: Node) -> ArcTable:
+        url = self._str(graph, subject, self._schema().url) or str(subject)
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])
+        table.AddColumn(
+            CompositeHeader.input(IOType.source()),
+            [CompositeCell.free_text("Dataset Source")],
+        )
         table.AddColumn(
             CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(output_uri)],
+            [CompositeCell.free_text(url)],
         )
 
-        # Add license comment
-        if dataset.metadata and dataset.metadata.license:
-            license_value = (
-                dataset.metadata.license if isinstance(dataset.metadata.license, str) else str(dataset.metadata.license)
-            )
+        license_val = self._str(graph, subject, self._schema().license)
+        if license_val:
             table.AddColumn(
                 CompositeHeader.comment("License"),
-                [CompositeCell.free_text(license_value)],
+                [CompositeCell.free_text(license_val)],
             )
 
-        # Add publisher comment
-        if dataset.agents and dataset.agents.publisher:
+        publisher_node = self._obj(graph, subject, self._schema().publisher)
+        if publisher_node is not None:
+            publisher_name = self._str(graph, publisher_node, self._schema().name) or "Unknown Publisher"
             table.AddColumn(
                 CompositeHeader.comment("Publisher"),
-                [CompositeCell.free_text(dataset.agents.publisher.name or "Unknown Publisher")],
+                [CompositeCell.free_text(publisher_name)],
             )
 
-        # Add language comment
-        if dataset.metadata and dataset.metadata.in_language:
+        language = self._str(graph, subject, self._schema().inLanguage)
+        if language:
             table.AddColumn(
                 CompositeHeader.comment("Language"),
-                [CompositeCell.free_text(dataset.metadata.in_language)],
+                [CompositeCell.free_text(language)],
             )
 
         return table
