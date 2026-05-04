@@ -4,20 +4,28 @@ import asyncio
 
 import httpx
 import pytest
-from rdflib import Graph
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import RDF
 
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
 from middleware.schema_org.dataset import UrlDiscoveryResult
-from middleware.schema_org.dataset.html_jsonld_dataset import HtmlJsonLdDataset
+from middleware.schema_org.dataset.html_jsonld import HtmlJsonLdDataset
 from middleware.schema_org.errors import SchemaOrgDatasetError
 from middleware.schema_org.plugin import create_mapper, create_sitemap
-from middleware.schema_org.schema_org_mapper import DummySchemaOrgMapper
+from middleware.schema_org.schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.schema_org.sitemap import XmlSitemap
 
 
-def test_dummy_mapper_returns_jsonld() -> None:
-    mapper = DummySchemaOrgMapper()
-    result = mapper.map_graph(Graph())
+def test_general_mapper_returns_jsonld() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    mapper = GeneralSchemaOrgMapper()
+    result = mapper.map_graph(graph)
+
     assert result.startswith("{") and "@context" in result
 
 
@@ -26,7 +34,7 @@ def test_create_sitemap_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.dummy,
+        payload_type=PayloadType.general,
     )
 
     async def create() -> None:
@@ -42,7 +50,7 @@ def test_xml_sitemap_discover_urlset() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.dummy,
+        payload_type=PayloadType.general,
     )
 
     urlset = """
@@ -71,7 +79,7 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.dummy,
+        payload_type=PayloadType.general,
     )
 
     urlset = """
@@ -100,7 +108,7 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.dummy,
+        payload_type=PayloadType.general,
     )
 
     root_index = """
@@ -147,10 +155,10 @@ def test_create_mapper_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.dummy,
+        payload_type=PayloadType.general,
     )
     mapper = create_mapper(config)
-    assert isinstance(mapper, DummySchemaOrgMapper)
+    assert isinstance(mapper, GeneralSchemaOrgMapper)
 
 
 # ---------------------------------------------------------------------------

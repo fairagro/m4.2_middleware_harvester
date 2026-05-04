@@ -21,7 +21,7 @@ class DatasetType(StrEnum):
 class PayloadType(StrEnum):
     """Supported dataset payload types."""
 
-    dummy = "dummy"
+    general = "general"
 
 
 class Config(BaseModel):

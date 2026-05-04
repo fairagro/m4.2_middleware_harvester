@@ -28,8 +28,12 @@ from rdflib import Graph, Literal, Namespace  # type: ignore[import-untyped]
 from rdflib.namespace import RDF
 from rdflib.term import Node
 
+from ..config import PayloadType
+from .schema_org_mapper import SchemaOrgMapper
 
-class GeneralSchemaOrgMapper:
+
+@SchemaOrgMapper.register(PayloadType.general)
+class GeneralSchemaOrgMapper(SchemaOrgMapper):
     """Maps a Schema.org RDF graph to ARC objects.
 
     Works entirely on rdflib.Graph — no intermediate model layer is constructed.

@@ -10,7 +10,7 @@ from middleware.harvester.errors import HarvesterError, RecordProcessingError
 
 from .config import Config
 from .dataset import Dataset
-from .dataset.html_jsonld_dataset import HtmlJsonLdDataset  # noqa: F401
+from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
 from .schema_org_mapper import SchemaOrgMapper
 from .sitemap import Sitemap

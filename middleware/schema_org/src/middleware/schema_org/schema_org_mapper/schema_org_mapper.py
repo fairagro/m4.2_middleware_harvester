@@ -33,12 +33,3 @@ class SchemaOrgMapper(ABC):
     def map_graph(self, graph: Graph) -> str:
         """Return a serialized RO-Crate JSON-LD string for the given graph."""
         raise NotImplementedError
-
-
-@SchemaOrgMapper.register(PayloadType.dummy)
-class DummySchemaOrgMapper(SchemaOrgMapper):
-    """Minimal mapper implementation that returns an empty RO-Crate JSON-LD stub."""
-
-    def map_graph(self, _graph: Graph) -> str:
-        """Serialize the supplied graph to a placeholder RO-Crate JSON-LD string."""
-        return '{"@context":"https://w3id.org/ro/crate/1.1","@graph":[]}'
