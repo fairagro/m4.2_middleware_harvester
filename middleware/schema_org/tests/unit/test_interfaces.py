@@ -8,8 +8,8 @@ from rdflib import Graph
 
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
 from middleware.schema_org.dataset import UrlDiscoveryResult
+from middleware.schema_org.dataset.html_jsonld_dataset import HtmlJsonLdDataset
 from middleware.schema_org.errors import SchemaOrgDatasetError
-from middleware.schema_org.html_jsonld_dataset import HtmlJsonLdDataset
 from middleware.schema_org.plugin import create_mapper, create_sitemap
 from middleware.schema_org.schema_org_mapper import DummySchemaOrgMapper
 from middleware.schema_org.sitemap import XmlSitemap

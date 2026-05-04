@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING, cast
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
-from middleware.schema_org import html_jsonld_dataset  # noqa: F401
-from middleware.schema_org.config import Config
-from middleware.schema_org.dataset import Dataset
-from middleware.schema_org.errors import SchemaOrgError
-from middleware.schema_org.schema_org_mapper import SchemaOrgMapper
-from middleware.schema_org.sitemap import Sitemap
+
+from .config import Config
+from .dataset import Dataset
+from .dataset.html_jsonld_dataset import HtmlJsonLdDataset  # noqa: F401
+from .errors import SchemaOrgError
+from .schema_org_mapper import SchemaOrgMapper
+from .sitemap import Sitemap
 
 if TYPE_CHECKING:
     from middleware.harvester.plugin_config import PluginConfig

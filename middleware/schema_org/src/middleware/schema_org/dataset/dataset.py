@@ -10,8 +10,8 @@ from typing import TypeVar, cast
 import httpx
 from rdflib import Graph
 
-from .config import DatasetType
-from .registry import Registry
+from ..config import DatasetType
+from ..registry import Registry
 
 
 @dataclass

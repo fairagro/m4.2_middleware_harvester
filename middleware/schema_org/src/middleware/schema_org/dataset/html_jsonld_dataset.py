@@ -8,9 +8,9 @@ from html.parser import HTMLParser
 import httpx
 from rdflib import Graph
 
-from .config import DatasetType
+from ..config import DatasetType
+from ..errors import SchemaOrgDatasetError
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
-from .errors import SchemaOrgDatasetError
 
 
 class _JsonLdScriptParser(HTMLParser):

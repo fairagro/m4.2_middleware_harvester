@@ -8,8 +8,8 @@ from typing import TypeVar, cast
 
 from rdflib import Graph
 
-from .config import PayloadType
-from .registry import Registry
+from ..config import PayloadType
+from ..registry import Registry
 
 M = TypeVar("M", bound="SchemaOrgMapper")
 

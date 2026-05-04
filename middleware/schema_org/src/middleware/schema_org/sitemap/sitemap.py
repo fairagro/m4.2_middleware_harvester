@@ -9,9 +9,9 @@ from typing import TypeVar, cast
 import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
-from .config import Config, SitemapType
-from .dataset import DiscoveryResult, UrlDiscoveryResult
-from .registry import Registry
+from ..config import Config, SitemapType
+from ..dataset import DiscoveryResult, UrlDiscoveryResult
+from ..registry import Registry
 
 S = TypeVar("S", bound="Sitemap")
 
