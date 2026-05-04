@@ -5,11 +5,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from rdflib import Graph
 
 from .config import DatasetType
+from .registry import Registry
 
 
 @dataclass
@@ -30,14 +31,14 @@ T = TypeVar("T", bound="Dataset")
 class Dataset(ABC):
     """Abstract wrapper around a Schema.org dataset payload."""
 
-    registry: dict[DatasetType, type[Dataset]] = {}
+    registry: Registry[DatasetType, Dataset] = Registry()
 
     @classmethod
     def register(cls, dataset_type: DatasetType) -> Callable[[type[T]], type[T]]:
         """Register a concrete Dataset implementation for the given dataset type."""
 
         def decorator(subclass: type[T]) -> type[T]:
-            cls.registry[dataset_type] = subclass
+            cls.registry[dataset_type] = cast(type[Dataset], subclass)
             return subclass
 
         return decorator
@@ -58,29 +59,3 @@ class Dataset(ABC):
     def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
         """Create a Dataset instance from a discovery result."""
         raise NotImplementedError
-
-
-@Dataset.register(DatasetType.dummy)
-class DummyDataset(Dataset):
-    """Minimal Dataset implementation used as a placeholder."""
-
-    def __init__(self, identifier: str, graph: Graph | None = None) -> None:
-        """Initialize the dummy dataset with an identifier and an optional graph."""
-        self._identifier = identifier
-        self._graph = graph or Graph()
-
-    @property
-    def identifier(self) -> str:
-        """Return the stable identifier for this dataset."""
-        return self._identifier
-
-    @classmethod
-    def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
-        """Construct a DummyDataset from a discovery result."""
-        if isinstance(discovery_result, UrlDiscoveryResult):
-            return cls(discovery_result.url)
-        return cls(str(discovery_result))
-
-    async def to_graph(self) -> Graph:
-        """Return the dataset payload as an rdflib.Graph."""
-        return self._graph

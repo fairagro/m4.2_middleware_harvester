@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.schema_org import html_jsonld_dataset  # noqa: F401
 from middleware.schema_org.config import Config
 from middleware.schema_org.dataset import Dataset
 from middleware.schema_org.schema_org_mapper import SchemaOrgMapper

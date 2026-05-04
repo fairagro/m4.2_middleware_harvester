@@ -15,7 +15,7 @@ class SitemapType(StrEnum):
 class DatasetType(StrEnum):
     """Supported provider-specific dataset kinds."""
 
-    dummy = "dummy"
+    html_jsonld = "html_jsonld"
 
 
 class PayloadType(StrEnum):

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
-from typing import TypeVar
+from typing import TypeVar, cast
 
 import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
 from .config import Config, SitemapType
 from .dataset import DiscoveryResult, UrlDiscoveryResult
+from .registry import Registry
 
 S = TypeVar("S", bound="Sitemap")
 
@@ -18,7 +19,7 @@ S = TypeVar("S", bound="Sitemap")
 class Sitemap(ABC):
     """Abstract sitemap provider that yields discovery results asynchronously."""
 
-    registry: dict[SitemapType, type[Sitemap]] = {}
+    registry: Registry[SitemapType, Sitemap] = Registry()
 
     def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
         """Create a new Sitemap configured for a specific source."""
@@ -42,7 +43,7 @@ class Sitemap(ABC):
         """Register a concrete Sitemap implementation for the given sitemap type."""
 
         def decorator(subclass: type[S]) -> type[S]:
-            cls.registry[sitemap_type] = subclass
+            cls.registry[sitemap_type] = cast(type[Sitemap], subclass)
             return subclass
 
         return decorator

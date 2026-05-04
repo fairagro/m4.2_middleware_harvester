@@ -39,4 +39,4 @@ The current implementation supports only one concrete type per enum, but the plu
    — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.
 
 9. **Keep dummy concrete implementations minimal and clearly isolated**
-   — `DummyDataset` and `DummySchemaOrgMapper` are intentionally simple placeholders. They demonstrate the interface contract without adding parsing or network behavior, so future real implementations can replace them with provider-specific subclasses.
+   — `DummySchemaOrgMapper` is an intentionally simple placeholder. It demonstrates the interface contract without adding parsing or network behavior, so future real implementations can replace it with provider-specific subclasses.
