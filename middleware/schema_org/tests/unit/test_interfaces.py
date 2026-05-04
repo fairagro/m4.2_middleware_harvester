@@ -8,6 +8,7 @@ from rdflib import Graph
 
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
 from middleware.schema_org.dataset import UrlDiscoveryResult
+from middleware.schema_org.errors import SchemaOrgDatasetError
 from middleware.schema_org.html_jsonld_dataset import HtmlJsonLdDataset
 from middleware.schema_org.plugin import create_mapper, create_sitemap
 from middleware.schema_org.schema_org_mapper import DummySchemaOrgMapper
@@ -244,7 +245,7 @@ def test_html_jsonld_dataset_raises_on_no_jsonld_blocks() -> None:
             ds = HtmlJsonLdDataset("https://example.org/page", client)
             await ds.to_graph()
 
-    with pytest.raises(ValueError, match="No JSON-LD blocks"):
+    with pytest.raises(SchemaOrgDatasetError, match="No JSON-LD blocks"):
         asyncio.run(run())
 
 
@@ -259,7 +260,7 @@ def test_html_jsonld_dataset_raises_on_http_error() -> None:
             ds = HtmlJsonLdDataset("https://example.org/page", client)
             await ds.to_graph()
 
-    with pytest.raises(ValueError, match="HTTP 404"):
+    with pytest.raises(SchemaOrgDatasetError, match="HTTP 404"):
         asyncio.run(run())
 
 
@@ -274,5 +275,5 @@ def test_html_jsonld_dataset_raises_on_invalid_json() -> None:
             ds = HtmlJsonLdDataset("https://example.org/page", client)
             await ds.to_graph()
 
-    with pytest.raises(ValueError, match="Invalid JSON"):
+    with pytest.raises(SchemaOrgDatasetError, match="Invalid JSON"):
         asyncio.run(run())

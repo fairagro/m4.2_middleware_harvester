@@ -10,6 +10,7 @@ from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.schema_org import html_jsonld_dataset  # noqa: F401
 from middleware.schema_org.config import Config
 from middleware.schema_org.dataset import Dataset
+from middleware.schema_org.errors import SchemaOrgError
 from middleware.schema_org.schema_org_mapper import SchemaOrgMapper
 from middleware.schema_org.sitemap import Sitemap
 
@@ -56,27 +57,24 @@ async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterEr
     )
     async with httpx.AsyncClient(timeout=schema_config.timeout, limits=limits) as http_client:
         sitemap = create_sitemap(schema_config, client=http_client)
-        try:
-            async for discovery_result in sitemap.discover():
-                try:
-                    dataset_cls = Dataset.registry[schema_config.dataset_type]
-                    dataset = dataset_cls.from_discovery_result(discovery_result)
-                except (RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                    yield RecordProcessingError(
-                        f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
-                        str(discovery_result),
-                        exc,
-                    )
-                    continue
+        async for discovery_result in sitemap.discover():
+            try:
+                dataset_cls = Dataset.registry[schema_config.dataset_type]
+                dataset = dataset_cls.from_discovery_result(discovery_result, client=http_client)
+            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+                yield RecordProcessingError(
+                    f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
+                    str(discovery_result),
+                    exc,
+                )
+                continue
 
-                try:
-                    graph = await dataset.to_graph()
-                    yield mapper.map_graph(graph)
-                except (RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                    yield RecordProcessingError(
-                        f"Failed to map dataset {dataset.identifier}: {exc}",
-                        dataset.identifier,
-                        exc,
-                    )
-        except (RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-            logger.error("Schema.org harvest failed: %s", exc)
+            try:
+                graph = await dataset.to_graph()
+                yield mapper.map_graph(graph)
+            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+                yield RecordProcessingError(
+                    f"Failed to map dataset {dataset.identifier}: {exc}",
+                    dataset.identifier,
+                    exc,
+                )

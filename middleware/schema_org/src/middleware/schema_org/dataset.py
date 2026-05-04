@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
+import httpx
 from rdflib import Graph
 
 from .config import DatasetType
@@ -56,6 +57,8 @@ class Dataset(ABC):
 
     @classmethod
     @abstractmethod
-    def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
+    def from_discovery_result(
+        cls, discovery_result: DiscoveryResult, client: httpx.AsyncClient | None = None
+    ) -> Dataset:
         """Create a Dataset instance from a discovery result."""
         raise NotImplementedError

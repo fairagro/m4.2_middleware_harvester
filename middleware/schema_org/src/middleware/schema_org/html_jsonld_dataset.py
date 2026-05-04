@@ -10,6 +10,7 @@ from rdflib import Graph
 
 from .config import DatasetType
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
+from .errors import SchemaOrgDatasetError
 
 
 class _JsonLdScriptParser(HTMLParser):
@@ -52,40 +53,48 @@ class HtmlJsonLdDataset(Dataset):
         return self._url
 
     @classmethod
-    def from_discovery_result(cls, discovery_result: DiscoveryResult) -> Dataset:
+    def from_discovery_result(
+        cls, discovery_result: DiscoveryResult, client: httpx.AsyncClient | None = None
+    ) -> Dataset:
         """Construct an HtmlJsonLdDataset from a UrlDiscoveryResult.
 
-        Raises ValueError for non-URL discovery results.
-        The caller must supply an httpx.AsyncClient separately via __init__
-        because Dataset.from_discovery_result() does not carry infrastructure.
-        Use HtmlJsonLdDataset(url, client) directly when a client is available.
+        Raises ValueError for unsupported discovery result types or when no HTTP client is provided.
         """
-        if isinstance(discovery_result, UrlDiscoveryResult):
+        if not isinstance(discovery_result, UrlDiscoveryResult):
+            raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
+
+        if client is None:
             raise ValueError(
-                "HtmlJsonLdDataset requires an httpx.AsyncClient. Use HtmlJsonLdDataset(url, client) directly."
+                "HtmlJsonLdDataset requires an httpx.AsyncClient. Provide the client to from_discovery_result()."
             )
-        raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
+
+        return cls(discovery_result.url, client)
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
         response = await self._client.get(self._url)
         if response.is_error:
-            raise ValueError(f"HTTP {response.status_code} fetching dataset URL: {self._url}")
+            raise SchemaOrgDatasetError(f"HTTP {response.status_code} fetching dataset URL: {self._url}")
 
         parser = _JsonLdScriptParser()
         parser.feed(response.text)
 
         if not parser.blocks:
-            raise ValueError(f"No JSON-LD blocks found in HTML at: {self._url}")
+            raise SchemaOrgDatasetError(f"No JSON-LD blocks found in HTML at: {self._url}")
 
         merged = Graph()
         for block in parser.blocks:
             try:
                 json.loads(block)
             except json.JSONDecodeError as exc:
-                raise ValueError(f"Invalid JSON in JSON-LD block at {self._url}: {exc}") from exc
+                raise SchemaOrgDatasetError(f"Invalid JSON in JSON-LD block at {self._url}: {exc}") from exc
+
             block_graph = Graph()
-            block_graph.parse(data=block, format="json-ld")
+            try:
+                block_graph.parse(data=block, format="json-ld")
+            except Exception as exc:  # noqa: BLE001
+                raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
+
             merged += block_graph
 
         return merged

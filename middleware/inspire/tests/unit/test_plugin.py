@@ -71,3 +71,20 @@ async def test_run_plugin_with_error() -> None:
         # Should yield the error object explicitly to the orchestrator
         assert len(results) == 1
         assert isinstance(results[0], RecordProcessingError)
+
+
+@pytest.mark.asyncio
+async def test_run_plugin_fatal_error_propagates() -> None:
+    mock_config = MagicMock(spec=Config)
+    mock_config.csw_url = "https://csw.example.com"
+    mock_config.cql_query = None
+    mock_config.xml_query = None
+    mock_config.chunk_size = 10
+
+    with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
+        mock_csw = mock_csw_class.return_value
+        mock_csw.get_records.side_effect = RuntimeError("CSW endpoint unreachable")
+
+        with pytest.raises(RuntimeError, match="CSW endpoint unreachable"):
+            async for _ in run_plugin(mock_config):
+                pass

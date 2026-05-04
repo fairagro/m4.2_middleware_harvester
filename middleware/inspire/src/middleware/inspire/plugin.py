@@ -32,43 +32,39 @@ async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterEr
     # 3. Harvest and Process
     count = 0
 
-    try:
-        # All parameters are now taken from config
-        records_iter = csw_client.get_records()
+    # All parameters are now taken from config
+    records_iter = csw_client.get_records()
 
-        for item in records_iter:
-            # Yield potential processing errors emitted by the fetcher upstream
-            if isinstance(item, RecordProcessingError):
-                yield item
-                continue
+    for item in records_iter:
+        # Yield potential processing errors emitted by the fetcher upstream
+        if isinstance(item, RecordProcessingError):
+            yield item
+            continue
 
-            record = item
-            record_url = csw_client.get_record_url(record.identifier)
+        record = item
+        record_url = csw_client.get_record_url(record.identifier)
 
-            # Skip non-dataset records (e.g., services)
-            if record.hierarchy and record.hierarchy.lower() not in ["dataset", "series", "nongeographicdataset"]:
-                logger.info("Skipping non-dataset record %s (Type: %s)", record.identifier, record.hierarchy)
-                continue
+        # Skip non-dataset records (e.g., services)
+        if record.hierarchy and record.hierarchy.lower() not in ["dataset", "series", "nongeographicdataset"]:
+            logger.info("Skipping non-dataset record %s (Type: %s)", record.identifier, record.hierarchy)
+            continue
 
-            # Log the INSPIRE identifier (UUID)
-            logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
+        # Log the INSPIRE identifier (UUID)
+        logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
 
-            try:
-                # Map to ARC
-                arc = mapper.map_record(record)
+        try:
+            # Map to ARC
+            arc = mapper.map_record(record)
 
-                # Yield serialized ARC
-                json_str = arc.ToROCrateJsonString()
-                yield json_str
+            # Yield serialized ARC
+            json_str = arc.ToROCrateJsonString()
+            yield json_str
 
-                logger.info("Successfully generated ARC for record %s - URL: %s", record.identifier, record_url)
-                count += 1
+            logger.info("Successfully generated ARC for record %s - URL: %s", record.identifier, record_url)
+            count += 1
 
-            except Exception as e:  # noqa: BLE001
-                yield RecordProcessingError(f"Failed to map record: {e}", record.identifier, e)
-                continue
+        except Exception as e:  # noqa: BLE001
+            yield RecordProcessingError(f"Failed to map record: {e}", record.identifier, e)
+            continue
 
-        logger.info("Harvest generator exhausted. Processed %d records.", count)
-
-    except (RuntimeError, ValueError) as e:
-        logger.error("Harvest failed: %s", e)
+    logger.info("Harvest generator exhausted. Processed %d records.", count)
