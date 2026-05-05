@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from html.parser import HTMLParser
 
 import httpx
 from rdflib import Graph
 
-from ..config import DatasetType
+from ..config import Config, DatasetType
 from ..errors import SchemaOrgDatasetError
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 
@@ -42,10 +43,11 @@ class _JsonLdScriptParser(HTMLParser):
 class HtmlJsonLdDataset(Dataset):
     """Dataset that fetches an HTML page and extracts embedded JSON-LD markup."""
 
-    def __init__(self, url: str, client: httpx.AsyncClient) -> None:
-        """Initialize with the page URL and the shared HTTP client."""
+    def __init__(self, url: str, client: httpx.AsyncClient, jsonld_parse_threshold_bytes: int = 65536) -> None:
+        """Initialize with the page URL, HTTP client, and parse threshold."""
         self._url = url
         self._client = client
+        self._jsonld_parse_threshold_bytes = jsonld_parse_threshold_bytes
 
     @property
     def identifier(self) -> str:
@@ -54,7 +56,10 @@ class HtmlJsonLdDataset(Dataset):
 
     @classmethod
     def from_discovery_result(
-        cls, discovery_result: DiscoveryResult, client: httpx.AsyncClient | None = None
+        cls,
+        discovery_result: DiscoveryResult,
+        client: httpx.AsyncClient | None = None,
+        config: Config | None = None,
     ) -> Dataset:
         """Construct an HtmlJsonLdDataset from a UrlDiscoveryResult.
 
@@ -68,7 +73,8 @@ class HtmlJsonLdDataset(Dataset):
                 "HtmlJsonLdDataset requires an httpx.AsyncClient. Provide the client to from_discovery_result()."
             )
 
-        return cls(discovery_result.url, client)
+        threshold = config.jsonld_parse_threshold_bytes if config is not None else 65536
+        return cls(discovery_result.url, client, threshold)
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
@@ -89,12 +95,23 @@ class HtmlJsonLdDataset(Dataset):
             except json.JSONDecodeError as exc:
                 raise SchemaOrgDatasetError(f"Invalid JSON in JSON-LD block at {self._url}: {exc}") from exc
 
-            block_graph = Graph()
-            try:
-                block_graph.parse(data=block, format="json-ld")
-            except Exception as exc:  # noqa: BLE001
-                raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
+            if len(block.encode("utf-8")) > self._jsonld_parse_threshold_bytes:
+                block_graph = await asyncio.to_thread(self._parse_jsonld_block, block)
+            else:
+                block_graph = Graph()
+                try:
+                    block_graph.parse(data=block, format="json-ld")
+                except Exception as exc:  # noqa: BLE001
+                    raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
 
             merged += block_graph
 
         return merged
+
+    def _parse_jsonld_block(self, block: str) -> Graph:
+        graph = Graph()
+        try:
+            graph.parse(data=block, format="json-ld")
+        except Exception as exc:  # noqa: BLE001
+            raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
+        return graph

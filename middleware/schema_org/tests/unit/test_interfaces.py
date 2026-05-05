@@ -1,19 +1,99 @@
 """Unit tests for the Schema.org harvester interfaces."""
 
 import asyncio
+from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
+from middleware.harvester.errors import RecordProcessingError
 from middleware.schema_org.config import Config, DatasetType, PayloadType, SitemapType
-from middleware.schema_org.dataset import UrlDiscoveryResult
+from middleware.schema_org.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.schema_org.dataset.html_jsonld import HtmlJsonLdDataset
-from middleware.schema_org.errors import SchemaOrgDatasetError
-from middleware.schema_org.plugin import create_mapper, create_sitemap
+from middleware.schema_org.errors import SchemaOrgDatasetError, SchemaOrgError
+from middleware.schema_org.plugin import create_mapper, create_sitemap, get_expected_datasets, run_plugin
 from middleware.schema_org.schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.schema_org.sitemap import MycoreSolrSitemap, XmlSitemap
+
+
+class FakeSitemap:
+    """A lightweight fake sitemap for unit tests."""
+
+    def __init__(self, urls: list[str]) -> None:
+        """Store the configured sitemap URLs."""
+        self._urls = urls
+
+    async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:
+        """Yield the configured discovery URLs."""
+        for url in self._urls:
+            yield UrlDiscoveryResult(url)
+
+    async def get_expected_count(self) -> int | None:
+        """Return the number of URLs in the fake sitemap."""
+        return len(self._urls)
+
+
+class BadFakeDataset:
+    """A dataset implementation that fails during discovery conversion."""
+
+    def __init__(self, url: str, _client: httpx.AsyncClient | None = None, _config: Config | None = None) -> None:
+        """Create a failing fake dataset instance."""
+        self._url = url
+
+    @property
+    def identifier(self) -> str:
+        """Return the dataset identifier for the fake dataset."""
+        return self._url
+
+    @classmethod
+    def from_discovery_result(
+        cls,
+        _discovery_result: DiscoveryResult,
+        client: httpx.AsyncClient | None = None,
+        config: Config | None = None,
+    ) -> "BadFakeDataset":
+        """Raise a SchemaOrgError to simulate dataset construction failure."""
+        if client is not None or config is not None:
+            del client, config
+        raise SchemaOrgError("bad dataset")
+
+    async def to_graph(self) -> object:
+        """Return a dummy graph payload for the bad fake dataset."""
+        await asyncio.sleep(0)
+        return f"graph:{self._url}"
+
+
+class GoodFakeDataset:
+    """A dataset implementation that successfully converts discovery results."""
+
+    def __init__(self, url: str, _client: httpx.AsyncClient | None = None, _config: Config | None = None) -> None:
+        """Create a successful fake dataset instance."""
+        self._url = url
+
+    @property
+    def identifier(self) -> str:
+        """Return the dataset identifier for the good fake dataset."""
+        return self._url
+
+    @classmethod
+    def from_discovery_result(
+        cls,
+        discovery_result: UrlDiscoveryResult,
+        client: httpx.AsyncClient | None = None,
+        config: Config | None = None,
+    ) -> "GoodFakeDataset":
+        """Construct a successful fake dataset from a discovery result."""
+        if client is not None or config is not None:
+            del client, config
+        return cls(discovery_result.url)
+
+    async def to_graph(self) -> object:
+        """Return a dummy graph payload for the good fake dataset."""
+        await asyncio.sleep(0)
+        return f"graph:{self._url}"
 
 
 def test_general_mapper_returns_jsonld() -> None:
@@ -228,6 +308,40 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
     ]
 
 
+def test_mycore_solr_sitemap_get_expected_count_uses_cached_first_page() -> None:
+    config = Config(
+        sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json"),
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    response = {
+        "response": {
+            "numFound": 1,
+            "start": 0,
+            "docs": [{"id": "openagrar_mods_0001"}],
+        }
+    }
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=response)
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> tuple[int | None, list[str]]:
+        async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            count = await sitemap.get_expected_count()
+            urls = [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+            return count, urls
+
+    count, urls = asyncio.run(collect())
+
+    assert count == 1
+    assert urls == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+
+
 # ---------------------------------------------------------------------------
 # HtmlJsonLdDataset tests
 # ---------------------------------------------------------------------------
@@ -352,3 +466,126 @@ def test_html_jsonld_dataset_raises_on_invalid_json() -> None:
 
     with pytest.raises(SchemaOrgDatasetError, match="Invalid JSON"):
         asyncio.run(run())
+
+
+@pytest.mark.asyncio
+async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=SIMPLE_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> int:
+        async with httpx.AsyncClient(transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, jsonld_parse_threshold_bytes=0)
+            with patch(
+                "middleware.schema_org.dataset.html_jsonld.asyncio.to_thread",
+                new=AsyncMock(side_effect=lambda func, *args, **kwargs: func(*args, **kwargs)),
+            ) as to_thread_mock:
+                graph = await ds.to_graph()
+                assert to_thread_mock.called
+                return len(graph)
+
+    assert await run() > 0
+
+
+@pytest.mark.asyncio
+async def test_schema_org_plugin_get_expected_datasets_returns_none_on_failure() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    class FakeSitemap:
+        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+            pass
+
+        async def get_expected_count(self) -> int | None:
+            raise RuntimeError("failed")
+
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemap:
+        return FakeSitemap(_config, client)
+
+    with patch("middleware.schema_org.plugin.create_sitemap", fake_create_sitemap):
+        result = await get_expected_datasets(config)
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_schema_org_plugin_get_expected_datasets_returns_count() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    class FakeSitemap:
+        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+            pass
+
+        async def get_expected_count(self) -> int | None:
+            return 5
+
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemap:
+        return FakeSitemap(_config, client)
+
+    expected_count = 5
+    with patch("middleware.schema_org.plugin.create_sitemap", fake_create_sitemap):
+        result = await get_expected_datasets(config)
+
+    assert result == expected_count
+
+
+@pytest.mark.asyncio
+async def test_schema_org_plugin_run_plugin_returns_record_processing_error_for_bad_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    def fake_create_sitemap(_config: Config, **_kwargs: object) -> FakeSitemap:
+        return FakeSitemap(["https://example.org/dataset/fast"])
+
+    mock_mapper = MagicMock()
+    mock_mapper.map_graph.side_effect = lambda graph: f"mapped:{graph}"
+
+    monkeypatch.setattr("middleware.schema_org.plugin.create_sitemap", fake_create_sitemap)
+    monkeypatch.setattr("middleware.schema_org.plugin.Dataset.registry", {DatasetType.html_jsonld: BadFakeDataset})
+    monkeypatch.setattr("middleware.schema_org.plugin.create_mapper", lambda _: mock_mapper)
+
+    results = [item async for item in run_plugin(config)]
+
+    assert len(results) == 1
+    assert isinstance(results[0], RecordProcessingError)
+
+
+@pytest.mark.asyncio
+async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    def fake_create_sitemap(_config: Config, **_kwargs: object) -> FakeSitemap:
+        return FakeSitemap(["https://example.org/dataset/slow"])
+
+    mock_mapper = MagicMock()
+    mock_mapper.map_graph.side_effect = lambda graph: f"mapped:{graph}"
+
+    monkeypatch.setattr("middleware.schema_org.plugin.create_sitemap", fake_create_sitemap)
+    monkeypatch.setattr("middleware.schema_org.plugin.Dataset.registry", {DatasetType.html_jsonld: GoodFakeDataset})
+    monkeypatch.setattr("middleware.schema_org.plugin.create_mapper", lambda _: mock_mapper)
+
+    results = [item async for item in run_plugin(config)]
+
+    assert results == ["mapped:graph:https://example.org/dataset/slow"]

@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 
-from ..config import SitemapType
+from ..config import Config, SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
 from .sitemap import Sitemap
 
@@ -16,13 +16,31 @@ from .sitemap import Sitemap
 class MycoreSolrSitemap(Sitemap):
     """Sitemap parser for MyCoRe Solr-based discovery endpoints."""
 
+    def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+        """Initialize the MyCoRe Solr sitemap parser and its page cache."""
+        super().__init__(config, client)
+        self._first_page_cache: tuple[int, list[dict[str, object]], int] | None = None
+
+    async def get_expected_count(self) -> int | None:
+        """Return the total number of matching results, if the backend exposes it."""
+        if self._first_page_cache is not None:
+            return self._first_page_cache[0]
+
+        num_found, docs, returned_start = await self._fetch_page(self.config.sitemap_url, self._client, 0)
+        self._first_page_cache = (num_found, docs, returned_start)
+        return num_found
+
     async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[DiscoveryResult, None]:
         base_url = self._build_base_url(self.config.sitemap_url)
         start = 0
         seen_dataset_urls: set[str] = set()
 
         while True:
-            num_found, docs, returned_start = await self._fetch_page(self.config.sitemap_url, client, start)
+            if self._first_page_cache is not None and start == 0:
+                num_found, docs, returned_start = self._first_page_cache
+                self._first_page_cache = None
+            else:
+                num_found, docs, returned_start = await self._fetch_page(self.config.sitemap_url, client, start)
             if not docs:
                 break
 

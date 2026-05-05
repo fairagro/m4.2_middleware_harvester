@@ -10,7 +10,7 @@ from typing import TypeVar, cast
 import httpx
 from rdflib import Graph
 
-from ..config import DatasetType
+from ..config import Config, DatasetType
 from ..registry import Registry
 
 
@@ -58,7 +58,10 @@ class Dataset(ABC):
     @classmethod
     @abstractmethod
     def from_discovery_result(
-        cls, discovery_result: DiscoveryResult, client: httpx.AsyncClient | None = None
+        cls,
+        discovery_result: DiscoveryResult,
+        client: httpx.AsyncClient | None = None,
+        config: Config | None = None,
     ) -> Dataset:
         """Create a Dataset instance from a discovery result."""
         raise NotImplementedError

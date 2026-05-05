@@ -30,6 +30,10 @@ class Sitemap(ABC):
         async for result in self._discover(self._client):
             yield result
 
+    async def get_expected_count(self) -> int | None:
+        """Return the expected number of discovery results, if known."""
+        return None
+
     @abstractmethod
     async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[DiscoveryResult, None]:
         """Discover dataset sources using the provided HTTP client."""

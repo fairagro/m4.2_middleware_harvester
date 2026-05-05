@@ -27,30 +27,30 @@ repositories:
               <ogc:Filter>
                 <ogc:And>
                   <ogc:Or>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>DWD</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (DWD)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (DWD</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (RD)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (ZAK)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>DWD</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (DWD)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (DWD</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (RD)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (ZAK)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
                   </ogc:Or>
                   <ogc:PropertyIsEqualTo>
                     <ogc:PropertyName>Type</ogc:PropertyName>

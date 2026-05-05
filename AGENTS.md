@@ -87,6 +87,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/error-handling/`](spec/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
 - **[`spec/otlp-observability/`](spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
+- **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 

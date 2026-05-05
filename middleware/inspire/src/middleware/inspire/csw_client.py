@@ -1,8 +1,9 @@
 """CSW client for harvesting INSPIRE metadata records."""
 
+import asyncio
 import contextlib
 import logging
-from collections.abc import Iterator
+from collections.abc import AsyncGenerator, Iterator
 from typing import cast
 from urllib.parse import urlencode
 
@@ -162,6 +163,70 @@ class CSWClient:
             yield from self._get_records_by_cql(effective_cql, effective_chunk_size, effective_max_records)
         else:
             yield from self._get_records_standard(effective_chunk_size, effective_max_records)
+
+    async def get_records_async(
+        self,
+        cql_query: str | None = None,
+        xml_query: str | bytes | None = None,
+        fes_constraints: list[OgcExpression] | None = None,
+        chunk_size: int | None = None,
+        max_records: int | None = None,
+    ) -> AsyncGenerator[InspireRecord | RecordProcessingError, None]:
+        """Asynchronously retrieve records from the CSW by offloading blocking OWSLib calls."""
+        effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
+        effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
+        effective_max_records = max_records if max_records is not None else self._config.max_records
+
+        if self._csw is None:
+            await asyncio.to_thread(self.connect)
+        if self._csw is None:
+            raise RuntimeError("CSW client is not initialized.")
+
+        if effective_xml:
+            records = await asyncio.to_thread(self._get_records_by_xml_sync, effective_xml)
+        elif effective_fes:
+            records = await asyncio.to_thread(
+                self._get_records_by_fes_sync,
+                effective_fes,
+                effective_chunk_size,
+                effective_max_records,
+            )
+        elif effective_cql:
+            records = await asyncio.to_thread(
+                self._get_records_by_cql_sync,
+                effective_cql,
+                effective_chunk_size,
+                effective_max_records,
+            )
+        else:
+            records = await asyncio.to_thread(
+                self._get_records_standard_sync,
+                effective_chunk_size,
+                effective_max_records,
+            )
+
+        for item in records:
+            yield item
+
+    def _get_records_by_xml_sync(self, xml_query: str | bytes) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_xml(xml_query))
+
+    def _get_records_by_fes_sync(
+        self, fes_constraints: list[OgcExpression], chunk_size: int, max_records: int | None
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_fes(fes_constraints, chunk_size, max_records))
+
+    def _get_records_by_cql_sync(
+        self, cql_query: str, chunk_size: int, max_records: int | None
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_cql(cql_query, chunk_size, max_records))
+
+    def _get_records_standard_sync(
+        self,
+        chunk_size: int,
+        max_records: int | None,
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_standard(chunk_size, max_records))
 
     def _get_records_by_cql(
         self, cql_query: str, chunk_size: int, max_records: int | None

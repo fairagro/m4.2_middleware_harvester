@@ -4,14 +4,16 @@ Exposes `run_plugin`, the `AsyncGenerator` integration point consumed by the
 central Harvester orchestrator. This module contains no CLI entry point.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.mapper import InspireMapper
+from middleware.inspire.models import InspireRecord
 
 if TYPE_CHECKING:
     from middleware.harvester.plugin_config import PluginConfig
@@ -33,9 +35,11 @@ async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterEr
     count = 0
 
     # All parameters are now taken from config
-    records_iter = csw_client.get_records()
+    records_iter: AsyncGenerator[InspireRecord | RecordProcessingError, None] = cast(
+        Any, csw_client
+    ).get_records_async()
 
-    for item in records_iter:
+    async for item in records_iter:
         # Yield potential processing errors emitted by the fetcher upstream
         if isinstance(item, RecordProcessingError):
             yield item
@@ -68,3 +72,14 @@ async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterEr
             continue
 
     logger.info("Harvest generator exhausted. Processed %d records.", count)
+
+
+async def get_expected_datasets(config: "PluginConfig") -> int | None:
+    """Return the expected total number of datasets for this INSPIRE configuration."""
+    inspire_config = cast(Config, config)
+    csw_client = CSWClient(inspire_config)
+    try:
+        return await asyncio.to_thread(csw_client.get_record_count)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to determine expected INSPIRE record count: %s", exc)
+        return None
