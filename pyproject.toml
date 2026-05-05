@@ -179,6 +179,11 @@ markers = [
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]
+filterwarnings = [
+    # rdflib's JSON-LD parser internally uses ConjunctiveGraph; this is a
+    # third-party issue and cannot be fixed in application code.
+    "ignore::DeprecationWarning:rdflib",
+]
 
 [tool.coverage.run]
 # Coverage measurement settings

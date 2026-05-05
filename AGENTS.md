@@ -86,6 +86,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/principles.md`](spec/principles.md)** — Authoritative project principles (start here).
 - **[`spec/error-handling/`](spec/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
+- **[`spec/otlp-observability/`](spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
