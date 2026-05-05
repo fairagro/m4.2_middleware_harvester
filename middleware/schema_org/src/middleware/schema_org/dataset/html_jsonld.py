@@ -78,7 +78,7 @@ class HtmlJsonLdDataset(Dataset):
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
-        response = await self._client.get(self._url)
+        response = await self._client.get(self._url, follow_redirects=True)
         if response.is_error:
             raise SchemaOrgDatasetError(f"HTTP {response.status_code} fetching dataset URL: {self._url}")
 
@@ -89,11 +89,14 @@ class HtmlJsonLdDataset(Dataset):
             raise SchemaOrgDatasetError(f"No JSON-LD blocks found in HTML at: {self._url}")
 
         merged = Graph()
+
         for block in parser.blocks:
             try:
                 json.loads(block)
             except json.JSONDecodeError as exc:
-                raise SchemaOrgDatasetError(f"Invalid JSON in JSON-LD block at {self._url}: {exc}") from exc
+                raise SchemaOrgDatasetError(
+                    f"Invalid JSON in JSON-LD block at {self._url}: {exc}\nBlock:\n{block}"
+                ) from exc
 
             if len(block.encode("utf-8")) > self._jsonld_parse_threshold_bytes:
                 block_graph = await asyncio.to_thread(self._parse_jsonld_block, block)
@@ -102,7 +105,9 @@ class HtmlJsonLdDataset(Dataset):
                 try:
                     block_graph.parse(data=block, format="json-ld")
                 except Exception as exc:  # noqa: BLE001
-                    raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
+                    raise SchemaOrgDatasetError(
+                        f"Failed to parse JSON-LD at {self._url}: {exc}\nBlock:\n{block}"
+                    ) from exc
 
             merged += block_graph
 
@@ -113,5 +118,5 @@ class HtmlJsonLdDataset(Dataset):
         try:
             graph.parse(data=block, format="json-ld")
         except Exception as exc:  # noqa: BLE001
-            raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}") from exc
+            raise SchemaOrgDatasetError(f"Failed to parse JSON-LD at {self._url}: {exc}\nBlock:\n{block}") from exc
         return graph

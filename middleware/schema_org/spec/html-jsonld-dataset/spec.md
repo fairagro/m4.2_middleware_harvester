@@ -6,7 +6,9 @@ Fetch an HTML page and extract embedded JSON-LD markup into an `rdflib.Graph` fo
 
 - [ ] Accept a URL pointing to an HTML page as the dataset source.
 - [ ] Fetch the HTML page over HTTP using the plugin's shared `httpx.AsyncClient`.
+- [ ] Follow HTTP redirects when fetching the HTML page (e.g. DOI resolver → repository landing page).
 - [ ] Extract all `<script type="application/ld+json">` blocks from the fetched HTML.
+- [ ] If a JSON-LD block contains invalid JSON, include the full invalid block text in the parse error message.
 - [ ] Parse each JSON-LD block into an `rdflib.Graph` using `rdflib`'s JSON-LD parser.
 - [ ] Return the union of all parsed graphs from `to_graph()`.
 - [ ] Use the page URL as the stable dataset identifier.
@@ -20,3 +22,4 @@ Fetch an HTML page and extract embedded JSON-LD markup into an `rdflib.Graph` fo
 - A JSON-LD block that is valid JSON but not valid JSON-LD → rdflib raises; propagate the error as-is.
 - HTTP 4xx or 5xx response → raise `ValueError` with the URL and status code.
 - Empty `<script type="application/ld+json">` block → skip silently (rdflib parses empty JSON-LD to an empty graph).
+- URL resolves via one or more redirects (e.g. `https://doi.org/…` → repository landing page) → follow all redirects transparently and parse the final response.

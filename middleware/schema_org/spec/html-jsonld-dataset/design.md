@@ -19,3 +19,6 @@ The `httpx.AsyncClient` instance is injected at construction time via `from_disc
 
 4. **Register under `DatasetType.html_jsonld`, not a generic `DatasetType.html`**
    — A single `html` type would imply auto-detection of the embedded format (JSON-LD, RDFa, Microdata). Explicit type names keep each implementation simple and independently testable. RDFa and Microdata support can be added later as separate `DatasetType` values without changing existing code.
+
+5. **Pass `follow_redirects=True` on each `client.get()` call, not globally on the `AsyncClient`**
+   — Dataset URLs frequently resolve via external redirect services (e.g. DOI resolvers). Redirects must be followed at the individual request level so the final response body can be inspected. Enabling redirect-following per request rather than on the shared client keeps the behaviour explicit and scoped to the single call that requires it; the shared client is also used for sitemap discovery where the redirect policy may differ.

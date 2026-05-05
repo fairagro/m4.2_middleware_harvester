@@ -468,6 +468,54 @@ def test_html_jsonld_dataset_raises_on_invalid_json() -> None:
         asyncio.run(run())
 
 
+def test_html_jsonld_dataset_invalid_json_error_includes_block() -> None:
+    invalid_block = '{"@context": "https://schema.org", "@type": "Dataset", invalid}'
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <script type="application/ld+json">
+  {invalid_block}
+  </script>
+</head>
+<body></body>
+</html>"""
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=html, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client)
+            await ds.to_graph()
+
+    with pytest.raises(SchemaOrgDatasetError) as exc_info:
+        asyncio.run(run())
+
+    assert invalid_block in str(exc_info.value)
+
+
+def test_html_jsonld_dataset_follows_redirects() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url == httpx.URL("https://doi.org/10.5447/ipk/2024/11"):
+            return httpx.Response(302, headers={"location": "https://doi.ipk-gatersleben.de/actual"})
+        if request.url == httpx.URL("https://doi.ipk-gatersleben.de/actual"):
+            return httpx.Response(200, text=SIMPLE_HTML, headers={"content-type": "text/html"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> int:
+        async with httpx.AsyncClient(transport=transport, follow_redirects=True) as client:
+            ds = HtmlJsonLdDataset("https://doi.org/10.5447/ipk/2024/11", client)
+            graph = await ds.to_graph()
+            return len(graph)
+
+    triple_count = asyncio.run(run())
+    assert triple_count > 0
+
+
 @pytest.mark.asyncio
 async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
     async def handler(_: httpx.Request) -> httpx.Response:
