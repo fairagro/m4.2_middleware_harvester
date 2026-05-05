@@ -15,7 +15,7 @@ ARG APP_VERSION=0.0.0
 # Pretend version for hatch-vcs (used during uv build of inspire wheel)
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 
-RUN uv build --package inspire --wheel && uv build --package harvester --wheel
+RUN uv build --package inspire --wheel && uv build --package harvester --wheel && uv build --package schema_org --wheel
 
 
 # ---- Binary Build Stage ----
