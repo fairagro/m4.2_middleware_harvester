@@ -8,12 +8,19 @@ from pydantic import BaseModel, Field, model_validator
 class Config(BaseModel):
     """Configuration model for the Inspire to ARC middleware."""
 
+    model_config = {
+        "populate_by_name": True,
+    }
+
     csw_url: Annotated[str, Field(description="URL of the CSW endpoint")]
     cql_query: Annotated[
         str | None,
-        Field(description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),
+        Field(alias="query", description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),
     ] = None
-    xml_query: Annotated[str | None, Field(description="Raw GetRecords XML body (overrides cql_query)")] = None
+    xml_query: Annotated[
+        str | None,
+        Field(alias="xml_request", description="Raw GetRecords XML body (overrides cql_query)"),
+    ] = None
     chunk_size: Annotated[
         int,
         Field(description="Number of records to fetch per paginated request.", ge=1),

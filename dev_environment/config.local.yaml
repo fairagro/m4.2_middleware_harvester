@@ -5,8 +5,8 @@ repositories:
     inspire:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
       # csw_url: https://stable.demo.geonode.org/catalogue/csw
-      query: ~
-      xml_request: ~
+      cql_query: ~
+      xml_query: ~
   - rdi: "edal"
     schema_org:
       url: https://doi.ipk-gatersleben.de/sitemap.xml

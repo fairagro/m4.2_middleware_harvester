@@ -19,6 +19,34 @@ def test_config_loading() -> None:
     assert config.csw_url == "https://csw.example.com"
 
 
+def test_config_aliases_for_query() -> None:
+    config = Config.model_validate(
+        {
+            "csw_url": "https://csw.example.com",
+            "query": "AnyText LIKE '%agriculture%'",
+            "timeout": 10,
+            "chunk_size": 1,
+        }
+    )
+
+    assert config.cql_query == "AnyText LIKE '%agriculture%'"
+    assert config.xml_query is None
+
+
+def test_config_aliases_for_xml_request() -> None:
+    config = Config.model_validate(
+        {
+            "csw_url": "https://csw.example.com",
+            "xml_request": "<xml />",
+            "timeout": 10,
+            "chunk_size": 1,
+        }
+    )
+
+    assert config.cql_query is None
+    assert config.xml_query == "<xml />"
+
+
 @pytest.mark.asyncio
 async def test_run_plugin_success() -> None:
     mock_config = MagicMock(spec=Config)

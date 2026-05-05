@@ -4,11 +4,11 @@ repositories:
   - rdi: "dwd"
     inspire:
       csw_url: "https://www.geodatenkatalog.de/geonetwork/srv/ger/csw"
-      query: ~
+      cql_query: ~
       # CSW-Abfrage nach DWD Datensaetzen. Die Zahl der Treffer unterscheidet sich von der
       # Web-GUI (https://www.geoportal.de/search.html?q=Deutscher%20Wetterdienst,
       # https://www.geoportal.de/search.html?q=DWD)
-      xml_request: |
+      xml_query: |
         <?xml version="1.0" encoding="UTF-8"?>
         <csw:GetRecords
             xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
