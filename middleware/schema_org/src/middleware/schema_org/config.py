@@ -10,6 +10,7 @@ class SitemapType(StrEnum):
     """Supported sitemap kinds for Schema.org harvesting."""
 
     xml = "xml"
+    mycore_solr = "mycore_solr"
 
 
 class DatasetType(StrEnum):

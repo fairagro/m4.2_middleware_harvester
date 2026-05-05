@@ -98,6 +98,15 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 
+**Component-level** (`middleware/schema_org/spec/`) — schema_org plugin internals:
+
+- **[`middleware/schema_org/spec/schema-org-harvesting/`](middleware/schema_org/spec/schema-org-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
+- **[`middleware/schema_org/spec/xml-sitemap-parser/`](middleware/schema_org/spec/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
+- **[`middleware/schema_org/spec/sitemap-mycore-solr/`](middleware/schema_org/spec/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
+- **[`middleware/schema_org/spec/html-jsonld-dataset/`](middleware/schema_org/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
+- **[`middleware/schema_org/spec/schemaorg-dataset-abstraction/`](middleware/schema_org/spec/schemaorg-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
+- **[`middleware/schema_org/spec/schemaorg-mapper/`](middleware/schema_org/spec/schemaorg-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
+
 ---
 
 ## 📝 Key Implementation Details

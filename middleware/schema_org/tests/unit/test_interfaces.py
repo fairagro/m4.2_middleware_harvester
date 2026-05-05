@@ -13,7 +13,7 @@ from middleware.schema_org.dataset.html_jsonld import HtmlJsonLdDataset
 from middleware.schema_org.errors import SchemaOrgDatasetError
 from middleware.schema_org.plugin import create_mapper, create_sitemap
 from middleware.schema_org.schema_org_mapper import GeneralSchemaOrgMapper
-from middleware.schema_org.sitemap import XmlSitemap
+from middleware.schema_org.sitemap import MycoreSolrSitemap, XmlSitemap
 
 
 def test_general_mapper_returns_jsonld() -> None:
@@ -159,6 +159,73 @@ def test_create_mapper_from_config() -> None:
     )
     mapper = create_mapper(config)
     assert isinstance(mapper, GeneralSchemaOrgMapper)
+
+
+def test_create_sitemap_from_config_mycore_solr() -> None:
+    config = Config(
+        sitemap_url="https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json",
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    async def create() -> None:
+        async with httpx.AsyncClient(timeout=config.timeout) as client:
+            sitemap = create_sitemap(config, client=client)
+            assert isinstance(sitemap, MycoreSolrSitemap)
+
+    asyncio.run(create())
+
+
+def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
+    config = Config(
+        sitemap_url=(
+            "https://www.openagrar.de/servlets/solr/select?"
+            "core=main&q=category.top%3A%22mir_genres%3Aresearch_data%22&rows=2&fl=id&wt=json"
+        ),
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+    )
+
+    first_page = {
+        "response": {
+            "numFound": 3,
+            "start": 0,
+            "docs": [{"id": "openagrar_mods_0001"}, {"id": "openagrar_mods_0002"}],
+        }
+    }
+    second_page = {
+        "response": {
+            "numFound": 3,
+            "start": 2,
+            "docs": [{"id": "openagrar_mods_0002"}, {"id": "openagrar_mods_0003"}],
+        }
+    }
+    second_page_start = 2
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        query = dict(request.url.params)
+        start = int(query.get("start", "0"))
+        if start == 0:
+            return httpx.Response(200, json=first_page)
+        if start == second_page_start:
+            return httpx.Response(200, json=second_page)
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with httpx.AsyncClient(transport=transport, timeout=config.timeout) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == [
+        "https://www.openagrar.de/receive/openagrar_mods_0001",
+        "https://www.openagrar.de/receive/openagrar_mods_0002",
+        "https://www.openagrar.de/receive/openagrar_mods_0003",
+    ]
 
 
 # ---------------------------------------------------------------------------
