@@ -1,5 +1,10 @@
 # CSW Retry
 
+> **Status: NOT YET IMPLEMENTED.**  
+> `inspire.Config` has no retry fields, `CSWClient` has no retry logic, and
+> `user_agent` is not forwarded to OWSLib. This spec defines the planned
+> behaviour; it is not reflected in current source code.
+
 Add transient-failure retry with exponential backoff to the `CSWClient` so that short-lived network interruptions do not abort a harvest run. Retry behaviour is controlled by four flat fields in `inspire.Config`.
 
 ## Requirements

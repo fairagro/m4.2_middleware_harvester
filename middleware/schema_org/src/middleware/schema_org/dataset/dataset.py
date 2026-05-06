@@ -61,7 +61,7 @@ class Dataset(ABC):
     def from_discovery_result(
         cls,
         discovery_result: DiscoveryResult,
-        client: NiceHttpClient,
+        client: NiceHttpClient | None,
         config: Config,
     ) -> Dataset:
         """Create a Dataset instance from a discovery result."""

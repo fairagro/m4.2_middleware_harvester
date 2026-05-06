@@ -14,7 +14,7 @@ from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.plugin_config import PluginConfig
 from middleware.inspire.plugin import InspirePlugin
 from middleware.schema_org.plugin import SchemaOrgPlugin
-from middleware.shared.tracing import initialize_tracing
+from middleware.shared.tracing import initialize_logging, initialize_tracing
 
 if TYPE_CHECKING:
     pass
@@ -48,35 +48,45 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             "harvester.repository_rdi": repo.rdi,
         },
     ) as plugin_span:
+        arc_count = [0]
+
+        async def _arc_stream(
+            gen: AsyncGenerator[str | HarvesterError, None],
+            plugin_type: str,
+        ) -> AsyncGenerator[str, None]:
+            async for item in gen:
+                if isinstance(item, HarvesterError):
+                    logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+                    continue
+                arc_count[0] += 1
+                yield item
+
         try:
-
-            async def _arc_stream(
-                gen: AsyncGenerator[str | HarvesterError, None],
-                plugin_type: str,
-            ) -> AsyncGenerator[str, None]:
-                async for item in gen:
-                    if isinstance(item, HarvesterError):
-                        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
-                        continue
-                    yield item
-
             with tracer.start_as_current_span("harvest_upload") as upload_span:
-                result = await client.harvest_arcs(
-                    rdi=repo.rdi,
-                    arcs=_arc_stream(plugin_gen, repo.plugin_type),
-                    expected_datasets=expected_datasets,
-                )
-                upload_span.set_attribute("harvester.harvest_id", result.harvest_id)
-                logger.info(
-                    "Finished processing repository %s. Harvest: %s",
-                    repo.plugin_type,
-                    result.harvest_id,
-                )
+                try:
+                    result = await client.harvest_arcs(
+                        rdi=repo.rdi,
+                        arcs=_arc_stream(plugin_gen, repo.plugin_type),
+                        expected_datasets=expected_datasets,
+                    )
+                    upload_span.set_attribute("harvester.harvest_id", result.harvest_id)
+                    upload_span.set_attribute("harvester.arcs_uploaded", arc_count[0])
+                    logger.info(
+                        "Finished processing repository %s. Harvest: %s",
+                        repo.plugin_type,
+                        result.harvest_id,
+                    )
+                except Exception as e:
+                    upload_span.set_status(trace.StatusCode.ERROR)
+                    upload_span.record_exception(e)
+                    raise
 
             plugin_span.set_attribute("harvester.harvest_id", result.harvest_id)
+            plugin_span.set_attribute("harvester.arcs_uploaded", arc_count[0])
         except Exception as e:  # noqa: BLE001
             plugin_span.set_status(trace.StatusCode.ERROR)
             plugin_span.record_exception(e)
+            plugin_span.set_attribute("harvester.arcs_uploaded", arc_count[0])
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
 
 
@@ -108,5 +118,7 @@ def _init_tracing(config: Config) -> Callable[[], None] | None:
     """
     if not config.otel.endpoint:
         return None
-    provider, _ = initialize_tracing(config.otel.endpoint, _SERVICE_NAME)
+    log_level = getattr(logging, config.otel.log_level)
+    provider, _ = initialize_tracing(_SERVICE_NAME, config.otel.endpoint, config.otel.log_console_spans)
+    initialize_logging(_SERVICE_NAME, config.otel.endpoint, config.otel.log_console_spans, log_level, log_level)
     return provider.shutdown

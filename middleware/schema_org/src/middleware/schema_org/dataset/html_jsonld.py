@@ -68,12 +68,14 @@ class HtmlJsonLdDataset(Dataset):
     def from_discovery_result(
         cls,
         discovery_result: DiscoveryResult,
-        client: NiceHttpClient,
+        client: NiceHttpClient | None,
         config: Config,
     ) -> Dataset:
         """Construct an HtmlJsonLdDataset from a UrlDiscoveryResult."""
         if not isinstance(discovery_result, UrlDiscoveryResult):
             raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
+        if client is None:
+            raise ValueError("HtmlJsonLdDataset requires an HTTP client; client must not be None.")
 
         return cls(
             discovery_result.url,

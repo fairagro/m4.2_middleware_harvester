@@ -22,10 +22,10 @@ is a complete no-op — no performance cost, no side-effects.
       `harvester.repository_rdi` (string).
 - [ ] For each repository the orchestrator emits a child span of `plugin_run`
       named `harvest_upload` that wraps the `harvest_arcs` API call, carrying
-      attributes `harvester.arcs_uploaded` (integer) and
-      `harvester.harvest_id` (string).
+      attributes `harvester.arcs_uploaded` (integer — number of ARCs passed to
+      `harvest_arcs`) and `harvester.harvest_id` (string).
 - [ ] A `plugin_run` span records `harvester.arcs_uploaded` (integer — number of
-      successfully uploaded ARCs for that repository).
+      ARCs passed to `harvest_arcs` for that repository).
 - [ ] A `plugin_run` span sets its status to `ERROR` when the repository loop
       raises an unhandled exception, and records the exception on the span.
 - [ ] A `harvest_upload` span sets its status to `ERROR` when the `harvest_arcs`
