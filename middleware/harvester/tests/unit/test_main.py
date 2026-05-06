@@ -1,6 +1,8 @@
 """Unit tests for the Harvester orchestrator main module."""
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from typing import Any, NoReturn
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -8,6 +10,7 @@ import pytest
 from middleware.harvester.errors import HarvesterError
 from middleware.harvester.main import _run_repository, run_orchestrator
 from middleware.harvester.plugin_base import Plugin
+from middleware.harvester.report import HarvestReport, RepositoryReport, print_report
 
 
 def _make_repo(plugin_type: str = "inspire") -> MagicMock:
@@ -58,9 +61,12 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
         patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": FailingInitPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
 
     assert mock_client.harvest_arcs.call_count == 1
+    assert len(report.repository_reports) == len(repos)
+    assert report.repository_reports[0].harvested_datasets is None
+    assert report.repository_reports[0].failed_datasets is None
 
 
 @pytest.mark.asyncio
@@ -100,10 +106,11 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
         patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": RunnerPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
 
     # harvest_arcs was called for both repos; first raised, second succeeded
     assert mock_client.harvest_arcs.call_count == len(repos)
+    assert len(report.repository_reports) == len(repos)
 
 
 @pytest.mark.asyncio
@@ -144,11 +151,13 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
         patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": HarvesterErrorPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
 
     # Only the valid ARC string passes through the filter, not the HarvesterError
     assert collected == ["arc-json"]
     assert mock_client.harvest_arcs.call_count == 1
+    assert report.repository_reports[0].harvested_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 1
 
 
 @pytest.mark.asyncio
@@ -196,10 +205,11 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
         patch.object(SuccessPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
         patch.object(FailingPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
     ):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
 
     assert mock_client.harvest_arcs.call_count == expected_harvest_calls
     assert all(call.kwargs["expected_datasets"] == expected_datasets for call in mock_client.harvest_arcs.mock_calls)
+    assert len(report.repository_reports) == len(repos)
 
 
 @pytest.mark.asyncio
@@ -210,9 +220,64 @@ async def test_run_orchestrator_returns_when_no_repositories() -> None:
 
     mock_client = _make_mock_client()
     with patch("middleware.harvester.main.ApiClient", return_value=mock_client):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
 
     assert mock_client.harvest_arcs.call_count == 0
+    assert report.repository_reports == []
+
+
+def test_repository_report_to_jsonld_omits_expected_datasets() -> None:
+    harvested_datasets = 5
+    failed_datasets = 1
+    report = RepositoryReport(
+        rdi="bonares",
+        harvest_id="harvest-1",
+        duration_seconds=12.3,
+        expected_datasets=None,
+        harvested_datasets=harvested_datasets,
+        failed_datasets=failed_datasets,
+    )
+    jsonld = report.to_jsonld()
+
+    assert jsonld["@type"] == "schema:EntryPoint"
+    assert jsonld["fairagro:harvestId"] == "harvest-1"
+    assert "fairagro:expectedDatasets" not in jsonld
+    assert jsonld["fairagro:harvestedDatasets"] == harvested_datasets
+    assert jsonld["fairagro:failedDatasets"] == failed_datasets
+
+
+def test_repository_report_to_jsonld_omits_optional_counts_when_unknown() -> None:
+    report = RepositoryReport(
+        rdi="bonares",
+        harvest_id="harvest-1",
+        duration_seconds=12.3,
+        expected_datasets=None,
+        harvested_datasets=None,
+        failed_datasets=None,
+    )
+    jsonld = report.to_jsonld()
+
+    assert "fairagro:harvestedDatasets" not in jsonld
+    assert "fairagro:failedDatasets" not in jsonld
+
+
+def test_print_report_logs_warning_on_serialisation_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    report = HarvestReport(
+        start_time=datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
+        end_time=datetime(2026, 1, 1, 0, 1, tzinfo=UTC),
+        repository_reports=[],
+    )
+
+    def raise_on_dumps(*_args: Any, **_kwargs: Any) -> NoReturn:
+        raise ValueError("boom")
+
+    monkeypatch.setattr("middleware.harvester.report.json.dumps", raise_on_dumps)
+    print_report(report)
+
+    assert "Failed to serialise harvest report" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -229,7 +294,7 @@ async def test_run_repository_unknown_plugin_skips_repo() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_orchestrator_raises_when_all_tasks_fail() -> None:
+async def test_run_orchestrator_returns_report_when_all_tasks_fail() -> None:
     repos = [_make_repo(), _make_repo()]
     mock_config = MagicMock()
     mock_config.repositories = repos
@@ -237,12 +302,14 @@ async def test_run_orchestrator_raises_when_all_tasks_fail() -> None:
 
     mock_client = _make_mock_client()
 
-    async def failing_run(_repo: MagicMock, _client: AsyncMock, _tracer: MagicMock) -> None:
+    async def failing_run(_repo: MagicMock, _client: AsyncMock, _tracer: MagicMock) -> RepositoryReport:
         raise RuntimeError("task failed")
 
     with (
         patch("middleware.harvester.main._run_repository", failing_run),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
-        pytest.raises(RuntimeError, match="All repository tasks failed"),
     ):
-        await run_orchestrator(mock_config)
+        report = await run_orchestrator(mock_config)
+
+    assert len(report.repository_reports) == len(repos)
+    assert all(repo.harvest_id is None for repo in report.repository_reports)

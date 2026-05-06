@@ -94,6 +94,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/harvester/spec/harvester-orchestration/`](middleware/harvester/spec/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
 - **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
 - **[`middleware/harvester/spec/otlp-observability/`](middleware/harvester/spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
+- **[`middleware/harvester/spec/harvest-report/`](middleware/harvester/spec/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:
 
