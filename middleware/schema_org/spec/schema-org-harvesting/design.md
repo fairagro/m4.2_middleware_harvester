@@ -29,14 +29,11 @@ The current implementation supports only one concrete type per enum, but the plu
 5. **Implement `XmlSitemap` as the XML sitemap parser for the `xml` sitemap type**
    — The XML sitemap protocol is a distinct source format, so it is isolated in its own implementation file and can evolve separately from dataset parsing and mapping. This also keeps the plugin factory focused on type selection, not parsing details.
 
-6. **Keep `run_plugin()` as an async generator that yields `str | HarvesterError`**
+6. **Keep `SchemaOrgPlugin.run()` as an async generator yielding `str | HarvesterError`**
    — This matches the harvester orchestrator contract directly and ensures errors are emitted as part of the same async stream instead of being raised out of band.
 
-7. **Use a string-based forward annotation for `PluginConfig` in `schema_org.plugin.py`**
-   — The plugin only needs `PluginConfig` for type checking, and the runtime import would create a circular dependency. Using a quoted type annotation avoids the unnecessary `from __future__ import annotations` import while keeping the module runtime-safe.
-
-8. **Implement the `Sitemap.discover()` contract as an async generator**
+7. **Implement the `Sitemap.discover()` contract as an async generator**
    — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.
 
-9. **Keep dummy concrete implementations minimal and clearly isolated**
+8. **Keep dummy concrete implementations minimal and clearly isolated**
    — `DummySchemaOrgMapper` is an intentionally simple placeholder. It demonstrates the interface contract without adding parsing or network behavior, so future real implementations can replace it with provider-specific subclasses.

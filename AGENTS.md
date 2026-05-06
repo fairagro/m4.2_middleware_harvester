@@ -88,6 +88,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
 - **[`spec/otlp-observability/`](spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
 - **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
+- **[`spec/nice-http-client/`](spec/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
@@ -97,6 +98,7 @@ Before generating or modifying code, read the relevant spec folders:
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:
 
 - **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
+- **[`middleware/inspire/spec/csw-retry/`](middleware/inspire/spec/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 
 **Component-level** (`middleware/schema_org/spec/`) — schema_org plugin internals:

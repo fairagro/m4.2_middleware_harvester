@@ -3,7 +3,9 @@
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from middleware.harvester.nice_http_client import NiceHttpClientConfig
 
 
 class SitemapType(StrEnum):
@@ -28,18 +30,19 @@ class PayloadType(StrEnum):
 class Config(BaseModel):
     """Configuration model for the Schema.org harvesting plugin."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     sitemap_url: Annotated[str, Field(description="Sitemap entry point URL.")]
     sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
     payload_type: Annotated[PayloadType, Field(description="Expected dataset payload type.")]
-    timeout: Annotated[int, Field(description="HTTP timeout seconds.", ge=1)] = 30
-    max_connections: Annotated[
-        int,
+    http: Annotated[
+        NiceHttpClientConfig,
         Field(
-            description="Maximum number of concurrent HTTP connections used for sitemap downloads.",
-            ge=1,
+            description="HTTP client settings used by the plugin.",
+            default_factory=lambda: NiceHttpClientConfig(respect_robots_txt=True),
         ),
-    ] = 10
+    ]
     jsonld_parse_threshold_bytes: Annotated[
         int,
         Field(

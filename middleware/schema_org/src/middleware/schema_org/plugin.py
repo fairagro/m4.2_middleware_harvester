@@ -3,124 +3,138 @@
 import asyncio
 import logging
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, cast
 
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
-from .dataset import Dataset, DiscoveryResult
+from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
 from .schema_org_mapper import SchemaOrgMapper
 from .sitemap import Sitemap
 
-if TYPE_CHECKING:
-    from middleware.harvester.plugin_config import PluginConfig
-
-
-def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
-    """Create the sitemap implementation for the configured sitemap type."""
-    try:
-        sitemap_cls = Sitemap.registry[config.sitemap_type]
-    except KeyError as exc:
-        raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
-
-    try:
-        Dataset.registry[config.dataset_type]
-    except KeyError as exc:
-        raise ValueError(f"Unsupported dataset type: {config.dataset_type}") from exc
-
-    return sitemap_cls(config, client)
-
-
-def create_mapper(config: Config) -> SchemaOrgMapper:
-    """Create the mapper implementation for the configured payload type."""
-    try:
-        mapper_cls = SchemaOrgMapper.registry[config.payload_type]
-    except KeyError as exc:
-        raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
-
-    return mapper_cls()
-
-
-async def get_expected_datasets(config: "PluginConfig") -> int | None:
-    """Return the expected dataset count for this Schema.org source."""
-    schema_config = cast(Config, config)
-    limits = httpx.Limits(
-        max_connections=schema_config.max_connections,
-        max_keepalive_connections=schema_config.max_connections,
-    )
-    async with httpx.AsyncClient(timeout=schema_config.timeout, limits=limits) as http_client:
-        sitemap = create_sitemap(schema_config, client=http_client)
-        try:
-            return await sitemap.get_expected_count()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "Failed to determine expected dataset count for sitemap %s: %s",
-                schema_config.sitemap_url,
-                exc,
-            )
-            return None
-
-
 logger = logging.getLogger(__name__)
 
 
-async def run_plugin(config: "PluginConfig") -> AsyncGenerator[str | HarvesterError, None]:
-    """Run the Schema.org harvest plugin and yield serialized ARC RO-Crate payloads."""
-    schema_config = cast(Config, config)
-    mapper = create_mapper(schema_config)
+class SchemaOrgPlugin(Plugin):
+    """Stateful Schema.org plugin implementation."""
 
-    limits = httpx.Limits(
-        max_connections=schema_config.max_connections,
-        max_keepalive_connections=schema_config.max_connections,
-    )
-    async with httpx.AsyncClient(timeout=schema_config.timeout, limits=limits) as http_client:
-        sitemap = create_sitemap(schema_config, client=http_client)
-        semaphore = asyncio.Semaphore(schema_config.max_connections)
+    def __init__(self, config: Config) -> None:
+        """Initialize the plugin with its parsed configuration."""
+        self._config: Config = config
+        self._mapper: SchemaOrgMapper = self.create_mapper(config)
+        self._http_config = config.http
+        self._semaphore = asyncio.Semaphore(self._http_config.max_connections)
 
-        async def _process_result(discovery_result: "DiscoveryResult") -> str | RecordProcessingError:
-            await semaphore.acquire()
+    @staticmethod
+    def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
+        """Create the sitemap implementation for the configured sitemap type."""
+        try:
+            sitemap_cls = Sitemap.registry[config.sitemap_type]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
+
+        return sitemap_cls(config, client)
+
+    @staticmethod
+    def create_mapper(config: Config) -> SchemaOrgMapper:
+        """Create the mapper implementation for the configured payload type."""
+        try:
+            mapper_cls = SchemaOrgMapper.registry[config.payload_type]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
+
+        return mapper_cls()
+
+    async def get_expected_datasets(self) -> int | None:
+        """Return the expected dataset count for this Schema.org source."""
+        async with NiceHttpClient(self._config.http) as nice_http:
+            sitemap = self.create_sitemap(self._config, client=nice_http.client)
             try:
-                try:
-                    dataset_cls = Dataset.registry[schema_config.dataset_type]
-                    dataset = dataset_cls.from_discovery_result(
-                        discovery_result,
-                        client=http_client,
-                        config=schema_config,
-                    )
-                except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                    return RecordProcessingError(
-                        f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
-                        str(discovery_result),
-                        exc,
-                    )
+                return await sitemap.get_expected_count()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Failed to determine expected dataset count for sitemap %s: %s",
+                    self._config.sitemap_url,
+                    exc,
+                )
+                return None
 
-                try:
-                    graph = await dataset.to_graph()
-                    return mapper.map_graph(graph)
-                except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                    return RecordProcessingError(
-                        f"Failed to map dataset {dataset.identifier}: {exc}",
-                        dataset.identifier,
-                        exc,
-                    )
-            finally:
-                semaphore.release()
+    async def _process_result(
+        self,
+        discovery_result: DiscoveryResult,
+        nice_http: NiceHttpClient,
+    ) -> str | RecordProcessingError:
+        await self._semaphore.acquire()
+        try:
+            if not isinstance(discovery_result, UrlDiscoveryResult):
+                return RecordProcessingError(
+                    f"Unsupported discovery result type: {type(discovery_result).__name__}",
+                    str(discovery_result),
+                    RuntimeError("unsupported discovery result type"),
+                )
 
-        pending: set[asyncio.Task[str | RecordProcessingError]] = set()
-        async with asyncio.TaskGroup() as task_group:
-            async for discovery_result in sitemap.discover():
-                task = task_group.create_task(_process_result(discovery_result))
-                pending.add(task)
-                if len(pending) >= schema_config.max_connections:
-                    done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            try:
+                await nice_http.ensure_allowed(discovery_result.url)
+            except RobotsTxtDisallowedError as exc:
+                return RecordProcessingError(
+                    str(exc),
+                    discovery_result.url,
+                    exc,
+                )
+
+            try:
+                dataset_cls = Dataset.registry[self._config.dataset_type]
+                dataset = dataset_cls.from_discovery_result(
+                    discovery_result,
+                    client=nice_http,
+                    config=self._config,
+                )
+            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+                return RecordProcessingError(
+                    f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
+                    str(discovery_result),
+                    exc,
+                )
+
+            await nice_http.wait_for_host(discovery_result.url)
+
+            try:
+                graph = await dataset.to_graph()
+                return self._mapper.map_graph(graph)
+            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+                return RecordProcessingError(
+                    f"Failed to map dataset {dataset.identifier}: {exc}",
+                    dataset.identifier,
+                    exc,
+                )
+        finally:
+            self._semaphore.release()
+
+    async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
+        """Run the plugin and yield serialized ARC RO-Crate payloads."""
+        async with NiceHttpClient(self._config.http) as nice_http:
+            sitemap = self.create_sitemap(self._config, client=nice_http.client)
+            pending: set[asyncio.Task[str | RecordProcessingError]] = set()
+            async with asyncio.TaskGroup() as task_group:
+                async for discovery_result in sitemap.discover():
+                    task = task_group.create_task(
+                        self._process_result(
+                            discovery_result,
+                            nice_http,
+                        )
+                    )
+                    pending.add(task)
+                    if len(pending) >= self._http_config.max_connections:
+                        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                        for finished in done:
+                            yield finished.result()
+
+                while pending:
+                    done, pending = await asyncio.wait(pending)
                     for finished in done:
                         yield finished.result()
-
-            while pending:
-                done, pending = await asyncio.wait(pending)
-                for finished in done:
-                    yield finished.result()

@@ -1,52 +1,45 @@
 """Orchestrator for the FAIRagro Middleware Harvester."""
 
-import argparse
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Callable
-from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import HarvesterError
-from middleware.inspire import plugin as inspire_plugin
-from middleware.schema_org import plugin as schema_org_plugin
-from middleware.shared.tracing import initialize_logging, initialize_tracing
+from middleware.harvester.plugin_base import Plugin
+from middleware.harvester.plugin_config import PluginConfig
+from middleware.inspire.plugin import InspirePlugin
+from middleware.schema_org.plugin import SchemaOrgPlugin
+from middleware.shared.tracing import initialize_tracing
 
 if TYPE_CHECKING:
-    from middleware.harvester.plugin_config import PluginConfig
+    pass
 
 _SERVICE_NAME = "middleware-harvester"
 
 logger = logging.getLogger(__name__)
 
-# Registry mapping plugin type names to their run_plugin functions.
-# To add a new plugin: import its run_plugin and add an entry here.
-_PLUGIN_RUNNERS = {
-    "inspire": inspire_plugin.run_plugin,
-    "schema_org": schema_org_plugin.run_plugin,
+_PLUGIN_CLASSES: dict[str, type[Plugin]] = {
+    "inspire": InspirePlugin,
+    "schema_org": SchemaOrgPlugin,
 }
-
-
-async def _get_expected_datasets(plugin_type: str, config: "PluginConfig") -> int | None:
-    """Return the expected dataset count from the plugin, if available."""
-    if plugin_type == "inspire":
-        return await inspire_plugin.get_expected_datasets(config)
-    if plugin_type == "schema_org":
-        return await schema_org_plugin.get_expected_datasets(config)
-    return None
 
 
 async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: trace.Tracer) -> None:
     logger.info("Initializing plugin type: %s", repo.plugin_type)
 
-    plugin_runner = _PLUGIN_RUNNERS.get(repo.plugin_type)
-    if plugin_runner is None:
+    plugin_cls = _PLUGIN_CLASSES.get(repo.plugin_type)
+    if plugin_cls is None:
         logger.error("Unknown repository type '%s', skipping...", repo.plugin_type)
         return
+
+    plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
+    plugin_gen = plugin_instance.run()
+    expected_datasets = await plugin_instance.get_expected_datasets()
 
     with tracer.start_as_current_span(
         "plugin_run",
@@ -56,8 +49,6 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         },
     ) as plugin_span:
         try:
-            plugin_gen = plugin_runner(repo.plugin_config)
-            expected_datasets = await _get_expected_datasets(repo.plugin_type, repo.plugin_config)
 
             async def _arc_stream(
                 gen: AsyncGenerator[str | HarvesterError, None],
@@ -117,42 +108,5 @@ def _init_tracing(config: Config) -> Callable[[], None] | None:
     """
     if not config.otel.endpoint:
         return None
-    provider, _ = initialize_tracing(
-        service_name=_SERVICE_NAME,
-        otlp_endpoint=config.otel.endpoint,
-        log_console_spans=config.otel.log_console_spans,
-    )
-    initialize_logging(
-        service_name=_SERVICE_NAME,
-        otlp_endpoint=config.otel.endpoint,
-        log_level=logging.getLevelName(config.log_level),
-        otlp_log_level=logging.getLevelName(config.otel.log_level),
-    )
+    provider, _ = initialize_tracing(config.otel.endpoint, _SERVICE_NAME)
     return provider.shutdown
-
-
-def main() -> None:
-    """CLI entry point for the Middleware Harvester."""
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-    parser = argparse.ArgumentParser(description="FAIRagro Middleware Harvester Orchestrator")
-    parser.add_argument("-c", "--config", required=True, type=Path, help="Path to config file")
-
-    args = parser.parse_args()
-
-    try:
-        config = Config.from_yaml_file(args.config)
-    except Exception as e:  # noqa: BLE001
-        logger.error("Failed to load root configuration: %s", e)
-        return
-
-    shutdown = _init_tracing(config)
-    try:
-        asyncio.run(run_orchestrator(config))
-    finally:
-        if shutdown is not None:
-            shutdown()
-
-
-if __name__ == "__main__":
-    main()

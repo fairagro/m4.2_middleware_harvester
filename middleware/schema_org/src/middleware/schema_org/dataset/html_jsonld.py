@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from html.parser import HTMLParser
 
-import httpx
 from rdflib import Graph
+
+from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..errors import SchemaOrgDatasetError
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
+
+logger = logging.getLogger(__name__)
 
 
 class _JsonLdScriptParser(HTMLParser):
@@ -43,11 +47,17 @@ class _JsonLdScriptParser(HTMLParser):
 class HtmlJsonLdDataset(Dataset):
     """Dataset that fetches an HTML page and extracts embedded JSON-LD markup."""
 
-    def __init__(self, url: str, client: httpx.AsyncClient, jsonld_parse_threshold_bytes: int = 65536) -> None:
-        """Initialize with the page URL, HTTP client, and parse threshold."""
+    def __init__(
+        self,
+        url: str,
+        client: NiceHttpClient,
+        config: Config,
+    ) -> None:
+        """Initialize with the page URL, HTTP client, and configuration."""
         self._url = url
         self._client = client
-        self._jsonld_parse_threshold_bytes = jsonld_parse_threshold_bytes
+        self._config = config
+        self._jsonld_parse_threshold_bytes = config.jsonld_parse_threshold_bytes
 
     @property
     def identifier(self) -> str:
@@ -58,32 +68,25 @@ class HtmlJsonLdDataset(Dataset):
     def from_discovery_result(
         cls,
         discovery_result: DiscoveryResult,
-        client: httpx.AsyncClient | None = None,
-        config: Config | None = None,
+        client: NiceHttpClient,
+        config: Config,
     ) -> Dataset:
-        """Construct an HtmlJsonLdDataset from a UrlDiscoveryResult.
-
-        Raises ValueError for unsupported discovery result types or when no HTTP client is provided.
-        """
+        """Construct an HtmlJsonLdDataset from a UrlDiscoveryResult."""
         if not isinstance(discovery_result, UrlDiscoveryResult):
             raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
 
-        if client is None:
-            raise ValueError(
-                "HtmlJsonLdDataset requires an httpx.AsyncClient. Provide the client to from_discovery_result()."
-            )
-
-        threshold = config.jsonld_parse_threshold_bytes if config is not None else 65536
-        return cls(discovery_result.url, client, threshold)
+        return cls(
+            discovery_result.url,
+            client,
+            config,
+        )
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
-        response = await self._client.get(self._url, follow_redirects=True)
-        if response.is_error:
-            raise SchemaOrgDatasetError(f"HTTP {response.status_code} fetching dataset URL: {self._url}")
+        html_text = await self._fetch_html()
 
         parser = _JsonLdScriptParser()
-        parser.feed(response.text)
+        parser.feed(html_text)
 
         if not parser.blocks:
             raise SchemaOrgDatasetError(f"No JSON-LD blocks found in HTML at: {self._url}")
@@ -112,6 +115,14 @@ class HtmlJsonLdDataset(Dataset):
             merged += block_graph
 
         return merged
+
+    async def _fetch_html(self) -> str:
+        try:
+            response = await self._client.retry_get(self._url, follow_redirects=True)
+        except Exception as exc:  # noqa: BLE001
+            raise SchemaOrgDatasetError(f"Failed to fetch dataset URL {self._url}: {exc}") from exc
+
+        return response.text
 
     def _parse_jsonld_block(self, block: str) -> Graph:
         graph = Graph()

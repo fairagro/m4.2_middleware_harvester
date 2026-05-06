@@ -10,7 +10,7 @@ import pytest
 from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.models import InspireRecord
-from middleware.inspire.plugin import get_expected_datasets, run_plugin
+from middleware.inspire.plugin import InspirePlugin
 
 
 def test_config_loading() -> None:
@@ -78,7 +78,7 @@ async def test_run_plugin_success() -> None:
         mock_mapper.map_record.return_value = MagicMock()
 
         # Consume the generator
-        results = [arc async for arc in run_plugin(mock_config)]
+        results = [arc async for arc in InspirePlugin(mock_config).run()]
 
         assert mock_csw.get_records_async.called
         assert len(results) == 1
@@ -104,7 +104,7 @@ async def test_run_plugin_with_error() -> None:
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.return_value = "http://url"
 
-        results = [item async for item in run_plugin(mock_config)]
+        results = [item async for item in InspirePlugin(mock_config).run()]
         # Should yield the error object explicitly to the orchestrator
         assert len(results) == 1
         assert isinstance(results[0], RecordProcessingError)
@@ -127,7 +127,7 @@ async def test_run_plugin_fatal_error_propagates() -> None:
         mock_csw.get_records_async.return_value = _records()
 
         with pytest.raises(RuntimeError, match="CSW endpoint unreachable"):
-            async for _ in run_plugin(mock_config):
+            async for _ in InspirePlugin(mock_config).run():
                 pass
 
 
@@ -143,6 +143,6 @@ async def test_get_expected_datasets_returns_count() -> None:
     mock_client.get_record_count.return_value = 42
 
     with patch("middleware.inspire.plugin.CSWClient", return_value=mock_client):
-        result = await get_expected_datasets(mock_config)
+        result = await InspirePlugin(mock_config).get_expected_datasets()
 
     assert result == 42

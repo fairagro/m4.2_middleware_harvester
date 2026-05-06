@@ -7,8 +7,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
-import httpx
 from rdflib import Graph
+
+from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..registry import Registry
@@ -60,8 +61,8 @@ class Dataset(ABC):
     def from_discovery_result(
         cls,
         discovery_result: DiscoveryResult,
-        client: httpx.AsyncClient | None = None,
-        config: Config | None = None,
+        client: NiceHttpClient,
+        config: Config,
     ) -> Dataset:
         """Create a Dataset instance from a discovery result."""
         raise NotImplementedError

@@ -8,7 +8,7 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 
 - [ ] Provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the main `middleware.harvester.config.Config` plugin config schema.
 - [ ] Require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically.
-- [ ] Expose the plugin entrypoint as `run_plugin(config: PluginConfig) -> AsyncGenerator[str | HarvesterError, None]`.
+- [ ] Implement `SchemaOrgPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
 - [ ] Select implementations using registries for sitemap, dataset, and mapper types.
 - [ ] Validate config at startup and fail fast on unsupported enum values.
 - [ ] Yield serialized RO-Crate JSON-LD strings or `HarvesterError` objects for every dataset processed.
