@@ -2,7 +2,8 @@
 
 Shared HTTP client wrapper that centralises all polite-harvesting behaviour for
 plugins that make direct HTTP requests. Plugins embed `NiceHttpClientConfig`
-instead of defining their own HTTP parameters. Robots.txt support is opt-in.
+instead of defining their own HTTP parameters. Robots.txt compliance is enabled
+by default and can be disabled per plugin config.
 
 ## Requirements
 
@@ -30,11 +31,12 @@ instead of defining their own HTTP parameters. Robots.txt support is opt-in.
   same host per second.
 - [ ] When `max_requests_per_second` is `None`, apply no host rate limiting.
 - [ ] When `respect_robots_txt = True`: before the first request to any host,
-  fetch and cache that host's `/robots.txt`; skip (and log a warning for) any
-  URL that is disallowed for the configured `user_agent`; apply the
-  `Crawl-delay` directive from `robots.txt` as an additional per-host minimum
-  delay, taking the larger of `Crawl-delay` and the delay derived from
-  `max_requests_per_second`.
+  fetch and cache that host's `/robots.txt`; signal a disallow for any URL
+  that is forbidden for the configured `user_agent` so the caller can log a
+  warning and skip that URL while continuing to harvest the remaining URLs;
+  apply the `Crawl-delay` directive from `robots.txt` as an additional
+  per-host minimum delay, taking the larger of `Crawl-delay` and the delay
+  derived from `max_requests_per_second`.
 - [ ] When `respect_robots_txt = False`: perform no `robots.txt` fetch and no
   `robots.txt` check for any host.
 - [ ] Plugin configs that use `NiceHttpClient` embed `NiceHttpClientConfig` as
@@ -55,8 +57,8 @@ All `retry_attempts` exhausted → raise the last exception to the caller.
 `robots.txt` fetch fails (network error or non-2xx response) → log a warning
 and assume allow-all for that host; do not abort the harvest.
 
-URL disallowed by `robots.txt` → skip the URL and emit a warning; do not raise
-an exception.
+URL disallowed by `robots.txt` → caller logs a warning and skips the URL;
+harvesting continues with the remaining URLs.
 
 `respect_robots_txt = False` → no `robots.txt` request is ever made, regardless
 of host.

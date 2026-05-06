@@ -38,15 +38,23 @@ results and `Crawl-delay` values.
    `max_retry_delay` caps both sources so a misbehaving server cannot stall the
    harvest indefinitely.
 
-5. **robots.txt state merged into `NiceHttpClient` (supersedes `RobotsTxtCache`)**
+5. **robots.txt state owned by `RobotsTxtCache`, held inside `NiceHttpClient`**
    — `NiceHttpClient` already owns the per-host locks and timing state required
-   for rate limiting. Merging robots.txt cache and `Crawl-delay` values into the
-   same object avoids a separate `RobotsTxtCache` class and the indirection of
-   passing it alongside the HTTP client. The standalone `RobotsTxtCache` class
-   is superseded by this design.
+   for rate limiting. `RobotsTxtCache` is a private helper class that stores
+   per-host robots.txt parse results and `Crawl-delay` values; `NiceHttpClient`
+   holds a single `RobotsTxtCache` instance and delegates all robots.txt logic
+   to it. This keeps the context manager boundary clean while isolating cache
+   state from connection management.
 
 6. **`respect_robots_txt` defaults to `True` in `NiceHttpClientConfig`**
    — The safe default is to respect robots.txt for all plugins. Plugins that
-   call machine-to-machine APIs (e.g. CSW endpoints) where robots.txt is
-   irrelevant are not affected because the inspire plugin does not use
-   `NiceHttpClient` at all.
+   call machine-to-machine APIs where robots.txt is irrelevant are not affected
+   because those plugins do not use `NiceHttpClient`.
+
+7. **`RobotsTxtDisallowedError` signals a disallowed URL to the caller**
+   — `NiceHttpClient.ensure_allowed()` raises `RobotsTxtDisallowedError`
+   (a `RuntimeError` subclass) when a URL is forbidden. A dedicated exception
+   type lets plugin code distinguish a robots.txt rejection from other HTTP
+   errors with a single `except` clause, without inspecting error messages.
+   The plugin converts it to a `RecordProcessingError` and continues with the
+   remaining URLs (see req: "signal a disallow … so the caller can … skip").

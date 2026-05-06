@@ -8,7 +8,7 @@
     - `InspireError` (`middleware.inspire.errors` — inspire plugin base)
       - `CswConnectionError`
       - `SemanticError`
-    - `SchemaOrgError` (`middleware.schema_org.errors` — schema.org plugin base, not yet implemented)
+    - `SchemaOrgError` (`middleware.schema_org.errors` — schema.org plugin base)
 
 ## Key Decisions
 

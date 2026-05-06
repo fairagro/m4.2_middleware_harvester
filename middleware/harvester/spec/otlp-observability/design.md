@@ -14,7 +14,7 @@ main.py
   └─ run_orchestrator()
        └─ harvest_run span
             └─ plugin_run span  (per repository)
-                 └─ arc_upload span  (per successful upload)
+                 └─ harvest_upload span  (harvest_arcs call, per repository)
 ```
 
 ## Key Decisions

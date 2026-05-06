@@ -20,14 +20,16 @@ is a complete no-op — no performance cost, no side-effects.
 - [ ] For each repository the orchestrator emits a child span named `plugin_run`
       with attributes `harvester.plugin_type` (string) and
       `harvester.repository_rdi` (string).
-- [ ] For each successful API upload the orchestrator emits a child span of
-      `plugin_run` named `arc_upload` with attribute `harvester.arc_id` (string).
+- [ ] For each repository the orchestrator emits a child span of `plugin_run`
+      named `harvest_upload` that wraps the `harvest_arcs` API call, carrying
+      attributes `harvester.arcs_uploaded` (integer) and
+      `harvester.harvest_id` (string).
 - [ ] A `plugin_run` span records `harvester.arcs_uploaded` (integer — number of
       successfully uploaded ARCs for that repository).
 - [ ] A `plugin_run` span sets its status to `ERROR` when the repository loop
       raises an unhandled exception, and records the exception on the span.
-- [ ] An `arc_upload` span sets its status to `ERROR` when the API call fails,
-      and records the exception on the span.
+- [ ] A `harvest_upload` span sets its status to `ERROR` when the `harvest_arcs`
+      call fails, and records the exception on the span.
 - [ ] The `TracerProvider` is explicitly shut down (flushing pending spans) before
       the process exits, regardless of whether the run succeeded or failed.
 - [ ] `otel.log_console_spans` controls whether spans are additionally written to
