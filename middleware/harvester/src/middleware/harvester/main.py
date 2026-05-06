@@ -1,8 +1,10 @@
 """Orchestrator for the FAIRagro Middleware Harvester."""
 
+import argparse
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from opentelemetry import trace
@@ -122,3 +124,41 @@ def _init_tracing(config: Config) -> Callable[[], None] | None:
     provider, _ = initialize_tracing(_SERVICE_NAME, config.otel.endpoint, config.otel.log_console_spans)
     initialize_logging(_SERVICE_NAME, config.otel.endpoint, config.otel.log_console_spans, log_level, log_level)
     return provider.shutdown
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the FAIRagro Middleware Harvester.")
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="config.yaml",
+        help="Path to the harvester YAML configuration file.",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    """Parse CLI args, load config, and run the harvester."""
+    args = _parse_args()
+    config_path = Path(args.config)
+
+    config = Config.from_yaml_file(config_path)
+    logging.basicConfig(
+        level=getattr(logging, config.log_level, logging.INFO), format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
+
+    shutdown_tracing = _init_tracing(config)
+    try:
+        asyncio.run(run_orchestrator(config))
+    except Exception:  # noqa: BLE001
+        logger.exception("Harvester run failed.")
+        return 1
+    finally:
+        if shutdown_tracing is not None:
+            shutdown_tracing()
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
