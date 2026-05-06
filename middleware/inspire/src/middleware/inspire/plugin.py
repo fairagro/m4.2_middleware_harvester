@@ -1,6 +1,5 @@
 """Plugin integration for INSPIRE-to-ARC harvesting."""
 
-import asyncio
 import logging
 from collections.abc import AsyncGenerator
 
@@ -76,7 +75,7 @@ class InspirePlugin(Plugin):
         """Return the expected total number of datasets for this INSPIRE configuration."""
         csw_client = CSWClient(self._config)
         try:
-            return await asyncio.to_thread(csw_client.get_record_count)
+            return await csw_client.get_record_count_async()
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to determine expected INSPIRE record count: %s", exc)
             return None

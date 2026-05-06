@@ -113,6 +113,84 @@ def test_connect_raises_csw_connection_error_on_failure() -> None:
         client.connect()
 
 
+def test_connect_forwards_user_agent_header() -> None:
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, user_agent="MyAgent")
+    client = CSWClient(config)
+    fake_csw = MagicMock()
+
+    with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
+        client.connect()
+
+    assert mock_factory.call_args.kwargs["headers"] == {"User-Agent": "MyAgent"}
+
+
+@pytest.mark.asyncio
+async def test_get_record_count_async_retries_on_oserror() -> None:
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=1)
+    client = CSWClient(config)
+
+    expected_count = 7
+    expected_calls = 2
+    side_effect: list[OSError | int] = [OSError("temporary"), expected_count]
+
+    def get_record_count_side_effect(*_args: object, **_kwargs: object) -> int:
+        result = side_effect.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    with patch.object(CSWClient, "get_record_count", side_effect=get_record_count_side_effect) as mock_count:
+        result = await client.get_record_count_async()
+
+    assert result == expected_count
+    assert mock_count.call_count == expected_calls
+
+
+@pytest.mark.asyncio
+async def test_get_record_count_async_does_not_retry_value_error() -> None:
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=2)
+    client = CSWClient(config)
+
+    with (
+        patch.object(CSWClient, "get_record_count", side_effect=ValueError("bad query")) as mock_count,
+        pytest.raises(
+            ValueError,
+            match="bad query",
+        ),
+    ):
+        await client.get_record_count_async()
+
+    assert mock_count.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
+    config = Config(
+        csw_url="https://example.com/csw",
+        cql_query="AnyText LIKE '%agriculture%'",
+        timeout=5,
+        chunk_size=10,
+        retry_attempts=1,
+    )
+    client = CSWClient(config)
+    object.__setattr__(client, "_csw", MagicMock())
+    side_effect: list[OSError | list[str]] = [OSError("transient"), ["record1"]]
+
+    def records_side_effect(*_args: object, **_kwargs: object) -> list[str]:
+        result = side_effect.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    expected_calls = 2
+
+    with patch.object(CSWClient, "_get_records_by_cql_sync", side_effect=records_side_effect) as mock_sync:
+        records = [item async for item in client.get_records_async()]
+
+    assert records == ["record1"]
+    assert mock_sync.call_count == expected_calls
+
+
 @pytest.mark.asyncio
 async def test_get_records_async_uses_cql_path() -> None:
     config = Config(

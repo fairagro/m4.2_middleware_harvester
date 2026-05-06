@@ -3,7 +3,7 @@
 # ruff: noqa: SLF001, PLR2004
 
 from collections.abc import AsyncGenerator
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -140,7 +140,7 @@ async def test_get_expected_datasets_returns_count() -> None:
     mock_config.chunk_size = 10
 
     mock_client = MagicMock()
-    mock_client.get_record_count.return_value = 42
+    mock_client.get_record_count_async = AsyncMock(return_value=42)
 
     with patch("middleware.inspire.plugin.CSWClient", return_value=mock_client):
         result = await InspirePlugin(mock_config).get_expected_datasets()

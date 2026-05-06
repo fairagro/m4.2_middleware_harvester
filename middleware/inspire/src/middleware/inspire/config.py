@@ -36,6 +36,40 @@ class Config(BaseModel):
         Field(description="CSW connection timeout in seconds.", ge=1),
     ] = 30
 
+    user_agent: Annotated[
+        str,
+        Field(description="User-Agent header value used for CSW requests."),
+    ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+
+    retry_attempts: Annotated[
+        int,
+        Field(
+            description="Number of additional retry attempts for transient CSW connection failures.",
+            ge=0,
+        ),
+    ] = 5
+    retry_backoff_base: Annotated[
+        float,
+        Field(
+            description="Base delay in seconds for CSW retry backoff.",
+            gt=0,
+        ),
+    ] = 1.0
+    retry_backoff_factor: Annotated[
+        float,
+        Field(
+            description="Exponential backoff factor for CSW retry delays.",
+            ge=1,
+        ),
+    ] = 2.0
+    retry_max_delay: Annotated[
+        float,
+        Field(
+            description="Maximum delay in seconds for CSW retry backoff.",
+            ge=0,
+        ),
+    ] = 600.0
+
     @model_validator(mode="after")
     def _check_mutually_exclusive_filters(self) -> Self:
         """Ensure at most one of cql_query and xml_query is set."""
