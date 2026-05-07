@@ -50,3 +50,18 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = 65536
+    worker_tasks: Annotated[
+        int | None,
+        Field(
+            description=(
+                "Number of worker tasks consuming discovery results. "
+                "If unset, defaults to the HTTP max_connections value."
+            ),
+            ge=1,
+        ),
+    ] = None
+
+    @property
+    def effective_worker_tasks(self) -> int:
+        """Return configured worker tasks or fall back to the HTTP client's max connections."""
+        return self.worker_tasks or self.http.max_connections

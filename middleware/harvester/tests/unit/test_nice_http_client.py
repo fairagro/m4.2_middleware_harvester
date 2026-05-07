@@ -45,8 +45,36 @@ async def test_retry_get_retries_transient_status_codes() -> None:
         raw_client = client.client
         get_mock = AsyncMock(side_effect=[response_503, response_200])
         with patch.object(raw_client, "get", new=get_mock):
-            response = await client.retry_get("https://example.com/test")
+            response = await client.retry_get_with_client(raw_client, config, "https://example.com/test")
 
     assert response.status_code == OK_STATUS
     assert response.text == "ok"
     assert get_mock.call_count == EXPECTED_CALL_COUNT
+
+
+@pytest.mark.asyncio
+async def test_get_with_policy_applies_robots_and_rate_limit() -> None:
+    config = NiceHttpClientConfig()
+    client = NiceHttpClient(config)
+
+    response_200 = httpx.Response(
+        200,
+        request=httpx.Request("GET", "https://example.com/test"),
+        content=b"ok",
+    )
+
+    async with client:
+        raw_client = client.client
+        retry_get_mock = AsyncMock(return_value=response_200)
+        with (
+            patch.object(NiceHttpClient, "ensure_allowed", AsyncMock()) as ensure_allowed_mock,
+            patch.object(NiceHttpClient, "wait_for_host", AsyncMock()) as wait_for_host_mock,
+            patch.object(NiceHttpClient, "retry_get_with_client", retry_get_mock),
+        ):
+            response = await client.get_with_policy("https://example.com/test")
+
+    assert response.status_code == OK_STATUS
+    assert response.text == "ok"
+    ensure_allowed_mock.assert_awaited_once_with("https://example.com/test")
+    wait_for_host_mock.assert_awaited_once_with("https://example.com/test")
+    retry_get_mock.assert_awaited_once_with(raw_client, config, "https://example.com/test", True)

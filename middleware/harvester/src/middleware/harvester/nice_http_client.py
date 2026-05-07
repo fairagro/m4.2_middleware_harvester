@@ -314,8 +314,10 @@ class NiceHttpClient:
 
         raise RuntimeError("retry_get terminated unexpectedly")
 
-    async def retry_get(self, url: str, follow_redirects: bool = True, **kwargs: Any) -> httpx.Response:
-        """Perform a GET request with retry/backoff semantics on this client."""
+    async def get_with_policy(self, url: str, follow_redirects: bool = True, **kwargs: Any) -> httpx.Response:
+        """Fetch the URL through robots.txt, host rate limiting, and retry/backoff policy."""
+        await self.ensure_allowed(url)
+        await self.wait_for_host(url)
         return await self.retry_get_with_client(self.client, self._config, url, follow_redirects, **kwargs)
 
     async def wait_for_host(self, url: str) -> None:

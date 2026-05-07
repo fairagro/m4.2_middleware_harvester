@@ -85,7 +85,7 @@ class HtmlJsonLdDataset(Dataset):
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
-        html_text = await self._fetch_html()
+        html_text = await self._fetch_html(self._url, self._client)
 
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
@@ -117,14 +117,6 @@ class HtmlJsonLdDataset(Dataset):
             merged += block_graph
 
         return merged
-
-    async def _fetch_html(self) -> str:
-        try:
-            response = await self._client.retry_get(self._url, follow_redirects=True)
-        except Exception as exc:  # noqa: BLE001
-            raise SchemaOrgDatasetError(f"Failed to fetch dataset URL {self._url}: {exc}") from exc
-
-        return response.text
 
     def _parse_jsonld_block(self, block: str) -> Graph:
         graph = Graph()

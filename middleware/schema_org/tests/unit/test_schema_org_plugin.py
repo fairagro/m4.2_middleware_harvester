@@ -142,6 +142,68 @@ async def test_schema_org_plugin_run_yields_error_on_dataset_construction_failur
 
 
 @pytest.mark.asyncio
+async def test_schema_org_plugin_run_closes_cleanly_when_generator_is_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+        http=SchemaOrgNiceHttpClientConfig(max_connections=2),
+    )
+
+    def fake_create_sitemap(_config: Config, client: Any | None = None, **_kwargs: object) -> FakeSitemap:
+        del client, _kwargs
+        return FakeSitemap(
+            [
+                "https://example.org/dataset/1",
+                "https://example.org/dataset/2",
+            ]
+        )
+
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.SchemaOrgPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: FakeDataset},
+    )
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.SchemaOrgPlugin.create_mapper",
+        staticmethod(lambda _config: MagicMock(map_graph=MagicMock(return_value="mapped:graph"))),
+    )
+    monkeypatch.setattr("middleware.schema_org.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
+    monkeypatch.setattr("middleware.schema_org.plugin.NiceHttpClient.wait_for_host", AsyncMock(return_value=None))
+
+    loop = asyncio.get_running_loop()
+    original_handler = loop.get_exception_handler()
+    exceptions: list[BaseException | str] = []
+
+    def handle_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, object]) -> None:
+        value = context.get("exception")
+        if value is None:
+            value = context.get("message", "unknown")
+        if not isinstance(value, (BaseException, str)):
+            value = str(value)
+        exceptions.append(value)
+
+    loop.set_exception_handler(handle_exception)
+
+    try:
+        agen = SchemaOrgPlugin(config).run()
+        first_result = await agen.__anext__()
+        assert first_result == "mapped:graph"
+        await agen.aclose()
+        await asyncio.sleep(0)
+    finally:
+        loop.set_exception_handler(original_handler)
+
+    assert not exceptions
+
+
+@pytest.mark.asyncio
 async def test_schema_org_plugin_run_yields_error_when_robots_disallows_url(monkeypatch: pytest.MonkeyPatch) -> None:
     config = Config(
         sitemap_url="https://example.org/sitemap.xml",

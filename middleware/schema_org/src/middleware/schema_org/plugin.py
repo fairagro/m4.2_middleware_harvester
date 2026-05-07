@@ -7,11 +7,11 @@ from collections.abc import AsyncGenerator
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
-from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
-from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
+from .dataset import Dataset, DiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
 from .schema_org_mapper import SchemaOrgMapper
@@ -27,8 +27,6 @@ class SchemaOrgPlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
         self._mapper: SchemaOrgMapper = self.create_mapper(config)
-        self._http_config = config.http
-        self._semaphore = asyncio.Semaphore(self._http_config.max_connections)
 
     @staticmethod
     def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
@@ -69,72 +67,77 @@ class SchemaOrgPlugin(Plugin):
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
     ) -> str | RecordProcessingError:
-        await self._semaphore.acquire()
         try:
-            if not isinstance(discovery_result, UrlDiscoveryResult):
-                return RecordProcessingError(
-                    f"Unsupported discovery result type: {type(discovery_result).__name__}",
+            dataset_cls = Dataset.registry[self._config.dataset_type]
+            dataset = dataset_cls.from_discovery_result(
+                discovery_result,
+                client=nice_http,
+                config=self._config,
+            )
+        except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+            return RecordProcessingError(
+                f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
+                str(discovery_result),
+                exc,
+            )
+
+        try:
+            graph = await dataset.to_graph()
+            return await asyncio.to_thread(self._mapper.map_graph, graph)
+        except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+            return RecordProcessingError(
+                f"Failed to map dataset {dataset.identifier}: {exc}",
+                dataset.identifier,
+                exc,
+            )
+
+    async def _run_with_task_group(
+        self,
+        sitemap: Sitemap,
+        nice_http: NiceHttpClient,
+        worker_tasks: int,
+    ) -> AsyncGenerator[str | HarvesterError, None]:
+        results: asyncio.Queue[str | HarvesterError] = asyncio.Queue()
+        semaphore = asyncio.Semaphore(worker_tasks)
+        discovery_finished = False
+
+        async def worker(discovery_result: DiscoveryResult) -> None:
+            try:
+                result = await self._process_result(discovery_result, nice_http)
+            except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
+                result = RecordProcessingError(
+                    f"Failed to process discovery result {discovery_result}: {exc}",
                     str(discovery_result),
-                    RuntimeError("unsupported discovery result type"),
-                )
-
-            try:
-                await nice_http.ensure_allowed(discovery_result.url)
-            except RobotsTxtDisallowedError as exc:
-                return RecordProcessingError(
-                    str(exc),
-                    discovery_result.url,
                     exc,
                 )
+            await results.put(result)
+            semaphore.release()
 
-            try:
-                dataset_cls = Dataset.registry[self._config.dataset_type]
-                dataset = dataset_cls.from_discovery_result(
-                    discovery_result,
-                    client=nice_http,
-                    config=self._config,
-                )
-            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                return RecordProcessingError(
-                    f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
-                    str(discovery_result),
-                    exc,
-                )
+        async with asyncio.TaskGroup() as task_group:
 
-            await nice_http.wait_for_host(discovery_result.url)
+            async def producer() -> None:
+                nonlocal discovery_finished
+                async for discovery_result in sitemap.discover():
+                    await semaphore.acquire()
+                    task_group.create_task(worker(discovery_result))
+                discovery_finished = True
 
-            try:
-                graph = await dataset.to_graph()
-                return self._mapper.map_graph(graph)
-            except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
-                return RecordProcessingError(
-                    f"Failed to map dataset {dataset.identifier}: {exc}",
-                    dataset.identifier,
-                    exc,
-                )
-        finally:
-            self._semaphore.release()
+            # Run the discovery producer inside the TaskGroup so its lifecycle and
+            # exceptions are managed together with the worker tasks.
+            # This keeps discovery and result streaming concurrent.
+            task_group.create_task(producer())
+
+            while not discovery_finished or not results.empty():
+                payload = await results.get()
+                try:
+                    yield payload
+                except GeneratorExit:
+                    return
 
     async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
         """Run the plugin and yield serialized ARC RO-Crate payloads."""
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http.client)
-            pending: set[asyncio.Task[str | RecordProcessingError]] = set()
-            async with asyncio.TaskGroup() as task_group:
-                async for discovery_result in sitemap.discover():
-                    task = task_group.create_task(
-                        self._process_result(
-                            discovery_result,
-                            nice_http,
-                        )
-                    )
-                    pending.add(task)
-                    if len(pending) >= self._http_config.max_connections:
-                        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                        for finished in done:
-                            yield finished.result()
-
-                while pending:
-                    done, pending = await asyncio.wait(pending)
-                    for finished in done:
-                        yield finished.result()
+            worker_tasks = self._config.effective_worker_tasks
+            async for item in self._run_with_task_group(sitemap, nice_http, worker_tasks):
+                yield item
