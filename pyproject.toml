@@ -112,6 +112,7 @@ mypy_path = [
   "middleware/inspire/src",
   "middleware/harvester/src",
   "middleware/schema_org/src",
+  "middleware/schema_org/tests/unit",
 ]
 
 # Exclude directories from type checking
@@ -154,7 +155,8 @@ testpaths = [
 pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
-    "middleware/schema_org/src"
+    "middleware/schema_org/src",
+    "middleware/schema_org/tests/unit"
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
