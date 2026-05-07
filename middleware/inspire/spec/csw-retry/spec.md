@@ -22,6 +22,7 @@ Add transient-failure retry with exponential backoff to the `CSWClient` so that 
 - [ ] Each retry attempt is logged at WARNING level, including: method name, attempt number out of total, and the exception message.
 - [ ] Retry logic applies only to the async path (`get_records_async`, `get_expected_datasets`). The synchronous `get_records()` path is not modified.
 - [ ] `ValueError` is never retried; it propagates immediately regardless of `retry_attempts`.
+- [ ] HTTP 4xx errors (e.g. 404 Not Found on `GetCapabilities`) are never retried; they propagate immediately. An error is treated as an HTTP 4xx error when it carries a `response.status_code` in the range 400–499.
 - [ ] Inter-attempt sleep is performed with `asyncio.sleep()` so the event loop is not blocked.
 
 ## Edge Cases
@@ -33,5 +34,7 @@ Add transient-failure retry with exponential backoff to the `CSWClient` so that 
 `retry_backoff_base × retry_backoff_factor^(N−1)` exceeds `retry_max_delay` → wait exactly `retry_max_delay` (±10% jitter applied before the cap).
 
 `ValueError` raised by OWSLib (e.g. malformed filter, schema mismatch) → propagates immediately; not retried.
+
+`requests.exceptions.HTTPError` with a 4xx status code (e.g. 404 on `GetCapabilities`) → propagates immediately; not retried. `requests.exceptions.HTTPError` is a subclass of `IOError`/`OSError`, so without this guard it would be silently retried.
 
 `connect()` fails on every attempt → `CswConnectionError` is raised from the last `OSError`/`TimeoutError`.

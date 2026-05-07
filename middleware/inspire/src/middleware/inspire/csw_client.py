@@ -5,6 +5,7 @@ import contextlib
 import logging
 import random
 from collections.abc import AsyncGenerator, Callable, Iterator
+from http import HTTPStatus
 from typing import TypeVar, cast
 from urllib.parse import urlencode
 
@@ -513,40 +514,47 @@ class CSWClient:
 
     T = TypeVar("T")
 
+    @staticmethod
+    def _is_http_client_error(exc: BaseException) -> bool:
+        """Return True if exc is an HTTP 4xx client error (non-retryable)."""
+        response = getattr(exc, "response", None)
+        status_code = getattr(response, "status_code", None)
+        return isinstance(status_code, int) and HTTPStatus.BAD_REQUEST <= status_code < HTTPStatus.INTERNAL_SERVER_ERROR
+
     async def _retry_async(self, fn: Callable[..., T], method_name: str, *args: object, **kwargs: object) -> T:
         """Retry a synchronous function on OSError / TimeoutError in the async layer."""
         total_attempts = 1 + self._config.retry_attempts
-        last_exception: BaseException | None = None
+        last_exception: Exception | None = None
 
         for attempt in range(1, total_attempts + 1):
             try:
                 return await asyncio.to_thread(fn, *args, **kwargs)
-            except Exception as exc:
-                if isinstance(exc, ValueError):
+            except CswConnectionError as exc:
+                cause = exc.__cause__
+                if isinstance(cause, (OSError, TimeoutError)) and not self._is_http_client_error(cause):
+                    last_exception = exc
+                else:
                     raise
-                retryable = isinstance(exc, (OSError, TimeoutError))
-                if isinstance(exc, CswConnectionError) and isinstance(exc.__cause__, (OSError, TimeoutError)):
-                    retryable = True
-                if not retryable:
+            except (OSError, TimeoutError) as exc:
+                if self._is_http_client_error(exc):
                     raise
-
                 last_exception = exc
-                if attempt == total_attempts:
-                    raise
 
-                logger.warning(
-                    "Retrying %s attempt %d/%d after transient error: %s",
-                    method_name,
-                    attempt,
-                    total_attempts,
-                    exc,
-                )
-                delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
-                delay = min(delay * random.uniform(0.9, 1.1), self._config.retry_max_delay)
-                await asyncio.sleep(delay)
+            if attempt == total_attempts:
+                raise last_exception or RuntimeError("Retry helper exited without exception")
 
-        assert last_exception is not None
-        raise last_exception
+            logger.warning(
+                "Retrying %s attempt %d/%d after transient error: %s",
+                method_name,
+                attempt,
+                total_attempts,
+                last_exception,
+            )
+            delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
+            delay = min(delay * random.uniform(0.9, 1.1), self._config.retry_max_delay)
+            await asyncio.sleep(delay)
+
+        raise last_exception or RuntimeError("Retry helper exited without exception")
 
     def _parse_iso_record(self, iso: MD_Metadata, record_uuid: str) -> InspireRecord:
         """Parse an OWSLib MD_Metadata object into an InspireRecord."""

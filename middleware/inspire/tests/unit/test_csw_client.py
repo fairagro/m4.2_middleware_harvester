@@ -164,6 +164,54 @@ async def test_get_record_count_async_does_not_retry_value_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_record_count_async_does_not_retry_http_404() -> None:
+    """HTTP 4xx errors must not be retried even though requests.exceptions.HTTPError is an OSError subclass."""
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=3)
+    client = CSWClient(config)
+
+    fake_response = MagicMock()
+    fake_response.status_code = 404
+    http_error = OSError("404 Client Error: Not Found")
+    http_error.response = fake_response  # type: ignore[attr-defined]
+
+    with (
+        patch.object(CSWClient, "get_record_count", side_effect=http_error) as mock_count,
+        pytest.raises(OSError, match="404 Client Error"),
+    ):
+        await client.get_record_count_async()
+
+    assert mock_count.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_record_count_async_retries_http_503() -> None:
+    """HTTP 5xx errors are OSErrors without a 4xx status code, so they should be retried."""
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=1)
+    client = CSWClient(config)
+
+    fake_response = MagicMock()
+    fake_response.status_code = 503
+    http_error = OSError("503 Server Error: Service Unavailable")
+    http_error.response = fake_response  # type: ignore[attr-defined]
+
+    expected_count = 42
+    expected_calls = 2
+    side_effect: list[OSError | int] = [http_error, expected_count]
+
+    def get_record_count_side_effect(*_args: object, **_kwargs: object) -> int:
+        result = side_effect.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    with patch.object(CSWClient, "get_record_count", side_effect=get_record_count_side_effect) as mock_count:
+        result = await client.get_record_count_async()
+
+    assert result == expected_count
+    assert mock_count.call_count == expected_calls
+
+
+@pytest.mark.asyncio
 async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
     config = Config(
         csw_url="https://example.com/csw",

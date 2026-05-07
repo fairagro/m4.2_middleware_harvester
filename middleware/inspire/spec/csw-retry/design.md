@@ -36,8 +36,9 @@ get_records_async / get_expected_datasets
 3. **Retry at the `asyncio.to_thread()` boundary, not inside the synchronous thread**
    — OWSLib is entirely synchronous. Placing the retry loop in the async layer means backoff sleeps use `asyncio.sleep()`, which yields the event loop during the wait. A blocking `time.sleep()` inside the synchronous thread would stall the event loop for the full backoff duration and prevent other coroutines from progressing.
 
-4. **Only `OSError` and `TimeoutError` are retried**
+4. **Only `OSError` and `TimeoutError` are retried — but HTTP 4xx errors are excluded**
    — These exception types map directly to transient network conditions: TCP resets, DNS resolution failures, and socket timeouts. `ValueError` signals a semantically incorrect request (e.g. a conflicting filter or a malformed URL); retrying an invalid request cannot succeed and must not be attempted.
+   — `requests.exceptions.HTTPError` (raised by OWSLib on non-2xx responses) is a subclass of `IOError`/`OSError`, so without an explicit guard it would be retried. HTTP 4xx errors (e.g. 404 Not Found on `GetCapabilities`) are permanent server-side rejections and must propagate immediately. Detection is duck-typed via `getattr(exc, "response", None).status_code` — no direct `requests` import is needed, keeping the coupling to OWSLib's transport layer minimal.
 
 5. **Synchronous `get_records()` path is not modified**
    — The plugin exclusively calls `get_records_async()`. Adding blocking retry (`time.sleep()`) to the synchronous path would harm callers that do not expect long stalls and would introduce a second, inconsistent retry implementation with no current use case.
