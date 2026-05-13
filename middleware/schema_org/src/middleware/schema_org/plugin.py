@@ -100,8 +100,10 @@ class SchemaOrgPlugin(Plugin):
         results: asyncio.Queue[str | HarvesterError] = asyncio.Queue()
         semaphore = asyncio.Semaphore(worker_tasks)
         discovery_finished = False
+        active_workers = 0
 
         async def worker(discovery_result: DiscoveryResult) -> None:
+            nonlocal active_workers
             try:
                 result = await self._process_result(discovery_result, nice_http)
             except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
@@ -111,14 +113,16 @@ class SchemaOrgPlugin(Plugin):
                     exc,
                 )
             await results.put(result)
+            active_workers -= 1
             semaphore.release()
 
         async with asyncio.TaskGroup() as task_group:
 
             async def producer() -> None:
-                nonlocal discovery_finished
+                nonlocal discovery_finished, active_workers
                 async for discovery_result in sitemap.discover():
                     await semaphore.acquire()
+                    active_workers += 1
                     task_group.create_task(worker(discovery_result))
                 discovery_finished = True
 
@@ -127,7 +131,7 @@ class SchemaOrgPlugin(Plugin):
             # This keeps discovery and result streaming concurrent.
             task_group.create_task(producer())
 
-            while not discovery_finished or not results.empty():
+            while not discovery_finished or active_workers > 0 or not results.empty():
                 payload = await results.get()
                 try:
                     yield payload
