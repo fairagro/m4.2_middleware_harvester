@@ -39,7 +39,7 @@ class XmlSitemap(Sitemap):
             return
 
         seen_sitemaps.add(sitemap_url)
-        response = await client.get(sitemap_url)
+        response = await NiceHttpClient.retry_get_with_client(client, self.config.http, sitemap_url)
         response.raise_for_status()
 
         root = fromstring(response.text)
