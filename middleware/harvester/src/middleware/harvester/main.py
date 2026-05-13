@@ -136,19 +136,19 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             failed_datasets=None,
         )
 
-    try:
         plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
         plugin_gen = plugin_instance.run()
-        expected_datasets = await plugin_instance.get_expected_datasets()
-        harvest_id, harvested_datasets, failed_datasets, harvest_started = await _execute_harvest_upload(
-            repo,
-            client,
-            tracer,
-            plugin_gen,
-            expected_datasets,
-        )
-    except Exception:  # noqa: BLE001
-        unhandled_failure = True
+        try:
+            expected_datasets = await plugin_instance.get_expected_datasets()
+            harvest_id, harvested_datasets, failed_datasets, harvest_started = await _execute_harvest_upload(
+                repo,
+                client,
+                tracer,
+                plugin_gen,
+                expected_datasets,
+            )
+        finally:
+            await plugin_gen.aclose()
 
     if harvest_started:
         if harvested_datasets is None:
