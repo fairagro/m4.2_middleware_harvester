@@ -151,6 +151,8 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         finally:
             await plugin_gen.aclose()
     except Exception:  # noqa: BLE001
+        logger.error("Unhandled exception in repository '%s', skipping.", repo.rdi)
+        logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
 
     if harvest_started:
@@ -251,7 +253,8 @@ def main() -> int:
         if report.all_failed:
             exit_code = 1
     except Exception:  # noqa: BLE001
-        logger.exception("Harvester run failed.")
+        logger.error("Harvester run failed.")
+        logger.debug("Harvester run failed.", exc_info=True)
         exit_code = 1
     finally:
         if shutdown_tracing is not None:
