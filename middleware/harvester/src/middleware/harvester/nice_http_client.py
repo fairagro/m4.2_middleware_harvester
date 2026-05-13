@@ -240,9 +240,10 @@ class NiceHttpClient:
             )
             raise RobotsTxtDisallowedError(f"Dataset URL disallowed by robots.txt: {url}")
 
-    def _calculate_retry_delay(self, attempt: int) -> float:
-        delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
-        return min(delay * random.uniform(0.9, 1.1), self._config.max_retry_delay)
+    @staticmethod
+    def _calculate_retry_delay(config: NiceHttpClientConfig, attempt: int) -> float:
+        delay = config.retry_backoff_base * (config.retry_backoff_factor ** (attempt - 1))
+        return min(delay * random.uniform(0.9, 1.1), config.max_retry_delay)
 
     @staticmethod
     def _parse_retry_after(value: str | None) -> float | None:
@@ -303,8 +304,7 @@ class NiceHttpClient:
                 assert last_error is not None
                 raise last_error
 
-            delay = config.retry_backoff_base * (config.retry_backoff_factor ** (attempt - 1))
-            delay = min(delay * random.uniform(0.9, 1.1), config.max_retry_delay)
+            delay = NiceHttpClient._calculate_retry_delay(config, attempt)
             if response is not None and response.status_code in {429, 503}:
                 retry_after = NiceHttpClient._parse_retry_after(response.headers.get("Retry-After"))
                 if retry_after is not None:
