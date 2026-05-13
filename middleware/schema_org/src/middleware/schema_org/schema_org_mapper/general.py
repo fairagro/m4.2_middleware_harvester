@@ -132,7 +132,10 @@ class GeneralSchemaOrgMapper(SchemaOrgMapper):
         doi = self._extract_doi(graph, subject)
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
         identifier = doi or str(subject) or self._to_identifier_slug(title)
-        if identifier and ("://" in identifier or "/" in identifier):
+        # DOIs always contain "/" but are stable unique identifiers — keep them as-is.
+        # Only normalise HTTP/S URLs and other slash-containing non-DOI strings.
+        is_doi = bool(doi and identifier == doi)
+        if not is_doi and identifier and ("://" in identifier or "/" in identifier):
             identifier = self._to_identifier_slug(title) or identifier.split("/")[-1]
 
         description = self._str(graph, subject, self._schema().description) or ""

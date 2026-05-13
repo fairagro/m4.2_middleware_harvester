@@ -61,7 +61,8 @@ class CSWClient:
         try:
             self._connect()
         except (OSError, TimeoutError, ValueError) as e:
-            logger.exception("Failed to connect to CSW at %s", self._config.csw_url)
+            logger.error("Failed to connect to CSW at %s", self._config.csw_url)
+            logger.debug("Failed to connect to CSW at %s", self._config.csw_url, exc_info=True)
             raise CswConnectionError(f"Failed to connect to CSW at {self._config.csw_url}: {e}") from e
 
     def get_record_url(self, record_id: str) -> str:
@@ -248,6 +249,12 @@ class CSWClient:
         logger.info("Using CQL query for harvesting: %s", cql_query)
         yield from self._get_records_paged(chunk_size, cql_query, None, max_records)
 
+    def _normalize_xml_query(self, xml_query: str | bytes) -> str | bytes:
+        """Normalize raw XML queries for OWSLib compatibility."""
+        if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
+            return xml_query.encode("utf-8")
+        return xml_query
+
     def _get_records_by_xml(self, xml_query: str | bytes) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using a raw XML request."""
         logger.info("Using raw XML request for harvesting.")
@@ -256,11 +263,7 @@ class CSWClient:
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        # If xml_query is a string with an encoding declaration,
-        # ensure it's converted to bytes to avoid lxml error:
-        # "Unicode strings with encoding declaration are not supported."
-        if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
-            xml_query = xml_query.encode("utf-8")
+        xml_query = self._normalize_xml_query(xml_query)
 
         self._csw.getrecords2(xml=xml_query)
         if self._csw.records:
@@ -497,7 +500,7 @@ class CSWClient:
             return 0
 
         if effective_xml:
-            self._csw.getrecords2(xml=effective_xml)
+            self._csw.getrecords2(xml=self._normalize_xml_query(effective_xml))
         elif effective_fes:
             self._csw.getrecords2(constraints=effective_fes, maxrecords=1, esn="brief")
         elif effective_cql:

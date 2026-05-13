@@ -97,7 +97,10 @@ class HtmlJsonLdDataset(Dataset):
 
         for block in parser.blocks:
             try:
-                json.loads(block)
+                # Parse with strict=False to tolerate raw control characters in
+                # string values (server-side data quality issue), then re-serialize
+                # to produce clean, standards-compliant JSON for rdflib.
+                block = json.dumps(json.loads(block, strict=False))
             except json.JSONDecodeError as exc:
                 raise SchemaOrgDatasetError(
                     f"Invalid JSON in JSON-LD block at {self._url}: {exc}\nBlock:\n{block}"

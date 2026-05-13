@@ -102,6 +102,25 @@ def test_get_record_count_uses_xml_query() -> None:
     assert count == expected_count
 
 
+def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
+    config = _make_config()
+    client = CSWClient(config)
+    fake_csw = MagicMock()
+
+    def getrecords2(**kwargs: object) -> None:
+        assert isinstance(kwargs.get("xml"), bytes)
+        fake_csw.results = {"matches": ["11"]}
+
+    fake_csw.getrecords2.side_effect = getrecords2
+    object.__setattr__(client, "_csw", fake_csw)
+
+    expected_count = 11
+    xml_request = '<?xml version="1.0" encoding="UTF-8"?><xml />'
+    count = client.get_record_count(xml_query=xml_request)
+
+    assert count == expected_count
+
+
 def test_connect_raises_csw_connection_error_on_failure() -> None:
     config = _make_config()
     client = CSWClient(config)
