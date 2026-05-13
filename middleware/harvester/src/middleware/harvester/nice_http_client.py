@@ -308,7 +308,7 @@ class NiceHttpClient:
             if response is not None and response.status_code in {429, 503}:
                 retry_after = NiceHttpClient._parse_retry_after(response.headers.get("Retry-After"))
                 if retry_after is not None:
-                    delay = min(delay, retry_after, config.max_retry_delay)
+                    delay = min(max(delay, retry_after), config.max_retry_delay)
 
             await asyncio.sleep(delay)
 
