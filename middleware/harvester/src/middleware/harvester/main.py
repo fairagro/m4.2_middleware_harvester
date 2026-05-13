@@ -238,15 +238,15 @@ def main() -> int:
     args = _parse_args()
     config_path = Path(args.config)
 
-    config = Config.from_yaml_file(config_path)
-    logging.basicConfig(
-        level=getattr(logging, config.log_level, logging.INFO), format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-    shutdown_tracing = _init_tracing(config)
+    shutdown_tracing = None
     report = None
     exit_code = 0
     try:
+        config = Config.from_yaml_file(config_path)
+        logging.getLogger().setLevel(getattr(logging, config.log_level, logging.INFO))
+        shutdown_tracing = _init_tracing(config)
         report = asyncio.run(run_orchestrator(config))
         if report.all_failed:
             exit_code = 1
