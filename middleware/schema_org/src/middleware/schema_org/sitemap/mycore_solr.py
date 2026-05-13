@@ -70,7 +70,7 @@ class MycoreSolrSitemap(Sitemap):
         start: int,
     ) -> tuple[int, list[dict[str, object]], int]:
         request_url = self._build_request_url(sitemap_url, start)
-        response = await client.get(request_url)
+        response = await NiceHttpClient.retry_get_with_client(client, self.config.http, request_url)
         response.raise_for_status()
 
         payload = response.json()
