@@ -7,6 +7,8 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 
+from middleware.harvester.nice_http_client import NiceHttpClient
+
 from ..config import Config, SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
 from .sitemap import Sitemap

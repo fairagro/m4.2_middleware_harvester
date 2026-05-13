@@ -7,6 +7,8 @@ from collections.abc import AsyncGenerator
 import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
+from middleware.harvester.nice_http_client import NiceHttpClient
+
 from ..config import SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
 from .sitemap import Sitemap

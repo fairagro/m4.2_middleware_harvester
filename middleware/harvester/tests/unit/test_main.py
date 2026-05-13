@@ -2,7 +2,6 @@
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from typing import Any, NoReturn
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -271,10 +270,10 @@ def test_print_report_logs_warning_on_serialisation_failure(
         repository_reports=[],
     )
 
-    def raise_on_dumps(*_args: Any, **_kwargs: Any) -> NoReturn:
-        raise ValueError("boom")
+    def broken_to_jsonld(_: HarvestReport) -> dict[str, object]:
+        return {"unserializable": object()}
 
-    monkeypatch.setattr("middleware.harvester.report.json.dumps", raise_on_dumps)
+    monkeypatch.setattr(HarvestReport, "to_jsonld", broken_to_jsonld)
     print_report(report)
 
     assert "Failed to serialise harvest report" in caplog.text
