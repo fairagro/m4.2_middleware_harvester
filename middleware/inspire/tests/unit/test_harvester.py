@@ -22,7 +22,11 @@ def mock_csw_cls() -> Iterator[MagicMock]:
 def test_connect(mock_csw_cls: MagicMock) -> None:
     client = CSWClient(Config(csw_url="http://example.com/csw"))
     client.connect()
-    mock_csw_cls.assert_called_with("http://example.com/csw", timeout=30)
+    mock_csw_cls.assert_called_once()
+    assert mock_csw_cls.call_args.kwargs["timeout"] == 30
+    assert mock_csw_cls.call_args.kwargs["headers"] == {
+        "User-Agent": "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)",
+    }
     assert client._csw is not None
 
 

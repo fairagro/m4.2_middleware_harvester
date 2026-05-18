@@ -86,16 +86,30 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/principles.md`](spec/principles.md)** — Authoritative project principles (start here).
 - **[`spec/error-handling/`](spec/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
+- **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
+- **[`spec/nice-http-client/`](spec/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
 - **[`middleware/harvester/spec/harvester-orchestration/`](middleware/harvester/spec/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
 - **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
+- **[`middleware/harvester/spec/otlp-observability/`](middleware/harvester/spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
+- **[`middleware/harvester/spec/harvest-report/`](middleware/harvester/spec/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:
 
 - **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
+- **[`middleware/inspire/spec/csw-retry/`](middleware/inspire/spec/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
+
+**Component-level** (`middleware/schema_org/spec/`) — schema_org plugin internals:
+
+- **[`middleware/schema_org/spec/schema-org-harvesting/`](middleware/schema_org/spec/schema-org-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
+- **[`middleware/schema_org/spec/xml-sitemap-parser/`](middleware/schema_org/spec/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
+- **[`middleware/schema_org/spec/sitemap-mycore-solr/`](middleware/schema_org/spec/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
+- **[`middleware/schema_org/spec/html-jsonld-dataset/`](middleware/schema_org/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
+- **[`middleware/schema_org/spec/schemaorg-dataset-abstraction/`](middleware/schema_org/spec/schemaorg-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
+- **[`middleware/schema_org/spec/schemaorg-mapper/`](middleware/schema_org/spec/schemaorg-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
 
 ---
 

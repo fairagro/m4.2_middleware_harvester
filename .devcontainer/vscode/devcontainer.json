@@ -108,6 +108,10 @@
 		}
 	},
 
+	"containerEnv": {
+		"UV_LINK_MODE": "copy"
+	},
+
 	// Load encrypted environment variables automatically (with error tolerance)
 	"postCreateCommand": {
         "setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc"

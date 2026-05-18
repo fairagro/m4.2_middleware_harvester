@@ -1,0 +1,35 @@
+"""Schema.org graph-to-ARC mapper abstractions and concrete mappers."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import TypeVar, cast
+
+from rdflib import Graph
+
+from ..config import PayloadType
+from ..registry import Registry
+
+M = TypeVar("M", bound="SchemaOrgMapper")
+
+
+class SchemaOrgMapper(ABC):
+    """Maps a parsed Schema.org RDF graph to ARC RO-Crate JSON-LD."""
+
+    registry: Registry[PayloadType, SchemaOrgMapper] = Registry()
+
+    @classmethod
+    def register(cls, payload_type: PayloadType) -> Callable[[type[M]], type[M]]:
+        """Register a concrete SchemaOrgMapper implementation for the given payload type."""
+
+        def decorator(subclass: type[M]) -> type[M]:
+            cls.registry[payload_type] = cast(type[SchemaOrgMapper], subclass)
+            return subclass
+
+        return decorator
+
+    @abstractmethod
+    def map_graph(self, graph: Graph) -> str:
+        """Return a serialized RO-Crate JSON-LD string for the given graph."""
+        raise NotImplementedError

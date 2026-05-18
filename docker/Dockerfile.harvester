@@ -1,5 +1,5 @@
 # ---- Package Build Stage ----
-FROM python:3.12.12-alpine3.23 AS package-builder
+FROM python:3.12.13-alpine3.23 AS package-builder
 
 WORKDIR /build
 
@@ -8,32 +8,32 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY middleware ./middleware
 
 # Upgrade pip and install uv
-RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
+RUN pip install --no-cache-dir --upgrade pip==26.1.1 uv==0.11.14
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
 # Pretend version for hatch-vcs (used during uv build of inspire wheel)
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
 
-RUN uv build --package inspire --wheel && uv build --package harvester --wheel
+RUN uv build --package inspire --wheel && uv build --package harvester --wheel && uv build --package schema_org --wheel
 
 
 # ---- Binary Build Stage ----
-FROM python:3.12.12-alpine3.23 AS binary-builder
+FROM python:3.12.13-alpine3.23 AS binary-builder
 
 # Install build tools for PyInstaller
 RUN apk add --no-cache \
     build-base=0.5-r3 \
-    python3-dev=3.12.12-r0 \
+    python3-dev=3.12.13-r0 \
     libffi-dev=3.5.2-r0 \
-    openssl-dev=3.5.5-r0 \
+    openssl-dev=3.5.6-r0 \
     cargo=1.91.1-r1 \
     git=2.52.0-r0
 
 WORKDIR /build
 
 # Install uv core tool
-RUN pip install --no-cache-dir --upgrade pip==26.0.1 uv==0.11.2
+RUN pip install --no-cache-dir --upgrade pip==26.1.1 uv==0.11.14
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
@@ -73,7 +73,7 @@ RUN . .venv/bin/activate && \
 
 
 # ---- Runtime Stage ----
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 
 WORKDIR /middleware
 

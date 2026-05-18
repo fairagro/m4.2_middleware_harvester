@@ -1,14 +1,26 @@
-log_level: DEBUG
+log_level: INFO
+
+# repositories:
+#   - rdi: "bonares"
+#     inspire:
+#       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
+#       # csw_url: https://stable.demo.geonode.org/catalogue/csw
+  # - rdi: "edal"
+  #   schema_org:
+  #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
+  #     sitemap_type: xml
+  #     dataset_type: html_jsonld
+  #     payload_type: general
 
 repositories:
   - rdi: "dwd"
     inspire:
       csw_url: "https://www.geodatenkatalog.de/geonetwork/srv/ger/csw"
-      query: ~
+      cql_query: ~
       # CSW-Abfrage nach DWD Datensaetzen. Die Zahl der Treffer unterscheidet sich von der
       # Web-GUI (https://www.geoportal.de/search.html?q=Deutscher%20Wetterdienst,
       # https://www.geoportal.de/search.html?q=DWD)
-      xml_request: |
+      xml_query: |
         <?xml version="1.0" encoding="UTF-8"?>
         <csw:GetRecords
             xmlns:csw="http://www.opengis.net/cat/csw/2.0.2"
@@ -27,30 +39,30 @@ repositories:
               <ogc:Filter>
                 <ogc:And>
                   <ogc:Or>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>DWD</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (DWD)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (DWD</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (RD)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
-                <ogc:PropertyIsEqualTo>
-                  <ogc:PropertyName>OrganisationName</ogc:PropertyName>
-                  <ogc:Literal>Deutscher Wetterdienst (ZAK)</ogc:Literal>
-                </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>DWD</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (DWD)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (DWD</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (RD)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
+                    <ogc:PropertyIsEqualTo>
+                      <ogc:PropertyName>OrganisationName</ogc:PropertyName>
+                      <ogc:Literal>Deutscher Wetterdienst (ZAK)</ogc:Literal>
+                    </ogc:PropertyIsEqualTo>
                   </ogc:Or>
                   <ogc:PropertyIsEqualTo>
                     <ogc:PropertyName>Type</ogc:PropertyName>
@@ -94,7 +106,7 @@ repositories:
         </csw:GetRecords>
 
 api_client:
-  api_url: "https://middleware.fairagro.net"
+  api_url: "https://middleware-test.fairagro.net"
   timeout: 60.0
   client_cert_path: "/etc/harvester/client.crt"
   client_key_path: "/run/secrets/client.key"

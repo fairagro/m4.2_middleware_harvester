@@ -5,11 +5,18 @@ repositories:
     inspire:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
       # csw_url: https://stable.demo.geonode.org/catalogue/csw
-      query: ~
-      xml_request: ~
+      cql_query: ~
+      xml_query: ~
+  - rdi: "edal"
+    schema_org:
+      url: https://doi.ipk-gatersleben.de/sitemap.xml
+      sitemap_type: xml
+      dataset_type: html_jsonld
+      payload_type: general
+
 
 api_client:
-  api_url: "https://middleware.fairagro.net"
+  api_url: "https://middleware-test.fairagro.net"
   timeout: 60.0
   client_cert_path: "/workspaces/m4.2_inspire-vscode/dev_environment/client.crt"
   client_key_path: "/workspaces/m4.2_inspire-vscode/dev_environment/client.decrypted.key"

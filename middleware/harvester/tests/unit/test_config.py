@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.harvester.config import Config, RepositoryConfig
+from middleware.harvester.nice_http_client import NiceHttpClientConfig
 from middleware.inspire.config import Config as InspireConfig
 
 
@@ -46,3 +47,13 @@ def test_repository_config_rejects_unknown_plugin() -> None:
     """RepositoryConfig must reject an entry with an unrecognised plugin key."""
     with pytest.raises(ValidationError):
         RepositoryConfig.model_validate({"unknown_plugin": {"some_field": "value"}})
+
+
+def test_nice_http_client_config_defaults_to_respect_robots_txt() -> None:
+    config = NiceHttpClientConfig()
+
+    assert config.respect_robots_txt is True
+
+
+# max_concurrent_http_connections is intentionally removed from the harvester core config.
+# Connection limits are now configured per-plugin where supported.

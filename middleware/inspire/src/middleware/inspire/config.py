@@ -8,12 +8,19 @@ from pydantic import BaseModel, Field, model_validator
 class Config(BaseModel):
     """Configuration model for the Inspire to ARC middleware."""
 
+    model_config = {
+        "populate_by_name": True,
+    }
+
     csw_url: Annotated[str, Field(description="URL of the CSW endpoint")]
     cql_query: Annotated[
         str | None,
-        Field(description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),
+        Field(alias="query", description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),
     ] = None
-    xml_query: Annotated[str | None, Field(description="Raw GetRecords XML body (overrides cql_query)")] = None
+    xml_query: Annotated[
+        str | None,
+        Field(alias="xml_request", description="Raw GetRecords XML body (overrides cql_query)"),
+    ] = None
     chunk_size: Annotated[
         int,
         Field(description="Number of records to fetch per paginated request.", ge=1),
@@ -28,6 +35,40 @@ class Config(BaseModel):
         int,
         Field(description="CSW connection timeout in seconds.", ge=1),
     ] = 30
+
+    user_agent: Annotated[
+        str,
+        Field(description="User-Agent header value used for CSW requests."),
+    ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+
+    retry_attempts: Annotated[
+        int,
+        Field(
+            description="Number of additional retry attempts for transient CSW connection failures.",
+            ge=0,
+        ),
+    ] = 5
+    retry_backoff_base: Annotated[
+        float,
+        Field(
+            description="Base delay in seconds for CSW retry backoff.",
+            gt=0,
+        ),
+    ] = 1.0
+    retry_backoff_factor: Annotated[
+        float,
+        Field(
+            description="Exponential backoff factor for CSW retry delays.",
+            ge=1,
+        ),
+    ] = 2.0
+    retry_max_delay: Annotated[
+        float,
+        Field(
+            description="Maximum delay in seconds for CSW retry backoff.",
+            ge=0,
+        ),
+    ] = 600.0
 
     @model_validator(mode="after")
     def _check_mutually_exclusive_filters(self) -> Self:

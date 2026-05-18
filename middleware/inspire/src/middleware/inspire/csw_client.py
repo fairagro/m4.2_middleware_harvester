@@ -1,9 +1,12 @@
 """CSW client for harvesting INSPIRE metadata records."""
 
+import asyncio
 import contextlib
 import logging
-from collections.abc import Iterator
-from typing import cast
+import random
+from collections.abc import AsyncGenerator, Callable, Iterator
+from http import HTTPStatus
+from typing import TypeVar, cast
 from urllib.parse import urlencode
 
 from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
@@ -41,16 +44,25 @@ class CSWClient:
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
 
+    def _connect(self) -> None:
+        """Connect to the CSW service without error wrapping."""
+        self._csw = CatalogueServiceWeb(
+            self._config.csw_url,
+            timeout=self._config.timeout,
+            headers={"User-Agent": self._config.user_agent},
+        )
+        csw_title = None
+        if self._csw and hasattr(self._csw, "identification") and self._csw.identification:
+            csw_title = getattr(self._csw.identification, "title", None)
+        logger.info("Connected to CSW: %s", csw_title)
+
     def connect(self) -> None:
         """Connect to the CSW service."""
         try:
-            self._csw = CatalogueServiceWeb(self._config.csw_url, timeout=self._config.timeout)
-            csw_title = None
-            if self._csw and hasattr(self._csw, "identification") and self._csw.identification:
-                csw_title = getattr(self._csw.identification, "title", None)
-            logger.info("Connected to CSW: %s", csw_title)
+            self._connect()
         except (OSError, TimeoutError, ValueError) as e:
-            logger.exception("Failed to connect to CSW at %s", self._config.csw_url)
+            logger.error("Failed to connect to CSW at %s", self._config.csw_url)
+            logger.debug("Failed to connect to CSW at %s", self._config.csw_url, exc_info=True)
             raise CswConnectionError(f"Failed to connect to CSW at {self._config.csw_url}: {e}") from e
 
     def get_record_url(self, record_id: str) -> str:
@@ -163,12 +175,85 @@ class CSWClient:
         else:
             yield from self._get_records_standard(effective_chunk_size, effective_max_records)
 
+    async def get_records_async(
+        self,
+        cql_query: str | None = None,
+        xml_query: str | bytes | None = None,
+        fes_constraints: list[OgcExpression] | None = None,
+        chunk_size: int | None = None,
+        max_records: int | None = None,
+    ) -> AsyncGenerator[InspireRecord | RecordProcessingError, None]:
+        """Asynchronously retrieve records from the CSW by offloading blocking OWSLib calls."""
+        effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
+        effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
+        effective_max_records = max_records if max_records is not None else self._config.max_records
+
+        if self._csw is None:
+            await self._retry_async(self._connect, "connect")
+        if self._csw is None:
+            raise RuntimeError("CSW client is not initialized.")
+
+        if effective_xml:
+            records = await self._retry_async(self._get_records_by_xml_sync, "get_records_by_xml", effective_xml)
+        elif effective_fes:
+            records = await self._retry_async(
+                self._get_records_by_fes_sync,
+                "get_records_by_fes",
+                effective_fes,
+                effective_chunk_size,
+                effective_max_records,
+            )
+        elif effective_cql:
+            records = await self._retry_async(
+                self._get_records_by_cql_sync,
+                "get_records_by_cql",
+                effective_cql,
+                effective_chunk_size,
+                effective_max_records,
+            )
+        else:
+            records = await self._retry_async(
+                self._get_records_standard_sync,
+                "get_records_standard",
+                effective_chunk_size,
+                effective_max_records,
+            )
+
+        for item in records:
+            yield item
+
+    def _get_records_by_xml_sync(self, xml_query: str | bytes) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_xml(xml_query))
+
+    def _get_records_by_fes_sync(
+        self, fes_constraints: list[OgcExpression], chunk_size: int, max_records: int | None
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_fes(fes_constraints, chunk_size, max_records))
+
+    def _get_records_by_cql_sync(
+        self, cql_query: str, chunk_size: int, max_records: int | None
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_by_cql(cql_query, chunk_size, max_records))
+
+    def _get_records_standard_sync(
+        self,
+        chunk_size: int,
+        max_records: int | None,
+    ) -> list[InspireRecord | RecordProcessingError]:
+        return list(self._get_records_standard(chunk_size, max_records))
+
     def _get_records_by_cql(
         self, cql_query: str, chunk_size: int, max_records: int | None
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using a CQL text query with pagination."""
         logger.info("Using CQL query for harvesting: %s", cql_query)
         yield from self._get_records_paged(chunk_size, cql_query, None, max_records)
+
+    def _normalize_xml_query(self, xml_query: str | bytes) -> str | bytes:
+        """Normalize raw XML queries for OWSLib compatibility."""
+        if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
+            return xml_query.encode("utf-8")
+        return xml_query
 
     def _get_records_by_xml(self, xml_query: str | bytes) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using a raw XML request."""
@@ -178,11 +263,7 @@ class CSWClient:
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        # If xml_query is a string with an encoding declaration,
-        # ensure it's converted to bytes to avoid lxml error:
-        # "Unicode strings with encoding declaration are not supported."
-        if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
-            xml_query = xml_query.encode("utf-8")
+        xml_query = self._normalize_xml_query(xml_query)
 
         self._csw.getrecords2(xml=xml_query)
         if self._csw.records:
@@ -247,7 +328,12 @@ class CSWClient:
                 break
 
     def _fetch_dc_ids(
-        self, batch_size: int, start_position: int, cql_query: str | None, fes_constraints: list[OgcExpression] | None
+        self,
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: list[OgcExpression] | None,
+        swallow_errors: bool = True,
     ) -> list[str]:
         """Fetch stable identifiers using Dublin Core schema."""
         if self._csw is None:
@@ -269,12 +355,24 @@ class CSWClient:
                 self._csw.getrecords2(**kwargs)
 
             return [rec.identifier for rec in self._csw.records.values()]
-        except (OSError, TimeoutError, ValueError) as e:
-            logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
-            return []
+        except (OSError, TimeoutError) as e:
+            if swallow_errors:
+                logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
+                return []
+            raise
+        except ValueError as e:
+            if swallow_errors:
+                logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
+                return []
+            raise
 
     def _fetch_iso_batch(
-        self, batch_size: int, start_position: int, cql_query: str | None, fes_constraints: list[OgcExpression] | None
+        self,
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: list[OgcExpression] | None,
+        swallow_errors: bool = True,
     ) -> bool:
         """Fetch a batch of records in ISO 19139 format."""
         if self._csw is None:
@@ -296,9 +394,16 @@ class CSWClient:
             else:
                 self._csw.getrecords2(**kwargs)
             return True
-        except (OSError, TimeoutError, ValueError) as e:
-            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-            raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
+        except (OSError, TimeoutError) as e:
+            if swallow_errors:
+                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
+            raise
+        except ValueError as e:
+            if swallow_errors:
+                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
+            raise
 
     def _yield_records_with_stable_ids(self, dc_ids: list[str]) -> Iterator[InspireRecord | RecordProcessingError]:
         """
@@ -349,6 +454,21 @@ class CSWClient:
         matches = self._csw.results.get("matches")
         return isinstance(matches, int) and start_position >= matches
 
+    async def get_record_count_async(
+        self,
+        cql_query: str | None = None,
+        xml_query: str | bytes | None = None,
+        fes_constraints: list[OgcExpression] | None = None,
+    ) -> int:
+        """Asynchronously get the total number of matching records with retry."""
+        return await self._retry_async(
+            self.get_record_count,
+            "get_record_count",
+            cql_query,
+            xml_query,
+            fes_constraints,
+        )
+
     def get_record_count(
         self,
         cql_query: str | None = None,
@@ -380,7 +500,7 @@ class CSWClient:
             return 0
 
         if effective_xml:
-            self._csw.getrecords2(xml=effective_xml)
+            self._csw.getrecords2(xml=self._normalize_xml_query(effective_xml))
         elif effective_fes:
             self._csw.getrecords2(constraints=effective_fes, maxrecords=1, esn="brief")
         elif effective_cql:
@@ -394,6 +514,50 @@ class CSWClient:
         if isinstance(matches, list) and matches:
             return int(matches[0])
         return 0
+
+    T = TypeVar("T")
+
+    @staticmethod
+    def _is_http_client_error(exc: BaseException) -> bool:
+        """Return True if exc is an HTTP 4xx client error (non-retryable)."""
+        response = getattr(exc, "response", None)
+        status_code = getattr(response, "status_code", None)
+        return isinstance(status_code, int) and HTTPStatus.BAD_REQUEST <= status_code < HTTPStatus.INTERNAL_SERVER_ERROR
+
+    async def _retry_async(self, fn: Callable[..., T], method_name: str, *args: object, **kwargs: object) -> T:
+        """Retry a synchronous function on OSError / TimeoutError in the async layer."""
+        total_attempts = 1 + self._config.retry_attempts
+        last_exception: Exception | None = None
+
+        for attempt in range(1, total_attempts + 1):
+            try:
+                return await asyncio.to_thread(fn, *args, **kwargs)
+            except CswConnectionError as exc:
+                cause = exc.__cause__
+                if isinstance(cause, (OSError, TimeoutError)) and not self._is_http_client_error(cause):
+                    last_exception = exc
+                else:
+                    raise
+            except (OSError, TimeoutError) as exc:
+                if self._is_http_client_error(exc):
+                    raise
+                last_exception = exc
+
+            if attempt == total_attempts:
+                raise last_exception or RuntimeError("Retry helper exited without exception")
+
+            logger.warning(
+                "Retrying %s attempt %d/%d after transient error: %s",
+                method_name,
+                attempt,
+                total_attempts,
+                last_exception,
+            )
+            delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
+            delay = min(delay * random.uniform(0.9, 1.1), self._config.retry_max_delay)
+            await asyncio.sleep(delay)
+
+        raise last_exception or RuntimeError("Retry helper exited without exception")
 
     def _parse_iso_record(self, iso: MD_Metadata, record_uuid: str) -> InspireRecord:
         """Parse an OWSLib MD_Metadata object into an InspireRecord."""
