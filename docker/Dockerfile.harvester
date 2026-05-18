@@ -94,4 +94,4 @@ COPY --chown=harvester:harvester --from=binary-builder /build/dist/harvester /mi
 USER harvester
 
 # Execute the binary inside the directory
-CMD ["/middleware/harvester/harvester"]
+ENTRYPOINT ["/middleware/harvester/harvester"]
