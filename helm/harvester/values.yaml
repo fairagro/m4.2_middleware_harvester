@@ -43,8 +43,10 @@ image:
   registry: ghcr.io
   # -- Image repository path inside the registry.
   repository: fairagro/m4.2_middleware_harvester/harvester
-  # -- Image tag. Always pin to an explicit tag — never use "latest".
-  tag: "docker-v1.0.0"
+  # -- Image tag. Overrides Chart.AppVersion when set.
+  # -- Leave empty to use the appVersion baked into the chart at release time.
+  # -- In production always pin to an explicit tag — never use "latest".
+  tag: ""
   # -- Pull policy: IfNotPresent avoids unnecessary pulls for pinned tags.
   pullPolicy: IfNotPresent
 

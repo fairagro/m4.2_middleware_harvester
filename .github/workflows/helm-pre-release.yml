@@ -84,6 +84,21 @@ jobs:
         with:
           version: '3.14.0'
 
+      - name: Detect current Docker release version
+        id: docker-version
+        run: |
+          LATEST=$(git tag --list '*-docker-v*' \
+            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed 's/^[0-9]*-docker-v//' \
+            | sort -V \
+            | tail -1)
+          if [ -z "$LATEST" ]; then
+            echo "::error::No docker release tag found. Publish a Docker image first."
+            exit 1
+          fi
+          echo "value=docker-v${LATEST}" >> $GITHUB_OUTPUT
+          echo "🐳 App version: docker-v${LATEST}"
+
       - name: Update Chart.yaml version
         run: |
           sed -i "s/^version:.*/version: ${{ env.CHART_VERSION }}/" ${{ env.CHART_DIR }}/Chart.yaml
@@ -92,7 +107,7 @@ jobs:
       - name: Package Helm chart
         id: package_chart
         run: |
-          helm package ./${{ env.CHART_DIR }} --version "${{ env.CHART_VERSION }}"
+          helm package ./${{ env.CHART_DIR }} --version "${{ env.CHART_VERSION }}" --app-version "${{ steps.docker-version.outputs.value }}"
           CHART_PACKAGE=$(ls *.tgz | head -1)
           echo "chart-package=$CHART_PACKAGE" >> $GITHUB_OUTPUT
           echo "📦 Created Helm chart package: $CHART_PACKAGE"

@@ -64,9 +64,11 @@ Name of the ServiceAccount to use.
 
 {{/*
 Full image reference: registry/repository:tag
+Uses values.image.tag when set; falls back to Chart.AppVersion.
 */}}
 {{- define "harvester.image" -}}
-{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository .Values.image.tag }}
+{{- $tag := .Values.image.tag | default .Chart.AppVersion }}
+{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository $tag }}
 {{- end }}
 
 {{/*
