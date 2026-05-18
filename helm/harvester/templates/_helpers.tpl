@@ -67,7 +67,7 @@ Full image reference: registry/repository:tag
 Uses values.image.tag when set; falls back to Chart.AppVersion.
 */}}
 {{- define "harvester.image" -}}
-{{- $tag := .Values.image.tag | default .Chart.AppVersion }}
+{{- $tag := .Values.image.tag | default .Chart.AppVersion | required "An image tag is required (set .Values.image.tag or .Chart.AppVersion)" }}
 {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository $tag }}
 {{- end }}
 
