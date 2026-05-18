@@ -42,19 +42,23 @@ jobs:
       pep440_version: ${{ steps.calc-version.outputs.pep440_version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Calculate next version
         id: calc-version
         run: |
-          LATEST_TAG=$(git tag --list 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-          if [ -z "$LATEST_TAG" ]; then LATEST_TAG="v0.0.0"; fi
-          
-          MAJOR=$(echo "${LATEST_TAG#v}" | cut -d. -f1)
-          MINOR=$(echo "${LATEST_TAG#v}" | cut -d. -f2)
-          PATCH=$(echo "${LATEST_TAG#v}" | cut -d. -f3)
+          LATEST_TAG=$(git tag --list '*-docker-v*' \
+            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed 's/^[0-9]*-docker-v//' \
+            | sort -V \
+            | tail -1)
+          if [ -z "$LATEST_TAG" ]; then LATEST_TAG="0.0.0"; fi
+
+          MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_TAG" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_TAG" | cut -d. -f3)
 
           case "${{ inputs.version_bump }}" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
@@ -67,7 +71,7 @@ jobs:
           if [[ "$GITHUB_REF_NAME" == feature/* ]]; then
             # Pre-release: use sequential dev build counter (github.run_number)
             BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
-            NEW_VERSION="${BASE_VERSION}-rc.${{ github.run_number }}.${BRANCH_LABEL}"
+            NEW_VERSION="${BASE_VERSION}-rc.${BRANCH_LABEL}.${{ github.run_number }}"
 
             # PEP 440 compliant variant for Python package builds (hatch-vcs / setuptools-scm).
             # Format: X.Y.Z.devN+branch.name
@@ -111,13 +115,13 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/Dockerfile.${{ matrix.component }}
@@ -136,7 +140,7 @@ jobs:
           docker save "$IMAGE_TAG" | gzip > docker-image-${{ matrix.component }}.tar.gz
 
       - name: Upload Docker image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image-${{ matrix.component }}-${{ needs.version.outputs.version }}
           path: docker-image-${{ matrix.component }}.tar.gz
@@ -154,7 +158,7 @@ jobs:
     
     steps:
       - name: Download Docker image artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: docker-image-${{ matrix.component }}-${{ needs.version.outputs.version }}
 
@@ -175,7 +179,7 @@ jobs:
           format: spdx-json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ matrix.component }}-${{ needs.version.outputs.version }}
           path: sboms/sbom-${{ matrix.component }}.spdx.json
