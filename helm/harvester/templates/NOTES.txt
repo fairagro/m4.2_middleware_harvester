@@ -1,0 +1,39 @@
+FAIRagro Middleware Harvester has been deployed.
+
+CronJob: {{ include "harvester.fullname" . }}
+Schedule: {{ .Values.schedule }} ({{ .Values.timeZone }})
+Image:    {{ include "harvester.image" . }}
+
+The harvester will run at the next scheduled time. To trigger a manual run now:
+
+  kubectl create job --from=cronjob/{{ include "harvester.fullname" . }} \
+    {{ include "harvester.fullname" . }}-manual-$(date +%s) \
+    --namespace {{ .Release.Namespace }}
+
+Watch the Job logs:
+
+  kubectl logs -l app.kubernetes.io/instance={{ .Release.Name }} \
+    --namespace {{ .Release.Namespace }} --follow
+
+Check the CronJob status:
+
+  kubectl get cronjob {{ include "harvester.fullname" . }} \
+    --namespace {{ .Release.Namespace }}
+
+Configuration ConfigMap: {{ include "harvester.configMapName" . }}
+  The complete config.yaml is stored as a Kubernetes Secret.
+  In production, encrypt the values file with SOPS before committing:
+    helm secrets upgrade --install harvester . -f prod.values.yaml
+
+{{- if .Values.tls.enabled }}
+
+TLS Secret: {{ include "harvester.tlsSecretName" . }}
+  Client certificates mounted at: {{ .Values.tls.mountPath }}
+{{- else }}
+
+NOTE: mTLS is disabled (tls.enabled=false).
+      Set tls.enabled=true and provide PEM content in tls.clientCert /
+      tls.clientKey (and optionally tls.caCert) to enable mutual TLS.
+      Then set config.api_client.client_cert_path / client_key_path to
+      the corresponding paths under tls.mountPath.
+{{- end }}

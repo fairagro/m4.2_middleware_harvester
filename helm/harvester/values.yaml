@@ -1,0 +1,317 @@
+# =============================================================================
+# FAIRagro Middleware Harvester — Demo Values
+#
+# This file documents ALL configurable options with inline explanations.
+# It is intentionally non-functional (placeholder URLs/credentials).
+#
+# Real values are managed in a separate, private values repository.
+# Override individual fields with:
+#   helm upgrade --install harvester . --values prod-values.yaml
+# =============================================================================
+
+# -- Override the chart name portion of resource names.
+nameOverride: ""
+# -- Fully override the auto-generated resource name prefix.
+fullnameOverride: ""
+
+# -- CronJob schedule in standard cron syntax (TZ is controlled by timeZone).
+schedule: "0 2 * * *"
+
+# -- IANA timezone for the schedule. Requires Kubernetes >= 1.27.
+# -- Set to "" to use the cluster's local time.
+timeZone: "Europe/Berlin"
+
+# -- Prevent a new run from starting if the previous one is still running.
+# -- Allowed values: Allow | Forbid | Replace
+concurrencyPolicy: Forbid
+
+# -- How many successfully completed Job records to keep.
+successfulJobsHistoryLimit: 3
+
+# -- How many failed Job records to keep.
+failedJobsHistoryLimit: 1
+
+# -- Seconds after the scheduled start time within which the job may still
+# -- launch. Missed starts beyond this deadline are counted as failures.
+startingDeadlineSeconds: 3600
+
+# =============================================================================
+# Container image
+# =============================================================================
+image:
+  # -- OCI registry. Change to docker.io for DockerHub.
+  registry: ghcr.io
+  # -- Image repository path inside the registry.
+  repository: fairagro/m4.2_middleware_harvester/harvester
+  # -- Image tag. Always pin to an explicit tag — never use "latest".
+  tag: "docker-v1.0.0"
+  # -- Pull policy: IfNotPresent avoids unnecessary pulls for pinned tags.
+  pullPolicy: IfNotPresent
+
+# -- List of pull secret names for private registries.
+# -- Example: imagePullSecrets: [{name: my-registry-secret}]
+imagePullSecrets: []
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  # -- Whether to create a dedicated ServiceAccount for the harvester.
+  create: true
+  # -- Annotations to add to the ServiceAccount (e.g. for IRSA / Workload Identity).
+  annotations: {}
+  # -- Override the auto-generated ServiceAccount name.
+  # -- Defaults to the release fullname when empty.
+  name: ""
+
+# =============================================================================
+# Security contexts
+# =============================================================================
+
+# -- Pod-level security context.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context.
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+# =============================================================================
+# Resource requests and limits
+# =============================================================================
+resources:
+  requests:
+    # -- Baseline CPU needed for a typical harvest run.
+    cpu: "100m"
+    # -- Baseline memory. The harvester buffers ARC payloads in memory.
+    memory: "256Mi"
+  limits:
+    # -- Upper CPU bound. The harvester is I/O-bound; burst headroom is sufficient.
+    cpu: "500m"
+    # -- Upper memory bound. Increase if harvesting very large catalogues.
+    memory: "1Gi"
+
+# =============================================================================
+# TLS client certificates (mutual TLS with the Middleware API)
+#
+# When tls.enabled is true, the chart creates a Kubernetes Secret from the PEM
+# values below and mounts it at tls.mountPath inside the container.
+# Set config.api_client.client_cert_path / client_key_path / ca_cert_path to
+# the corresponding paths under tls.mountPath.
+#
+# In production, encrypt this values file with SOPS before committing.
+# =============================================================================
+tls:
+  # -- Enable mTLS client certificate authentication with the Middleware API.
+  enabled: false
+  # -- Directory path inside the container where TLS PEM files are mounted.
+  mountPath: "/run/secrets/tls"
+  # -- PEM-encoded client certificate content.
+  # -- Example:
+  # --   clientCert: |
+  # --     -----BEGIN CERTIFICATE-----
+  # --     MIIBxxx...
+  # --     -----END CERTIFICATE-----
+  clientCert: ""
+  # -- PEM-encoded client private key content.
+  clientKey: ""
+  # -- PEM-encoded CA bundle content (only required for private/internal CAs).
+  caCert: ""
+
+# =============================================================================
+# Additional environment variables
+#
+# Use extraEnv to inject individual values (e.g. from specific Secret keys).
+# Use extraEnvFrom to inject all keys from a Secret or ConfigMap.
+# =============================================================================
+
+# -- Extra environment variables for the harvester container.
+# -- Example:
+# --   extraEnv:
+# --     - name: HARVESTER_LOG_LEVEL
+# --       value: "DEBUG"
+# --     - name: HARVESTER_API_CLIENT__API_URL
+# --       valueFrom:
+# --         secretKeyRef:
+# --           name: my-api-secret
+# --           key: api-url
+extraEnv: []
+
+# -- Additional envFrom sources (Secrets or ConfigMaps) injected in full.
+# -- Example:
+# --   extraEnvFrom:
+# --     - secretRef:
+# --         name: harvester-overrides
+extraEnvFrom: []
+
+# =============================================================================
+# Harvester configuration — rendered as /etc/harvester/config.yaml
+#
+# This block is serialised to YAML verbatim and stored as a Kubernetes ConfigMap.
+# It contains no sensitive values. Sensitive data (TLS cert content) is
+# managed separately via the tls section below, which creates a K8s Secret.
+# =============================================================================
+config:
+  # -- Logging level for the harvester process.
+  # -- Allowed: DEBUG | INFO | WARNING | ERROR | CRITICAL
+  log_level: INFO
+
+  # -- OpenTelemetry / OTLP settings.
+  otel:
+    # -- OTLP HTTP collector endpoint. Set null to disable tracing export.
+    endpoint: null
+    # -- Print every span to stdout (useful for local debugging).
+    log_console_spans: false
+    # -- Minimum log level exported via OTLP.
+    log_level: INFO
+
+  # -- FAIRagro Middleware API client settings.
+  api_client:
+    # -- Base URL of the Middleware API (no trailing slash).
+    # -- Override at runtime via HARVESTER_API_CLIENT__API_URL env var.
+    api_url: "https://middleware.example.fairagro.net/api/v3"
+    # -- Request timeout in seconds.
+    timeout: 30.0
+    # -- Maximum concurrent requests to the API.
+    max_concurrency: 10
+    # -- Verify the server's TLS certificate chain.
+    verify_ssl: true
+    # -- Retries for transient HTTP errors (5xx, connection resets).
+    max_retries: 3
+    # -- Path to the client certificate PEM file (for mutual TLS).
+    # -- Set to the tls.mountPath location when tls.enabled is true.
+    # client_cert_path: "/run/secrets/tls/client.crt"
+    # -- Path to the client private key PEM file (for mutual TLS).
+    # client_key_path: "/run/secrets/tls/client.key"
+    # -- Path to a custom CA bundle PEM file (for private/internal CAs).
+    # ca_cert_path: "/run/secrets/tls/ca.crt"
+
+  # -- List of repositories to harvest. Each entry must specify exactly one
+  # -- plugin type (inspire or schema_org).
+  repositories:
+
+    # -------------------------------------------------------------------------
+    # Example 1: INSPIRE / CSW repository
+    # -------------------------------------------------------------------------
+    - rdi: "example-inspire-gdi-de"
+      inspire:
+        # -- CSW endpoint URL (required).
+        csw_url: "https://gdk.gdi-de.org/gdi-de/srv/eng/csw"
+        # -- Records per paginated CSW request.
+        chunk_size: 50
+        # -- Maximum total records to harvest. null = harvest everything.
+        # -- Use a small number (e.g. 10) for smoke-testing a new source.
+        max_records: null
+        # -- CQL filter string. Mutually exclusive with xml_query.
+        cql_query: null
+        # -- Raw GetRecords XML body. Mutually exclusive with cql_query.
+        # -- Use this for complex OGC filter expressions.
+        xml_query: null
+        # -- CSW connection timeout in seconds.
+        timeout: 30
+        # -- User-Agent header sent to the CSW server.
+        user_agent: "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+        # -- Retry attempts on transient CSW failures (network errors, 5xx).
+        retry_attempts: 5
+        # -- Initial retry backoff in seconds.
+        retry_backoff_base: 1.0
+        # -- Exponential factor applied to each successive retry delay.
+        retry_backoff_factor: 2.0
+        # -- Maximum retry delay cap in seconds (prevents runaway backoff).
+        retry_max_delay: 600.0
+
+    # -------------------------------------------------------------------------
+    # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
+    # -------------------------------------------------------------------------
+    - rdi: "example-schemaorg-openagrar"
+      schema_org:
+        # -- Sitemap entry point URL (required).
+        sitemap_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
+        # -- Sitemap protocol. Allowed: xml | mycore_solr
+        sitemap_type: xml
+        # -- Provider-specific dataset page format. Allowed: html_jsonld
+        dataset_type: html_jsonld
+        # -- Expected JSON-LD payload shape. Allowed: general
+        payload_type: general
+        # -- Byte threshold above which JSON-LD parsing is offloaded to a
+        # -- background thread to avoid blocking the event loop.
+        jsonld_parse_threshold_bytes: 65536
+        # -- Number of parallel worker tasks fetching dataset pages.
+        # -- null defaults to http.max_connections.
+        worker_tasks: null
+        # -- HTTP client settings for dataset page requests.
+        http:
+          connect_timeout: 10.0
+          read_timeout: 30.0
+          # -- Maximum simultaneous open connections.
+          max_connections: 10
+          retry_attempts: 5
+          retry_backoff_base: 1.0
+          retry_backoff_factor: 2.0
+          # -- Maximum delay cap for retry backoff in seconds.
+          max_retry_delay: 600.0
+          # -- Rate limit: max requests per second to the same host.
+          # -- null disables rate limiting.
+          max_requests_per_second: 2.0
+          # -- Honour robots.txt crawl-delay and disallow directives.
+          respect_robots_txt: true
+          # -- User-Agent header sent with every HTTP request.
+          user_agent: "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+
+    # -------------------------------------------------------------------------
+    # Example 3: Schema.org via MyCoRe Solr discovery source
+    # -------------------------------------------------------------------------
+    - rdi: "example-schemaorg-mycore-solr"
+      schema_org:
+        sitemap_url: "https://repository.example.org/api/v2/search/objects"
+        sitemap_type: mycore_solr
+        dataset_type: html_jsonld
+        payload_type: general
+        http:
+          connect_timeout: 10.0
+          read_timeout: 30.0
+          max_connections: 5
+          retry_attempts: 5
+          max_requests_per_second: 1.0
+          respect_robots_txt: true
+
+# =============================================================================
+# Pod scheduling
+# =============================================================================
+
+# -- Node selector labels for pod assignment.
+nodeSelector: {}
+
+# -- Tolerations for pod scheduling on tainted nodes.
+tolerations: []
+
+# -- Affinity rules for pod placement.
+affinity: {}
+
+# =============================================================================
+# Advanced — additional volumes and volume mounts
+#
+# Use these to inject arbitrary files into the harvester container, e.g.
+# additional CA bundles or configuration fragments managed outside Helm.
+# =============================================================================
+
+# -- Extra volumes added to the Job pod spec.
+# -- Example:
+# --   extraVolumes:
+# --     - name: extra-ca
+# --       secret:
+# --         secretName: corporate-ca-bundle
+extraVolumes: []
+
+# -- Extra volume mounts added to the harvester container.
+# -- Example:
+# --   extraVolumeMounts:
+# --     - name: extra-ca
+# --       mountPath: /etc/ssl/certs/corporate-ca.crt
+# --       subPath: ca.crt
+# --       readOnly: true
+extraVolumeMounts: []

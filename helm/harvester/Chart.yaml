@@ -1,0 +1,26 @@
+apiVersion: v2
+name: fairagro-advanced-middleware-harvester-chart
+description: >
+  FAIRagro Middleware Harvester — runs the metadata harvesting pipeline as a
+  Kubernetes CronJob. Supports INSPIRE/CSW and Schema.org sources.
+type: application
+# Chart version — bump on every chart change.
+version: 0.1.0
+# Application version — should match the container image tag (without "docker-v" prefix).
+appVersion: "1.0.0"
+keywords:
+  - fairagro
+  - harvester
+  - middleware
+  - inspire
+  - csw
+  - schema-org
+home: https://github.com/fairagro/m4.2_middleware_harvester
+sources:
+  - https://github.com/fairagro/m4.2_middleware_harvester
+maintainers:
+  - name: FAIRagro Middleware Team
+    url: https://fairagro.net
+# Requires Kubernetes 1.27+ (CronJob batch/v1 stable since 1.21; 1.27 for
+# CronJob timeZone field GA).
+kubeVersion: ">=1.27.0-0"

@@ -15,7 +15,7 @@ repos:
       - id: end-of-file-fixer
         stages: [manual, pre-push]
       - id: check-yaml
-        exclude: ^helmchart/[^/]+/templates/.*\.ya?ml$
+        exclude: ^helm/[^/]+/templates/.*\.ya?ml$
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-toml

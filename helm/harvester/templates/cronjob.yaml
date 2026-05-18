@@ -1,0 +1,125 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "harvester.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "harvester.labels" . | nindent 4 }}
+spec:
+  # -- Standard cron expression. The cluster interprets this in the timeZone
+  # -- specified below. Default: daily at 02:00.
+  schedule: {{ .Values.schedule | quote }}
+  timeZone: {{ .Values.timeZone | quote }}
+
+  # -- Prevent simultaneous runs (e.g. if a previous run is still running when
+  # -- the next schedule fires).
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+
+  # -- Job history retention.
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+
+  # -- Grace period for missed schedules. If the CronJob controller was unable
+  # -- to create a Job within this many seconds of the scheduled time, the
+  # -- missed start is counted as a failure.
+  startingDeadlineSeconds: {{ .Values.startingDeadlineSeconds }}
+
+  jobTemplate:
+    spec:
+      # -- Retry the entire Job pod on failure (not just the container).
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            {{- include "harvester.selectorLabels" . | nindent 12 }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "harvester.serviceAccountName" . }}
+
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          # -- Batch jobs must not restart automatically on failure — the
+          # -- CronJob controller handles scheduling.
+          restartPolicy: Never
+
+          containers:
+            - name: harvester
+              image: {{ include "harvester.image" . }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+              {{- with .Values.containerSecurityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+
+              # -- Pass the config file path as a CLI argument.
+              # -- The binary's CMD (["/middleware/harvester/harvester"]) is
+              # -- extended by these args at runtime.
+              args:
+                - "-c"
+                - "/etc/harvester/config.yaml"
+
+              {{- with .Values.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+
+              volumeMounts:
+                # -- Mount the config.yaml from the ConfigMap.
+                - name: harvester-config
+                  mountPath: /etc/harvester/config.yaml
+                  subPath: config.yaml
+                  readOnly: true
+                {{- if .Values.tls.enabled }}
+                # -- Mount TLS client certificates for mutual TLS auth.
+                - name: harvester-tls
+                  mountPath: {{ .Values.tls.mountPath }}
+                  readOnly: true
+                {{- end }}
+                {{- with .Values.extraVolumeMounts }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+
+              {{- if .Values.extraEnvFrom }}
+              envFrom:
+                {{- toYaml .Values.extraEnvFrom | nindent 16 }}
+              {{- end }}
+              {{- if .Values.extraEnv }}
+              env:
+                {{- toYaml .Values.extraEnv | nindent 16 }}
+              {{- end }}
+
+          volumes:
+            - name: harvester-config
+              configMap:
+                name: {{ include "harvester.configMapName" . }}
+            {{- if .Values.tls.enabled }}
+            - name: harvester-tls
+              secret:
+                secretName: {{ include "harvester.tlsSecretName" . }}
+                defaultMode: 0400
+            {{- end }}
+            {{- with .Values.extraVolumes }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
