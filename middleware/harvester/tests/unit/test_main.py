@@ -166,9 +166,6 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    async def success_runner(_config: object) -> AsyncGenerator[str, None]:
-        yield "arc-json"
-
     async def failing_runner(_config: object) -> AsyncGenerator[str, None]:
         raise RuntimeError("harvest failure")
         yield  # pragma: no cover
