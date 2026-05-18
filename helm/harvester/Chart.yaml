@@ -6,7 +6,10 @@ description: >
 type: application
 # Chart version — bump on every chart change.
 version: 0.1.0
-# Application version — should match the container image tag (without "docker-v" prefix).
+# Application version — placeholder for local development only (helm lint, helm template).
+# In CI, helm package --app-version <version> overrides this value inside the
+# produced .tgz without modifying this file. The version is auto-detected from
+# the latest *-docker-v* Git tag by the helm-release / helm-pre-release workflow.
 appVersion: "1.0.0"
 keywords:
   - fairagro

@@ -39,10 +39,10 @@ startingDeadlineSeconds: 3600
 # Container image
 # =============================================================================
 image:
-  # -- OCI registry. Change to docker.io for DockerHub.
-  registry: ghcr.io
+  # -- OCI registry. Use ghcr.io for GitHub Container Registry.
+  registry: docker.io
   # -- Image repository path inside the registry.
-  repository: fairagro/m4.2_middleware_harvester/harvester
+  repository: zalf/fairagro-advanced-middleware-harvester
   # -- Image tag. Overrides Chart.AppVersion when set.
   # -- Leave empty to use the appVersion baked into the chart at release time.
   # -- In production always pin to an explicit tag — never use "latest".
