@@ -1,6 +1,6 @@
 # NiceHttpClient
 
-Shared HTTP client wrapper that centralizes all polite-harvesting behaviour for
+Shared HTTP client wrapper that centralizes all polite-harvesting behavior for
 plugins that make direct HTTP requests. Plugins embed `NiceHttpClientConfig`
 instead of defining their own HTTP parameters. Robots.txt compliance is enabled
 by default and can be disabled per plugin config.
