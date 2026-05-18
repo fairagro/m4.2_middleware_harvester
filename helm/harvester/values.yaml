@@ -191,12 +191,12 @@ config:
     # -- Retries for transient HTTP errors (5xx, connection resets).
     max_retries: 3
     # -- Path to the client certificate PEM file (for mutual TLS).
-    # -- Set to the tls.mountPath location when tls.enabled is true.
-    # client_cert_path: "/run/secrets/tls/client.crt"
+    # -- When tls.enabled is true, this must point to the mounted secret file.
+    # -- Example: client_cert_path: "/run/secrets/tls/client.crt"
     # -- Path to the client private key PEM file (for mutual TLS).
-    # client_key_path: "/run/secrets/tls/client.key"
+    # -- Example: client_key_path: "/run/secrets/tls/client.key"
     # -- Path to a custom CA bundle PEM file (for private/internal CAs).
-    # ca_cert_path: "/run/secrets/tls/ca.crt"
+    # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
   # -- plugin type (inspire or schema_org).
