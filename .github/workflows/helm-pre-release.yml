@@ -87,11 +87,36 @@ jobs:
       - name: Detect current Docker release version
         id: docker-version
         run: |
-          LATEST=$(git tag --list '*-docker-v*' \
-            | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sed 's/^[0-9]*-docker-v//' \
-            | sort -V \
-            | tail -1)
+          BRANCH_LABEL=$(echo "$GITHUB_REF_NAME" | sed 's|feature/||' | tr '/_ ' '---' | cut -c1-30)
+
+          if [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            echo "Using latest final release because this is the main branch."
+            LATEST=$(git tag --list '*-docker-v*' \
+              | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sed 's/^[0-9]*-docker-v//' \
+              | sort -V \
+              | tail -1)
+          else
+            echo "Looking for the current branch pre-release tag for branch '$GITHUB_REF_NAME'."
+            CURRENT_BRANCH_TAG=$(git tag --list '*-docker-v*' \
+              | grep -E "^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+-rc\.${BRANCH_LABEL}\.[0-9]+$" \
+              | sed 's/^[0-9]*-docker-v//' \
+              | sort -V \
+              | tail -1)
+
+            if [ -n "$CURRENT_BRANCH_TAG" ]; then
+              echo "Found branch pre-release tag: $CURRENT_BRANCH_TAG"
+              LATEST="$CURRENT_BRANCH_TAG"
+            else
+              echo "No branch pre-release tag found for '$GITHUB_REF_NAME'; falling back to latest final release."
+              LATEST=$(git tag --list '*-docker-v*' \
+                | grep -E '^[0-9]+-docker-v[0-9]+\.[0-9]+\.[0-9]+$' \
+                | sed 's/^[0-9]*-docker-v//' \
+                | sort -V \
+                | tail -1)
+            fi
+          fi
+
           if [ -z "$LATEST" ]; then
             echo "::error::No docker release tag found. Publish a Docker image first."
             exit 1
