@@ -52,6 +52,8 @@ class BadFakeDataset:
         config: Config | None = None,
     ) -> "BadFakeDataset":
         """Raise a fake conversion failure for any discovery result."""
+        if config is None:
+            config = _MINIMAL_CONFIG
         if client is not None or config is not None:
             del client, config
         raise SchemaOrgError("bad dataset")
@@ -82,6 +84,8 @@ class GoodFakeDataset:
         config: Config | None = None,
     ) -> "GoodFakeDataset":
         """Create a fake dataset from a discovery result."""
+        if config is None:
+            config = _MINIMAL_CONFIG
         if client is not None or config is not None:
             del client, config
         return cls(discovery_result.url)
