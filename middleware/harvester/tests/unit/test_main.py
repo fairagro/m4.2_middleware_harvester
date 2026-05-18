@@ -169,10 +169,6 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
     async def success_runner(_config: object) -> AsyncGenerator[str, None]:
         yield "arc-json"
 
-    async def failing_runner(_config: object) -> AsyncGenerator[str, None]:
-        raise RuntimeError("harvest failure")
-        yield  # pragma: no cover
-
     mock_client = _make_mock_client()
     expected_datasets = 10
     expected_harvest_calls = 2
