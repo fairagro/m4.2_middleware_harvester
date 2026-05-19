@@ -46,6 +46,12 @@ class CSWClient:
 
     def _connect(self) -> None:
         """Connect to the CSW service without error wrapping."""
+        logger.debug(
+            "Attempting CSW connection to %s with timeout=%s and user_agent=%s",
+            self._config.csw_url,
+            self._config.timeout,
+            self._config.user_agent,
+        )
         self._csw = CatalogueServiceWeb(
             self._config.csw_url,
             timeout=self._config.timeout,
@@ -61,8 +67,17 @@ class CSWClient:
         try:
             self._connect()
         except (OSError, TimeoutError, ValueError) as e:
-            logger.error("Failed to connect to CSW at %s", self._config.csw_url)
-            logger.debug("Failed to connect to CSW at %s", self._config.csw_url, exc_info=True)
+            logger.error(
+                "Failed to connect to CSW at %s: %s",
+                self._config.csw_url,
+                e,
+            )
+            logger.debug(
+                "Failed to connect to CSW at %s with timeout=%s.",
+                self._config.csw_url,
+                self._config.timeout,
+                exc_info=True,
+            )
             raise CswConnectionError(f"Failed to connect to CSW at {self._config.csw_url}: {e}") from e
 
     def get_record_url(self, record_id: str) -> str:
@@ -531,19 +546,44 @@ class CSWClient:
 
         for attempt in range(1, total_attempts + 1):
             try:
+                logger.debug(
+                    "Executing CSW retry helper method %s attempt %d/%d",
+                    method_name,
+                    attempt,
+                    total_attempts,
+                )
                 return await asyncio.to_thread(fn, *args, **kwargs)
             except CswConnectionError as exc:
                 cause = exc.__cause__
                 if isinstance(cause, (OSError, TimeoutError)) and not self._is_http_client_error(cause):
                     last_exception = exc
                 else:
+                    logger.debug(
+                        "Non-retryable CSW error in %s: %s",
+                        method_name,
+                        exc,
+                        exc_info=True,
+                    )
                     raise
             except (OSError, TimeoutError) as exc:
                 if self._is_http_client_error(exc):
+                    logger.debug(
+                        "Non-retryable HTTP client error in %s: %s",
+                        method_name,
+                        exc,
+                        exc_info=True,
+                    )
                     raise
                 last_exception = exc
 
             if attempt == total_attempts:
+                logger.error(
+                    "CSW retry helper reached final attempt %d/%d for %s and failed: %s",
+                    attempt,
+                    total_attempts,
+                    method_name,
+                    last_exception,
+                )
                 raise last_exception or RuntimeError("Retry helper exited without exception")
 
             logger.warning(
@@ -552,6 +592,16 @@ class CSWClient:
                 attempt,
                 total_attempts,
                 last_exception,
+            )
+            logger.debug(
+                "Waiting %.3fs before retrying %s",
+                min(
+                    self._config.retry_backoff_base
+                    * (self._config.retry_backoff_factor ** (attempt - 1))
+                    * random.uniform(0.9, 1.1),
+                    self._config.retry_max_delay,
+                ),
+                method_name,
             )
             delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
             delay = min(delay * random.uniform(0.9, 1.1), self._config.retry_max_delay)

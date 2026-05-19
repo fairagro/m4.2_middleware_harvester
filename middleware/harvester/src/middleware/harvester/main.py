@@ -74,6 +74,12 @@ async def _execute_harvest_upload(
             with tracer.start_as_current_span("harvest_upload") as upload_span:
                 harvest_started = True
                 try:
+                    logger.debug(
+                        "Begin upload for repository %s (%s) with expected_datasets=%s",
+                        repo.rdi,
+                        repo.plugin_type,
+                        expected_datasets,
+                    )
                     result = await client.harvest_arcs(
                         rdi=repo.rdi,
                         arcs=_arc_stream(plugin_gen, repo.plugin_type),
@@ -93,6 +99,18 @@ async def _execute_harvest_upload(
                 except Exception as e:
                     upload_span.set_status(trace.StatusCode.ERROR)
                     upload_span.record_exception(e)
+                    logger.error(
+                        "Error uploading arcs for repository %s (%s): %s",
+                        repo.rdi,
+                        repo.plugin_type,
+                        e,
+                    )
+                    logger.debug(
+                        "Exception during harvest upload for repository %s (%s).",
+                        repo.rdi,
+                        repo.plugin_type,
+                        exc_info=True,
+                    )
                     raise
 
             if harvest_id is not None:
@@ -137,10 +155,18 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         )
 
     try:
+        logger.debug("Initializing plugin for repository %s (%s)", repo.rdi, repo.plugin_type)
         plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
         plugin_gen = plugin_instance.run()
         try:
+            logger.debug("Getting expected datasets for repository %s (%s)", repo.rdi, repo.plugin_type)
             expected_datasets = await plugin_instance.get_expected_datasets()
+            logger.debug(
+                "Repository %s (%s) expected datasets=%s",
+                repo.rdi,
+                repo.plugin_type,
+                expected_datasets,
+            )
             harvest_id, harvested_datasets, failed_datasets, harvest_started = await _execute_harvest_upload(
                 repo,
                 client,
@@ -192,7 +218,18 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for repo, result in zip(config.repositories, results, strict=True):
                     if isinstance(result, Exception):
-                        logger.error("Repository task failed: %s", result)
+                        logger.error(
+                            "Repository task failed for %s (%s): %s",
+                            repo.rdi,
+                            repo.plugin_type,
+                            result,
+                        )
+                        logger.debug(
+                            "Repository task exception for %s (%s).",
+                            repo.rdi,
+                            repo.plugin_type,
+                            exc_info=(type(result), result, result.__traceback__),
+                        )
                         repository_reports.append(
                             RepositoryReport(
                                 rdi=repo.rdi,
