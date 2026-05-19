@@ -73,12 +73,15 @@ serviceAccount:
 # -- Pod-level security context.
 podSecurityContext:
   runAsNonRoot: true
-  # -- Must match the numeric UID/GID set in the Dockerfile (adduser -u 65532).
+    # -- Must match the numeric UID/GID set in the Dockerfile (adduser -u 65532).
   # -- Required for Kubernetes to verify runAsNonRoot when image USER is a named user.
+  # -- fsGroup causes mounted secret files to be owned by root:65532 and makes
+  # -- group-readable modes usable for the non-root process.
   # -- 65532 follows the distroless/Chainguard "nonroot" convention and avoids
   # -- colliding with typical desktop-user accounts (commonly 1000).
   runAsUser: 65532
   runAsGroup: 65532
+  fsGroup: 65532
   seccompProfile:
     type: RuntimeDefault
 

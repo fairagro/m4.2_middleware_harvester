@@ -103,7 +103,7 @@ spec:
             - name: harvester-tls
               secret:
                 secretName: {{ include "harvester.tlsSecretName" . }}
-                defaultMode: 0400
+                defaultMode: 0440
             {{- end }}
             {{- with .Values.extraVolumes }}
             {{- toYaml . | nindent 12 }}
