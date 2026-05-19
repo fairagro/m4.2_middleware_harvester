@@ -79,6 +79,7 @@ WORKDIR /middleware
 
 
 RUN apk add --no-cache --upgrade \
+    ca-certificates=20260413-r0 \
     zlib=1.3.2-r0
 # Create non-root user and group with a fixed numeric UID/GID.
 # A numeric UID is required for Kubernetes runAsNonRoot verification;
