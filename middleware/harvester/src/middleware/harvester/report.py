@@ -31,6 +31,15 @@ def _format_iso_timestamp(value: datetime) -> str:
 
 
 @dataclass(frozen=True)
+class FailedRecord:
+    """A single dataset that failed during harvesting, with its error message and optional identifier."""
+
+    message: str
+    record_id: str | None = None
+    url: str | None = None
+
+
+@dataclass(frozen=True)
 class RepositoryReport:
     """Execution statistics for a single harvested repository."""
 
@@ -40,6 +49,7 @@ class RepositoryReport:
     expected_datasets: int | None
     harvested_datasets: int | None
     failed_datasets: int | None
+    failed_records: tuple[FailedRecord, ...] = ()
 
     def to_jsonld(self) -> dict[str, Any]:
         """Convert the repository report to a JSON-LD dictionary."""
@@ -56,6 +66,15 @@ class RepositoryReport:
             result["fairagro:expectedDatasets"] = self.expected_datasets
         if self.failed_datasets is not None:
             result["fairagro:failedDatasets"] = self.failed_datasets
+        if self.failed_records:
+            result["fairagro:failedRecords"] = [
+                {
+                    "fairagro:message": r.message,
+                    **({"fairagro:recordId": r.record_id} if r.record_id else {}),
+                    **({"fairagro:url": r.url} if r.url else {}),
+                }
+                for r in self.failed_records
+            ]
         return result
 
 
@@ -93,7 +112,7 @@ class HarvestReport:
 def print_report(report: HarvestReport) -> None:
     """Serialize the report to JSON-LD and print it to stdout."""
     try:
-        json_text = json.dumps(report.to_jsonld(), ensure_ascii=False)
+        json_text = json.dumps(report.to_jsonld(), ensure_ascii=False, indent=2)
         print(json_text)
     except (OSError, OverflowError, TypeError, ValueError) as exc:
         logger.warning("Failed to serialise harvest report: %s", exc)

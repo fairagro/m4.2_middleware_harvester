@@ -12,10 +12,10 @@ from opentelemetry import trace
 
 from middleware.api_client import ApiClient
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.harvester.errors import HarvesterError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.plugin_config import PluginConfig
-from middleware.harvester.report import HarvestReport, RepositoryReport, print_report
+from middleware.harvester.report import FailedRecord, HarvestReport, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
 from middleware.schema_org.plugin import SchemaOrgPlugin
 from middleware.shared.tracing import initialize_logging, initialize_tracing
@@ -39,11 +39,12 @@ async def _execute_harvest_upload(
     tracer: trace.Tracer,
     plugin_gen: AsyncGenerator[str | HarvesterError, None],
     expected_datasets: int | None,
-) -> tuple[str | None, int | None, int | None, bool]:
+) -> tuple[str | None, int | None, int | None, bool, list[FailedRecord]]:
     harvest_id: str | None = None
     harvested_datasets: int | None = None
     failed_datasets: int | None = None
     harvest_started = False
+    failed_records: list[FailedRecord] = []
 
     with tracer.start_as_current_span(
         "plugin_run",
@@ -63,7 +64,17 @@ async def _execute_harvest_upload(
                     if failed_datasets is None:
                         failed_datasets = 0
                     failed_datasets += 1
-                    logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+                    if isinstance(item, RecordProcessingError):
+                        logger.error(
+                            "Processing error in plugin '%s' for record '%s': %s",
+                            plugin_type,
+                            item.record_id,
+                            item,
+                        )
+                        failed_records.append(FailedRecord(message=str(item), record_id=item.record_id, url=item.url))
+                    else:
+                        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+                        failed_records.append(FailedRecord(message=str(item)))
                     continue
                 if harvested_datasets is None:
                     harvested_datasets = 0
@@ -110,7 +121,7 @@ async def _execute_harvest_upload(
             )
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
 
-    return harvest_id, harvested_datasets, failed_datasets, harvest_started
+    return harvest_id, harvested_datasets, failed_datasets, harvest_started, failed_records
 
 
 async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: trace.Tracer) -> RepositoryReport:
@@ -123,6 +134,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
     harvest_started = False
     harvest_id: str | None = None
     unhandled_failure = False
+    failed_records: list[FailedRecord] = []
 
     plugin_cls = _PLUGIN_CLASSES.get(repo.plugin_type)
     if plugin_cls is None:
@@ -141,7 +153,13 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         plugin_gen = plugin_instance.run()
         try:
             expected_datasets = await plugin_instance.get_expected_datasets()
-            harvest_id, harvested_datasets, failed_datasets, harvest_started = await _execute_harvest_upload(
+            (
+                harvest_id,
+                harvested_datasets,
+                failed_datasets,
+                harvest_started,
+                failed_records,
+            ) = await _execute_harvest_upload(
                 repo,
                 client,
                 tracer,
@@ -173,6 +191,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         expected_datasets=expected_datasets,
         harvested_datasets=harvested_datasets,
         failed_datasets=failed_datasets,
+        failed_records=tuple(failed_records),
     )
 
 

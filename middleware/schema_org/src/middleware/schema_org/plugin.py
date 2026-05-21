@@ -1,6 +1,7 @@
 """Schema.org harvester plugin integration point."""
 
 import asyncio
+import json
 import logging
 from collections.abc import AsyncGenerator
 
@@ -12,6 +13,7 @@ from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
 from .dataset import Dataset, DiscoveryResult
+from .dataset.dataset import UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
 from .schema_org_mapper import SchemaOrgMapper
@@ -27,6 +29,7 @@ class SchemaOrgPlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
         self._mapper: SchemaOrgMapper = self.create_mapper(config)
+        self._seen_arc_ids: dict[str, list[str]] = {}
 
     @staticmethod
     def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
@@ -37,6 +40,19 @@ class SchemaOrgPlugin(Plugin):
             raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
 
         return sitemap_cls(config, client)
+
+    @staticmethod
+    def _extract_arc_identifier(arc_json: str) -> str | None:
+        """Extract the RO-Crate identifier from a serialized ARC JSON string."""
+        graph = json.loads(arc_json).get("@graph")
+        if isinstance(graph, list):
+            for item in graph:
+                if isinstance(item, dict) and item.get("@id") == "./":
+                    identifier = item.get("identifier")
+                    if isinstance(identifier, list):
+                        identifier = identifier[0] if identifier else None
+                    return str(identifier) if identifier else None
+        return None
 
     @staticmethod
     def create_mapper(config: Config) -> SchemaOrgMapper:
@@ -67,6 +83,7 @@ class SchemaOrgPlugin(Plugin):
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
     ) -> str | RecordProcessingError:
+        source_url = discovery_result.url if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
             dataset_cls = Dataset.registry[self._config.dataset_type]
             dataset = dataset_cls.from_discovery_result(
@@ -79,16 +96,32 @@ class SchemaOrgPlugin(Plugin):
                 f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
                 str(discovery_result),
                 exc,
+                url=source_url,
             )
 
         try:
             graph = await dataset.to_graph()
-            return await asyncio.to_thread(self._mapper.map_graph, graph)
+            arc_json = await asyncio.to_thread(self._mapper.map_graph, graph)
+            try:
+                arc_id = self._extract_arc_identifier(arc_json)
+                if arc_id:
+                    urls = self._seen_arc_ids.setdefault(arc_id, [])
+                    urls.append(dataset.identifier)
+                    if len(urls) > 1:
+                        logger.warning(
+                            "Duplicate ARC identifier '%s' maps to multiple URLs: %s",
+                            arc_id,
+                            urls,
+                        )
+            except Exception:  # noqa: BLE001
+                pass
+            return arc_json
         except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
             return RecordProcessingError(
                 f"Failed to map dataset {dataset.identifier}: {exc}",
                 dataset.identifier,
                 exc,
+                url=source_url,
             )
 
     async def _run_with_task_group(
