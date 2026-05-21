@@ -195,10 +195,19 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
     )
 
 
+async def _heartbeat_loop(path: Path, interval: int) -> None:
+    """Touch *path* every *interval* seconds to signal liveness."""
+    path.touch()
+    while True:
+        await asyncio.sleep(interval)
+        path.touch()
+
+
 async def run_orchestrator(config: Config) -> HarvestReport:
     """Execute the core harvester loop across all configured repositories."""
     tracer = trace.get_tracer(__name__)
     start_time = datetime.now(UTC)
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(Path(config.heartbeat_path), config.heartbeat_interval))
     repository_reports: list[RepositoryReport] = []
 
     async with ApiClient(config.api_client) as client:
@@ -225,6 +234,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                     else:
                         repository_reports.append(cast(RepositoryReport, result))
 
+    heartbeat_task.cancel()
     end_time = datetime.now(UTC)
     return HarvestReport(start_time=start_time, end_time=end_time, repository_reports=repository_reports)
 

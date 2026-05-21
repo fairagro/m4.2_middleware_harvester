@@ -76,3 +76,11 @@ class Config(ConfigBase):
         list[RepositoryConfig],
         Field(description="List of repositories to harvest from, mapped to plugins"),
     ]
+    heartbeat_path: Annotated[
+        str,
+        Field(description="Path of the liveness heartbeat file touched periodically during the harvest run."),
+    ] = "/tmp/harvester-live"  # noqa: S108  # nosec B108
+    heartbeat_interval: Annotated[
+        int,
+        Field(description="Interval in seconds between heartbeat file touches.", ge=1),
+    ] = 30
