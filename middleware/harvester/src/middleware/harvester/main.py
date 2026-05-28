@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import json
 import logging
 from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, cast
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
+from middleware.api_client.models import HarvestErrorType
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.harvester.plugin_base import Plugin
@@ -33,11 +35,64 @@ _PLUGIN_CLASSES: dict[str, type[Plugin]] = {
 }
 
 
-async def _execute_harvest_upload(
+def _extract_arc_identifier(arc_json: str) -> str | None:
+    """Extract the RO-Crate identifier from a serialized ARC JSON string."""
+    graph = json.loads(arc_json).get("@graph")
+    if isinstance(graph, list):
+        for item in graph:
+            if isinstance(item, dict) and item.get("@id") == "./":
+                identifier = item.get("identifier")
+                if isinstance(identifier, list):
+                    identifier = identifier[0] if identifier else None
+                return str(identifier) if identifier else None
+    return None
+
+
+def _apply_client_errors(
+    errors: list,
+    arc_id_to_url: dict[str, str],
+    harvested_datasets: int | None,
+    failed_datasets: int | None,
+    failed_records: list[FailedRecord],
+) -> tuple[int | None, int | None]:
+    """Translate api_client-level HarvestErrors into harvester report counters."""
+    for err in errors:
+        if err.error_type == HarvestErrorType.DUPLICATE and harvested_datasets is not None and harvested_datasets > 0:
+            harvested_datasets -= 1
+        if failed_datasets is None:
+            failed_datasets = 0
+        failed_datasets += 1
+        arc_id = err.arc_id or ""
+        url = arc_id_to_url.get(arc_id)
+        msg = f"{err.message} — source URL: {url}" if url else err.message
+        failed_records.append(FailedRecord(message=msg, record_id=err.arc_id))
+    return harvested_datasets, failed_datasets
+
+
+def _handle_plugin_error(
+    item: HarvesterError,
+    plugin_type: str,
+    failed_records: list[FailedRecord],
+) -> None:
+    """Log a plugin-level error and append a FailedRecord."""
+    if isinstance(item, RecordProcessingError):
+        logger.error(
+            "Processing error in plugin '%s' for record '%s': %s",
+            plugin_type,
+            item.record_id,
+            item,
+        )
+        failed_records.append(FailedRecord(message=str(item), record_id=item.record_id, url=item.url))
+    else:
+        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+        failed_records.append(FailedRecord(message=str(item)))
+
+
+async def _execute_harvest_upload(  # noqa: C901
     repo: RepositoryConfig,
     client: ApiClient,
     tracer: trace.Tracer,
-    plugin_gen: AsyncGenerator[str | HarvesterError, None],
+    plugin_gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
     expected_datasets: int | None,
 ) -> tuple[str | None, int | None, int | None, bool, list[FailedRecord]]:
     harvest_id: str | None = None
@@ -45,6 +100,7 @@ async def _execute_harvest_upload(
     failed_datasets: int | None = None
     harvest_started = False
     failed_records: list[FailedRecord] = []
+    arc_id_to_url: dict[str, str] = {}
 
     with tracer.start_as_current_span(
         "plugin_run",
@@ -55,7 +111,7 @@ async def _execute_harvest_upload(
     ) as plugin_span:
 
         async def _arc_stream(
-            gen: AsyncGenerator[str | HarvesterError, None],
+            gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
             plugin_type: str,
         ) -> AsyncGenerator[str, None]:
             nonlocal harvested_datasets, failed_datasets
@@ -64,22 +120,20 @@ async def _execute_harvest_upload(
                     if failed_datasets is None:
                         failed_datasets = 0
                     failed_datasets += 1
-                    if isinstance(item, RecordProcessingError):
-                        logger.error(
-                            "Processing error in plugin '%s' for record '%s': %s",
-                            plugin_type,
-                            item.record_id,
-                            item,
-                        )
-                        failed_records.append(FailedRecord(message=str(item), record_id=item.record_id, url=item.url))
-                    else:
-                        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
-                        failed_records.append(FailedRecord(message=str(item)))
+                    _handle_plugin_error(item, plugin_type, failed_records)
                     continue
+                arc_json, source_url = item
+                if source_url is not None:
+                    try:
+                        arc_id = _extract_arc_identifier(arc_json)
+                        if arc_id:
+                            arc_id_to_url[arc_id] = source_url
+                    except Exception:  # noqa: BLE001
+                        pass
                 if harvested_datasets is None:
                     harvested_datasets = 0
                 harvested_datasets += 1
-                yield item
+                yield arc_json
 
         try:
             with tracer.start_as_current_span("harvest_upload") as upload_span:
@@ -91,6 +145,13 @@ async def _execute_harvest_upload(
                         expected_datasets=expected_datasets,
                     )
                     harvest_id = result.harvest_id
+                    harvested_datasets, failed_datasets = _apply_client_errors(
+                        result.errors,
+                        arc_id_to_url,
+                        harvested_datasets,
+                        failed_datasets,
+                        failed_records,
+                    )
                     upload_span.set_attribute("harvester.harvest_id", harvest_id)
                     upload_span.set_attribute(
                         "harvester.arcs_uploaded",

@@ -145,7 +145,7 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
 
     results = [item async for item in SchemaOrgPlugin(config).run()]
 
-    assert results == ["mapped:graph:https://example.org/dataset/slow"]
+    assert results == [("mapped:graph:https://example.org/dataset/slow", "https://example.org/dataset/slow")]
 
 
 @pytest.mark.asyncio

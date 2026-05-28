@@ -20,8 +20,8 @@ class InspirePlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
 
-    async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
-        """Run the harvest process and yield serialized RO-Crate ARCs or errors."""
+    async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+        """Run the harvest process and yield (arc_json, source_url) pairs or errors."""
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
         csw_client = CSWClient(self._config)
         mapper = InspireMapper()
@@ -54,7 +54,7 @@ class InspirePlugin(Plugin):
             try:
                 arc = mapper.map_record(record)
                 json_str = arc.ToROCrateJsonString()
-                yield json_str
+                yield json_str, record_url
                 logger.info(
                     "Successfully generated ARC for record %s - URL: %s",
                     record.identifier,

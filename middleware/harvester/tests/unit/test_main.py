@@ -24,6 +24,7 @@ def _make_mock_client() -> AsyncMock:
     client = AsyncMock()
     harvest_result = MagicMock()
     harvest_result.harvest_id = "harvest-1"
+    harvest_result.errors = []
     client.harvest_arcs.return_value = harvest_result
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=None)
@@ -48,8 +49,8 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
                 raise ConnectionError("CSW endpoint unreachable")
             self._config = config
 
-        async def run(self) -> AsyncGenerator[str, None]:
-            yield "arc-json"
+        async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+            yield "arc-json", None  # type: ignore[misc]
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -80,8 +81,8 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[str, None]:
-            yield "arc-json"
+        async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+            yield "arc-json", None  # type: ignore[misc]
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -124,9 +125,9 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
-            yield HarvesterError("record failed")
-            yield "arc-json"
+        async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+            yield HarvesterError("record failed")  # type: ignore[misc]
+            yield "arc-json", None  # type: ignore[misc]
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -181,8 +182,8 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[str, None]:
-            yield "arc-json"
+        async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+            yield "arc-json", None  # type: ignore[misc]
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -191,7 +192,7 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[str, None]:
+        async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
             raise RuntimeError("harvest failure")
             yield  # pragma: no cover
 
