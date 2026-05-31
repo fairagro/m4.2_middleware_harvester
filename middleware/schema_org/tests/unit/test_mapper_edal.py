@@ -224,6 +224,32 @@ def test_publication_with_doi() -> None:
     assert any("10.5447/ipk/2024/0" in str(i) for i in ids)
 
 
+def test_contributor_mapped_as_person_with_role() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("10.5447/ipk/2025/3")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Contributor Test")))
+    graph.add((dataset, schema.description, Literal("Test")))
+    cont = URIRef("https://example.org/contributor/1")
+    graph.add((cont, RDF.type, schema.Person))
+    graph.add((cont, schema.givenName, Literal("Alice")))
+    graph.add((cont, schema.familyName, Literal("Contributor")))
+    graph.add((dataset, schema.contributor, cont))
+    mapper = EdalSchemaOrgMapper()
+    result = mapper.map_graph(graph)
+    parsed = json.loads(result)
+    persons = [n for n in parsed["@graph"] if n.get("@type") == "Person"]
+    alice = next((p for p in persons if p.get("familyName") == "Contributor"), None)
+    assert alice is not None
+    assert alice.get("givenName") == "Alice"
+    defined_terms = {n["@id"]: n.get("name") for n in parsed["@graph"] if n.get("@type") == "DefinedTerm"}
+    role_id = alice.get("jobTitle")
+    if isinstance(role_id, dict):
+        role_id = role_id.get("@id", "")
+    assert defined_terms.get(role_id) == "contributor"
+
+
 def test_empty_contributor_skipped() -> None:
     graph = _edal_graph()
     mapper = EdalSchemaOrgMapper()

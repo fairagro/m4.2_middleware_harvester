@@ -169,6 +169,8 @@ class EdalSchemaOrgMapper(SchemaOrgMapper):
         for node in graph.objects(subject, self._schema().author):
             if not self._contact_exists(inv, graph, node):
                 self._append_contact(inv, graph, node, "author")
+        for node in graph.objects(subject, self._schema().contributor):
+            self._append_contact(inv, graph, node, "contributor")
         publisher_node = self._obj(graph, subject, self._schema().publisher)
         if publisher_node is not None:
             self._append_contact(inv, graph, publisher_node, "publisher")
