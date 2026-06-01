@@ -337,15 +337,15 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-api-client"
-version = "8.8.0"
+version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/26/63140a7e85613bf5854ee7e30a8af7a735347e00a2251c90c1b2f419aa73/fairagro_middleware_api_client-8.8.0.tar.gz", hash = "sha256:41f32dbed90b5e89aa26a220a5005ea0a81e0b9831cbd78c3d3405cfa7d62442", size = 22120, upload-time = "2026-05-13T14:37:16.553Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/44/1e06b74ea4be38ed1d03f987b441af96b3a7f26d36c2df8dd9b0eb3d3a22/fairagro_middleware_api_client-9.0.0.tar.gz", hash = "sha256:a908b95f70e06c1f29d5e49388a0776837a4a22f2345e71b740779a910647f43", size = 25520, upload-time = "2026-05-27T15:16:20.122Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/8e/1f322c636cf5069be2681ba0cdefe1285a3ed861f9a94b9013c60e015e08/fairagro_middleware_api_client-8.8.0-py3-none-any.whl", hash = "sha256:ccdeca754873eaf1670cefe1a1c31e4fb8f75730b9c70ae0fd9edfcf6231e565", size = 12785, upload-time = "2026-05-13T14:37:15.439Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/02/198df6fad79770af3b3071c2c6ba2a286a468d639aa7b4930804ffbb72ee/fairagro_middleware_api_client-9.0.0-py3-none-any.whl", hash = "sha256:3ad67a1b71186ee97c08725606b839cf39a07daab03d3c701a21896de0074f1a", size = 14106, upload-time = "2026-05-27T15:16:17.112Z" },
 ]
 
 [[package]]
@@ -452,7 +452,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=3.0.0b0" },
-    { name = "fairagro-middleware-api-client", specifier = ">=8.7.1.dev11" },
+    { name = "fairagro-middleware-api-client", specifier = ">=9.0.0" },
     { name = "fairagro-middleware-shared", specifier = ">=8.7.1.dev11" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -541,7 +541,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=3.0.0b0" },
-    { name = "fairagro-middleware-api-client", specifier = ">=8.7.0" },
+    { name = "fairagro-middleware-api-client", specifier = ">=9.0.0" },
     { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
