@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+
+    <title>e!DAL - PGP Repository - A case study for efficient management of high throughput primary lab data</title>
+
+   	<meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
+
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.5/themes/default/style.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.5.2/css/buttons.dataTables.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/png"  href="https://doi.ipk-gatersleben.de:443/LOGO/edal_icon.png"/>
+
+	<link rel="stylesheet" href="https://doi.ipk-gatersleben.de:443/CSS/content.css" />
+
+
+	<meta name="DC.Title" content="A case study for efficient management of high throughput primary lab data">
+	<meta name="DC.Identifier" content="https://doi.org/10.5447/ipk/2011/0"> 
+	<meta name="DC.Publisher" content="e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany">
+	<meta name="DC.Language" content="en"> 
+	<meta name="DC.Description"	content="Source code for the LimsLight primary data management system">
+	<meta name="DC.Type" content="directory">
+	<meta name="DC.Format" content="none">
+	<meta name="DC.Rights" content="GNU GENERAL PUBLIC LICENSE Version 2, June 1991"> 
+	<meta name="DC.Creator"	content="Colmsee, Christian (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Creator"	content="Flemming, Steffen (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Creator"	content="Klapperstück, Matthias (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Creator"	content="Lange, Matthias (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Creator"	content="Scholz, Uwe (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Contributor"	content="Friedrich, Christian (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Contributor"	content="Steuernagel, Burkhard (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Contributor"	content="Weise, Stephan (Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany)">
+	<meta name="DC.Subject"	content="bioinformatics">
+	<meta name="DC.Subject"	content="source code">
+	<meta name="DC.Subject"	content="database">
+	<meta name="DC.Subject"	content="LIMS">
+	<meta name="DC.Subject"	content="primary data">
+
+		<!-- Matomo -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//webstats.ipk-gatersleben.de/";
+    _paq.push(['setTrackerUrl', u+'piwik.php']);
+    _paq.push(['setSiteId', '15']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+
+</head>
+<body>
+
+<div id="grid-container"> 
+
+		<script type ="application/ld+json">
+		{
+			"@context":"http://schema.org",
+			"@type":"Dataset",
+	        "http://purl.org/dc/terms/conformsTo": {
+    			"@type": "CreativeWork",
+    			"@id": "https://bioschemas.org/profiles/Dataset/1.0-RELEASE"
+  			},
+			"@id":"10.5447/ipk/2011/0",
+			"datePublished":"Sat Jan 01 00:00:00 CET 2011",
+			"name":"A case study for efficient management of high throughput primary lab data",
+			"license":"$licenseURL",			
+			"publisher":{
+				"@type":"Organization",
+				"name":"e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+			},
+			"description":"Source code for the LimsLight primary data management system",
+			"keywords":"bioinformatics, source code, database, LIMS, primary data",
+			"inLanguage":"en",
+			"author":[
+					{	
+						"@type":"Person",
+						"name":"Christian Colmsee",
+			 			"givenName":"Christian",
+			 			"familyName":"Colmsee",
+			 			"address":{
+			 				"@type": "PostalAddress",
+			 				"postalCode": "D-06466",
+			 				"streetAddress":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3",
+			 				"addressCountry":"Germany"
+			 			}
+,
+			 			"@id":"https://orcid.org/0000-0003-4387-4923",
+  						"identifier": {
+	    					"@type": "PropertyValue",
+	    					"propertyID": "orcid",
+	    					"value": "0000-0003-4387-4923"
+ 						}
+					}
+,					{	
+						"@type":"Person",
+						"name":"Steffen Flemming",
+			 			"givenName":"Steffen",
+			 			"familyName":"Flemming",
+			 			"address":{
+			 				"@type": "PostalAddress",
+			 				"postalCode": "D-06466",
+			 				"streetAddress":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3",
+			 				"addressCountry":"Germany"
+			 			}
+					}
+,					{	
+						"@type":"Person",
+						"name":"Matthias Klapperstück",
+			 			"givenName":"Matthias",
+			 			"familyName":"Klapperstück",
+			 			"address":{
+			 				"@type": "PostalAddress",
+			 				"postalCode": "D-06466",
+			 				"streetAddress":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3",
+			 				"addressCountry":"Germany"
+			 			}
+					}
+,					{	
+						"@type":"Person",
+						"name":"Matthias Lange",
+			 			"givenName":"Matthias",
+			 			"familyName":"Lange",
+			 			"address":{
+			 				"@type": "PostalAddress",
+			 				"postalCode": "D-06466",
+			 				"streetAddress":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3",
+			 				"addressCountry":"Germany"
+			 			}
+,
+			 			"@id":"https://orcid.org/0000-0002-4316-078X",
+  						"identifier": {
+	    					"@type": "PropertyValue",
+	    					"propertyID": "orcid",
+	    					"value": "0000-0002-4316-078X"
+ 						}
+					}
+,					{	
+						"@type":"Person",
+						"name":"Uwe Scholz",
+			 			"givenName":"Uwe",
+			 			"familyName":"Scholz",
+			 			"address":{
+			 				"@type": "PostalAddress",
+			 				"postalCode": "D-06466",
+			 				"streetAddress":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3",
+			 				"addressCountry":"Germany"
+			 			}
+,
+			 			"@id":"https://orcid.org/0000-0001-6113-3518",
+  						"identifier": {
+	    					"@type": "PropertyValue",
+	    					"propertyID": "orcid",
+	    					"value": "0000-0001-6113-3518"
+ 						}
+					}
+ ,					{	
+						"@type":"Person",
+						"name":"Christian Friedrich",
+			 			"givenName":"Christian",
+			 			"familyName":"Friedrich",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Burkhard Steuernagel",
+			 			"givenName":"Burkhard",
+			 			"familyName":"Steuernagel",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Stephan Weise",
+			 			"givenName":"Stephan",
+			 			"familyName":"Weise",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+ 		 	],
+		 	"creator":[
+					{	
+						"@type":"Person",
+						"name":"Christian Colmsee",
+			 			"givenName":"Christian",
+			 			"familyName":"Colmsee",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Steffen Flemming",
+			 			"givenName":"Steffen",
+			 			"familyName":"Flemming",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Matthias Klapperstück",
+			 			"givenName":"Matthias",
+			 			"familyName":"Klapperstück",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Matthias Lange",
+			 			"givenName":"Matthias",
+			 			"familyName":"Lange",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+						"name":"Uwe Scholz",
+			 			"givenName":"Uwe",
+			 			"familyName":"Scholz",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+ 		 	],
+		 	"contributor":[
+					{	
+						"@type":"Person",
+			 			"givenName":"Christian",
+			 			"familyName":"Friedrich",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+			 			"givenName":"Burkhard",
+			 			"familyName":"Steuernagel",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+,					{	
+						"@type":"Person",
+			 			"givenName":"Stephan",
+			 			"familyName":"Weise",
+			 			"address":"Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany" 
+					}
+ 		 	]
+		}
+		</script>
+		
+ <header>
+        <nav>
+            <div class="container-fluid">
+                <div class="row header">
+                    <div class="col my-auto"><a target="_blank" href="http://edal.ipk-gatersleben.de"><img id="logo-edal" src="https://doi.ipk-gatersleben.de:443/LOGO/edal_logo.png" /></a></div>
+                    <div id="edal-detail-title-long" class="col-auto text-center my-auto">e!DAL - Plant Genomics & Phenomics Research Data Repository</div>
+                    <div id="edal-detail-title-short" class="col-auto text-center my-auto">e!DAL - PGP Repository</div>
+					<div class="col text-right pt-1"><a target="_blank" href="https://www.ipk-gatersleben.de"><img id="logo-ipk" src="https://doi.ipk-gatersleben.de:443/LOGO/ipk_logo.jpg" /></a></div>
+                </div>
+            </div>
+        </nav>
+ </header> 
+    <div id="controls" class="pt-2 pb-2">
+        <div class="px-3 clearfix" id="edal-detail-quote-wrapper">
+           <div id="edal-detail-quote-container">
+            </div> 
+        </div>
+    </div> 
+
+
+    <div id="grid-container-content" style="overflow-y: auto;padding-bottom:20px;">
+        <div class="container-fluid mt-2 px-4">
+            <div class="row">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <p class="my-0">
+                                <span style="font-weight:500;">Citation:</span>
+									<a target="_blank" href ="https://commons.datacite.org/doi.org/10.5447/ipk/2011/0">C. Colmsee et al. (2014-07-25): A case study for efficient management of high throughput primary lab data. 
+												DOI:10.5447/ipk/2011/0
+										 </a>
+                            </p>
+                             <div class="my-0 mt-2">
+			                    <a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f3fe4501-240b-42a8-862c-619fb79628ef/2/BIBTEX" class="btn btn-outline-primary btn-sm" role="button"><span class="oi oi-data-transfer-download"></span>  BibTeX</a>
+			                    <a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f3fe4501-240b-42a8-862c-619fb79628ef/2/RIS" class="btn btn-outline-primary btn-sm" role="button"><span class="oi oi-data-transfer-download"></span>  RIS</a>
+			                    <a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f3fe4501-240b-42a8-862c-619fb79628ef/2/TEXT" class="btn btn-outline-primary btn-sm" role="button"><span class="oi oi-data-transfer-download"></span>  Text</a>
+			                    <a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f3fe4501-240b-42a8-862c-619fb79628ef/2/SCHEMA" class="btn btn-outline-primary btn-sm" role="button"><span class="oi oi-data-transfer-download"></span>  JSON-LD</a>               	
+            				</div>
+                            <p class="my-0 mt-2">
+                                <span style="font-weight:500;">Abstract: </span>Source code for the LimsLight primary data management system
+                            </p>
+
+                            <p class="my-0 mt-2">
+                                <span style="font-weight:500;">License: </span><a href="#">GNU GENERAL PUBLIC LICENSE Version 2, June 1991</a>
+                            </p>
+
+                            <p class="my-0 mt-2">
+	                                <span style="font-weight:500;">DOI:</span>  
+									10.5447/ipk/2011/0
+                            </p>
+                            <p class="my-0 mt-2">
+                                <span style="font-weight:500;">Content: </span>0 Directories 7 Files (2.1 MB)
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card mt-2">
+                        <div class="card-body p-3">
+                            <h6>Files:</h6>
+                            <div id="edal-detail-loading-animation">
+                                <i class="fa fa-refresh fa-spin"></i> Loading, please wait!
+                            </div>
+                            <div id="edal-detail-path">
+                                //A case study for efficient management of high throughput primary lab data <span style="font-weight:500;">[0 Directories 7 Files]</span>
+                            </div>
+
+                            
+                            <div id="edal-detail-directory-table-wrapper" class="edal-detail-directory-table-wrapper">
+                                <table id="edal-detail-directory-table">
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/9f345c01-aa14-43c1-b55c-d43a22ce155c/1">bfiler-client-0.3.6-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/9f345c01-aa14-43c1-b55c-d43a22ce155c/1/DOWNLOAD" target="_blank">1.3 MB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/c5b4fdc5-5133-4548-ab0f-e3d3017fd938/1">bfiler-database-0.5.5-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/c5b4fdc5-5133-4548-ab0f-e3d3017fd938/1/DOWNLOAD" target="_blank">66.9 KB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f7980ef0-1cb5-48f7-8143-0d3942bc1d4f/1">bfiler-lib-0.2.14-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f7980ef0-1cb5-48f7-8143-0d3942bc1d4f/1/DOWNLOAD" target="_blank">47.3 KB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/971a35c0-4de0-4264-a4b2-dff492fb9138/1">bfiler-web-0.2.10-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/971a35c0-4de0-4264-a4b2-dff492fb9138/1/DOWNLOAD" target="_blank">25.7 KB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/a8c9076d-7edb-4eaa-b046-5432dc6f26d6/1">LimsLightDb-0.1-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/a8c9076d-7edb-4eaa-b046-5432dc6f26d6/1/DOWNLOAD" target="_blank">657 KB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/67d69198-4c0c-4e64-a5b1-a8319893b2b0/1">LimsLiteDownloader-0.2-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/67d69198-4c0c-4e64-a5b1-a8319893b2b0/1/DOWNLOAD" target="_blank">33.2 KB</a>
+			</td>
+		</tr>
+		<tr>
+			<td class="item file zip">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/36e85d33-680f-4cab-a1a0-8c093ec18f73/1">LimsLiteUploader-0.8.3-source.zip</a>
+			</td>
+			<td class="itemsize">
+				<a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/36e85d33-680f-4cab-a1a0-8c093ec18f73/1/DOWNLOAD" target="_blank">76.3 KB</a>
+			</td>
+		</tr>
+                                </table>
+                            </div>
+
+							<div style="display:table-cell;vertical-align: middle;">
+                            <a href="https://doi.ipk-gatersleben.de:443/DOI/14f89a21-e457-4a88-aa35-fc4018c92ec4/f3fe4501-240b-42a8-862c-619fb79628ef/2/ZIP" role="button" class="mt-2 btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-download"></span> Download as ZIP</a>
+                            (NOTE: ZIP Extraction using the native Windows Zip Client can fail due to file path length, please use third-party ZIP client instead)
+                        	</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2" id="edal-metadata-details">
+                <div class="col">
+                    <div class="card p-3">
+                        <h6>Metadata</h6>
+                        <div class="container-fluid p-0">
+                            <div class="row">
+                                <div class="col-lg">
+                                    <table class="table table-bordered table-sm">	<tr>
+		<td width="120px"><a href="http://purl.org/dc/elements/1.1/contributor">CONTRIBUTOR:</a></td>	
+		<td>	
+			<div id="edal-contributor-short">
+						Christian Friedrich,   
+			
+						Burkhard Steuernagel,   
+			
+						Stephan Weise  
+			
+				<a id="edal-contributor-show-full" href="#">[Show full information]</a></div>
+			<div id="edal-contributor-long" style="display:none;">
+						Christian Friedrich, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+; <br/>	
+						Burkhard Steuernagel, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+						, <a href="https://orcid.org/0000-0002-8284-7728" target="_blank">0000-0002-8284-7728</a>
+; <br/>	
+						Stephan Weise, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+						, <a href="https://orcid.org/0000-0003-4031-9131" target="_blank">0000-0003-4031-9131</a>
+<br/>	
+	       		<a id="edal-contributor-hide-full" href="#">[Hide full information]</a>
+	       	</div>
+       	</td>
+	</tr>
+	<tr>
+		<td width="120px"><a href="http://purl.org/dc/elements/1.1/creator">CREATOR:</a></td>	
+		<td>	
+			<div id="edal-creator-short">
+						Christian Colmsee,   
+			
+						Steffen Flemming,   
+			
+						Matthias Klapperstück,   
+			
+						Matthias Lange,   
+			
+						Uwe Scholz  
+			
+				<a id="edal-creator-show-full" href="#">[Show full information]</a></div>
+			<div id="edal-creator-long" style="display:none;">
+						Christian Colmsee, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+						, <a href="https://orcid.org/0000-0003-4387-4923" target="_blank">0000-0003-4387-4923</a>
+; <br/>	
+						Steffen Flemming, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+; <br/>	
+						Matthias Klapperstück, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+; <br/>	
+						Matthias Lange, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+						, <a href="https://orcid.org/0000-0002-4316-078X" target="_blank">0000-0002-4316-078X</a>
+; <br/>	
+						Uwe Scholz, Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+						, <a href="https://orcid.org/0000-0001-6113-3518" target="_blank">0000-0001-6113-3518</a>
+<br/>	
+	       		<a id="edal-creator-hide-full" href="#">[Hide full information]</a>
+	       	</div>
+       	</td>
+	</tr>
+	<tr>
+		<td width="120px"><a href="http://purl.org/dc/elements/1.1/publisher">PUBLISHER:</a></td>
+		<td>
+e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany
+</td>
+	</tr>
+	<tr>
+		<td width="120px"><a href="http://purl.org/dc/elements/1.1/size">SIZE:</a></td>
+		<td>
+2.1 MB
+</td>
+	</tr>
+	<tr>
+		<td width="120px"><a href="http://purl.org/dc/elements/1.1/subject">SUBJECT:</a></td>
+		<td>
+bioinformatics, source code, database, LIMS, primary data
+</td>
+	</tr>
+
+
+	<script>
+	
+	</script>
+
+		</table>
+                                </div>
+                                <div class="col-lg">
+                                    <table class="table table-bordered table-sm"><tr>
+	<td width="120px">
+		<a
+			href="http://purl.org/dc/elements/1.1/coverage">COVERAGE:</a>
+	</td>
+	<td>
+		none
+	</td>
+</tr>
+<tr>
+	<td width="120px">
+		<a
+			href="http://purl.org/dc/elements/1.1/date">DATE:</a>
+	</td>
+	<td>
+		Event: event<br/>UPDATED:  TimePoint: Fri Jul 25 09:26:06 CEST 2014<br/>CREATED:  TimePoint: Wed Sep 07 09:26:00 CEST 2011<br/>
+	</td>
+</tr>
+<tr>
+	<td width="120px">
+		<a
+			href="http://purl.org/dc/elements/1.1/language">LANGUAGE:</a>
+	</td>
+	<td>
+		en
+	</td>
+</tr>
+<tr>
+	<td width="120px">
+		<a
+			href="http://purl.org/dc/elements/1.1/relation">RELATION:</a>
+	</td>
+	<td>
+		none
+	</td>
+</tr>
+<tr>
+	<td width="120px">
+		<a
+			href="http://purl.org/dc/elements/1.1/source">SOURCE:</a>
+	</td>
+	<td>
+		none
+	</td>
+</tr>
+</table>
+                                </div>
+                            </div>  
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="row mt-2">
+                <div class="col">
+                    <div class="card p-1">
+                        <div class="container-fluid p-0" style=" text-align:center;">
+                             Revision: 2 - CreationDate: Fri Jul 25 09:26:00 CEST 2014 - RevisionDate: Fri Jul 25 09:26:06 CEST 2014                           
+                        </div>  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="footer">
+        <div>
+            <span class="text-muted">
+					The Leibniz Institute of Plant Genetics and Crop Plant Research (IPK) Gatersleben is committed for maintaining this DOI to resolve to a persistent content page providing metadata describing the data			
+</span>
+        </div>
+    </footer>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+<script>
+    $(function () { 
+        $('#edal-contributor-show-full').click(function(event) {
+            event.preventDefault();
+            $('#edal-contributor-long').show();
+            $('#edal-contributor-short').hide();
+        });
+        $('#edal-contributor-hide-full').click(function(event) {
+            event.preventDefault();
+            $('#edal-contributor-long').hide();
+            $('#edal-contributor-short').show();
+        });
+         $('#edal-creator-show-full').click(function(event) {
+            event.preventDefault();
+            $('#edal-creator-long').show();
+            $('#edal-creator-short').hide();
+        });
+        $('#edal-creator-hide-full').click(function(event) {
+            event.preventDefault();
+            $('#edal-creator-long').hide();
+            $('#edal-creator-short').show();
+        });
+        $("#edal-detail-loading-animation").hide();
+        
+        var tbl_wrapper_height = $('#edal-detail-directory-table').height();
+        if (tbl_wrapper_height < 250) {
+            $('#edal-detail-directory-table-wrapper').addClass('scrollbarfix');
+        } else {
+            $('#edal-detail-directory-table-wrapper').removeClass('scrollbarfix');
+        }
+        
+    });
+</script>
+
+</body>
+</html>

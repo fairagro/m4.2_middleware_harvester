@@ -15,9 +15,9 @@
 
 ## Phase 3: Integration
 
-- [ ] Register EdalPgpMapper in registry
-- [ ] Test end-to-end with real EDAL-PGP dataset
-- [ ] Add integration test
+- [x] Register EdalPgpMapper in registry (`@SchemaOrgMapper.register(PayloadType.edal_pgp)`)
+- [x] Record-fixture integration test (real plugin pipeline with mocked HTTP, 2 datasets)
+- [x] Live opt-in integration test (skipped by default, set `NETWORK_ENABLED=1`)
 
 ## Phase 4: Deployment
 

@@ -125,7 +125,7 @@ class EdalPgpMapper(GeneralSchemaOrgMapper):
         license_val = self._str(graph, subject, self._schema().license)
         if not license_val:
             return
-        if license_val == PLACEHOLDER_LICENSE_URL:
+        if PLACEHOLDER_LICENSE_URL in license_val:
             inv.Comments.append(Comment.create("License", "URL not provided"))
         else:
             inv.Comments.append(Comment.create("License", license_val))
