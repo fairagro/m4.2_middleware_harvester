@@ -25,6 +25,7 @@ class PayloadType(StrEnum):
     """Supported dataset payload types."""
 
     general = "general"
+    edal_pgp = "edal_pgp"
 
 
 class Config(BaseModel):
