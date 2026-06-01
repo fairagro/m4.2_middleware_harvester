@@ -132,12 +132,10 @@ When editing files:
 ## Current Work
 
 - **Branch**: `feature/edal-pgp-mapper`
-- **Phase**: 3 of 4 — Integration tests **complete** (67 pass, 1 skipped, ruff clean)
-- **Constitution**: `middleware/schema_org/spec/constitution/`
-- **Spec & design**: `middleware/schema_org/spec/edal-pgp-mapping/spec.md` + `design.md`
-- **Implementation**: `EdalPgpMapper(GeneralSchemaOrgMapper)` at `middleware/schema_org/src/middleware/schema_org/schema_org_mapper/edal_pgp.py`
-- **Tests**: 26 unit + 5 integration tests; RO-Crate fixture at `middleware/schema_org/tests/fixtures/edal_pgp_rocrate_2011_0.json`
-- **Next**: Push to origin when ready; ops handover (cron, test infra)
+- **Phase**: 4 of 4 — **complete** (71 pass, 1 skipped, ruff/mypy clean). See `spec/edal-pgp-deployment/` for deployment docs.
+- **Feature scope**: `EdalPgpMapper(GeneralSchemaOrgMapper)` at `middleware/schema_org/src/middleware/schema_org/schema_org_mapper/edal_pgp.py`
+- **Tests**: 26 unit + 5 integration + 4 config tests; RO-Crate fixture + live endpoint verified
+- **Next**: Push to origin; ops handover (cron, test infra)
 
 ---
 
