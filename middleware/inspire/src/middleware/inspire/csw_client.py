@@ -8,6 +8,7 @@ from http import HTTPStatus
 from typing import TypeVar
 from urllib.parse import urlencode
 
+import lxml.etree  # type: ignore[import-untyped]
 from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
 from owslib.fes import OgcExpression  # type: ignore[import-untyped]
 from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
@@ -516,7 +517,7 @@ class CSWClient:
         return isinstance(status_code, int) and HTTPStatus.BAD_REQUEST <= status_code < HTTPStatus.INTERNAL_SERVER_ERROR
 
     async def _retry_async(self, fn: Callable[..., T], method_name: str, *args: object, **kwargs: object) -> T:
-        """Retry a synchronous function on OSError / TimeoutError in the async layer."""
+        """Retry a synchronous function on OSError / TimeoutError / XMLSyntaxError in the async layer."""
         total_attempts = 1 + self._config.retry_attempts
         last_exception: Exception | None = None
 
@@ -532,6 +533,9 @@ class CSWClient:
             except (OSError, TimeoutError) as exc:
                 if self._is_http_client_error(exc):
                     raise
+                last_exception = exc
+            except lxml.etree.XMLSyntaxError as exc:
+                # The CSW endpoint returned an HTML error page instead of XML (transient server error)
                 last_exception = exc
 
             if attempt == total_attempts:

@@ -231,6 +231,8 @@ max-line-length = 120
 [tool.pylint.master]
 # Ignore directories
 ignore = [".venv", "venv", ".git", "__pycache__", "build", "dist"]
+# Allow pylint to introspect C extensions at runtime (e.g. lxml.etree.XMLSyntaxError)
+extension-pkg-allow-list = ["lxml"]
 ignore-patterns = ["^\\..*", ".*\\.egg-info"]
 # Fail if the score is below 8.0
 fail-under = 8.0

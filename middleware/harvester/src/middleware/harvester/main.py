@@ -201,6 +201,7 @@ async def _execute_harvest_upload(
                 state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
+            state.failed_records.append(FailedRecord(message=str(e)))
 
     return HarvestUploadResult(
         harvest_id=harvest_id,
@@ -254,10 +255,11 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             failed_records = result.failed_records
         finally:
             await plugin_gen.aclose()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         logger.error("Unhandled exception in repository '%s', skipping.", repo.rdi)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
+        failed_records.append(FailedRecord(message=str(exc)))
 
     if harvest_started:
         if harvested_datasets is None:
