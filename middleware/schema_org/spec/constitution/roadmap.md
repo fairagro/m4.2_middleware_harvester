@@ -21,9 +21,13 @@
 
 ## Phase 4: Deployment
 
-- [ ] Decide: harvester plugin integration vs standalone
-- [ ] Configure cron schedule
-- [ ] Deploy to test infrastructure
+- [x] Harvester plugin integration confirmed — EdalPgpMapper registered, `payload_type: edal_pgp` in config
+- [x] Dev config and compose file created (`dev_environment/config.edal-pgp.yaml`, `compose.edal-pgp.yaml`)
+- [x] Config validation tests (4 new) verify full Pydantic + plugin machinery
+- [x] Spec + design docs for deployment (`middleware/schema_org/spec/edal-pgp-deployment/`)
+- [x] Live pipeline verified against `doi.ipk-gatersleben.de` — produces valid RO-Crate output
+- [ ] Cron schedule: deferred to ops (see `dev_environment/README.edal-pgp.md` for contract)
+- [ ] Deploy to test infrastructure: deferred to ops
 
 ## Future RDIs (backlog)
 

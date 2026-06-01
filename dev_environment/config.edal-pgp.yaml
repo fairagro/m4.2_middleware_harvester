@@ -1,0 +1,18 @@
+log_level: INFO
+
+repositories:
+  - rdi: "edal-pgp"
+    schema_org:
+      sitemap_url: "https://doi.ipk-gatersleben.de/sitemap.xml"
+      sitemap_type: xml
+      dataset_type: html_jsonld
+      payload_type: edal_pgp
+      http:
+        max_requests_per_second: 0.5
+        max_connections: 2
+        user_agent: "FAIRagro-Middleware-Harvester/0.1 (https://github.com/fairagro)"
+
+api_client:
+  api_url: "http://middleware-api:8000"
+  timeout: 60.0
+  verify_ssl: false
