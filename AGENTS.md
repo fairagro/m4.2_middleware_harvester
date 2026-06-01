@@ -129,5 +129,17 @@ When editing files:
 
 ---
 
-**Last Updated**: 2026-04-16
+## Current Work
+
+- **Branch**: `feature/edal-pgp-mapper` (parallel to colleague's `feature/schema-org-harvester`)
+- **Phase**: 2 of 4 — EDAL-PGP Mapper
+- **Constitution**: `middleware/schema_org/spec/constitution/`
+- **Spec & design**: `middleware/schema_org/spec/edal-pgp-mapping/spec.md` + `design.md`
+- **Implementation**: `EdalPgpMapper(GeneralSchemaOrgMapper)` at `middleware/schema_org/src/middleware/schema_org/schema_org_mapper/edal_pgp.py`
+- **Tests**: 26 unit tests passing in `middleware/schema_org/tests/unit/test_edal_pgp_mapper.py`
+- **Next**: Phase 3 — register in harvester config, test with real EDAL-PGP endpoint
+
+---
+
+**Last Updated**: 2026-06-01
 **Maintainer Notes**: This repository is the standalone Middleware Harvester. It is decoupled from the main Middleware API.

@@ -2,16 +2,16 @@
 
 ## Phase 1: Foundation
 
-- [ ] Create constitution docs (mission, tech-stack, roadmap)
-- [ ] Verify schema_org plugin skeleton on `feature/schema-org-harvester`
-- [ ] Define PayloadType enum entry for EDAL-PGP
+- [x] Create constitution docs (mission, tech-stack, roadmap)
+- [x] Verify schema_org plugin skeleton on `feature/schema-org-harvester`
+- [x] Define PayloadType enum entry for EDAL-PGP
 
 ## Phase 2: EDAL-PGP Mapper
 
-- [ ] Create `spec/edal-pgp-mapping/spec.md`
-- [ ] Implement `EdalPgpMapper` class
-- [ ] Handle edge cases: date format, $licenseURL placeholder, duplicate authors
-- [ ] Add unit tests
+- [x] Create `spec/edal-pgp-mapping/spec.md`
+- [x] Implement `EdalPgpMapper` class
+- [x] Handle edge cases: date format, $licenseURL placeholder, duplicate authors
+- [x] Add unit tests
 
 ## Phase 3: Integration
 
