@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator, Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -17,7 +18,7 @@ from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.plugin_config import PluginConfig
-from middleware.harvester.report import FailedRecord, HarvestReport, RepositoryReport, print_report
+from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
 from middleware.schema_org.plugin import SchemaOrgPlugin
 from middleware.shared.tracing import initialize_logging, initialize_tracing
@@ -50,7 +51,7 @@ def _extract_arc_identifier(arc_json: str) -> str | None:
 
 def _apply_client_errors(
     errors: list,
-    arc_id_to_url: dict[str, str],
+    arc_id_to_urls: dict[str, list[str]],
     harvested_datasets: int | None,
     failed_datasets: int | None,
     failed_records: list[FailedRecord],
@@ -63,8 +64,18 @@ def _apply_client_errors(
             failed_datasets = 0
         failed_datasets += 1
         arc_id = err.arc_id or ""
-        url = arc_id_to_url.get(arc_id)
-        msg = f"{err.message} — source URL: {url}" if url else err.message
+        urls = arc_id_to_urls.get(arc_id, [])
+        if urls:
+            unique_urls = []
+            for url in urls:
+                if url not in unique_urls:
+                    unique_urls.append(url)
+            if len(unique_urls) == 1:
+                msg = f"{err.message} — source URL: {unique_urls[0]}"
+            else:
+                msg = f"{err.message} — source URLs: {', '.join(unique_urls)}"
+        else:
+            msg = err.message
         failed_records.append(FailedRecord(message=msg, record_id=err.arc_id))
     return harvested_datasets, failed_datasets
 
@@ -88,19 +99,54 @@ def _handle_plugin_error(
         failed_records.append(FailedRecord(message=str(item)))
 
 
-async def _execute_harvest_upload(  # noqa: C901
+@dataclass
+class _ArcStreamState:
+    """Mutable accumulator shared between _arc_stream and _execute_harvest_upload."""
+
+    harvested_datasets: int | None = None
+    failed_datasets: int | None = None
+    arc_id_to_urls: dict[str, list[str]] = field(default_factory=dict)
+    failed_records: list[FailedRecord] = field(default_factory=list)
+
+
+async def _arc_stream(
+    gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
+    plugin_type: str,
+    state: _ArcStreamState,
+) -> AsyncGenerator[str, None]:
+    async for item in gen:
+        if isinstance(item, HarvesterError):
+            if state.failed_datasets is None:
+                state.failed_datasets = 0
+            state.failed_datasets += 1
+            _handle_plugin_error(item, plugin_type, state.failed_records)
+            continue
+        arc_json, source_url = item
+        if source_url is not None:
+            try:
+                arc_id = _extract_arc_identifier(arc_json)
+                if arc_id:
+                    urls = state.arc_id_to_urls.setdefault(arc_id, [])
+                    if source_url not in urls:
+                        urls.append(source_url)
+            except Exception:  # noqa: BLE001
+                pass
+        if state.harvested_datasets is None:
+            state.harvested_datasets = 0
+        state.harvested_datasets += 1
+        yield arc_json
+
+
+async def _execute_harvest_upload(
     repo: RepositoryConfig,
     client: ApiClient,
     tracer: trace.Tracer,
     plugin_gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
     expected_datasets: int | None,
-) -> tuple[str | None, int | None, int | None, bool, list[FailedRecord]]:
+) -> HarvestUploadResult:
+    state = _ArcStreamState()
     harvest_id: str | None = None
-    harvested_datasets: int | None = None
-    failed_datasets: int | None = None
     harvest_started = False
-    failed_records: list[FailedRecord] = []
-    arc_id_to_url: dict[str, str] = {}
 
     with tracer.start_as_current_span(
         "plugin_run",
@@ -109,53 +155,27 @@ async def _execute_harvest_upload(  # noqa: C901
             "harvester.repository_rdi": repo.rdi,
         },
     ) as plugin_span:
-
-        async def _arc_stream(
-            gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
-            plugin_type: str,
-        ) -> AsyncGenerator[str, None]:
-            nonlocal harvested_datasets, failed_datasets
-            async for item in gen:
-                if isinstance(item, HarvesterError):
-                    if failed_datasets is None:
-                        failed_datasets = 0
-                    failed_datasets += 1
-                    _handle_plugin_error(item, plugin_type, failed_records)
-                    continue
-                arc_json, source_url = item
-                if source_url is not None:
-                    try:
-                        arc_id = _extract_arc_identifier(arc_json)
-                        if arc_id:
-                            arc_id_to_url[arc_id] = source_url
-                    except Exception:  # noqa: BLE001
-                        pass
-                if harvested_datasets is None:
-                    harvested_datasets = 0
-                harvested_datasets += 1
-                yield arc_json
-
         try:
             with tracer.start_as_current_span("harvest_upload") as upload_span:
                 harvest_started = True
                 try:
                     result = await client.harvest_arcs(
                         rdi=repo.rdi,
-                        arcs=_arc_stream(plugin_gen, repo.plugin_type),
+                        arcs=_arc_stream(plugin_gen, repo.plugin_type, state),
                         expected_datasets=expected_datasets,
                     )
                     harvest_id = result.harvest_id
-                    harvested_datasets, failed_datasets = _apply_client_errors(
+                    state.harvested_datasets, state.failed_datasets = _apply_client_errors(
                         result.errors,
-                        arc_id_to_url,
-                        harvested_datasets,
-                        failed_datasets,
-                        failed_records,
+                        state.arc_id_to_urls,
+                        state.harvested_datasets,
+                        state.failed_datasets,
+                        state.failed_records,
                     )
                     upload_span.set_attribute("harvester.harvest_id", harvest_id)
                     upload_span.set_attribute(
                         "harvester.arcs_uploaded",
-                        harvested_datasets if harvested_datasets is not None else 0,
+                        state.harvested_datasets if state.harvested_datasets is not None else 0,
                     )
                     logger.info(
                         "Finished processing repository %s. Harvest: %s",
@@ -171,18 +191,24 @@ async def _execute_harvest_upload(  # noqa: C901
                 plugin_span.set_attribute("harvester.harvest_id", harvest_id)
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
-                harvested_datasets if harvested_datasets is not None else 0,
+                state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
         except Exception as e:  # noqa: BLE001
             plugin_span.set_status(trace.StatusCode.ERROR)
             plugin_span.record_exception(e)
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
-                harvested_datasets if harvested_datasets is not None else 0,
+                state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
 
-    return harvest_id, harvested_datasets, failed_datasets, harvest_started, failed_records
+    return HarvestUploadResult(
+        harvest_id=harvest_id,
+        harvested_datasets=state.harvested_datasets,
+        failed_datasets=state.failed_datasets,
+        harvest_started=harvest_started,
+        failed_records=state.failed_records,
+    )
 
 
 async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: trace.Tracer) -> RepositoryReport:
@@ -214,19 +240,18 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         plugin_gen = plugin_instance.run()
         try:
             expected_datasets = await plugin_instance.get_expected_datasets()
-            (
-                harvest_id,
-                harvested_datasets,
-                failed_datasets,
-                harvest_started,
-                failed_records,
-            ) = await _execute_harvest_upload(
+            result = await _execute_harvest_upload(
                 repo,
                 client,
                 tracer,
                 plugin_gen,
                 expected_datasets,
             )
+            harvest_id = result.harvest_id
+            harvested_datasets = result.harvested_datasets
+            failed_datasets = result.failed_datasets
+            harvest_started = result.harvest_started
+            failed_records = result.failed_records
         finally:
             await plugin_gen.aclose()
     except Exception:  # noqa: BLE001

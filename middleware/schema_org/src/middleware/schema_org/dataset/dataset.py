@@ -28,6 +28,17 @@ class UrlDiscoveryResult(DiscoveryResult):
     url: str
 
 
+@dataclass
+class DuplicateUrlDiscoveryResult(DiscoveryResult):
+    """Discovery result representing a URL that was already seen in this sitemap.
+
+    Yielded by Sitemap.discover() for every duplicate entry so that callers can
+    report it instead of silently dropping it.
+    """
+
+    url: str
+
+
 T = TypeVar("T", bound="Dataset")
 
 

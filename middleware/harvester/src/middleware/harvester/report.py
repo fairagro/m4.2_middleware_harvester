@@ -39,6 +39,17 @@ class FailedRecord:
     url: str | None = None
 
 
+@dataclass
+class HarvestUploadResult:
+    """Aggregated result of a single plugin's harvest-and-upload cycle."""
+
+    harvest_id: str | None
+    harvested_datasets: int | None
+    failed_datasets: int | None
+    harvest_started: bool
+    failed_records: list[FailedRecord]
+
+
 @dataclass(frozen=True)
 class RepositoryReport:
     """Execution statistics for a single harvested repository."""

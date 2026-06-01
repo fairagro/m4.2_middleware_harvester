@@ -12,7 +12,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
-from .dataset import Dataset, DiscoveryResult
+from .dataset import Dataset, DiscoveryResult, DuplicateUrlDiscoveryResult
 from .dataset.dataset import UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
@@ -82,6 +82,12 @@ class SchemaOrgPlugin(Plugin):
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
     ) -> tuple[str, str | None] | RecordProcessingError:
+        if isinstance(discovery_result, DuplicateUrlDiscoveryResult):
+            return RecordProcessingError(
+                f"Duplicate sitemap entry skipped: {discovery_result.url}",
+                discovery_result.url,
+                url=discovery_result.url,
+            )
         source_url = discovery_result.url if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
             dataset_cls = Dataset.registry[self._config.dataset_type]
