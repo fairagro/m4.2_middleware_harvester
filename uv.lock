@@ -350,7 +350,7 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-shared"
-version = "8.8.0"
+version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "opentelemetry-api" },
@@ -360,9 +360,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/a9/b41f374e7a35d70fb0a97793741203e75379cd2b640600d353ff292bb5ee/fairagro_middleware_shared-8.8.0.tar.gz", hash = "sha256:a82eba4a2b8c2220225e45e7613a5328144fcdf1c6ac05d3044626060604688c", size = 16242, upload-time = "2026-05-13T14:37:14.75Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/57/2957e742498e1deda4b017d6a653a47e787a9cf6efa6485577fa76d0720e/fairagro_middleware_shared-9.0.0.tar.gz", hash = "sha256:8c2f1ad3ca8c6f4ecc8b3d7e72275150bfcbf16758906244a519b07174400335", size = 16243, upload-time = "2026-05-27T15:16:18.15Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/9b/909c4b008d13a189329ca47cc503a7a68a1188a20f4105766fa8fd3ebe3d/fairagro_middleware_shared-8.8.0-py3-none-any.whl", hash = "sha256:13527f0606ccc4e54d3d861c9cd3c5951cbc9173c7821828585723b7e52c06f1", size = 15151, upload-time = "2026-05-13T14:37:17.407Z" },
+    { url = "https://files.pythonhosted.org/packages/45/f6/d165d16b04d4dbf5182c6fd5f67ba214b96c12cb28b889760021aabadf9d/fairagro_middleware_shared-9.0.0-py3-none-any.whl", hash = "sha256:c02f94b76668a95daf748ccbb680b1b1fe792803d08cf877ef9678ec37ee702f", size = 15150, upload-time = "2026-05-27T15:16:19.087Z" },
 ]
 
 [[package]]
@@ -453,7 +453,7 @@ dependencies = [
 requires-dist = [
     { name = "arctrl", specifier = ">=3.0.0b0" },
     { name = "fairagro-middleware-api-client", specifier = ">=8.7.1.dev11" },
-    { name = "fairagro-middleware-shared", specifier = ">=8.7.1.dev11" },
+    { name = "fairagro-middleware-shared", specifier = ">=9.0.0" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "schema-org", editable = "middleware/schema_org" },
@@ -542,7 +542,7 @@ dependencies = [
 requires-dist = [
     { name = "arctrl", specifier = ">=3.0.0b0" },
     { name = "fairagro-middleware-api-client", specifier = ">=8.7.0" },
-    { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
+    { name = "fairagro-middleware-shared", specifier = ">=9.0.0" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]
@@ -1438,7 +1438,7 @@ dependencies = [
 requires-dist = [
     { name = "arctrl", specifier = ">=3.0.0b0" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
+    { name = "fairagro-middleware-shared", specifier = ">=9.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
 ]
