@@ -1,0 +1,424 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_Christian_Colmsee",
+      "@type": "Person",
+      "givenName": "Christian",
+      "familyName": "Colmsee",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": [
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany",
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+      ],
+      "disambiguatingDescription": "Comment {Name = \"ORCID\", Value = \"0000-0003-4387-4923\"}"
+    },
+    {
+      "@id": "#Person_Steffen_Flemming",
+      "@type": "Person",
+      "givenName": "Steffen",
+      "familyName": "Flemming",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+    },
+    {
+      "@id": "#Person_Matthias_Klapperstück",
+      "@type": "Person",
+      "givenName": "Matthias",
+      "familyName": "Klapperstück",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+    },
+    {
+      "@id": "#Person_Matthias_Lange",
+      "@type": "Person",
+      "givenName": "Matthias",
+      "familyName": "Lange",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": [
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany",
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+      ],
+      "disambiguatingDescription": "Comment {Name = \"ORCID\", Value = \"0000-0002-4316-078X\"}"
+    },
+    {
+      "@id": "#Person_Uwe_Scholz",
+      "@type": "Person",
+      "givenName": "Uwe",
+      "familyName": "Scholz",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": [
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany",
+        "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+      ],
+      "disambiguatingDescription": "Comment {Name = \"ORCID\", Value = \"0000-0001-6113-3518\"}"
+    },
+    {
+      "@id": "#Person_Christian_Friedrich",
+      "@type": "Person",
+      "givenName": "Christian",
+      "familyName": "Friedrich",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany"
+    },
+    {
+      "@id": "#Person_Burkhard_Steuernagel",
+      "@type": "Person",
+      "givenName": "Burkhard",
+      "familyName": "Steuernagel",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany"
+    },
+    {
+      "@id": "#Person_Stephan_Weise",
+      "@type": "Person",
+      "givenName": "Stephan",
+      "familyName": "Weise",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), D-06466, Germany"
+    },
+    {
+      "@id": "#Organization_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany",
+      "@type": "Organization",
+      "name": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+    },
+    {
+      "@id": "#OA_publisher",
+      "@type": "DefinedTerm",
+      "name": "publisher"
+    },
+    {
+      "@id": "#Person__e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany",
+      "@type": "Person",
+      "givenName": "",
+      "affiliation": {
+        "@id": "#Organization_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany"
+      },
+      "familyName": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany",
+      "jobTitle": {
+        "@id": "#OA_publisher"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=file:///home/brizuela/workspace/m4.2_middleware_harvester/10.5447/ipk/2011/0",
+      "@type": "URI",
+      "name": "file:///home/brizuela/workspace/m4.2_middleware_harvester/10.5447/ipk/2011/0"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=file:///home/brizuela/workspace/m4.2_middleware_harvester/10.5447/ipk/2011/0"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"file:///home/brizuela/workspace/m4.2_middleware_harvester/$licenseURL\"}",
+        "Comment {Name = \"Publisher\", Value = \"e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany\"}",
+        "Comment {Name = \"Language\", Value = \"en\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "a_case_study_for_efficient_management_of_high_throughput_primary_lab_data",
+      "hasPart": [],
+      "name": "A case study for efficient management of high throughput primary lab data",
+      "about": {
+        "@id": "#Process_A_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Raw Data",
+      "@type": "File",
+      "name": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Raw Data"
+    },
+    {
+      "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Published Dataset",
+      "@type": "File",
+      "name": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Published Dataset"
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_bioinformatics,_source_code,_database,_LIMS,_primary_data",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "bioinformatics, source code, database, LIMS, primary data",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_bioinformatics,_source_code,_database,_LIMS,_primary_data"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben, Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing",
+      "object": {
+        "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Raw Data"
+      },
+      "result": {
+        "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Published Dataset"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany"
+      }
+    },
+    {
+      "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "a_case_study_for_efficient_management_of_high_throughput_primary_lab_data",
+      "dateModified": "2026-06-01T10:28:03.083",
+      "description": "Source code for the LimsLight primary data management system",
+      "hasPart": [
+        {
+          "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Raw Data"
+        },
+        {
+          "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/resources/Published Dataset"
+        }
+      ],
+      "name": "A case study for efficient management of high throughput primary lab data",
+      "about": [
+        {
+          "@id": "#Process_S_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_a_case_study_for_efficient_management_of_high_throughput_primary_lab_data_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "#LDComment_Keywords_bioinformatics,_source_code,_database,_LIMS,_primary_data",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "bioinformatics, source code, database, LIMS, primary data"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_License_URL_not_provided",
+      "@type": "Comment",
+      "name": "License",
+      "text": "URL not provided"
+    },
+    {
+      "@id": "#LDComment_Conforms_To_https://bioschemas.org/profiles/Dataset/1.0-RELEASE",
+      "@type": "Comment",
+      "name": "Conforms To",
+      "text": "https://bioschemas.org/profiles/Dataset/1.0-RELEASE"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "a_case_study_for_efficient_management_of_high_throughput_primary_lab_data",
+      "creator": [
+        {
+          "@id": "#Person_Christian_Colmsee"
+        },
+        {
+          "@id": "#Person_Steffen_Flemming"
+        },
+        {
+          "@id": "#Person_Matthias_Klapperstück"
+        },
+        {
+          "@id": "#Person_Matthias_Lange"
+        },
+        {
+          "@id": "#Person_Uwe_Scholz"
+        },
+        {
+          "@id": "#Person_Christian_Friedrich"
+        },
+        {
+          "@id": "#Person_Burkhard_Steuernagel"
+        },
+        {
+          "@id": "#Person_Stephan_Weise"
+        },
+        {
+          "@id": "#Person_Christian_Colmsee"
+        },
+        {
+          "@id": "#Person_Matthias_Lange"
+        },
+        {
+          "@id": "#Person_Uwe_Scholz"
+        },
+        {
+          "@id": "#Person__e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben,_Seeland_OT_Gatersleben,_Corrensstraße_3,_D-06466,_Germany"
+        }
+      ],
+      "datePublished": "2026-06-01T10:28:03.074",
+      "description": "Source code for the LimsLight primary data management system",
+      "hasPart": [
+        {
+          "@id": "assays/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/"
+        },
+        {
+          "@id": "studies/a_case_study_for_efficient_management_of_high_throughput_primary_lab_data/"
+        }
+      ],
+      "name": "A case study for efficient management of high throughput primary lab data",
+      "comment": [
+        {
+          "@id": "#LDComment_Keywords_bioinformatics,_source_code,_database,_LIMS,_primary_data"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_License_URL_not_provided"
+        },
+        {
+          "@id": "#LDComment_Conforms_To_https://bioschemas.org/profiles/Dataset/1.0-RELEASE"
+        }
+      ],
+      "sdDatePublished": "2026-06-01T10:28:03.087",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
