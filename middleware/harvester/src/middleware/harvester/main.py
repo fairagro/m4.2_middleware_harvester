@@ -49,6 +49,15 @@ def _extract_arc_identifier(arc_json: str) -> str | None:
     return None
 
 
+def _get_repo_source_url(repo: RepositoryConfig) -> str | None:
+    """Return the primary source URL for the repository (CSW URL or sitemap URL)."""
+    if repo.inspire is not None:
+        return repo.inspire.csw_url
+    if repo.schema_org is not None:
+        return repo.schema_org.sitemap_url
+    return None  # pragma: no cover
+
+
 def _apply_client_errors(
     errors: list,
     arc_id_to_urls: dict[str, list[str]],
@@ -201,7 +210,9 @@ async def _execute_harvest_upload(
                 state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
-            state.failed_records.append(FailedRecord(message=str(e)))
+            state.failed_records.append(
+                FailedRecord(message=f"{type(e).__name__}: {e}", url=_get_repo_source_url(repo))
+            )
 
     return HarvestUploadResult(
         harvest_id=harvest_id,
@@ -259,7 +270,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         logger.error("Unhandled exception in repository '%s', skipping.", repo.rdi)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
-        failed_records.append(FailedRecord(message=str(exc)))
+        failed_records.append(FailedRecord(message=f"{type(exc).__name__}: {exc}", url=_get_repo_source_url(repo)))
 
     if harvest_started:
         if harvested_datasets is None:
