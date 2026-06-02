@@ -16,11 +16,6 @@ configurable.
 - [ ] Every `asyncio.to_thread()` call inside `CSWClient` is replaced by
       `loop.run_in_executor(self._executor, ...)` so that all blocking OWSLib
       work runs in the client's own pool.
-- [ ] `csw_thread_pool_size` is a field on `middleware.inspire.config.Config`
-      with a sensible default and a `ge=1` constraint.
-- [ ] `csw_thread_pool_size` can be overridden via the environment variable
-      `INSPIRE_CSW_THREAD_POOL_SIZE` following the existing `ConfigBase`
-      override convention.
 - [ ] When `CSWClient` is not used as a context manager (e.g. in tests or
       synchronous callers), the executor is shut down when the client is
       garbage-collected (`__del__`).
