@@ -106,7 +106,8 @@ class CSWClient:
             try:
                 self._shutdown_executor()
             except Exception:
-                pass
+                # Destructors must not raise; log for diagnostics and suppress.
+                logger.debug("Failed to shut down CSWClient executor during object finalization.", exc_info=True)
 
     async def _run_in_executor(self, fn: Callable[..., T], *args: object, **kwargs: object) -> T:
         """Run a function in the owned executor."""
