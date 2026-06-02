@@ -214,7 +214,7 @@ class CSWClient:
         elif effective_cql is not None:
             yield from self._get_records_by_cql(effective_cql, effective_chunk_size, effective_max_records)
         else:
-            yield from self._get_all_records_paginated(effective_chunk_size, effective_max_records)
+            yield from self._get_records_standard(effective_chunk_size, effective_max_records)
 
     async def get_records_async(
         self,

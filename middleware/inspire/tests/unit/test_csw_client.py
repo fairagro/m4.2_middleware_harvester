@@ -14,12 +14,12 @@ from middleware.inspire.errors import CswConnectionError
 _expected_record_count = 42
 
 
-def _make_config(csw_url: str = "https://example.com/csw") -> Config:
+def _make_csw_config(csw_url: str = "https://example.com/csw") -> Config:
     return Config(csw_url=csw_url, timeout=5, chunk_size=10)
 
 
 def test_get_record_url_appends_query_parameters() -> None:
-    config = _make_config(csw_url="https://example.com/csw?foo=bar")
+    config = _make_csw_config(csw_url="https://example.com/csw?foo=bar")
     client = CSWClient(config)
 
     url = client.get_record_url("record-123")
@@ -29,7 +29,7 @@ def test_get_record_url_appends_query_parameters() -> None:
 
 
 def test_get_record_url_handles_base_url_without_query() -> None:
-    config = _make_config(csw_url="https://example.com/csw")
+    config = _make_csw_config(csw_url="https://example.com/csw")
     client = CSWClient(config)
 
     url = client.get_record_url("record-123")
@@ -40,7 +40,7 @@ def test_get_record_url_handles_base_url_without_query() -> None:
 
 def test_connect_logs_cs_title_on_success(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
     fake_csw.identification = MagicMock(title="Test CSW")
@@ -74,7 +74,7 @@ def test_get_record_count_parses_list_matches() -> None:
 
 
 def test_get_record_count_uses_xml_query() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
 
@@ -91,7 +91,7 @@ def test_get_record_count_uses_xml_query() -> None:
 
 
 def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
 
@@ -110,14 +110,14 @@ def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
 
 
 def test_config_default_csw_thread_pool_size() -> None:
-    config = _make_config()
+    config = _make_csw_config()
 
     assert config.csw_thread_pool_size == 4  # noqa: PLR2004
 
 
 @pytest.mark.asyncio
 async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
 
     with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
@@ -132,7 +132,7 @@ async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() 
 
 @pytest.mark.asyncio
 async def test_csw_client_executor_warning_on_del() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
 
     with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
@@ -154,7 +154,7 @@ async def test_csw_client_executor_warning_on_del() -> None:
 
 
 def test_connect_raises_csw_connection_error_on_failure() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
 
     with (
@@ -319,7 +319,7 @@ async def test_get_records_async_uses_run_in_executor_for_cql_path() -> None:
 
 @pytest.mark.asyncio
 async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 
@@ -340,7 +340,7 @@ async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
 
 
 def test_get_records_uses_fes_constraints() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 
