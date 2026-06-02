@@ -298,16 +298,12 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
 
 async def _heartbeat_loop(path: Path, interval: int) -> None:
     """Touch *path* every *interval* seconds to signal liveness."""
-    try:
-        path.touch()
-    except OSError as e:
-        logger.error("Failed to touch heartbeat file %s: %s", path, e)
     while True:
-        await asyncio.sleep(interval)
         try:
             path.touch()
         except OSError as e:
             logger.error("Failed to touch heartbeat file %s: %s", path, e)
+        await asyncio.sleep(interval)
 
 
 async def run_orchestrator(config: Config) -> HarvestReport:
