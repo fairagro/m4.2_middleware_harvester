@@ -96,7 +96,7 @@ class InspireMapper:
         has_title_or_suffix = bool(parsed.title or parsed.suffix)
 
         if has_comma or has_title_or_suffix:
-            first_name = parsed.first or ""
+            first_name = " ".join(filter(None, [parsed.first, parsed.middle]))
             last_name = parsed.last or ""
         else:
             tokens = [token for token in name.split() if token]
