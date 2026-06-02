@@ -400,6 +400,7 @@ class CSWClient:
                 error.args[0] if error.args else str(error),
                 unmatched_dc_ids[i],
                 original_error=cause,
+                url=error.url,
             )
 
     def _fetch_dc_ids(
