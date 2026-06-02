@@ -11,8 +11,8 @@ class Plugin(Protocol):
 
     def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
         """Run the plugin and yield (arc_json, source_url) pairs or errors."""
-        pass  # noqa: PIE790
+        raise NotImplementedError
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for the configured source."""
-        pass  # noqa: PIE790
+        raise NotImplementedError
