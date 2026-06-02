@@ -46,7 +46,7 @@ class RepositoryConfig(BaseModel):
         adding a new plugin only requires adding its Optional field — no separate
         registry constant needs updating.
         """
-        plugin_fields = [name for name in self.model_fields if name != "rdi"]
+        plugin_fields = [name for name in self.__class__.model_fields if name != "rdi"]
         set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
