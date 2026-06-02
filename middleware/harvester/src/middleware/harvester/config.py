@@ -1,6 +1,6 @@
 """Configuration module for the Middleware Harvester core orchestrator."""
 
-from typing import Annotated, ClassVar
+from typing import Annotated
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -22,8 +22,8 @@ class RepositoryConfig(BaseModel):
               rdi: "my-rdi"
     """
 
-    _PLUGIN_FIELDS: ClassVar[frozenset[str]] = frozenset({"inspire", "schema_org"})
-    # When adding a new plugin, add its field name here AND as an optional field below.
+    # Plugin fields: any Optional field that holds a PluginConfig subclass.
+    # No explicit list needed — the validator introspects model_fields at runtime.
 
     rdi: Annotated[
         str,
@@ -40,8 +40,14 @@ class RepositoryConfig(BaseModel):
 
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> "RepositoryConfig":
-        """Ensure exactly one plugin key is set."""
-        set_fields = [f for f in self._PLUGIN_FIELDS if getattr(self, f) is not None]
+        """Ensure exactly one plugin key is set.
+
+        Derives the set of plugin fields dynamically from model_fields so that
+        adding a new plugin only requires adding its Optional field — no separate
+        registry constant needs updating.
+        """
+        plugin_fields = [name for name in self.model_fields if name != "rdi"]
+        set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self
