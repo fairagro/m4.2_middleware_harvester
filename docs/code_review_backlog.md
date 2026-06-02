@@ -47,31 +47,13 @@ class Plugin(Protocol):
 
 ---
 
-## Item 4 — `cast()` in `_run_repository` works around a missing constructor contract
+## ~~Item 4~~ ✅ — `cast()` in `_run_repository` works around a missing constructor contract
 
-**Category:** Architecture / Low  
-**Location:** `middleware/harvester/src/middleware/harvester/main.py`  
-**Function:** `_run_repository`
+**Fixed in commit `55fa183`**
 
-**Problem:**  
-```python
-plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
-```
-`cast()` is needed because `Plugin` (as ABC) does not declare `__init__(config:
-PluginConfig)`. The registry is typed as `dict[str, type[Plugin]]`, but `Plugin`
-has no constructor contract, so mypy cannot verify the call site.
-
-**Recommendation:**  
-Type the registry as `dict[str, Callable[[PluginConfig], Plugin]]` (factories
-instead of classes). This is structurally equivalent but removes the `cast()`:
-
-```python
-_PLUGIN_FACTORIES: dict[str, Callable[[PluginConfig], Plugin]] = {
-    "inspire": InspirePlugin,
-    "schema_org": SchemaOrgPlugin,
-}
-plugin_instance = _PLUGIN_FACTORIES[repo.plugin_type](repo.plugin_config)
-```
+`_PLUGIN_CLASSES: dict[str, type[Plugin]]` renamed to `_PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]]`.
+`cast()` removed from the instantiation site. Unused `PluginConfig` import dropped from `main.py`.
+Also corrected `isinstance(result, Exception)` → `isinstance(result, BaseException)` in the gather loop.
 
 ---
 
