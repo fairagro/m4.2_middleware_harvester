@@ -2,7 +2,7 @@
 
 from typing import Annotated, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Config(BaseModel):
@@ -40,6 +40,14 @@ class Config(BaseModel):
         str,
         Field(description="User-Agent header value used for CSW requests."),
     ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+
+    @field_validator("user_agent")
+    @classmethod
+    def user_agent_must_be_single_line(cls, v: str) -> str:
+        """Reject user-agent strings containing CR or LF to prevent HTTP header injection."""
+        if "\r" in v or "\n" in v:
+            raise ValueError("user_agent must not contain CR (\\r) or LF (\\n) characters")
+        return v
 
     retry_attempts: Annotated[
         int,
