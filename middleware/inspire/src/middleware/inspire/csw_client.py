@@ -1,9 +1,9 @@
 """CSW client for harvesting INSPIRE metadata records."""
 
 import asyncio
+import contextlib
 import logging
 import random
-import warnings
 from collections.abc import AsyncGenerator, Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
@@ -92,22 +92,9 @@ class CSWClient:
         self._shutdown_executor()
 
     def __del__(self) -> None:
-        """Shut down the executor if the object is garbage-collected."""
-        if getattr(self, "_executor", None) is not None:
-            try:
-                warnings.warn(
-                    "CSWClient executor was not shut down. Use async with CSWClient(...) to manage its lifecycle.",
-                    ResourceWarning,
-                    stacklevel=2,
-                )
-            except (NameError, AttributeError):
-                # During interpreter shutdown, module globals/attributes may already be cleared.
-                pass
-            try:
-                self._shutdown_executor()
-            except Exception:
-                # Destructors must not raise; log for diagnostics and suppress.
-                logger.debug("Failed to shut down CSWClient executor during object finalization.", exc_info=True)
+        """Best-effort finalizer: keep minimal and avoid complex logic."""
+        with contextlib.suppress(Exception):
+            self._shutdown_executor()
 
     async def _run_in_executor(self, fn: Callable[..., T], *args: object, **kwargs: object) -> T:
         """Run a function in the owned executor."""
