@@ -101,6 +101,7 @@ class CSWClient:
                     stacklevel=2,
                 )
             except (NameError, AttributeError):
+                # During interpreter shutdown, module globals/attributes may already be cleared.
                 pass
             try:
                 self._shutdown_executor()
