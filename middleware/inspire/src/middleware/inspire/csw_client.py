@@ -1,6 +1,7 @@
 """CSW client for harvesting INSPIRE metadata records."""
 
 import asyncio
+import concurrent.futures
 import logging
 import random
 from collections.abc import AsyncGenerator, Callable, Iterator
@@ -34,11 +35,18 @@ class CSWClient:
         """
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
+        self._dc_csw: CatalogueServiceWeb | None = None
         self._parser = IsoParser()
 
     def _connect(self) -> None:
         """Connect to the CSW service without error wrapping."""
         self._csw = CatalogueServiceWeb(
+            self._config.csw_url,
+            timeout=self._config.timeout,
+            headers={"User-Agent": self._config.user_agent},
+        )
+        # Second connection for parallel DC ID fetches in _get_records_paged
+        self._dc_csw = CatalogueServiceWeb(
             self._config.csw_url,
             timeout=self._config.timeout,
             headers={"User-Agent": self._config.user_agent},
@@ -285,13 +293,16 @@ class CSWClient:
         records_yielded = 0
 
         while True:
-            # 1. Fetch Dublin Core IDs first (as a stable reference)
-            dc_ids = self._fetch_dc_ids(chunk_size, start_position, cql_query, fes_constraints)
-            if not dc_ids:
-                break
+            # Fetch DC IDs and ISO records in parallel (each uses its own CSW connection)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                dc_future = executor.submit(self._fetch_dc_ids, chunk_size, start_position, cql_query, fes_constraints)
+                iso_future = executor.submit(
+                    self._fetch_iso_batch, chunk_size, start_position, cql_query, fes_constraints
+                )
+                dc_ids = dc_future.result()
+                iso_ok = iso_future.result()
 
-            # 2. Fetch ISO records for the same batch
-            if not self._fetch_iso_batch(chunk_size, start_position, cql_query, fes_constraints):
+            if not dc_ids or not iso_ok:
                 break
 
             # 3. Yield records, using DC IDs for identification
@@ -320,11 +331,15 @@ class CSWClient:
         fes_constraints: list[OgcExpression] | None,
         swallow_errors: bool = True,
     ) -> list[str]:
-        """Fetch stable identifiers using Dublin Core schema."""
-        if self._csw is None:
+        """Fetch stable identifiers using Dublin Core schema (uses _dc_csw for parallel safety)."""
+        # Prefer the dedicated DC connection; fall back to the shared connection
+        # (e.g. when _csw was injected directly in tests without calling connect())
+        csw = self._dc_csw if self._dc_csw is not None else self._csw
+        if csw is None:
             self.connect()
-        if self._csw is None:
-            raise RuntimeError("CSW client is not initialized.")
+            csw = self._dc_csw if self._dc_csw is not None else self._csw
+        if csw is None:
+            raise RuntimeError("DC CSW client is not initialized.")
 
         try:
             kwargs: dict = {
@@ -333,13 +348,13 @@ class CSWClient:
                 "esn": "brief",
             }
             if fes_constraints:
-                self._csw.getrecords2(constraints=fes_constraints, **kwargs)
+                csw.getrecords2(constraints=fes_constraints, **kwargs)
             elif cql_query:
-                self._csw.getrecords2(cql=cql_query, **kwargs)
+                csw.getrecords2(cql=cql_query, **kwargs)
             else:
-                self._csw.getrecords2(**kwargs)
+                csw.getrecords2(**kwargs)
 
-            return [rec.identifier for rec in self._csw.records.values()]
+            return [rec.identifier for rec in csw.records.values()]
         except (OSError, TimeoutError) as e:
             if swallow_errors:
                 logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
