@@ -186,27 +186,32 @@ class CSWClient:
             raise RuntimeError("CSW client is not initialized.")
 
         if effective_xml:
-            records = await self._retry_async(self._get_records_by_xml_sync, "get_records_by_xml", effective_xml)
+            records = await self._retry_async(
+                self._iter_to_list, "get_records_by_xml", self._get_records_by_xml, effective_xml
+            )
         elif effective_fes:
             records = await self._retry_async(
-                self._get_records_by_fes_sync,
+                self._iter_to_list,
                 "get_records_by_fes",
+                self._get_records_by_fes,
                 effective_fes,
                 effective_chunk_size,
                 effective_max_records,
             )
         elif effective_cql:
             records = await self._retry_async(
-                self._get_records_by_cql_sync,
+                self._iter_to_list,
                 "get_records_by_cql",
+                self._get_records_by_cql,
                 effective_cql,
                 effective_chunk_size,
                 effective_max_records,
             )
         else:
             records = await self._retry_async(
-                self._get_records_standard_sync,
+                self._iter_to_list,
                 "get_records_standard",
+                self._get_records_standard,
                 effective_chunk_size,
                 effective_max_records,
             )
@@ -214,25 +219,13 @@ class CSWClient:
         for item in records:
             yield item
 
-    def _get_records_by_xml_sync(self, xml_query: str | bytes) -> list[InspireRecord | RecordProcessingError]:
-        return list(self._get_records_by_xml(xml_query))
-
-    def _get_records_by_fes_sync(
-        self, fes_constraints: list[OgcExpression], chunk_size: int, max_records: int | None
+    @staticmethod
+    def _iter_to_list(
+        fn: Callable[..., Iterator[InspireRecord | RecordProcessingError]],
+        *args: object,
     ) -> list[InspireRecord | RecordProcessingError]:
-        return list(self._get_records_by_fes(fes_constraints, chunk_size, max_records))
-
-    def _get_records_by_cql_sync(
-        self, cql_query: str, chunk_size: int, max_records: int | None
-    ) -> list[InspireRecord | RecordProcessingError]:
-        return list(self._get_records_by_cql(cql_query, chunk_size, max_records))
-
-    def _get_records_standard_sync(
-        self,
-        chunk_size: int,
-        max_records: int | None,
-    ) -> list[InspireRecord | RecordProcessingError]:
-        return list(self._get_records_standard(chunk_size, max_records))
+        """Convert any record-iterator callable to a list (used by _retry_async)."""
+        return list(fn(*args))
 
     def _get_records_by_cql(
         self, cql_query: str, chunk_size: int, max_records: int | None

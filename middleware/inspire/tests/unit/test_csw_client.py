@@ -17,19 +17,6 @@ def _make_config(csw_url: str = "https://example.com/csw") -> Config:
     return Config(csw_url=csw_url, timeout=5, chunk_size=10)
 
 
-@pytest.mark.asyncio
-async def test_get_records_async_uses_xml_sync_wrapper() -> None:
-    config = _make_config()
-    client = CSWClient(config)
-    object.__setattr__(client, "_csw", MagicMock())
-
-    with patch.object(CSWClient, "_get_records_by_xml_sync", return_value=["record1"]) as mock_xml_sync:
-        records = [item async for item in client.get_records_async(xml_query="<xml/>")]
-
-    assert records == ["record1"]
-    mock_xml_sync.assert_called_once_with("<xml/>")
-
-
 def test_get_record_url_appends_query_parameters() -> None:
     config = _make_config(csw_url="https://example.com/csw?foo=bar")
     client = CSWClient(config)
@@ -243,7 +230,7 @@ async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
     object.__setattr__(client, "_csw", MagicMock())
     side_effect: list[OSError | list[str]] = [OSError("transient"), ["record1"]]
 
-    def records_side_effect(*_args: object, **_kwargs: object) -> list[str]:
+    def iter_to_list_side_effect(*_args: object, **_kwargs: object) -> list[str]:
         result = side_effect.pop(0)
         if isinstance(result, Exception):
             raise result
@@ -251,11 +238,11 @@ async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
 
     expected_calls = 2
 
-    with patch.object(CSWClient, "_get_records_by_cql_sync", side_effect=records_side_effect) as mock_sync:
+    with patch.object(CSWClient, "_iter_to_list", side_effect=iter_to_list_side_effect) as mock_iter:
         records = [item async for item in client.get_records_async()]
 
     assert records == ["record1"]
-    assert mock_sync.call_count == expected_calls
+    assert mock_iter.call_count == expected_calls
 
 
 @pytest.mark.asyncio
@@ -277,7 +264,7 @@ async def test_get_records_async_uses_cql_path() -> None:
             "middleware.inspire.csw_client.asyncio.to_thread",
             new=AsyncMock(side_effect=sync_side_effect),
         ) as mock_to_thread,
-        patch.object(CSWClient, "_get_records_by_cql_sync", return_value=["record1"]) as mock_sync,
+        patch.object(CSWClient, "_get_records_by_cql", return_value=iter(["record1"])) as mock_sync,
     ):
         records = [item async for item in client.get_records_async()]
 
@@ -300,7 +287,7 @@ async def test_get_records_async_uses_xml_path() -> None:
             "middleware.inspire.csw_client.asyncio.to_thread",
             new=AsyncMock(side_effect=sync_side_effect),
         ) as mock_to_thread,
-        patch.object(CSWClient, "_get_records_by_xml_sync", return_value=["record1"]) as mock_sync,
+        patch.object(CSWClient, "_get_records_by_xml", return_value=iter(["record1"])) as mock_sync,
     ):
         records = [item async for item in client.get_records_async(xml_query="<xml/>")]
 
