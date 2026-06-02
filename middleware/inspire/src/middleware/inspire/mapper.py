@@ -21,6 +21,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
+from nameparser import HumanName  # type: ignore[import-untyped]
 
 from .models import Contact, InspireRecord
 
@@ -86,9 +87,24 @@ class InspireMapper:
 
     def _split_name(self, name: str) -> tuple[str, str]:
         """Split full name into first name and last name."""
-        name_parts = name.split(" ")
-        last_name = name_parts[-1]
-        first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else ""
+        name = name.strip()
+        if not name:
+            return "", ""
+
+        parsed = HumanName(name)
+        has_comma = "," in name
+        has_title_or_suffix = bool(parsed.title or parsed.suffix)
+
+        if has_comma or has_title_or_suffix:
+            first_name = parsed.first or ""
+            last_name = parsed.last or ""
+        else:
+            tokens = [token for token in name.split() if token]
+            if len(tokens) == 1:
+                first_name, last_name = "", tokens[0]
+            else:
+                first_name, last_name = tokens[0], " ".join(tokens[1:])
+
         return first_name, last_name
 
     def _format_address(self, contact: Contact) -> str | None:

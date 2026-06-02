@@ -163,8 +163,11 @@ class SchemaOrgPlugin(Plugin):
                 except GeneratorExit:
                     return
 
-    async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
         """Run the plugin and yield (arc_json, source_url) pairs or errors."""
+        return self._run()
+
+    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http.client)
             worker_tasks = self._config.effective_worker_tasks

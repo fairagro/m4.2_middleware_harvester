@@ -3,7 +3,9 @@
 import asyncio
 import logging
 import random
+import warnings
 from collections.abc import AsyncGenerator, Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 from typing import TypeVar
 from urllib.parse import urlencode
@@ -20,6 +22,8 @@ from .errors import CswConnectionError
 from .iso_parser import IsoParser
 from .models import InspireRecord
 
+T = TypeVar("T")
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +39,7 @@ class CSWClient:
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
         self._parser = IsoParser()
+        self._executor: ThreadPoolExecutor | None = None
 
     def _connect(self) -> None:
         """Connect to the CSW service without error wrapping."""
@@ -56,6 +61,50 @@ class CSWClient:
             logger.error("Failed to connect to CSW at %s", self._config.csw_url)
             logger.debug("Failed to connect to CSW at %s", self._config.csw_url, exc_info=True)
             raise CswConnectionError(f"Failed to connect to CSW at {self._config.csw_url}: {e}") from e
+
+    def get_executor(self) -> ThreadPoolExecutor:
+        """Return the per-client executor, creating it lazily on first use."""
+        return self._get_executor()
+
+    def _get_executor(self) -> ThreadPoolExecutor:
+        """Return the per-client executor, creating it lazily on first use."""
+        if self._executor is None:
+            self._executor = ThreadPoolExecutor(max_workers=self._config.csw_thread_pool_size)
+        return self._executor
+
+    def _shutdown_executor(self) -> None:
+        """Shut down the owned executor if it exists."""
+        if self._executor is None:
+            return
+        executor = self._executor
+        self._executor = None
+        executor.shutdown(wait=False)
+
+    async def __aenter__(self) -> "CSWClient":
+        """Prepare the executor and return the active CSWClient."""
+        self._get_executor()
+        return self
+
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: object | None
+    ) -> None:
+        """Shut down the owned executor when exiting the async context."""
+        self._shutdown_executor()
+
+    def __del__(self) -> None:
+        """Shut down the executor if the object is garbage-collected."""
+        if self._executor is not None:
+            warnings.warn(
+                "CSWClient executor was not shut down. Use async with CSWClient(...) to manage its lifecycle.",
+                ResourceWarning,
+                stacklevel=2,
+            )
+            self._shutdown_executor()
+
+    async def _run_in_executor(self, fn: Callable[..., T], *args: object, **kwargs: object) -> T:
+        """Run a function in the owned executor."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(self._get_executor(), fn, *args, **kwargs)
 
     def get_record_url(self, record_id: str) -> str:
         """
@@ -501,8 +550,6 @@ class CSWClient:
             return int(matches[0])
         return 0
 
-    T = TypeVar("T")
-
     @staticmethod
     def _is_http_client_error(exc: BaseException) -> bool:
         """Return True if exc is an HTTP 4xx client error (non-retryable)."""
@@ -517,7 +564,7 @@ class CSWClient:
 
         for attempt in range(1, total_attempts + 1):
             try:
-                return await asyncio.to_thread(fn, *args, **kwargs)
+                return await self._run_in_executor(fn, *args, **kwargs)
             except CswConnectionError as exc:
                 cause = exc.__cause__
                 if isinstance(cause, (OSError, TimeoutError)) and not self._is_http_client_error(cause):

@@ -71,6 +71,8 @@ async def test_run_plugin_success() -> None:
         patch("middleware.inspire.plugin.InspireMapper") as mock_mapper_class,
     ):
         mock_csw = mock_csw_class.return_value
+        mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
+        mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.return_value = "http://url"
 
@@ -101,6 +103,8 @@ async def test_run_plugin_with_error() -> None:
 
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
+        mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
+        mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.return_value = "http://url"
 
@@ -124,6 +128,8 @@ async def test_run_plugin_fatal_error_propagates() -> None:
 
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
+        mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
+        mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
 
         with pytest.raises(RuntimeError, match="CSW endpoint unreachable"):
@@ -140,6 +146,8 @@ async def test_get_expected_datasets_returns_count() -> None:
     mock_config.chunk_size = 10
 
     mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.get_record_count_async = AsyncMock(return_value=42)
 
     with patch("middleware.inspire.plugin.CSWClient", return_value=mock_client):

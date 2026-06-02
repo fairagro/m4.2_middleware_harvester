@@ -36,6 +36,14 @@ class Config(BaseModel):
         Field(description="CSW connection timeout in seconds.", ge=1),
     ] = 30
 
+    csw_thread_pool_size: Annotated[
+        int,
+        Field(
+            description="Maximum number of worker threads used for blocking CSW calls.",
+            ge=1,
+        ),
+    ] = 4
+
     user_agent: Annotated[
         str,
         Field(description="User-Agent header value used for CSW requests."),
