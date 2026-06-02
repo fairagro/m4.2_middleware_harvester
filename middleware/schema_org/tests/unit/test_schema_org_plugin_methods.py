@@ -1,5 +1,7 @@
 """Schema.org plugin unit tests."""
 
+from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -23,6 +25,27 @@ def test_create_mapper_from_config() -> None:
     )
     mapper = SchemaOrgPlugin.create_mapper(config)
     assert mapper is not None
+
+
+def test_create_mapper_rejects_unknown_payload_type() -> None:
+    config = cast(Config, SimpleNamespace(payload_type="bad"))
+
+    with pytest.raises(ValueError, match="Unsupported payload type"):
+        SchemaOrgPlugin.create_mapper(config)
+
+
+def test_create_sitemap_rejects_unknown_sitemap_type() -> None:
+    config = cast(Config, SimpleNamespace(sitemap_type="bad"))
+    client = MagicMock()
+
+    with pytest.raises(ValueError, match="Unsupported sitemap type"):
+        SchemaOrgPlugin.create_sitemap(config, client=client)
+
+
+def test_extract_arc_identifier_handles_list_identifiers() -> None:
+    arc_json = '{"@graph":[{"@id":"./","identifier":["10.1234/abc"]}]}'
+    result = SchemaOrgPlugin._extract_arc_identifier(arc_json)  # noqa: SLF001
+    assert result == "10.1234/abc"
 
 
 @pytest.mark.asyncio
