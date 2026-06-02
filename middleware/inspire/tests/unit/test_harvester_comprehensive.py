@@ -107,8 +107,8 @@ def test_config_mutually_exclusive_filters_raises() -> None:
 def test_csw_client_connect(mock_csw_cls: MagicMock) -> None:
     client = CSWClient(Config(csw_url="http://example.com/csw"))
     client.connect()
-    # _connect() creates two CatalogueServiceWeb instances: one for ISO (_csw) and one for DC (_dc_csw)
-    assert mock_csw_cls.call_count == 2
+    # _connect() creates one CatalogueServiceWeb instance
+    assert mock_csw_cls.call_count == 1
     assert mock_csw_cls.call_args.kwargs["timeout"] == 30
     assert mock_csw_cls.call_args.kwargs["headers"] == {
         "User-Agent": "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)",
@@ -705,3 +705,86 @@ def test_dwd_filter_xml_request(mock_csw_cls: MagicMock) -> None:
 
     # Verify getrecords2 was called with the XML
     mock_csw_instance.getrecords2.assert_called()
+
+
+# ---------------------------------------------------------------------------
+# Lazy Dublin Core fallback tests
+# ---------------------------------------------------------------------------
+
+
+def test_lazy_dc_not_called_when_all_iso_ids_valid(mock_csw_cls: MagicMock, mock_iso_record: MagicMock) -> None:
+    """DC is never fetched when every ISO record has a valid, stable identifier."""
+    mock_instance = MagicMock()
+    mock_csw_cls.return_value = mock_instance
+    # The record has a proper identifier (not owslib_random_*)
+    mock_instance.records = {"uuid-123": mock_iso_record}
+    mock_instance.results = {"matches": 1}
+
+    original_isinstance = isinstance
+
+    def mock_isinstance(obj: object, cls: type) -> bool:
+        if cls == MD_Metadata:
+            return True
+        return original_isinstance(obj, cls)
+
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
+    with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
+        results = list(client.get_records())
+
+    assert len(results) == 1
+    assert isinstance(results[0], InspireRecord)
+    # getrecords2 called once for ISO; NOT a second time for DC
+    assert mock_instance.getrecords2.call_count == 1
+
+
+def test_lazy_dc_called_when_iso_record_has_owslib_random_id(
+    mock_csw_cls: MagicMock,
+) -> None:
+    """DC is fetched when an ISO record has an owslib_random_* identifier (parse error)."""
+    mock_instance = MagicMock()
+    mock_csw_cls.return_value = mock_instance
+    mock_instance.results = {"matches": 1}
+
+    # Simulate a broken ISO record — identifier is owslib_random_*
+    bad_record = MagicMock(spec=MD_Metadata)
+    bad_record.identifier = "owslib_random_abc123"
+    bad_record.datestamp = None
+    bad_record.identification = None  # will cause a parse error
+
+    mock_instance.records = {"owslib_random_abc123": bad_record}
+
+    # After the DC call the records dict stays the same (CSW uses the same connection)
+    dc_record = MagicMock()
+    dc_record.identifier = "stable-dc-id-001"
+    # getrecords2 for DC sets records to DC records
+    call_count = [0]
+
+    def side_effect(**kwargs: object) -> None:  # noqa: ARG001
+        call_count[0] += 1
+        if call_count[0] == 1:
+            # ISO call — keep bad_record
+            pass
+        else:
+            # DC call — replace records with DC records
+            mock_instance.records = {"stable-dc-id-001": dc_record}
+
+    mock_instance.getrecords2.side_effect = side_effect
+
+    original_isinstance = isinstance
+
+    def mock_isinstance(obj: object, cls: type) -> bool:
+        if cls == MD_Metadata:
+            # bad_record passes isinstance check so it enters parse logic
+            return obj is bad_record
+        return original_isinstance(obj, cls)
+
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
+    with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
+        results = list(client.get_records())
+
+    # Should yield one RecordProcessingError enriched with the DC ID
+    assert len(results) == 1
+    assert isinstance(results[0], RecordProcessingError)
+    assert results[0].record_id == "stable-dc-id-001"
+    # getrecords2 must have been called twice: ISO + DC
+    assert mock_instance.getrecords2.call_count == 2

@@ -22,14 +22,12 @@ def mock_csw_cls() -> Iterator[MagicMock]:
 def test_connect(mock_csw_cls: MagicMock) -> None:
     client = CSWClient(Config(csw_url="http://example.com/csw"))
     client.connect()
-    # _connect() creates two CatalogueServiceWeb instances: one for ISO (_csw) and one for DC (_dc_csw)
-    assert mock_csw_cls.call_count == 2
+    assert mock_csw_cls.call_count == 1
     assert mock_csw_cls.call_args.kwargs["timeout"] == 30
     assert mock_csw_cls.call_args.kwargs["headers"] == {
         "User-Agent": "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)",
     }
     assert client._csw is not None
-    assert client._dc_csw is not None
 
 
 def test_get_records(mock_csw_cls: MagicMock) -> None:

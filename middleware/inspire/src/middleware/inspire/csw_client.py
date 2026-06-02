@@ -1,7 +1,6 @@
 """CSW client for harvesting INSPIRE metadata records."""
 
 import asyncio
-import concurrent.futures
 import logging
 import random
 from collections.abc import AsyncGenerator, Callable, Iterator
@@ -35,18 +34,11 @@ class CSWClient:
         """
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
-        self._dc_csw: CatalogueServiceWeb | None = None
         self._parser = IsoParser()
 
     def _connect(self) -> None:
         """Connect to the CSW service without error wrapping."""
         self._csw = CatalogueServiceWeb(
-            self._config.csw_url,
-            timeout=self._config.timeout,
-            headers={"User-Agent": self._config.user_agent},
-        )
-        # Second connection for parallel DC ID fetches in _get_records_paged
-        self._dc_csw = CatalogueServiceWeb(
             self._config.csw_url,
             timeout=self._config.timeout,
             headers={"User-Agent": self._config.user_agent},
@@ -295,35 +287,67 @@ class CSWClient:
         records_yielded = 0
 
         while True:
-            # Fetch DC IDs and ISO records in parallel (each uses its own CSW connection)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                dc_future = executor.submit(self._fetch_dc_ids, chunk_size, start_position, cql_query, fes_constraints)
-                iso_future = executor.submit(
-                    self._fetch_iso_batch, chunk_size, start_position, cql_query, fes_constraints
-                )
-                dc_ids = dc_future.result()
-                iso_ok = iso_future.result()
-
-            if not dc_ids or not iso_ok:
+            iso_ok = self._fetch_iso_batch(chunk_size, start_position, cql_query, fes_constraints)
+            if not iso_ok:
                 break
 
-            # 3. Yield records, using DC IDs for identification
-            count = 0
-            for item in self._yield_records_with_stable_ids(dc_ids):
-                yield item
-                if not isinstance(item, RecordProcessingError):
-                    count += 1
+            results, errors_without_id, count = self._parse_iso_batch()
 
+            if not results:
+                break
+
+            if errors_without_id:
+                dc_ids = self._fetch_dc_ids(chunk_size, start_position, cql_query, fes_constraints)
+                self._apply_dc_fallback(results, errors_without_id, dc_ids)
+
+            yield from results
             records_yielded += count
 
-            # Check max_records limit
             if max_records is not None and records_yielded >= max_records:
                 break
 
-            start_position += len(dc_ids)
+            start_position += len(results)
 
             if self._all_records_fetched(start_position):
                 break
+
+    def _parse_iso_batch(
+        self,
+    ) -> tuple[list[InspireRecord | RecordProcessingError], list[tuple[int, RecordProcessingError]], int]:
+        """Parse the last-fetched ISO batch into results, identifier-less errors, and a success count."""
+        results: list[InspireRecord | RecordProcessingError] = []
+        errors_without_id: list[tuple[int, RecordProcessingError]] = []
+        count = 0
+        for item in self._yield_iso_records():
+            if isinstance(item, RecordProcessingError) and item.record_id.startswith("owslib_random_"):
+                errors_without_id.append((len(results), item))
+            results.append(item)
+            if not isinstance(item, RecordProcessingError):
+                count += 1
+        return results, errors_without_id, count
+
+    def _apply_dc_fallback(
+        self,
+        results: list[InspireRecord | RecordProcessingError],
+        errors_without_id: list[tuple[int, RecordProcessingError]],
+        dc_ids: list[str],
+    ) -> None:
+        """Enrich identifier-less parse errors with stable DC identifiers (in-place)."""
+        if not dc_ids:
+            return
+        successful_ids: set[str] = {item.identifier for item in results if isinstance(item, InspireRecord)}
+        unmatched_dc_ids = [dc_id for dc_id in dc_ids if dc_id not in successful_ids]
+        for i, (pos, error) in enumerate(errors_without_id):
+            if i >= len(unmatched_dc_ids):
+                break
+            cause = error.__cause__
+            if not isinstance(cause, Exception):
+                cause = None
+            results[pos] = RecordProcessingError(
+                error.args[0] if error.args else str(error),
+                unmatched_dc_ids[i],
+                original_error=cause,
+            )
 
     def _fetch_dc_ids(
         self,
@@ -331,17 +355,12 @@ class CSWClient:
         start_position: int,
         cql_query: str | None,
         fes_constraints: list[OgcExpression] | None,
-        swallow_errors: bool = True,
     ) -> list[str]:
-        """Fetch stable identifiers using Dublin Core schema (uses _dc_csw for parallel safety)."""
-        # Prefer the dedicated DC connection; fall back to the shared connection
-        # (e.g. when _csw was injected directly in tests without calling connect())
-        csw = self._dc_csw if self._dc_csw is not None else self._csw
-        if csw is None:
+        """Fetch stable identifiers using Dublin Core schema (lazy fallback for broken ISO records)."""
+        if self._csw is None:
             self.connect()
-            csw = self._dc_csw if self._dc_csw is not None else self._csw
-        if csw is None:
-            raise RuntimeError("DC CSW client is not initialized.")
+        if self._csw is None:
+            raise RuntimeError("CSW client is not initialized.")
 
         try:
             kwargs: dict = {
@@ -350,23 +369,16 @@ class CSWClient:
                 "esn": "brief",
             }
             if fes_constraints:
-                csw.getrecords2(constraints=fes_constraints, **kwargs)
+                self._csw.getrecords2(constraints=fes_constraints, **kwargs)
             elif cql_query:
-                csw.getrecords2(cql=cql_query, **kwargs)
+                self._csw.getrecords2(cql=cql_query, **kwargs)
             else:
-                csw.getrecords2(**kwargs)
+                self._csw.getrecords2(**kwargs)
 
-            return [rec.identifier for rec in csw.records.values()]
-        except (OSError, TimeoutError) as e:
-            if swallow_errors:
-                logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
-                return []
-            raise
-        except ValueError as e:
-            if swallow_errors:
-                logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
-                return []
-            raise
+            return [rec.identifier for rec in self._csw.records.values()]
+        except (OSError, TimeoutError, ValueError) as e:
+            logger.warning("Failed to fetch DC IDs for batch at %d: %s", start_position, e)
+            return []
 
     def _fetch_iso_batch(
         self,
@@ -407,47 +419,19 @@ class CSWClient:
                 raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
             raise
 
-    def _yield_records_with_stable_ids(self, dc_ids: list[str]) -> Iterator[InspireRecord | RecordProcessingError]:
-        """
-        Yield parsed ISO records using stable DC IDs as reference.
-
-        Note: This relies on the server returning records in the same order for both
-        Dublin Core and ISO 19139 requests. While standard-compliant, some servers
-        might require an explicit SortBy clause if the order is inconsistent.
-        """
+    def _yield_iso_records(self) -> Iterator[InspireRecord | RecordProcessingError]:
+        """Yield parsed ISO records from the last-fetched batch (ISO-first, no DC involved)."""
         if self._csw is None or not self._csw.records:
             return
 
-        # Get ISO records as a list to ensure stable indexing
-        iso_items = list(self._csw.records.items())
-
-        for i, (owslib_id, record) in enumerate(iso_items):
-            # Use DC ID as the stable identifier
-            stable_id = dc_ids[i] if i < len(dc_ids) else owslib_id
-
+        for owslib_id, record in self._csw.records.items():
             if isinstance(record, MD_Metadata):
-                # Validate alignment: if ISO record has an ID, it should match the DC ID
                 iso_id = getattr(record, "identifier", None)
-                if iso_id and not iso_id.startswith("owslib_random_") and iso_id != stable_id:
-                    logger.warning(
-                        "Alignment mismatch at index %d: DC ID is '%s' but ISO ID is '%s'. "
-                        "The server might return records in inconsistent order; consider using SortBy.",
-                        i,
-                        stable_id,
-                        iso_id,
-                    )
-                    # Proceed with ISO ID as it's the actual identifier from the metadata block
-                    stable_id = iso_id
-
+                record_id = iso_id if iso_id and not iso_id.startswith("owslib_random_") else owslib_id
                 try:
-                    # Inject stable ID if metadata is missing its own
-                    if not getattr(record, "identifier", None):
-                        record.identifier = stable_id
-
-                    yield self._parse_iso_record(record, record_uuid=stable_id)
+                    yield self._parse_iso_record(record, record_uuid=record_id)
                 except Exception as e:  # noqa: BLE001
-                    # We yield instead of raising to allow the generator to continue
-                    yield RecordProcessingError(str(e), stable_id, original_error=e)
+                    yield RecordProcessingError(str(e), record_id, original_error=e)
 
     def _all_records_fetched(self, start_position: int) -> bool:
         """Check if all available records have been fetched."""
