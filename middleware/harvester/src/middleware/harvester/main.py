@@ -139,7 +139,7 @@ async def _arc_stream(
                     if source_url not in urls:
                         urls.append(source_url)
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug("Failed to extract ARC identifier from arc_json for source_url tracking.", exc_info=True)
         if state.harvested_datasets is None:
             state.harvested_datasets = 0
         state.harvested_datasets += 1
