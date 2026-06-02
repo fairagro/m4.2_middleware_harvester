@@ -1,27 +1,106 @@
 # Code Review Backlog
 
-Items identified during the 2025 code review that were deferred for later action.
+Items identified during code reviews that were deferred for later action.
 Implemented items are tracked in git history (`feature/improvements` branch).
 
 ---
 
-## Item 2 — Thread-pool saturation under concurrent load
+## Item 1 — Plugin registration is spread across 6 locations
 
-**Category:** Performance / Medium  
-**Location:** `middleware/inspire/src/middleware/inspire/csw_client.py`  
-**Function:** `get_records_async`, `get_record_count_async`
+**Category:** Architecture / Medium  
+**Location:** `middleware/harvester/src/middleware/harvester/main.py`, `config.py`
 
 **Problem:**  
-All blocking OWSLib calls use `asyncio.to_thread()`, which submits work to the
-default thread pool (`concurrent.futures.ThreadPoolExecutor`). The pool size
-defaults to `min(32, os.cpu_count() + 4)`. Under high concurrency (many
-repositories harvested in parallel), threads may be exhausted, causing
-`asyncio.to_thread` calls to queue silently and reducing throughput.
+Adding a new plugin currently requires changes in 6 places across 2 files:
+
+| File | What |
+|------|------|
+| `main.py` | Extend `_PLUGIN_CLASSES` dict |
+| `main.py` | Add `if` branch in `_get_repo_source_url()` |
+| `config.py` | Add Optional field to `RepositoryConfig` |
+| `config.py` | Add `if` branch in `plugin_type` property |
+| `config.py` | Add `if` branch in `plugin_config` property |
+| `config.py` | Add import for new plugin config class |
+
+Forgetting any of these causes a runtime error, not a compile error.
 
 **Recommendation:**  
-Consider passing a dedicated, bounded `ThreadPoolExecutor` (e.g. via
-`loop.run_in_executor(pool, ...)`) whose size is controlled by configuration.
-This prevents pool exhaustion and makes thread use observable via metrics.
+Derive `plugin_type` and `source_url` dynamically from `model_fields` instead of
+using hardcoded if/elif cascades. For `source_url`, use `getattr` with a common
+convention (e.g. all plugin configs expose a `source_url` property):
+
+```python
+@property
+def plugin_type(self) -> str:
+    return next(f for f in self.__class__.model_fields if f != "rdi" and getattr(self, f) is not None)
+
+@property
+def source_url(self) -> str | None:
+    cfg = self.plugin_config
+    return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None)
+```
+
+This would also allow deleting `_get_repo_source_url()` from `main.py`.
+
+---
+
+## Item 3 — `Plugin` ABC uses `if False: yield` workaround
+
+**Category:** Architecture / Low  
+**Location:** `middleware/harvester/src/middleware/harvester/plugin_base.py`
+
+**Problem:**  
+```python
+@abc.abstractmethod
+async def run(self) -> AsyncGenerator[...]:
+    if False:  # pragma: no cover
+        yield  # makes Python treat this as an async generator
+```
+This is a well-known workaround to make `async def` + return-type annotation of
+`AsyncGenerator` work with `abc.abstractmethod`. It compiles but looks like dead
+code and requires a `pragma: no cover` comment.
+
+**Recommendation:**  
+Switch from `ABC` to `typing.Protocol`. Protocols support structural subtyping
+without inheritance, eliminate the `if False: yield` hack, and need no
+`pragma: no cover`:
+
+```python
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Plugin(Protocol):
+    async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]: ...
+    async def get_expected_datasets(self) -> int | None: ...
+```
+
+---
+
+## Item 4 — `cast()` in `_run_repository` works around a missing constructor contract
+
+**Category:** Architecture / Low  
+**Location:** `middleware/harvester/src/middleware/harvester/main.py`  
+**Function:** `_run_repository`
+
+**Problem:**  
+```python
+plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
+```
+`cast()` is needed because `Plugin` (as ABC) does not declare `__init__(config:
+PluginConfig)`. The registry is typed as `dict[str, type[Plugin]]`, but `Plugin`
+has no constructor contract, so mypy cannot verify the call site.
+
+**Recommendation:**  
+Type the registry as `dict[str, Callable[[PluginConfig], Plugin]]` (factories
+instead of classes). This is structurally equivalent but removes the `cast()`:
+
+```python
+_PLUGIN_FACTORIES: dict[str, Callable[[PluginConfig], Plugin]] = {
+    "inspire": InspirePlugin,
+    "schema_org": SchemaOrgPlugin,
+}
+plugin_instance = _PLUGIN_FACTORIES[repo.plugin_type](repo.plugin_config)
+```
 
 ---
 
@@ -66,17 +145,35 @@ names, particles (`von`, `de`, `van`), and single-token names.
 
 ---
 
-## Item 9 — `plugin_config.py` provides minimal value as a standalone file
+## Item 2 — Thread-pool saturation under concurrent load
 
-**Category:** Refactoring / Low  
-**Location:** `middleware/harvester/src/middleware/harvester/plugin_config.py`
+**Category:** Performance / Medium  
+**Location:** `middleware/inspire/src/middleware/inspire/csw_client.py`  
+**Function:** `get_records_async`, `get_record_count_async`
 
 **Problem:**  
-`plugin_config.py` defines a single `PluginConfig` Protocol (or base class) used
-only as a type annotation in `config.py`. The indirection adds a file and import
-without meaningful abstraction benefit given the current two-plugin setup.
+All blocking OWSLib calls use `asyncio.to_thread()`, which submits work to the
+default thread pool (`concurrent.futures.ThreadPoolExecutor`). The pool size
+defaults to `min(32, os.cpu_count() + 4)`. Under high concurrency (many
+repositories harvested in parallel), threads may be exhausted, causing
+`asyncio.to_thread` calls to queue silently and reducing throughput.
 
 **Recommendation:**  
-Inline the `PluginConfig` definition directly into `config.py`, or promote it to
-the `middleware.shared` package if it is intended to be part of a formal plugin
-contract. Remove the standalone file to reduce cognitive overhead.
+Consider passing a dedicated, bounded `ThreadPoolExecutor` (e.g. via
+`loop.run_in_executor(pool, ...)`) whose size is controlled by configuration.
+This prevents pool exhaustion and makes thread use observable via metrics.
+
+---
+
+## ~~Item 9 — `plugin_config.py` as a standalone file~~ ✅ Fixed
+
+**Resolved in:** commit `3ef406a`  
+`PluginConfig` inlined into `config.py`; `plugin_config.py` deleted.
+
+---
+
+## ~~Item 7 — Duplicated dispatch logic in `get_records` / `get_records_async`~~ ✅ Fixed
+
+**Resolved in:** commit `35b6f0d`  
+`_pick_strategy()` helper extracted; shared by both methods.
+
