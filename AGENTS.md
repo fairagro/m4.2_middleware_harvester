@@ -99,7 +99,7 @@ Before generating or modifying code, read the relevant spec folders:
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:
 
-- **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
+- **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for identifier recovery on broken records.
 - **[`middleware/inspire/spec/csw-retry/`](middleware/inspire/spec/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 
