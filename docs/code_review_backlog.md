@@ -5,42 +5,13 @@ Implemented items are tracked in git history (`feature/improvements` branch).
 
 ---
 
-## Item 1 — Plugin registration is spread across 6 locations
+## ~~Item 1~~ ✅ — Plugin registration is spread across 6 locations
 
-**Category:** Architecture / Medium  
-**Location:** `middleware/harvester/src/middleware/harvester/main.py`, `config.py`
+**Fixed in commit `76f7c10`**
 
-**Problem:**  
-Adding a new plugin currently requires changes in 6 places across 2 files:
-
-| File | What |
-|------|------|
-| `main.py` | Extend `_PLUGIN_CLASSES` dict |
-| `main.py` | Add `if` branch in `_get_repo_source_url()` |
-| `config.py` | Add Optional field to `RepositoryConfig` |
-| `config.py` | Add `if` branch in `plugin_type` property |
-| `config.py` | Add `if` branch in `plugin_config` property |
-| `config.py` | Add import for new plugin config class |
-
-Forgetting any of these causes a runtime error, not a compile error.
-
-**Recommendation:**  
-Derive `plugin_type` and `source_url` dynamically from `model_fields` instead of
-using hardcoded if/elif cascades. For `source_url`, use `getattr` with a common
-convention (e.g. all plugin configs expose a `source_url` property):
-
-```python
-@property
-def plugin_type(self) -> str:
-    return next(f for f in self.__class__.model_fields if f != "rdi" and getattr(self, f) is not None)
-
-@property
-def source_url(self) -> str | None:
-    cfg = self.plugin_config
-    return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None)
-```
-
-This would also allow deleting `_get_repo_source_url()` from `main.py`.
+`plugin_type` and `plugin_config` now derived dynamically from `model_fields`.
+`source_url` property added to `RepositoryConfig`. `_get_repo_source_url()` deleted from `main.py`.
+Adding a new plugin now only requires: (1) a new `Optional` field in `RepositoryConfig`, (2) an entry in `_PLUGIN_CLASSES`.
 
 ---
 
