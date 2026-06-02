@@ -58,7 +58,8 @@ class RepositoryConfig(BaseModel):
     @property
     def plugin_type(self) -> str:
         """Return the active plugin type name (derived dynamically from model_fields)."""
-        return next(f for f in self.__class__.model_fields if f != "rdi" and getattr(self, f) is not None)
+        all_field_names: list[str] = list(self.__class__.model_fields)
+        return next(f for f in all_field_names if f != "rdi" and getattr(self, f) is not None)
 
     @property
     def plugin_config(self) -> PluginConfig:
