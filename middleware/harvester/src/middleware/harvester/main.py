@@ -8,13 +8,13 @@ from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
 from middleware.api_client.models import HarvestErrorType
-from middleware.harvester.config import Config, PluginConfig, RepositoryConfig
+from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
@@ -29,7 +29,7 @@ _SERVICE_NAME = "middleware-harvester"
 
 logger = logging.getLogger(__name__)
 
-_PLUGIN_CLASSES: dict[str, type[Plugin]] = {
+_PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
     "schema_org": SchemaOrgPlugin,
 }
@@ -223,8 +223,8 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
     unhandled_failure = False
     failed_records: list[FailedRecord] = []
 
-    plugin_cls = _PLUGIN_CLASSES.get(repo.plugin_type)
-    if plugin_cls is None:
+    plugin_factory = _PLUGIN_FACTORIES.get(repo.plugin_type)
+    if plugin_factory is None:
         logger.error("Unknown repository type '%s', skipping...", repo.plugin_type)
         return RepositoryReport(
             rdi=repo.rdi,
@@ -236,7 +236,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         )
 
     try:
-        plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
+        plugin_instance = plugin_factory(repo.plugin_config)
         plugin_gen = plugin_instance.run()
         try:
             expected_datasets = await plugin_instance.get_expected_datasets()
@@ -306,7 +306,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
             if tasks:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for repo, result in zip(config.repositories, results, strict=True):
-                    if isinstance(result, Exception):
+                    if isinstance(result, BaseException):
                         logger.error("Repository task failed: %s", result)
                         repository_reports.append(
                             RepositoryReport(
@@ -319,7 +319,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                             )
                         )
                     else:
-                        repository_reports.append(cast(RepositoryReport, result))
+                        repository_reports.append(result)
 
     heartbeat_task.cancel()
     end_time = datetime.now(UTC)

@@ -58,7 +58,7 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
     mock_client = _make_mock_client()
 
     with (
-        patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": FailingInitPlugin}),
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": FailingInitPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
         report = await run_orchestrator(mock_config)
@@ -103,7 +103,7 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
     mock_client.harvest_arcs.side_effect = harvest_arcs_side_effect
 
     with (
-        patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": RunnerPlugin}),
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": RunnerPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
         report = await run_orchestrator(mock_config)
@@ -148,7 +148,7 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     mock_client.harvest_arcs.side_effect = capturing_harvest_arcs
 
     with (
-        patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": HarvesterErrorPlugin}),
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": HarvesterErrorPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
     ):
         report = await run_orchestrator(mock_config)
@@ -200,7 +200,7 @@ async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets(
             return None
 
     with (
-        patch("middleware.harvester.main._PLUGIN_CLASSES", {"inspire": SuccessPlugin, "schema_org": FailingPlugin}),
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": SuccessPlugin, "schema_org": FailingPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
         patch.object(SuccessPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
         patch.object(FailingPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
