@@ -18,7 +18,7 @@ def _check(path: str, max_age: int) -> bool:
     """Return True if *path* exists and its mtime is within *max_age* seconds."""
     try:
         age = time.time() - os.stat(path).st_mtime
-    except FileNotFoundError:
+    except OSError:
         return False
     return age < max_age
 

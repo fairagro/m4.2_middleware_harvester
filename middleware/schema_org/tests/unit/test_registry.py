@@ -8,9 +8,6 @@ from middleware.schema_org.registry import Registry
 def test_registry_register_and_getitem() -> None:
     registry = Registry[str, object]()
 
-    class ImplA:
-        pass
-
     @registry.register("foo")
     class ImplB:
         pass

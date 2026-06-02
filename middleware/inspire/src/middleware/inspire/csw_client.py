@@ -207,10 +207,14 @@ class CSWClient:
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        _name, fn, args = self._pick_strategy(
-            effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
-        )
-        yield from fn(*args)
+        if effective_xml is not None:
+            yield from self._get_records_by_xml(effective_xml)
+        elif effective_fes is not None:
+            yield from self._get_records_by_fes(effective_fes, effective_chunk_size, effective_max_records)
+        elif effective_cql is not None:
+            yield from self._get_records_by_cql(effective_cql, effective_chunk_size, effective_max_records)
+        else:
+            yield from self._get_all_records_paginated(effective_chunk_size, effective_max_records)
 
     async def get_records_async(
         self,
