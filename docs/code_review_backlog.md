@@ -15,35 +15,13 @@ Adding a new plugin now only requires: (1) a new `Optional` field in `Repository
 
 ---
 
-## Item 3 — `Plugin` ABC uses `if False: yield` workaround
+## ~~Item 3~~ ✅ — `Plugin` ABC uses `if False: yield` workaround
 
-**Category:** Architecture / Low  
-**Location:** `middleware/harvester/src/middleware/harvester/plugin_base.py`
+**Fixed in commit `95784c7`**
 
-**Problem:**  
-```python
-@abc.abstractmethod
-async def run(self) -> AsyncGenerator[...]:
-    if False:  # pragma: no cover
-        yield  # makes Python treat this as an async generator
-```
-This is a well-known workaround to make `async def` + return-type annotation of
-`AsyncGenerator` work with `abc.abstractmethod`. It compiles but looks like dead
-code and requires a `pragma: no cover` comment.
-
-**Recommendation:**  
-Switch from `ABC` to `typing.Protocol`. Protocols support structural subtyping
-without inheritance, eliminate the `if False: yield` hack, and need no
-`pragma: no cover`:
-
-```python
-from typing import Protocol, runtime_checkable
-
-@runtime_checkable
-class Plugin(Protocol):
-    async def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]: ...
-    async def get_expected_datasets(self) -> int | None: ...
-```
+`Plugin` converted from `abc.ABC` to `typing.Protocol`. The `if False: yield` dead-code hack is gone.
+`run` declared as a regular (non-`async`) method returning `AsyncGenerator` — this matches the call sites (`plugin.run()` without `await`) and is structurally compatible with async generator function implementations.
+Concrete plugins and test doubles retain their explicit `(Plugin)` inheritance, which is valid for Protocol subclasses.
 
 ---
 
