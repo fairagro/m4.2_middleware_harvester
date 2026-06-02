@@ -46,6 +46,7 @@ class HarvestUploadResult:
     harvest_id: str | None
     harvested_datasets: int | None
     failed_datasets: int | None
+    skipped_datasets: int
     harvest_started: bool
     failed_records: list[FailedRecord]
 
@@ -60,6 +61,7 @@ class RepositoryReport:
     expected_datasets: int | None
     harvested_datasets: int | None
     failed_datasets: int | None
+    skipped_datasets: int = 0
     failed_records: tuple[FailedRecord, ...] = ()
 
     def to_jsonld(self) -> dict[str, Any]:
@@ -75,6 +77,7 @@ class RepositoryReport:
         result["fairagro:harvestId"] = self.harvest_id
         if self.expected_datasets is not None:
             result["fairagro:expectedDatasets"] = self.expected_datasets
+        result["fairagro:skippedDatasets"] = self.skipped_datasets
         if self.failed_datasets is not None:
             result["fairagro:failedDatasets"] = self.failed_datasets
         if self.failed_records:

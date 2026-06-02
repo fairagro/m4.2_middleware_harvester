@@ -88,6 +88,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
 - **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
 - **[`spec/nice-http-client/`](spec/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
+- **[`spec/skipped-datasets/`](spec/skipped-datasets/)** — `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and `fairagro:skippedDatasets` in the JSON-LD harvest report.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 

@@ -4,9 +4,23 @@ This module provides the overarching exception hierarchy used by the orchestrato
 and all plugins to standardize error handling and logging.
 """
 
+from dataclasses import dataclass
+
 
 class HarvesterError(Exception):
     """Base exception for all Harvester and plugin-related errors."""
+
+
+@dataclass(frozen=True)
+class SkippedRecord:
+    """Signal that a record was intentionally skipped during harvesting."""
+
+    reason: str
+    url: str | None = None
+
+    def __str__(self) -> str:
+        """Return the human-readable skip reason."""
+        return self.reason
 
 
 class RecordProcessingError(HarvesterError):

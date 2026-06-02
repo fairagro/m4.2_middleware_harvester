@@ -3,14 +3,14 @@
 from collections.abc import AsyncGenerator
 from typing import Protocol
 
-from middleware.harvester.errors import HarvesterError
+from middleware.harvester.errors import HarvesterError, SkippedRecord
 
 
 class Plugin(Protocol):
     """Protocol defining the harvester plugin interface."""
 
-    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
-        """Run the plugin and yield (arc_json, source_url) pairs or errors."""
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        """Run the plugin and yield (arc_json, source_url) pairs, errors, or skips."""
         raise NotImplementedError
 
     async def get_expected_datasets(self) -> int | None:

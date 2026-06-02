@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 
 import httpx
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import Plugin
 
@@ -81,12 +81,11 @@ class SchemaOrgPlugin(Plugin):
         self,
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
-    ) -> tuple[str, str | None] | RecordProcessingError:
+    ) -> tuple[str, str | None] | RecordProcessingError | SkippedRecord:
         if isinstance(discovery_result, DuplicateUrlDiscoveryResult):
-            return RecordProcessingError(
+            return SkippedRecord(
                 f"Duplicate sitemap entry skipped: {discovery_result.url}",
                 discovery_result.url,
-                url=discovery_result.url,
             )
         source_url = discovery_result.url if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
@@ -121,8 +120,8 @@ class SchemaOrgPlugin(Plugin):
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks: int,
-    ) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
-        results: asyncio.Queue[tuple[str, str | None] | HarvesterError] = asyncio.Queue()
+    ) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        results: asyncio.Queue[tuple[str, str | None] | HarvesterError | SkippedRecord] = asyncio.Queue()
         semaphore = asyncio.Semaphore(worker_tasks)
         discovery_finished = False
         active_workers = 0
@@ -163,11 +162,11 @@ class SchemaOrgPlugin(Plugin):
                 except GeneratorExit:
                     return
 
-    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
-        """Run the plugin and yield (arc_json, source_url) pairs or errors."""
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        """Run the plugin and yield (arc_json, source_url) pairs, errors, or skips."""
         return self._run()
 
-    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http.client)
             worker_tasks = self._config.effective_worker_tasks

@@ -15,7 +15,7 @@ from opentelemetry import trace
 from middleware.api_client import ApiClient
 from middleware.api_client.models import HarvestErrorType
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
@@ -98,22 +98,32 @@ def _handle_plugin_error(
         failed_records.append(FailedRecord(message=str(item)))
 
 
+def _handle_skipped_record(item: SkippedRecord, plugin_type: str) -> None:
+    """Log a skipped plugin item at INFO level."""
+    logger.info("Skipped record in plugin '%s': %s", plugin_type, item)
+
+
 @dataclass
 class _ArcStreamState:
     """Mutable accumulator shared between _arc_stream and _execute_harvest_upload."""
 
     harvested_datasets: int | None = None
     failed_datasets: int | None = None
+    skipped_datasets: int = 0
     arc_id_to_urls: dict[str, list[str]] = field(default_factory=dict)
     failed_records: list[FailedRecord] = field(default_factory=list)
 
 
 async def _arc_stream(
-    gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
+    gen: AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None],
     plugin_type: str,
     state: _ArcStreamState,
 ) -> AsyncGenerator[str, None]:
     async for item in gen:
+        if isinstance(item, SkippedRecord):
+            state.skipped_datasets += 1
+            _handle_skipped_record(item, plugin_type)
+            continue
         if isinstance(item, HarvesterError):
             if state.failed_datasets is None:
                 state.failed_datasets = 0
@@ -140,7 +150,7 @@ async def _execute_harvest_upload(
     repo: RepositoryConfig,
     client: ApiClient,
     tracer: trace.Tracer,
-    plugin_gen: AsyncGenerator[tuple[str, str | None] | HarvesterError, None],
+    plugin_gen: AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None],
     expected_datasets: int | None,
 ) -> HarvestUploadResult:
     state = _ArcStreamState()
@@ -206,6 +216,7 @@ async def _execute_harvest_upload(
         harvest_id=harvest_id,
         harvested_datasets=state.harvested_datasets,
         failed_datasets=state.failed_datasets,
+        skipped_datasets=state.skipped_datasets,
         harvest_started=harvest_started,
         failed_records=state.failed_records,
     )
@@ -217,7 +228,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
 
     expected_datasets: int | None = None
     harvested_datasets: int | None = None
-    failed_datasets: int | None = None
+    skipped_datasets: int = 0
     harvest_started = False
     harvest_id: str | None = None
     unhandled_failure = False
@@ -233,6 +244,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             expected_datasets=None,
             harvested_datasets=None,
             failed_datasets=None,
+            skipped_datasets=0,
         )
 
     try:
@@ -250,6 +262,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             harvest_id = result.harvest_id
             harvested_datasets = result.harvested_datasets
             failed_datasets = result.failed_datasets
+            skipped_datasets = result.skipped_datasets
             harvest_started = result.harvest_started
             failed_records = result.failed_records
         finally:
@@ -278,6 +291,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         expected_datasets=expected_datasets,
         harvested_datasets=harvested_datasets,
         failed_datasets=failed_datasets,
+        skipped_datasets=skipped_datasets,
         failed_records=tuple(failed_records),
     )
 
@@ -316,6 +330,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                                 expected_datasets=None,
                                 harvested_datasets=0,
                                 failed_datasets=None,
+                                skipped_datasets=0,
                             )
                         )
                     else:
