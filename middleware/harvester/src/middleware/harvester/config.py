@@ -5,10 +5,12 @@ from typing import Annotated
 from pydantic import BaseModel, Field, model_validator
 
 from middleware.api_client.config import Config as ApiClientConfig
-from middleware.harvester.plugin_config import PluginConfig
 from middleware.inspire.config import Config as InspireConfig
 from middleware.schema_org.config import Config as SchemaOrgConfig
 from middleware.shared.config.config_base import ConfigBase
+
+# Union of all plugin config types. Extend when adding a new plugin.
+PluginConfig = InspireConfig | SchemaOrgConfig
 
 
 class RepositoryConfig(BaseModel):

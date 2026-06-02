@@ -14,10 +14,9 @@ from opentelemetry import trace
 
 from middleware.api_client import ApiClient
 from middleware.api_client.models import HarvestErrorType
-from middleware.harvester.config import Config, RepositoryConfig
+from middleware.harvester.config import Config, PluginConfig, RepositoryConfig
 from middleware.harvester.errors import HarvesterError, RecordProcessingError
 from middleware.harvester.plugin_base import Plugin
-from middleware.harvester.plugin_config import PluginConfig
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
 from middleware.schema_org.plugin import SchemaOrgPlugin
