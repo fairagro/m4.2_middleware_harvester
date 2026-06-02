@@ -166,14 +166,10 @@ class CSWClient:
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        if effective_xml:
-            yield from self._get_records_by_xml(effective_xml)
-        elif effective_fes:
-            yield from self._get_records_by_fes(effective_fes, effective_chunk_size, effective_max_records)
-        elif effective_cql:
-            yield from self._get_records_by_cql(effective_cql, effective_chunk_size, effective_max_records)
-        else:
-            yield from self._get_records_standard(effective_chunk_size, effective_max_records)
+        _name, fn, args = self._pick_strategy(
+            effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
+        )
+        yield from fn(*args)
 
     async def get_records_async(
         self,
@@ -193,39 +189,45 @@ class CSWClient:
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        if effective_xml:
-            records = await self._retry_async(
-                self._iter_to_list, "get_records_by_xml", self._get_records_by_xml, effective_xml
-            )
-        elif effective_fes:
-            records = await self._retry_async(
-                self._iter_to_list,
-                "get_records_by_fes",
-                self._get_records_by_fes,
-                effective_fes,
-                effective_chunk_size,
-                effective_max_records,
-            )
-        elif effective_cql:
-            records = await self._retry_async(
-                self._iter_to_list,
-                "get_records_by_cql",
-                self._get_records_by_cql,
-                effective_cql,
-                effective_chunk_size,
-                effective_max_records,
-            )
-        else:
-            records = await self._retry_async(
-                self._iter_to_list,
-                "get_records_standard",
-                self._get_records_standard,
-                effective_chunk_size,
-                effective_max_records,
-            )
-
+        name, fn, args = self._pick_strategy(
+            effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
+        )
+        records = await self._retry_async(self._iter_to_list, name, fn, *args)
         for item in records:
             yield item
+
+    def _pick_strategy(
+        self,
+        effective_xml: str | bytes | None,
+        effective_fes: list[OgcExpression] | None,
+        effective_cql: str | None,
+        effective_chunk_size: int,
+        effective_max_records: int | None,
+    ) -> tuple[str, Callable[..., Iterator[InspireRecord | RecordProcessingError]], tuple[object, ...]]:
+        """Return (strategy_name, callable, args) for the active filter mode."""
+        if effective_xml:
+            return "get_records_by_xml", self._get_records_by_xml, (effective_xml,)
+        if effective_fes:
+            return (
+                "get_records_by_fes",
+                self._get_records_by_fes,
+                (
+                    effective_fes,
+                    effective_chunk_size,
+                    effective_max_records,
+                ),
+            )
+        if effective_cql:
+            return (
+                "get_records_by_cql",
+                self._get_records_by_cql,
+                (
+                    effective_cql,
+                    effective_chunk_size,
+                    effective_max_records,
+                ),
+            )
+        return "get_records_standard", self._get_records_standard, (effective_chunk_size, effective_max_records)
 
     @staticmethod
     def _iter_to_list(
