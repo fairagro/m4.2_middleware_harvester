@@ -65,10 +65,7 @@ def _apply_client_errors(
         arc_id = err.arc_id or ""
         urls = arc_id_to_urls.get(arc_id, [])
         if urls:
-            unique_urls = []
-            for url in urls:
-                if url not in unique_urls:
-                    unique_urls.append(url)
+            unique_urls = list(dict.fromkeys(urls))
             if len(unique_urls) == 1:
                 msg = f"{err.message} — source URL: {unique_urls[0]}"
             else:
