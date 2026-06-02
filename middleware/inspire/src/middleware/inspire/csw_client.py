@@ -93,13 +93,19 @@ class CSWClient:
 
     def __del__(self) -> None:
         """Shut down the executor if the object is garbage-collected."""
-        if self._executor is not None:
-            warnings.warn(
-                "CSWClient executor was not shut down. Use async with CSWClient(...) to manage its lifecycle.",
-                ResourceWarning,
-                stacklevel=2,
-            )
-            self._shutdown_executor()
+        if getattr(self, "_executor", None) is not None:
+            try:
+                warnings.warn(
+                    "CSWClient executor was not shut down. Use async with CSWClient(...) to manage its lifecycle.",
+                    ResourceWarning,
+                    stacklevel=2,
+                )
+            except (NameError, AttributeError):
+                pass
+            try:
+                self._shutdown_executor()
+            except Exception:
+                pass
 
     async def _run_in_executor(self, fn: Callable[..., T], *args: object, **kwargs: object) -> T:
         """Run a function in the owned executor."""
