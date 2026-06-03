@@ -131,7 +131,7 @@ async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() 
 
 
 @pytest.mark.asyncio
-async def test_csw_client_executor_warning_on_del() -> None:
+async def test_csw_client_executor_shutdown_on_del_without_warning() -> None:
     config = _make_csw_config()
     client = CSWClient(config)
 
@@ -147,9 +147,7 @@ async def test_csw_client_executor_warning_on_del() -> None:
         del client
         gc.collect()
 
-    assert len(caught) == 1
-    assert caught[0].category is ResourceWarning
-    assert "executor was not shut down" in str(caught[0].message)
+    assert len(caught) == 0
     fake_executor.shutdown.assert_called_once_with(wait=False)
 
 
