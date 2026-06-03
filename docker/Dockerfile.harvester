@@ -8,7 +8,7 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY middleware ./middleware
 
 # Upgrade pip and install uv
-RUN pip install --no-cache-dir --upgrade pip==26.1.1 uv==0.11.14
+RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.18
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
@@ -27,13 +27,13 @@ RUN apk add --no-cache \
     python3-dev=3.12.13-r0 \
     libffi-dev=3.5.2-r0 \
     openssl-dev=3.5.6-r0 \
-    cargo=1.91.1-r1 \
+    cargo=1.91.1-r2 \
     git=2.52.0-r0
 
 WORKDIR /build
 
 # Install uv core tool
-RUN pip install --no-cache-dir --upgrade pip==26.1.1 uv==0.11.14
+RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.18
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
@@ -63,6 +63,11 @@ RUN uv pip install /tmp/wheels/*.whl pyinstaller
 # Since we merged everything into site-packages/middleware, we can largely rely on auto-discovery.
 # --copy-metadata is still needed because the code checks its own version at runtime.
 RUN . .venv/bin/activate && \
+    .venv/bin/python -m PyInstaller --onefile \
+    --name healthcheck \
+    .venv/lib/python3.12/site-packages/middleware/harvester/healthcheck.py
+
+RUN . .venv/bin/activate && \
     .venv/bin/python -m PyInstaller --onedir \
     --name harvester \
     --copy-metadata harvester \
@@ -86,6 +91,8 @@ RUN addgroup -S harvester && \
 
 # Copy the entire directory created by --onedir with correct ownership
 COPY --chown=harvester:harvester --from=binary-builder /build/dist/harvester /middleware/harvester
+# Copy the standalone healthcheck binary
+COPY --chown=harvester:harvester --from=binary-builder /build/dist/healthcheck /middleware/harvester/healthcheck
 
 USER harvester
 

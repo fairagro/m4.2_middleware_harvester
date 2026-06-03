@@ -37,6 +37,12 @@ def test_harvester_config_loading() -> None:
     assert repo.plugin_config.csw_url == "https://csw.example.com"
 
 
+def test_repository_config_source_url_inspire() -> None:
+    """source_url returns the CSW URL for an INSPIRE repository."""
+    repo = RepositoryConfig.model_validate({"rdi": "test", "inspire": {"csw_url": "https://csw.example.com"}})
+    assert repo.source_url == "https://csw.example.com"
+
+
 def test_repository_config_rejects_no_plugin() -> None:
     """RepositoryConfig must reject an entry with no plugin key set."""
     with pytest.raises(ValidationError):

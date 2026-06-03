@@ -96,9 +96,10 @@ async def test_schema_org_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mon
 
     results = [item async for item in SchemaOrgPlugin(config).run()]
 
-    assert results == ["mapped:graph"]
+    assert results == [("mapped:graph", "https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
-    assert isinstance(results[0], str)
+    assert isinstance(results[0], tuple)
+    assert isinstance(results[0][0], str)
 
 
 @pytest.mark.asyncio
@@ -194,7 +195,8 @@ async def test_schema_org_plugin_run_closes_cleanly_when_generator_is_cancelled(
     try:
         agen = SchemaOrgPlugin(config).run()
         first_result = await agen.__anext__()
-        assert first_result == "mapped:graph"
+        assert isinstance(first_result, tuple)
+        assert first_result[0] == "mapped:graph"
         await agen.aclose()
         await asyncio.sleep(0)
     finally:

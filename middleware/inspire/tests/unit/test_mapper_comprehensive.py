@@ -533,10 +533,12 @@ def test_split_name(mapper: InspireMapper) -> None:
     """Test splitting of full names into first and last name."""
     test_cases = [
         ("John Doe", ("John", "Doe")),
-        ("Doe, John", ("Doe,", "John")),  # Handle comma format - current implementation doesn't handle this
-        ("Jane", ("", "Jane")),  # Single name
-        ("", ("", "")),  # Empty name
-        ("Dr. John Michael Doe", ("Dr. John Michael", "Doe")),  # Multiple middle names (current implementation)
+        ("Doe, John", ("John", "Doe")),
+        ("Jane", ("", "Jane")),
+        ("", ("", "")),
+        ("Dr. John Michael Doe", ("John", "Doe")),
+        ("Maria Garcia Brizuela", ("Maria", "Garcia Brizuela")),
+        ("Hans-Joachim von Müller", ("Hans-Joachim", "von Müller")),
     ]
 
     for full_name, expected in test_cases:
