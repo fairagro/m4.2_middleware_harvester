@@ -629,18 +629,13 @@ class CSWClient:
                 total_attempts,
                 last_exception,
             )
-            logger.debug(
-                "Waiting %.3fs before retrying %s",
-                min(
-                    self._config.retry_backoff_base
-                    * (self._config.retry_backoff_factor ** (attempt - 1))
-                    * random.uniform(0.9, 1.1),
-                    self._config.retry_max_delay,
-                ),
-                method_name,
-            )
             delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
             delay = min(delay * random.uniform(0.9, 1.1), self._config.retry_max_delay)
+            logger.debug(
+                "Waiting %.3fs before retrying %s",
+                delay,
+                method_name,
+            )
             await asyncio.sleep(delay)
 
         raise last_exception or RuntimeError("Retry helper exited without exception")
