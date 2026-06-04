@@ -726,7 +726,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.0.0" },
     { name = "pylint", specifier = ">=4.0.4" },
     { name = "pytest", specifier = ">=9.0.3" },
-    { name = "pytest-asyncio", specifier = ">=1.1.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-env", specifier = ">=1.2.0" },
     { name = "pytest-mock", specifier = ">=3.10.0" },
