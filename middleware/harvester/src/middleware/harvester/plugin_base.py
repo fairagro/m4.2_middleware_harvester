@@ -1,20 +1,18 @@
-"""Abstract plugin interface shared by all harvester plugins."""
+"""Plugin interface for all harvester plugins."""
 
-import abc
 from collections.abc import AsyncGenerator
+from typing import Protocol
 
-from middleware.harvester.errors import HarvesterError
+from middleware.harvester.errors import HarvesterError, SkippedRecord
 
 
-class Plugin(abc.ABC):
-    """Abstract base class for harvester plugins."""
+class Plugin(Protocol):
+    """Protocol defining the harvester plugin interface."""
 
-    @abc.abstractmethod
-    async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
-        """Run the plugin and yield serialized ARC RO-Crate payloads or errors."""
-        if False:  # pragma: no cover
-            yield
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        """Run the plugin and yield (arc_json, source_url) pairs, errors, or skips."""
+        raise NotImplementedError
 
-    @abc.abstractmethod
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for the configured source."""
+        raise NotImplementedError

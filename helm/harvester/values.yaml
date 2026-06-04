@@ -107,6 +107,33 @@ resources:
     memory: "1Gi"
 
 # =============================================================================
+# Liveness probe
+#
+# The harvester writes and periodically touches /tmp/harvester-live during the
+# run. The probe fails if the file is absent or older than 5 minutes, which
+# indicates a hung process. Kubernetes will then kill the container.
+#
+# initialDelaySeconds must be large enough to cover slow startups (e.g. first
+# CSW connection). Adjust failureThreshold × periodSeconds to set the maximum
+# tolerated hang duration before the pod is killed.
+# =============================================================================
+livenessProbe:
+  exec:
+    command:
+      - /middleware/harvester/healthcheck
+      - --path=/tmp/harvester-live
+      - --max-age=300
+  # -- Seconds after container start before the first probe is executed.
+  # -- Set generously: a cold harvest may take a while to produce its first record.
+  initialDelaySeconds: 60
+  # -- How often (in seconds) to perform the probe.
+  periodSeconds: 60
+  # -- Number of consecutive failures before the container is killed.
+  failureThreshold: 3
+  # -- Probe command timeout in seconds.
+  timeoutSeconds: 5
+
+# =============================================================================
 # TLS client certificates (mutual TLS with the Middleware API)
 #
 # When tls.enabled is true, the chart creates a Kubernetes Secret from the PEM

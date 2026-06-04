@@ -2,8 +2,8 @@
 
 ## Key Decisions
 
-1. **Dual-pass stable ID mechanism (Dublin Core pre-fetch before full ISO fetch)**
-   — Some CSW servers yield records in unpredictable order under pagination when sort order is ambiguous. By locking onto the Dublin Core identifier strings obtained in the first pass, mismatches between the pre-fetch and the full ISO response are detected; the record is skipped with a `RecordProcessingError` instead of silently producing wrong data.
+1. **ISO-first fetch with lazy Dublin Core fallback for identifier recovery**
+   — The primary path fetches only the ISO 19139 batch. ISO records with a usable identifier (not absent and not `owslib_random_*`) are processed directly without any DC request. DC is fetched only when a batch contains at least one identifier-less ISO record, because those records cannot be individually reported in the harvest error log without an identifier. The DC identifiers that do not match any successfully parsed ISO identifier are then attributed to the failed ISO records in positional order. This avoids all DC overhead for well-behaved servers while preserving error traceability on broken ones.
 
 2. **Yield `RecordProcessingError` instead of raising from the generator**
    — OWSLib fetching can throw arbitrary network and XML parse exceptions mid-iteration. Raising would terminate the entire generator and abort the harvest run. Yielding the error lets the orchestrator log it and continue to the next record, satisfying the failure-isolation principle.

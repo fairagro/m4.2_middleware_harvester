@@ -9,7 +9,7 @@ from typing import TypeVar, cast
 import httpx
 
 from ..config import Config, SitemapType
-from ..dataset import DiscoveryResult, UrlDiscoveryResult
+from ..dataset import DiscoveryResult, DuplicateUrlDiscoveryResult, UrlDiscoveryResult
 from ..registry import Registry
 
 S = TypeVar("S", bound="Sitemap")
@@ -26,8 +26,17 @@ class Sitemap(ABC):
         self._client = client
 
     async def discover(self) -> AsyncGenerator[DiscoveryResult, None]:
-        """Asynchronously yield raw discovery results using the provided HTTP client."""
+        """Asynchronously yield raw discovery results using the provided HTTP client.
+
+        Deduplicates results by URL — each URL is yielded at most once.
+        """
+        seen: set[str] = set()
         async for result in self._discover(self._client):
+            if isinstance(result, UrlDiscoveryResult):
+                if result.url in seen:
+                    yield DuplicateUrlDiscoveryResult(result.url)
+                    continue
+                seen.add(result.url)
             yield result
 
     async def get_expected_count(self) -> int | None:

@@ -1,7 +1,8 @@
 """Unit tests for the INSPIRE CSW client."""
 
+import gc
 import logging
-from collections.abc import Callable
+import warnings
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,25 +14,12 @@ from middleware.inspire.errors import CswConnectionError
 _expected_record_count = 42
 
 
-def _make_config(csw_url: str = "https://example.com/csw") -> Config:
+def _make_csw_config(csw_url: str = "https://example.com/csw") -> Config:
     return Config(csw_url=csw_url, timeout=5, chunk_size=10)
 
 
-@pytest.mark.asyncio
-async def test_get_records_async_uses_xml_sync_wrapper() -> None:
-    config = _make_config()
-    client = CSWClient(config)
-    object.__setattr__(client, "_csw", MagicMock())
-
-    with patch.object(CSWClient, "_get_records_by_xml_sync", return_value=["record1"]) as mock_xml_sync:
-        records = [item async for item in client.get_records_async(xml_query="<xml/>")]
-
-    assert records == ["record1"]
-    mock_xml_sync.assert_called_once_with("<xml/>")
-
-
 def test_get_record_url_appends_query_parameters() -> None:
-    config = _make_config(csw_url="https://example.com/csw?foo=bar")
+    config = _make_csw_config(csw_url="https://example.com/csw?foo=bar")
     client = CSWClient(config)
 
     url = client.get_record_url("record-123")
@@ -41,7 +29,7 @@ def test_get_record_url_appends_query_parameters() -> None:
 
 
 def test_get_record_url_handles_base_url_without_query() -> None:
-    config = _make_config(csw_url="https://example.com/csw")
+    config = _make_csw_config(csw_url="https://example.com/csw")
     client = CSWClient(config)
 
     url = client.get_record_url("record-123")
@@ -52,7 +40,7 @@ def test_get_record_url_handles_base_url_without_query() -> None:
 
 def test_connect_logs_cs_title_on_success(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
     fake_csw.identification = MagicMock(title="Test CSW")
@@ -86,7 +74,7 @@ def test_get_record_count_parses_list_matches() -> None:
 
 
 def test_get_record_count_uses_xml_query() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
 
@@ -103,7 +91,7 @@ def test_get_record_count_uses_xml_query() -> None:
 
 
 def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     fake_csw = MagicMock()
 
@@ -121,8 +109,50 @@ def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
     assert count == expected_count
 
 
+def test_config_default_csw_thread_pool_size() -> None:
+    config = _make_csw_config()
+
+    assert config.csw_thread_pool_size == 4  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() -> None:
+    config = _make_csw_config()
+    client = CSWClient(config)
+
+    with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
+        fake_executor = MagicMock()
+        executor_factory.return_value = fake_executor
+
+        async with client:
+            executor_factory.assert_called_once_with(max_workers=4)
+
+        fake_executor.shutdown.assert_called_once_with(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_csw_client_executor_shutdown_on_del_without_warning() -> None:
+    config = _make_csw_config()
+    client = CSWClient(config)
+
+    with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
+        fake_executor = MagicMock()
+        executor_factory.return_value = fake_executor
+
+        # Build the executor lazily.
+        client.get_executor()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        del client
+        gc.collect()
+
+    assert len(caught) == 0
+    fake_executor.shutdown.assert_called_once_with(wait=False)
+
+
 def test_connect_raises_csw_connection_error_on_failure() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
 
     with (
@@ -243,7 +273,7 @@ async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
     object.__setattr__(client, "_csw", MagicMock())
     side_effect: list[OSError | list[str]] = [OSError("transient"), ["record1"]]
 
-    def records_side_effect(*_args: object, **_kwargs: object) -> list[str]:
+    def iter_to_list_side_effect(*_args: object, **_kwargs: object) -> list[str]:
         result = side_effect.pop(0)
         if isinstance(result, Exception):
             raise result
@@ -251,15 +281,15 @@ async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
 
     expected_calls = 2
 
-    with patch.object(CSWClient, "_get_records_by_cql_sync", side_effect=records_side_effect) as mock_sync:
+    with patch.object(CSWClient, "_iter_to_list", side_effect=iter_to_list_side_effect) as mock_iter:
         records = [item async for item in client.get_records_async()]
 
     assert records == ["record1"]
-    assert mock_sync.call_count == expected_calls
+    assert mock_iter.call_count == expected_calls
 
 
 @pytest.mark.asyncio
-async def test_get_records_async_uses_cql_path() -> None:
+async def test_get_records_async_uses_run_in_executor_for_cql_path() -> None:
     config = Config(
         csw_url="https://example.com/csw",
         cql_query="AnyText LIKE '%agriculture%'",
@@ -269,48 +299,46 @@ async def test_get_records_async_uses_cql_path() -> None:
     client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 
-    async def sync_side_effect(func: Callable[..., list[str]], *args: object, **kwargs: object) -> list[str]:
-        return func(*args, **kwargs)
+    fake_loop = MagicMock()
+    fake_loop.run_in_executor = AsyncMock(side_effect=lambda _executor, func, *args, **kwargs: func(*args, **kwargs))
 
     with (
-        patch(
-            "middleware.inspire.csw_client.asyncio.to_thread",
-            new=AsyncMock(side_effect=sync_side_effect),
-        ) as mock_to_thread,
-        patch.object(CSWClient, "_get_records_by_cql_sync", return_value=["record1"]) as mock_sync,
+        patch("middleware.inspire.csw_client.asyncio.get_running_loop", return_value=fake_loop),
+        patch.object(CSWClient, "_get_executor", return_value=MagicMock()),
+        patch.object(CSWClient, "_connect", return_value=None),
+        patch.object(CSWClient, "_get_records_by_cql", return_value=iter(["record1"])) as mock_sync,
     ):
         records = [item async for item in client.get_records_async()]
 
     assert records == ["record1"]
     mock_sync.assert_called_once_with("AnyText LIKE '%agriculture%'", 10, None)
-    assert mock_to_thread.called
+    assert fake_loop.run_in_executor.called
 
 
 @pytest.mark.asyncio
-async def test_get_records_async_uses_xml_path() -> None:
-    config = _make_config()
+async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
+    config = _make_csw_config()
     client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 
-    async def sync_side_effect(func: Callable[..., list[str]], *args: object, **kwargs: object) -> list[str]:
-        return func(*args, **kwargs)
+    fake_loop = MagicMock()
+    fake_loop.run_in_executor = AsyncMock(side_effect=lambda _executor, func, *args, **kwargs: func(*args, **kwargs))
 
     with (
-        patch(
-            "middleware.inspire.csw_client.asyncio.to_thread",
-            new=AsyncMock(side_effect=sync_side_effect),
-        ) as mock_to_thread,
-        patch.object(CSWClient, "_get_records_by_xml_sync", return_value=["record1"]) as mock_sync,
+        patch("middleware.inspire.csw_client.asyncio.get_running_loop", return_value=fake_loop),
+        patch.object(CSWClient, "_get_executor", return_value=MagicMock()),
+        patch.object(CSWClient, "_connect", return_value=None),
+        patch.object(CSWClient, "_get_records_by_xml", return_value=iter(["record1"])) as mock_sync,
     ):
         records = [item async for item in client.get_records_async(xml_query="<xml/>")]
 
     assert records == ["record1"]
     assert mock_sync.called
-    assert mock_to_thread.called
+    assert fake_loop.run_in_executor.called
 
 
 def test_get_records_uses_fes_constraints() -> None:
-    config = _make_config()
+    config = _make_csw_config()
     client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 

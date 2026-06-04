@@ -1,13 +1,17 @@
 """Schema.org plugin unit tests."""
 
+from collections.abc import AsyncGenerator
+from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from test_fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
 from middleware.schema_org.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.schema_org.dataset import DuplicateUrlDiscoveryResult
 from middleware.schema_org.plugin import SchemaOrgPlugin
 
 EXPECTED_DATASET_COUNT = 5
@@ -23,6 +27,27 @@ def test_create_mapper_from_config() -> None:
     )
     mapper = SchemaOrgPlugin.create_mapper(config)
     assert mapper is not None
+
+
+def test_create_mapper_rejects_unknown_payload_type() -> None:
+    config = cast(Config, SimpleNamespace(payload_type="bad"))
+
+    with pytest.raises(ValueError, match="Unsupported payload type"):
+        SchemaOrgPlugin.create_mapper(config)
+
+
+def test_create_sitemap_rejects_unknown_sitemap_type() -> None:
+    config = cast(Config, SimpleNamespace(sitemap_type="bad"))
+    client = MagicMock()
+
+    with pytest.raises(ValueError, match="Unsupported sitemap type"):
+        SchemaOrgPlugin.create_sitemap(config, client=client)
+
+
+def test_extract_arc_identifier_handles_list_identifiers() -> None:
+    arc_json = '{"@graph":[{"@id":"./","identifier":["10.1234/abc"]}]}'
+    result = SchemaOrgPlugin._extract_arc_identifier(arc_json)  # noqa: SLF001
+    assert result == "10.1234/abc"
 
 
 @pytest.mark.asyncio
@@ -118,6 +143,52 @@ async def test_schema_org_plugin_run_plugin_returns_record_processing_error_for_
 
 
 @pytest.mark.asyncio
+async def test_schema_org_plugin_run_plugin_yields_skipped_record_for_duplicate_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.general,
+        http=NiceHttpClientConfig(),
+    )
+
+    class DuplicateSitemap:
+        def __init__(self, config: Config, client: object) -> None:
+            del config, client
+
+        async def discover(self) -> AsyncGenerator[DuplicateUrlDiscoveryResult, None]:
+            yield DuplicateUrlDiscoveryResult("https://example.org/dataset/dup")
+
+        async def get_expected_count(self) -> int | None:
+            return 1
+
+    def create_duplicate_sitemap(_config: Config, client: object) -> DuplicateSitemap:
+        return DuplicateSitemap(_config, client)
+
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.SchemaOrgPlugin.create_sitemap",
+        staticmethod(create_duplicate_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.SchemaOrgPlugin.create_mapper",
+        staticmethod(lambda _config: MagicMock()),
+    )
+    monkeypatch.setattr(
+        "middleware.schema_org.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: GoodFakeDataset},
+    )
+
+    results = [item async for item in SchemaOrgPlugin(config).run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], SkippedRecord)
+    assert results[0].reason == "Duplicate sitemap entry skipped: https://example.org/dataset/dup"
+    assert results[0].url == "https://example.org/dataset/dup"
+
+
+@pytest.mark.asyncio
 async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pytest.MonkeyPatch) -> None:
     config = Config(
         sitemap_url="https://example.org/sitemap.xml",
@@ -145,7 +216,7 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
 
     results = [item async for item in SchemaOrgPlugin(config).run()]
 
-    assert results == ["mapped:graph:https://example.org/dataset/slow"]
+    assert results == [("mapped:graph:https://example.org/dataset/slow", "https://example.org/dataset/slow")]
 
 
 @pytest.mark.asyncio

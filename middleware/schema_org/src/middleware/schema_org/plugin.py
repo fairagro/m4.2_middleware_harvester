@@ -1,17 +1,19 @@
 """Schema.org harvester plugin integration point."""
 
 import asyncio
+import json
 import logging
 from collections.abc import AsyncGenerator
 
 import httpx
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
-from .dataset import Dataset, DiscoveryResult
+from .dataset import Dataset, DiscoveryResult, DuplicateUrlDiscoveryResult
+from .dataset.dataset import UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
 from .schema_org_mapper import SchemaOrgMapper
@@ -37,6 +39,19 @@ class SchemaOrgPlugin(Plugin):
             raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
 
         return sitemap_cls(config, client)
+
+    @staticmethod
+    def _extract_arc_identifier(arc_json: str) -> str | None:
+        """Extract the RO-Crate identifier from a serialized ARC JSON string."""
+        graph = json.loads(arc_json).get("@graph")
+        if isinstance(graph, list):
+            for item in graph:
+                if isinstance(item, dict) and item.get("@id") == "./":
+                    identifier = item.get("identifier")
+                    if isinstance(identifier, list):
+                        identifier = identifier[0] if identifier else None
+                    return str(identifier) if identifier else None
+        return None
 
     @staticmethod
     def create_mapper(config: Config) -> SchemaOrgMapper:
@@ -66,7 +81,13 @@ class SchemaOrgPlugin(Plugin):
         self,
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
-    ) -> str | RecordProcessingError:
+    ) -> tuple[str, str | None] | RecordProcessingError | SkippedRecord:
+        if isinstance(discovery_result, DuplicateUrlDiscoveryResult):
+            return SkippedRecord(
+                f"Duplicate sitemap entry skipped: {discovery_result.url}",
+                discovery_result.url,
+            )
+        source_url = discovery_result.url if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
             dataset_cls = Dataset.registry[self._config.dataset_type]
             dataset = dataset_cls.from_discovery_result(
@@ -79,16 +100,19 @@ class SchemaOrgPlugin(Plugin):
                 f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
                 str(discovery_result),
                 exc,
+                url=source_url,
             )
 
         try:
             graph = await dataset.to_graph()
-            return await asyncio.to_thread(self._mapper.map_graph, graph)
+            arc_json = await asyncio.to_thread(self._mapper.map_graph, graph)
+            return arc_json, source_url
         except (SchemaOrgError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
             return RecordProcessingError(
                 f"Failed to map dataset {dataset.identifier}: {exc}",
                 dataset.identifier,
                 exc,
+                url=source_url,
             )
 
     async def _run_with_task_group(
@@ -96,8 +120,8 @@ class SchemaOrgPlugin(Plugin):
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks: int,
-    ) -> AsyncGenerator[str | HarvesterError, None]:
-        results: asyncio.Queue[str | HarvesterError] = asyncio.Queue()
+    ) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        results: asyncio.Queue[tuple[str, str | None] | HarvesterError | SkippedRecord] = asyncio.Queue()
         semaphore = asyncio.Semaphore(worker_tasks)
         discovery_finished = False
         active_workers = 0
@@ -138,8 +162,11 @@ class SchemaOrgPlugin(Plugin):
                 except GeneratorExit:
                     return
 
-    async def run(self) -> AsyncGenerator[str | HarvesterError, None]:
-        """Run the plugin and yield serialized ARC RO-Crate payloads."""
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        """Run the plugin and yield (arc_json, source_url) pairs, errors, or skips."""
+        return self._run()
+
+    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http.client)
             worker_tasks = self._config.effective_worker_tasks

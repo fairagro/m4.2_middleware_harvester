@@ -2,20 +2,22 @@
 
 import argparse
 import asyncio
+import json
 import logging
 from collections.abc import AsyncGenerator, Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
+from middleware.api_client.models import HarvestErrorType
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.harvester.errors import HarvesterError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import Plugin
-from middleware.harvester.plugin_config import PluginConfig
-from middleware.harvester.report import HarvestReport, RepositoryReport, print_report
+from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
 from middleware.schema_org.plugin import SchemaOrgPlugin
 from middleware.shared.tracing import initialize_logging, initialize_tracing
@@ -27,22 +29,129 @@ _SERVICE_NAME = "middleware-harvester"
 
 logger = logging.getLogger(__name__)
 
-_PLUGIN_CLASSES: dict[str, type[Plugin]] = {
+_PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
     "schema_org": SchemaOrgPlugin,
 }
+
+
+def _extract_arc_identifier(arc_json: str) -> str | None:
+    """Extract the RO-Crate identifier from a serialized ARC JSON string."""
+    graph = json.loads(arc_json).get("@graph")
+    if isinstance(graph, list):
+        for item in graph:
+            if isinstance(item, dict) and item.get("@id") == "./":
+                identifier = item.get("identifier")
+                if isinstance(identifier, list):
+                    identifier = identifier[0] if identifier else None
+                return str(identifier) if identifier else None
+    return None
+
+
+def _apply_client_errors(
+    errors: list,
+    arc_id_to_urls: dict[str, list[str]],
+    harvested_datasets: int | None,
+    failed_datasets: int | None,
+    failed_records: list[FailedRecord],
+) -> tuple[int | None, int | None]:
+    """Translate api_client-level HarvestErrors into harvester report counters."""
+    for err in errors:
+        if err.error_type == HarvestErrorType.DUPLICATE and harvested_datasets is not None and harvested_datasets > 0:
+            harvested_datasets -= 1
+        if failed_datasets is None:
+            failed_datasets = 0
+        failed_datasets += 1
+        arc_id = err.arc_id or ""
+        urls = arc_id_to_urls.get(arc_id, [])
+        if urls:
+            unique_urls = list(dict.fromkeys(urls))
+            if len(unique_urls) == 1:
+                msg = f"{err.message} — source URL: {unique_urls[0]}"
+            else:
+                msg = f"{err.message} — source URLs: {', '.join(unique_urls)}"
+        else:
+            msg = err.message
+        failed_records.append(FailedRecord(message=msg, record_id=err.arc_id))
+    return harvested_datasets, failed_datasets
+
+
+def _handle_plugin_error(
+    item: HarvesterError,
+    plugin_type: str,
+    failed_records: list[FailedRecord],
+) -> None:
+    """Log a plugin-level error and append a FailedRecord."""
+    if isinstance(item, RecordProcessingError):
+        logger.error(
+            "Processing error in plugin '%s' for record '%s': %s",
+            plugin_type,
+            item.record_id,
+            item,
+        )
+        failed_records.append(FailedRecord(message=str(item), record_id=item.record_id, url=item.url))
+    else:
+        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+        failed_records.append(FailedRecord(message=str(item)))
+
+
+def _handle_skipped_record(item: SkippedRecord, plugin_type: str) -> None:
+    """Log a skipped plugin item at INFO level."""
+    logger.info("Skipped record in plugin '%s': %s", plugin_type, item)
+
+
+@dataclass
+class _ArcStreamState:
+    """Mutable accumulator shared between _arc_stream and _execute_harvest_upload."""
+
+    harvested_datasets: int | None = None
+    failed_datasets: int | None = None
+    skipped_datasets: int = 0
+    arc_id_to_urls: dict[str, list[str]] = field(default_factory=dict)
+    failed_records: list[FailedRecord] = field(default_factory=list)
+
+
+async def _arc_stream(
+    gen: AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None],
+    plugin_type: str,
+    state: _ArcStreamState,
+) -> AsyncGenerator[str, None]:
+    async for item in gen:
+        if isinstance(item, SkippedRecord):
+            state.skipped_datasets += 1
+            _handle_skipped_record(item, plugin_type)
+            continue
+        if isinstance(item, HarvesterError):
+            if state.failed_datasets is None:
+                state.failed_datasets = 0
+            state.failed_datasets += 1
+            _handle_plugin_error(item, plugin_type, state.failed_records)
+            continue
+        arc_json, source_url = item
+        if source_url is not None:
+            try:
+                arc_id = _extract_arc_identifier(arc_json)
+                if arc_id:
+                    urls = state.arc_id_to_urls.setdefault(arc_id, [])
+                    if source_url not in urls:
+                        urls.append(source_url)
+            except Exception:  # noqa: BLE001
+                logger.debug("Failed to extract ARC identifier from arc_json for source_url tracking.", exc_info=True)
+        if state.harvested_datasets is None:
+            state.harvested_datasets = 0
+        state.harvested_datasets += 1
+        yield arc_json
 
 
 async def _execute_harvest_upload(
     repo: RepositoryConfig,
     client: ApiClient,
     tracer: trace.Tracer,
-    plugin_gen: AsyncGenerator[str | HarvesterError, None],
+    plugin_gen: AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None],
     expected_datasets: int | None,
-) -> tuple[str | None, int | None, int | None, bool]:
+) -> HarvestUploadResult:
+    state = _ArcStreamState()
     harvest_id: str | None = None
-    harvested_datasets: int | None = None
-    failed_datasets: int | None = None
     harvest_started = False
 
     with tracer.start_as_current_span(
@@ -52,24 +161,6 @@ async def _execute_harvest_upload(
             "harvester.repository_rdi": repo.rdi,
         },
     ) as plugin_span:
-
-        async def _arc_stream(
-            gen: AsyncGenerator[str | HarvesterError, None],
-            plugin_type: str,
-        ) -> AsyncGenerator[str, None]:
-            nonlocal harvested_datasets, failed_datasets
-            async for item in gen:
-                if isinstance(item, HarvesterError):
-                    if failed_datasets is None:
-                        failed_datasets = 0
-                    failed_datasets += 1
-                    logger.error("Processing error in plugin '%s': %s", plugin_type, item)
-                    continue
-                if harvested_datasets is None:
-                    harvested_datasets = 0
-                harvested_datasets += 1
-                yield item
-
         try:
             with tracer.start_as_current_span("harvest_upload") as upload_span:
                 harvest_started = True
@@ -82,14 +173,21 @@ async def _execute_harvest_upload(
                     )
                     result = await client.harvest_arcs(
                         rdi=repo.rdi,
-                        arcs=_arc_stream(plugin_gen, repo.plugin_type),
+                        arcs=_arc_stream(plugin_gen, repo.plugin_type, state),
                         expected_datasets=expected_datasets,
                     )
                     harvest_id = result.harvest_id
+                    state.harvested_datasets, state.failed_datasets = _apply_client_errors(
+                        result.errors,
+                        state.arc_id_to_urls,
+                        state.harvested_datasets,
+                        state.failed_datasets,
+                        state.failed_records,
+                    )
                     upload_span.set_attribute("harvester.harvest_id", harvest_id)
                     upload_span.set_attribute(
                         "harvester.arcs_uploaded",
-                        harvested_datasets if harvested_datasets is not None else 0,
+                        state.harvested_datasets if state.harvested_datasets is not None else 0,
                     )
                     logger.info(
                         "Finished processing repository %s. Harvest: %s",
@@ -117,18 +215,26 @@ async def _execute_harvest_upload(
                 plugin_span.set_attribute("harvester.harvest_id", harvest_id)
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
-                harvested_datasets if harvested_datasets is not None else 0,
+                state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
         except Exception as e:  # noqa: BLE001
             plugin_span.set_status(trace.StatusCode.ERROR)
             plugin_span.record_exception(e)
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
-                harvested_datasets if harvested_datasets is not None else 0,
+                state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
             logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
+            state.failed_records.append(FailedRecord(message=f"{type(e).__name__}: {e}", url=repo.source_url))
 
-    return harvest_id, harvested_datasets, failed_datasets, harvest_started
+    return HarvestUploadResult(
+        harvest_id=harvest_id,
+        harvested_datasets=state.harvested_datasets,
+        failed_datasets=state.failed_datasets,
+        skipped_datasets=state.skipped_datasets,
+        harvest_started=harvest_started,
+        failed_records=state.failed_records,
+    )
 
 
 async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: trace.Tracer) -> RepositoryReport:
@@ -137,13 +243,14 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
 
     expected_datasets: int | None = None
     harvested_datasets: int | None = None
-    failed_datasets: int | None = None
+    skipped_datasets: int = 0
     harvest_started = False
     harvest_id: str | None = None
     unhandled_failure = False
+    failed_records: list[FailedRecord] = []
 
-    plugin_cls = _PLUGIN_CLASSES.get(repo.plugin_type)
-    if plugin_cls is None:
+    plugin_factory = _PLUGIN_FACTORIES.get(repo.plugin_type)
+    if plugin_factory is None:
         logger.error("Unknown repository type '%s', skipping...", repo.plugin_type)
         return RepositoryReport(
             rdi=repo.rdi,
@@ -152,11 +259,12 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
             expected_datasets=None,
             harvested_datasets=None,
             failed_datasets=None,
+            skipped_datasets=0,
         )
 
     try:
         logger.debug("Initializing plugin for repository %s (%s)", repo.rdi, repo.plugin_type)
-        plugin_instance = cast(Callable[[PluginConfig], Plugin], plugin_cls)(repo.plugin_config)
+        plugin_instance = plugin_factory(repo.plugin_config)
         plugin_gen = plugin_instance.run()
         try:
             logger.debug("Getting expected datasets for repository %s (%s)", repo.rdi, repo.plugin_type)
@@ -167,19 +275,26 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
                 repo.plugin_type,
                 expected_datasets,
             )
-            harvest_id, harvested_datasets, failed_datasets, harvest_started = await _execute_harvest_upload(
+            result = await _execute_harvest_upload(
                 repo,
                 client,
                 tracer,
                 plugin_gen,
                 expected_datasets,
             )
+            harvest_id = result.harvest_id
+            harvested_datasets = result.harvested_datasets
+            failed_datasets = result.failed_datasets
+            skipped_datasets = result.skipped_datasets
+            harvest_started = result.harvest_started
+            failed_records = result.failed_records
         finally:
             await plugin_gen.aclose()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         logger.error("Unhandled exception in repository '%s', skipping.", repo.rdi)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
+        failed_records.append(FailedRecord(message=f"{type(exc).__name__}: {exc}", url=repo.source_url))
 
     if harvest_started:
         if harvested_datasets is None:
@@ -199,13 +314,26 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         expected_datasets=expected_datasets,
         harvested_datasets=harvested_datasets,
         failed_datasets=failed_datasets,
+        skipped_datasets=skipped_datasets,
+        failed_records=tuple(failed_records),
     )
+
+
+async def _heartbeat_loop(path: Path, interval: int) -> None:
+    """Touch *path* every *interval* seconds to signal liveness."""
+    while True:
+        try:
+            path.touch()
+        except OSError as e:
+            logger.error("Failed to touch heartbeat file %s: %s", path, e)
+        await asyncio.sleep(interval)
 
 
 async def run_orchestrator(config: Config) -> HarvestReport:
     """Execute the core harvester loop across all configured repositories."""
     tracer = trace.get_tracer(__name__)
     start_time = datetime.now(UTC)
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(Path(config.heartbeat_path), config.heartbeat_interval))
     repository_reports: list[RepositoryReport] = []
 
     async with ApiClient(config.api_client) as client:
@@ -238,11 +366,13 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                                 expected_datasets=None,
                                 harvested_datasets=0,
                                 failed_datasets=None,
+                                skipped_datasets=0,
                             )
                         )
                     else:
-                        repository_reports.append(cast(RepositoryReport, result))
+                        repository_reports.append(result)
 
+    heartbeat_task.cancel()
     end_time = datetime.now(UTC)
     return HarvestReport(start_time=start_time, end_time=end_time, repository_reports=repository_reports)
 

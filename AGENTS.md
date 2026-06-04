@@ -88,6 +88,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
 - **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
 - **[`spec/nice-http-client/`](spec/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
+- **[`spec/skipped-datasets/`](spec/skipped-datasets/)** — `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and `fairagro:skippedDatasets` in the JSON-LD harvest report.
 
 **Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
 
@@ -95,11 +96,13 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
 - **[`middleware/harvester/spec/otlp-observability/`](middleware/harvester/spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
 - **[`middleware/harvester/spec/harvest-report/`](middleware/harvester/spec/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
+- **[`middleware/harvester/spec/liveness-probe/`](middleware/harvester/spec/liveness-probe/)** — Kubernetes liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary; `heartbeat_path` and `heartbeat_interval` config fields.
 
 **Component-level** (`middleware/inspire/spec/`) — inspire internals:
 
-- **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic.
+- **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for identifier recovery on broken records.
 - **[`middleware/inspire/spec/csw-retry/`](middleware/inspire/spec/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
+- **[`middleware/inspire/spec/csw-threadpool/`](middleware/inspire/spec/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 
 **Component-level** (`middleware/schema_org/spec/`) — schema_org plugin internals:
