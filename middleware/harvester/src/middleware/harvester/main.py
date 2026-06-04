@@ -356,7 +356,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                             "Repository task exception for %s (%s).",
                             repo.rdi,
                             repo.plugin_type,
-                            exc_info=(type(result), result, result.__traceback__),
+                            exc_info=result,
                         )
                         repository_reports.append(
                             RepositoryReport(
