@@ -1,5 +1,3 @@
-// Dev Container for VS Code (Docker-in-Docker)
-// For format details, see https://aka.ms/devcontainer.json
 {
 	"name": "Debian (VS Code - DinD)",
 	"build": {
@@ -8,9 +6,7 @@
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:3": {
-			"moby": true,
-			"installDockerBuildx": true,
-			"installDockerComposeSwitch": true,
+			"moby": false,
 			"disableIp6tables": true,
 			"version": "28.5.1"
 		}
@@ -46,10 +42,10 @@
 		}
 	},
 	"postCreateCommand": {
-		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc"
+		"install dependencies": "uv sync --dev --all-packages"
 	},
 	"postStartCommand": {
-		"install ggshield": "sudo /usr/local/py-utils/bin/pipx install --global ggshield"
+		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc",
 	},
 	"remoteUser": "vscode"
 }

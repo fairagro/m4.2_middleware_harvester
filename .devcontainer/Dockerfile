@@ -5,7 +5,6 @@
 
 FROM mcr.microsoft.com/devcontainers/base:2.1.9-trixie
 
-ARG DOCKER_VERSION=29.5.3
 ARG KUBECTL_VERSION=v1.36.1
 ARG HELM_VERSION=v4.2.0
 ARG UV_VERSION=0.11.19
@@ -35,20 +34,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Docker CLI + GitHub CLI (APT repos) ─────────────────────────────────────
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg \
-        | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-        https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
-        > /etc/apt/sources.list.d/docker.list && \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+# ── GitHub CLI (APT repos) ─────────────────────────────────────
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
         > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update && apt-get install -y --no-install-recommends \
-        docker-ce-cli \
-        docker-buildx-plugin \
-        docker-compose-plugin \
         gh \
     && rm -rf /var/lib/apt/lists/*
 
@@ -74,9 +65,6 @@ RUN curl -fsSL "https://github.com/kubernetes/minikube/releases/download/${MINIK
 RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
         | tar -xz --strip-components=1 -C /usr/local/bin uv-x86_64-unknown-linux-gnu/uv uv-x86_64-unknown-linux-gnu/uvx && \
     echo 'eval "$(uv generate-shell-completion bash)"' >> /etc/bash.bashrc
-
-# ── Python (via uv) ──────────────────────────────────────────────────────────
-RUN uv python install 3.12
 
 # ── yq ────────────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
@@ -113,13 +101,6 @@ RUN curl -fsSL "https://github.com/GoogleContainerTools/container-structure-test
     chmod +x /usr/local/bin/container-structure-test && \
     ln -sf /usr/local/bin/container-structure-test /usr/local/bin/cst
 
-# ── pre-commit ────────────────────────────────────────────────────────────────
-RUN uv tool install pre-commit==${PRECOMMIT_VERSION} && \
-    ln -sf "$(uv tool dir)/pre-commit/bin/pre-commit" /usr/local/bin/pre-commit
-
-# ── ggshield (installed at runtime via postStartCommand) ─────────────────────
-# Not included here — installed by postStartCommand so it stays up to date.
-
 # ── Shell history persistence helper (stuartleeks pattern) ───────────────────
 RUN echo 'export HISTFILE=/commandhistory/.bash_history' >> /etc/bash.bashrc && \
     echo 'PROMPT_COMMAND="history -a; $PROMPT_COMMAND"' >> /etc/bash.bashrc && \
@@ -127,4 +108,8 @@ RUN echo 'export HISTFILE=/commandhistory/.bash_history' >> /etc/bash.bashrc && 
     touch /commandhistory/.bash_history && \
     chown -R vscode /commandhistory
 
+# ── Switch to non-root user for uv tool installations
 USER vscode
+
+# ── Python (via uv) ──────────────────────────────────────────────────────────
+RUN uv python install 3.12

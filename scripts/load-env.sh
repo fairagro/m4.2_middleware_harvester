@@ -58,25 +58,7 @@ if command -v pre-commit &> /dev/null; then
     # Check if ggshield is authenticated
     if command -v ggshield &> /dev/null; then
         if [ ! -f ~/.config/ggshield/auth_config.yaml ] || ! grep -q "token:" ~/.config/ggshield/auth_config.yaml 2>/dev/null; then
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "⚠️  Concerning ggshield Authentication"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "We're about to request a ggshield (aka GitGuardian) authentication token,"
-            echo "that is used to prevent committing secrets (API keys, passwords, tokens, "
-            echo "etc.) into the repository by mistake."
-            echo ""
-            echo "ℹ️  The token is stored locally in ~/.config/ggshield/auth_config.yaml"
-            echo "and is NOT checked into the repository."
-            echo ""
-            echo "💡 GitGuardian allows to create up to 5 personal API tokens per user."
-            echo "If you already have 5 tokens, you need to revoke one of them first, using"
-            echo "the GitGuardian web interface (https://dashboard.gitguardian.com)"
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            ggshield auth login || echo "⚠️ ggshield authentication failed or was cancelled."
+            ggshield auth login --method token || echo "⚠️ ggshield authentication failed or was cancelled."
         fi
     fi
 else
