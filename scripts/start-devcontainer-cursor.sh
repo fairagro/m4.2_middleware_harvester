@@ -60,9 +60,9 @@ echo "==> Starting DevPod workspace (devcontainer: ${devcontainer_path})"
 devpod up "${repo_root}" \
     --devcontainer-path "${devcontainer_path}" \
     --ide cursor \
-    --gpg-agent-forwarding \
     "${extra_args[@]}"
 
 echo ""
 echo "==> Done. Cursor should open the workspace in the Dev Container."
 echo "    Environment setup (hooks, uv sync, secrets) runs via scripts/load-env.sh inside the container."
+echo "    Host ~/.gitconfig and gpg-agent are bind-mounted (see .devcontainer/cursor/devcontainer.json)."
