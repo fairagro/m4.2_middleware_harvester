@@ -1,0 +1,27 @@
+// Dev Container for Cursor IDE via DevPod (Docker-in-Docker)
+// Use scripts/start-devcontainer-cursor.sh to launch.
+// For format details, see https://aka.ms/devcontainer.json
+{
+	"name": "Debian (Cursor - DinD)",
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"context": ".."
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:3": {
+			"moby": true,
+			"installDockerBuildx": true,
+			"installDockerComposeSwitch": true,
+			"disableIp6tables": true,
+			"version": "28.5.1"
+		}
+	},
+	"containerEnv": {
+		"UV_LINK_MODE": "copy"
+	},
+	"postCreateCommand": {
+		"setup bashrc": "grep -qF 'source ${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source ${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc",
+		"install ggshield": "sudo /usr/local/py-utils/bin/pipx install --global ggshield || true"
+	},
+	"remoteUser": "vscode"
+}
