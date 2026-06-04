@@ -9,6 +9,12 @@ fi
 
 # figure out some paths
 mydir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+repo_root="${mydir}/.."
+
+# pre-commit and other dev tools live in the uv venv (not on PATH by default)
+if [ -d "${repo_root}/.venv/bin" ]; then
+    export PATH="${repo_root}/.venv/bin:${PATH}"
+fi
 
 # import all public keyfiles into gpg keyring so sops can find them
 public_key_path="${mydir}/../public_gpg_keys"
@@ -54,15 +60,23 @@ if command -v pre-commit &> /dev/null; then
     else
         echo "⚠️ Failed to install some hooks"
     fi
-
-    # Check if ggshield is authenticated
-    if command -v ggshield &> /dev/null; then
-        if [ ! -f ~/.config/ggshield/auth_config.yaml ] || ! grep -q "token:" ~/.config/ggshield/auth_config.yaml 2>/dev/null; then
-            ggshield auth login --method token || echo "⚠️ ggshield authentication failed or was cancelled."
-        fi
-    fi
 else
     echo "⚠️ pre-commit not available - skipping hook installation"
+    echo "   Run: uv sync --dev --all-packages"
+fi
+
+# ggshield (dev dependency in .venv; same PATH as pre-commit above)
+if command -v ggshield &> /dev/null; then
+    if [ -n "${GITGUARDIAN_API_KEY:-}" ]; then
+        echo "✅ ggshield: using GITGUARDIAN_API_KEY from environment"
+    elif [ -f ~/.config/ggshield/auth_config.yaml ] && grep -q "token:" ~/.config/ggshield/auth_config.yaml 2>/dev/null; then
+        echo "✅ ggshield: authenticated (~/.config/ggshield/auth_config.yaml)"
+    else
+        echo "🔐 ggshield not authenticated — run: ggshield auth login --method token"
+        echo "   Or set GITGUARDIAN_API_KEY (non-interactive / DevPod-friendly)"
+    fi
+else
+    echo "⚠️ ggshield not available - run: uv sync --dev --all-packages"
 fi
 
 ENCRYPTED_FILE="${mydir}/../.env.integration.enc"

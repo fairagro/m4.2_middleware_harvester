@@ -48,6 +48,7 @@
 		}
 	},
 	"postCreateCommand": {
+		"install dependencies": "uv sync --dev --all-packages",
 		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc",
 		"setup host gpg-agent": "bash -c 'mkdir -p ~/.gnupg && chmod 700 ~/.gnupg && rm -f ~/.gnupg/gpg-agent.conf && (grep -qF use-agent ~/.gnupg/gpg.conf 2>/dev/null || echo use-agent >> ~/.gnupg/gpg.conf) && if [ -S /host-gpg/S.gpg-agent.extra ]; then ln -sf /host-gpg/S.gpg-agent.extra ~/.gnupg/S.gpg-agent; else echo \"WARN: host gpg-agent socket missing — run gpg on host, then devpod up --recreate\"; fi && if [ -f /host-gpg/trustdb.gpg ]; then ln -sf /host-gpg/trustdb.gpg ~/.gnupg/trustdb.gpg; fi'"
 	},
