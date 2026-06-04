@@ -345,7 +345,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
             if tasks:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for repo, result in zip(config.repositories, results, strict=True):
-                    if isinstance(result, Exception):
+                    if isinstance(result, BaseException):
                         logger.error(
                             "Repository task failed for %s (%s): %s",
                             repo.rdi,
