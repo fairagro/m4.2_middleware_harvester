@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim \
     git-lfs \
     jq \
+    bash-completion \
     && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
@@ -65,8 +66,7 @@ RUN curl -fsSL "https://github.com/kubernetes/minikube/releases/download/${MINIK
 
 # ── uv (Python package manager) ──────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
-        | tar -xz --strip-components=1 -C /usr/local/bin uv-x86_64-unknown-linux-gnu/uv uv-x86_64-unknown-linux-gnu/uvx && \
-    echo 'eval "$(uv generate-shell-completion bash)"' >> /etc/bash.bashrc
+        | tar -xz --strip-components=1 -C /usr/local/bin uv-x86_64-unknown-linux-gnu/uv uv-x86_64-unknown-linux-gnu/uvx
 
 # ── yq ────────────────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
@@ -94,14 +94,27 @@ RUN curl -fsSL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSI
 
 # ── Starship prompt ───────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/starship/starship/releases/download/${STARSHIP_VERSION}/starship-x86_64-unknown-linux-gnu.tar.gz" \
-        | tar -xz -C /usr/local/bin && \
-    echo 'eval "$(starship init bash)"' >> /etc/bash.bashrc
+        | tar -xz -C /usr/local/bin
 
 # ── container-structure-test ──────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/GoogleContainerTools/container-structure-test/releases/download/${CST_VERSION}/container-structure-test-linux-amd64" \
         -o /usr/local/bin/container-structure-test && \
     chmod +x /usr/local/bin/container-structure-test && \
     ln -sf /usr/local/bin/container-structure-test /usr/local/bin/cst
+
+# ── Bash completions (build-time, lazy-loaded via bash-completion) ───────────
+RUN mkdir -p /usr/share/bash-completion/completions && \
+    gh completion -s bash > /usr/share/bash-completion/completions/gh && \
+    kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
+    helm completion bash > /usr/share/bash-completion/completions/helm && \
+    minikube completion bash > /usr/share/bash-completion/completions/minikube && \
+    uv generate-shell-completion bash > /usr/share/bash-completion/completions/uv && \
+    ln -sf /usr/share/bash-completion/completions/uv /usr/share/bash-completion/completions/uvx && \
+    yq completion bash > /usr/share/bash-completion/completions/yq && \
+    starship completions bash > /usr/share/bash-completion/completions/starship
+
+# ── Shell init (must run each session; not installable as static completions) ─
+RUN echo 'eval "$(starship init bash)"' >> /etc/bash.bashrc
 
 # ── Shell history persistence helper (stuartleeks pattern) ───────────────────
 RUN echo 'export HISTFILE=/commandhistory/.bash_history' >> /etc/bash.bashrc && \
