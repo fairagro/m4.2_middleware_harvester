@@ -5,6 +5,8 @@
 
 FROM mcr.microsoft.com/devcontainers/base:2.1.9-trixie
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ARG KUBECTL_VERSION=v1.36.1
 ARG HELM_VERSION=v4.2.0
 ARG UV_VERSION=0.11.19
