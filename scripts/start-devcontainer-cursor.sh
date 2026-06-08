@@ -10,6 +10,10 @@
 #   ./scripts/start-devcontainer-cursor.sh
 #   ./scripts/start-devcontainer-cursor.sh --recreate
 #   ./scripts/start-devcontainer-cursor.sh --reset
+#
+# Platform notes:
+#   Host GPG agent bind-mount (SOPS in container) requires Linux and XDG_RUNTIME_DIR.
+#   On macOS/Windows, see .devcontainer/cursor/README.md (decrypt .env on the host).
 
 set -euo pipefail
 
@@ -35,6 +39,10 @@ Usage:
   ./scripts/start-devcontainer-cursor.sh
   ./scripts/start-devcontainer-cursor.sh --recreate
   ./scripts/start-devcontainer-cursor.sh --reset
+
+Platform notes:
+  Host GPG agent bind-mount (SOPS in container) requires Linux and XDG_RUNTIME_DIR.
+  On macOS/Windows, see .devcontainer/cursor/README.md (decrypt .env on the host).
 EOF_HELP
             exit 0
             ;;
@@ -64,4 +72,5 @@ devpod up "${repo_root}" \
 echo ""
 echo "==> Done. Cursor should open the workspace in the Dev Container."
 echo "    Environment setup (hooks, uv sync, secrets) runs via scripts/load-env.sh inside the container."
-echo "    Host ~/.gitconfig and gpg-agent are bind-mounted (see .devcontainer/cursor/devcontainer.json)."
+echo "    Host ~/.gitconfig is bind-mounted; GPG agent forwarding is Linux-only."
+echo "    See .devcontainer/cursor/README.md for mounts and macOS/Windows workarounds."
