@@ -1,0 +1,34 @@
+@startuml Harvester_Workflow
+title Middleware Harvester Workflow
+
+start
+:Load config.yaml;
+
+partition "Per repository (concurrent)" {
+  switch (repository type?)
+  case (inspire)
+    :Fetch records from CSW endpoint\n(ISO 19139 XML, paginated);
+    partition "Per dataset (concurrent)" {
+      :Map to ARC;
+      :Serialize to RO-Crate JSON-LD;
+    }
+  case (schema_org)
+    :Discover dataset URLs\n(XML Sitemap / MyCoRe Solr request);
+    partition "Per dataset (concurrent)" {
+      :Fetch dataset landing page;
+      :Parse embedded schema.org metadata to RDF graph;
+      :Map to ARC;
+      :Serialize to RO-Crate JSON-LD;
+    }
+  endswitch
+
+  partition "Per dataset (concurrent, pipelined)" {
+    :Upload RO-Crate JSON-LD to Middleware API;
+  }
+}
+
+:Output Report\n(JSON-LD to stdout);
+
+stop
+
+@enduml

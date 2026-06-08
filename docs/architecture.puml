@@ -35,6 +35,7 @@ package "Middleware Harvester" as harvesterPkg {
     node "Orchestrator" as orchestrator <<internal>>
     node "Config" as config <<internal>>
     node "ApiClient\n(shared lib)" as apiClient <<internal-dashed>>
+    node "NiceHttpClient\n(shared lib)" as niceHttp <<internal-dashed>>
 
     rectangle "Inspire Plugin" as inspirePlugin <<dashedRect>> {
         node "CSW Client\n(OWSLib)" as cswClient <<internal>>
@@ -56,9 +57,11 @@ config -down-> orchestrator
 orchestrator --> inspirePlugin : instantiate
 orchestrator --> schemaOrgPlugin : instantiate
 cswClient -down-> csw : GetRecords\nISO 19139
-sitemapDiscovery -down-> sitemap
-sitemapDiscovery -down-> mycoreSolr
-datasetFetcher -left-> schemaOrgDataset : HTTP fetch
+sitemapDiscovery -down-> niceHttp
+datasetFetcher -down-> niceHttp
+niceHttp -down-> sitemap : HTTP GET
+niceHttp -down-> mycoreSolr : HTTP GET
+niceHttp -left-> schemaOrgDataset : HTTP GET\n(robots.txt, retry, rate limit)
 cswClient -right-> inspireMapper
 sitemapDiscovery -right-> datasetFetcher
 datasetFetcher -right-> schemaMapper
