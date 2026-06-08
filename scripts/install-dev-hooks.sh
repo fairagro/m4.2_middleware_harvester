@@ -1,26 +1,35 @@
 #!/usr/bin/env bash
-# One-time dev setup: pre-commit and Git LFS hooks. Run from devcontainer postCreate
-# or manually after clone (local or container).
+# Dev setup: repair .venv if needed, install pre-commit + Git LFS hooks.
+# Used from devcontainer postCreate and load-env.sh when the venv/hooks are stale.
 
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
+venv_python="${repo_root}/.venv/bin/python"
 
-if [ -d "${repo_root}/.venv/bin" ]; then
-    export PATH="${repo_root}/.venv/bin:${PATH}"
+_venv_usable() {
+    [ -x "$venv_python" ] && "$venv_python" -c 'pass' 2>/dev/null
+}
+
+if ! _venv_usable; then
+    echo "🔧 Repairing .venv (Python interpreter missing or host paths stale)..."
+    bash "${script_dir}/uv-sync-dev.sh"
 fi
 
-if ! command -v pre-commit &>/dev/null; then
-    echo "⚠️ pre-commit not available — run: uv sync --dev --all-packages" >&2
+if ! _venv_usable; then
+    echo "⚠️ pre-commit unavailable — run: bash scripts/uv-sync-dev.sh" >&2
     exit 1
 fi
 
-if [ ! -f "${repo_root}/.git/hooks/pre-commit" ]; then
+export PATH="${repo_root}/.venv/bin:${PATH}"
+
+hook="${repo_root}/.git/hooks/pre-commit"
+if [ ! -f "$hook" ] || ! grep -Fq "INSTALL_PYTHON=${venv_python}" "$hook" 2>/dev/null; then
     echo "🔧 Installing pre-commit hooks..."
-    (cd "${repo_root}" && pre-commit install --hook-type pre-commit)
+    (cd "${repo_root}" && uv run pre-commit install --hook-type pre-commit)
 else
-    echo "✅ pre-commit hook already installed"
+    echo "✅ pre-commit hook up to date"
 fi
 
 echo "🔧 Setting up Git LFS hooks..."

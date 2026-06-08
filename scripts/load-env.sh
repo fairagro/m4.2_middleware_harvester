@@ -19,6 +19,18 @@ if [ -d "${repo_root}/.venv/bin" ]; then
     esac
 fi
 
+# Repair stale .venv / git hooks after host↔DevPod switches (broken Python shebangs)
+if [ -d "${repo_root}/.git" ]; then
+    venv_python="${repo_root}/.venv/bin/python"
+    hook="${repo_root}/.git/hooks/pre-commit"
+    if [ ! -x "$venv_python" ] || ! "$venv_python" -c 'pass' 2>/dev/null \
+        || [ ! -f "$hook" ] \
+        || ! grep -Fq "INSTALL_PYTHON=${venv_python}" "$hook" 2>/dev/null; then
+        bash "${mydir}/install-dev-hooks.sh" \
+            || echo "⚠️ Dev hook setup failed — run: bash scripts/install-dev-hooks.sh"
+    fi
+fi
+
 # Setup aliases (completions: static files in image + bash-completion lazy-load)
 alias k=kubectl
 alias d=docker

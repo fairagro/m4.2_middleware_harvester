@@ -12,11 +12,12 @@ command -v git-lfs >/dev/null 2>&1 || {
 git lfs pre-push "$@"
 
 # Pre-commit hook - find the correct Python and run pre-commit
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 INSTALL_PYTHON=""
-if [ -f ".venv/bin/python3" ]; then
-    INSTALL_PYTHON="$(pwd)/.venv/bin/python3"
-elif [ -f ".venv/bin/python" ]; then
-    INSTALL_PYTHON="$(pwd)/.venv/bin/python"
+if [ -x "${REPO_ROOT}/.venv/bin/python" ]; then
+    INSTALL_PYTHON="${REPO_ROOT}/.venv/bin/python"
+elif [ -x "${REPO_ROOT}/.venv/bin/python3" ]; then
+    INSTALL_PYTHON="${REPO_ROOT}/.venv/bin/python3"
 fi
 
 ARGS=(hook-impl --config=.pre-commit-config.yaml --hook-type=pre-push)
