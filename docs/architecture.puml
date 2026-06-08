@@ -1,0 +1,71 @@
+@startuml HarvesterArchitecture
+skinparam packageStyle rectangle
+skinparam rectangle<<dashedRect>> {
+    BorderStyle dashed
+}
+skinparam node<<internal>> {
+    BackgroundColor LightSkyBlue
+    BorderColor DarkBlue
+    FontColor Black
+}
+skinparam node<<internal-dashed>> {
+    BackgroundColor LightSkyBlue
+    BorderColor DarkBlue
+    FontColor Black
+    BorderStyle dashed
+}
+skinparam node<<external>> {
+    BackgroundColor White
+    BorderColor Gray
+    FontColor Black
+}
+hide stereotype
+
+package "Geo Catalogues" as geoCatalogues {
+    node "CSW 2.0.2\nendpoint" as csw <<external>>
+}
+
+package "Schema.org Portals" as schemaPortals {
+    node "XML Sitemap" as sitemap <<external>>
+    node "MyCoRe Solr\nendpoint" as mycoreSolr <<external>>
+    node "HTML-embedded\nschema.org dataset" as schemaOrgDataset <<external>>
+}
+
+package "Middleware Harvester" as harvesterPkg {
+    node "Orchestrator" as orchestrator <<internal>>
+    node "Config" as config <<internal>>
+    node "ApiClient\n(shared lib)" as apiClient <<internal-dashed>>
+
+    rectangle "Inspire Plugin" as inspirePlugin <<dashedRect>> {
+        node "CSW Client\n(OWSLib)" as cswClient <<internal>>
+        node "INSPIRE→ARC\nMapper (arctrl)" as inspireMapper <<internal>>
+    }
+
+    rectangle "Schema.org Plugin" as schemaOrgPlugin <<dashedRect>> {
+        node "Sitemap\nDiscovery" as sitemapDiscovery <<internal>>
+        node "Dataset\nFetcher" as datasetFetcher <<internal>>
+        node "Schema.org→ARC\nMapper (arctrl)" as schemaMapper <<internal>>
+    }
+
+    node "Harvest Report" as report <<internal>>
+}
+
+node "FAIRagro\nMiddleware API" as api <<external>>
+
+config -down-> orchestrator
+orchestrator --> inspirePlugin : instantiate
+orchestrator --> schemaOrgPlugin : instantiate
+cswClient -down-> csw : GetRecords\nISO 19139
+sitemapDiscovery -down-> sitemap
+sitemapDiscovery -down-> mycoreSolr
+datasetFetcher -left-> schemaOrgDataset : HTTP fetch
+cswClient -right-> inspireMapper
+sitemapDiscovery -right-> datasetFetcher
+datasetFetcher -right-> schemaMapper
+inspireMapper -up-> orchestrator : RO-Crate JSON-LD
+schemaMapper -up-> orchestrator : RO-Crate JSON-LD
+orchestrator -right-> apiClient
+apiClient -right-> api : RO-Crate\nJSON-LD\n(mTLS)
+orchestrator -down-> report
+
+@enduml
