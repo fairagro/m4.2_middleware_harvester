@@ -14,6 +14,9 @@
 	"containerEnv": {
 		"UV_LINK_MODE": "copy"
 	},
+	"mounts": [
+		"source=middleware-harvester-bashhistory,target=/commandhistory,type=volume"
+	],
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -42,6 +45,7 @@
 		}
 	},
 	"postCreateCommand": {
+		"fix commandhistory permissions": "sudo chown -R vscode:vscode /commandhistory",
 		"install dependencies": "uv sync --dev --all-packages"
 	},
 	"postStartCommand": {
