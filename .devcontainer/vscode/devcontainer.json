@@ -46,9 +46,9 @@
 	},
 	"postCreateCommand": {
 		"fix commandhistory permissions": "sudo chown -R vscode:vscode /commandhistory",
-		"install dependencies": "uv sync --dev --all-packages",
+		"install dependencies": "bash ${containerWorkspaceFolder}/scripts/uv-sync-dev.sh",
 		"install dev hooks": "bash ${containerWorkspaceFolder}/scripts/install-dev-hooks.sh",
-		"import public gpg keys": "bash ${containerWorkspaceFolder}/scripts/import-public-gpg-keys.sh"
+		"setup container gpg": "bash ${containerWorkspaceFolder}/scripts/setup-container-gpg.sh"
 	},
 	"postStartCommand": {
 		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc"

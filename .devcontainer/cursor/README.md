@@ -6,7 +6,7 @@ Used by `scripts/start-devcontainer-cursor.sh` with DevPod + Cursor.
 
 | Mount | Source | Platforms |
 | ----- | ------ | --------- |
-| Git config | `${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig` | Linux, macOS, Windows |
+| Git config | `${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig` (read-only) | Linux, macOS, Windows |
 | GPG agent socket | `${localEnv:XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.extra` | **Linux only** |
 | GPG trustdb | `${localEnv:HOME}/.gnupg/trustdb.gpg` | Linux, macOS, Windows (optional file) |
 
@@ -26,8 +26,13 @@ Before `devpod up --recreate`, ensure the host agent is running:
 gpg -K
 ```
 
-`postCreateCommand` symlinks the mounted socket to `~/.gnupg/S.gpg-agent` so `gpg` and
-`sops` inside the container use the host agent.
+Host `~/.gitconfig` is mounted read-only. Git LFS filters are configured in the
+repository (`.git/config`) via `git lfs install --local` in `setup-git-lfs.sh`.
+
+`scripts/setup-container-gpg.sh` (postCreate) symlinks the host agent socket to
+`~/.gnupg/S.gpg-agent`, copies the host `trustdb.gpg` into a **writable** local file
+(readonly bind mounts cannot be symlink targets for imports), and imports
+`public_gpg_keys/*.asc`.
 
 ## One-time setup (postCreateCommand)
 
@@ -35,7 +40,7 @@ These run once per devcontainer create (not on every shell):
 
 - `uv sync --dev --all-packages`
 - `scripts/install-dev-hooks.sh` (pre-commit + Git LFS hooks)
-- `scripts/import-public-gpg-keys.sh`
+- `scripts/setup-container-gpg.sh` (host agent + trustdb + public keys)
 
 `scripts/load-env.sh` is sourced from `~/.bashrc` and only handles PATH, aliases, and
 environment variables (including SOPS decryption when needed).

@@ -13,5 +13,5 @@ if [ ${#keys[@]} -eq 0 ]; then
 fi
 
 for file in "${keys[@]}"; do
-    gpg --import "$file"
+    gpg --batch --import "$file"
 done
