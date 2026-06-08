@@ -19,22 +19,7 @@ if [ -d "${repo_root}/.venv/bin" ]; then
     esac
 fi
 
-# import all public keyfiles into gpg keyring so sops can find them
-public_key_path="${mydir}/../public_gpg_keys"
-for file in "$public_key_path"/*.asc; do
-    [ -e "$file" ] || continue
-    gpg --import "$file"
-done
-
-# Create Bash autocompletion for installed tools
-[ -f /etc/bash_completion ] && . /etc/bash_completion || true
-command -v kubectl &>/dev/null && . <(kubectl completion bash) || true
-command -v helm &>/dev/null && . <(helm completion bash) || true
-command -v docker &>/dev/null && . <(docker completion bash) || true
-command -v minikube &>/dev/null && . <(minikube completion bash) || true
-command -v sops &>/dev/null && . <(sops completion bash) || true
-
-# Setup aliases
+# Setup aliases (completions: static files in image + bash-completion lazy-load)
 alias k=kubectl
 alias d=docker
 alias kda="kubectl delete all,pdb,configmap,secret,pvc,ingress,serviceaccount,endpoints --all"
@@ -44,29 +29,6 @@ alias ksn="kubectl config set-context --current --namespace"
 # Set bash completion for aliases
 declare -F __start_kubectl &>/dev/null && complete -o default -F __start_kubectl k
 declare -F __start_docker &>/dev/null && complete -o default -F __start_docker d
-
-# Install pre-commit and Git LFS hooks if not already installed
-if command -v pre-commit &> /dev/null; then
-    install_status=0
-    # Install pre-commit hook
-    if [ ! -f "${mydir}/../.git/hooks/pre-commit" ]; then
-        echo "🔧 Installing pre-commit hooks..."
-        (cd "${mydir}/.." && pre-commit install --hook-type pre-commit) || install_status=$?
-    fi
-
-    # Install Git LFS hooks (this includes a combined pre-push hook)
-    echo "🔧 Setting up Git LFS hooks..."
-    bash "${mydir}/setup-git-lfs.sh" || install_status=$?
-
-    if [ $install_status -eq 0 ]; then
-        echo "✅ Pre-commit and pre-push hooks are installed."
-    else
-        echo "⚠️ Failed to install some hooks"
-    fi
-else
-    echo "⚠️ pre-commit not available - skipping hook installation"
-    echo "   Run: uv sync --dev --all-packages"
-fi
 
 # ggshield (dev dependency in .venv; same PATH as pre-commit above)
 if command -v ggshield &> /dev/null; then

@@ -71,6 +71,6 @@ devpod up "${repo_root}" \
 
 echo ""
 echo "==> Done. Cursor should open the workspace in the Dev Container."
-echo "    Environment setup (hooks, uv sync, secrets) runs via scripts/load-env.sh inside the container."
+echo "    One-time setup (uv sync, hooks) runs via postCreateCommand; load-env.sh loads env vars per shell."
 echo "    Host ~/.gitconfig is bind-mounted; GPG agent forwarding is Linux-only."
 echo "    See .devcontainer/cursor/README.md for mounts and macOS/Windows workarounds."

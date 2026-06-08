@@ -29,6 +29,24 @@ gpg -K
 `postCreateCommand` symlinks the mounted socket to `~/.gnupg/S.gpg-agent` so `gpg` and
 `sops` inside the container use the host agent.
 
+## One-time setup (postCreateCommand)
+
+These run once per devcontainer create (not on every shell):
+
+- `uv sync --dev --all-packages`
+- `scripts/install-dev-hooks.sh` (pre-commit + Git LFS hooks)
+- `scripts/import-public-gpg-keys.sh`
+
+`scripts/load-env.sh` is sourced from `~/.bashrc` and only handles PATH, aliases, and
+environment variables (including SOPS decryption when needed).
+
+For a **local clone outside devcontainers**, run once after `uv sync`:
+
+```bash
+./scripts/install-dev-hooks.sh
+./scripts/import-public-gpg-keys.sh
+```
+
 ### macOS / Windows
 
 This devcontainer variant does not support host GPG agent forwarding. Options:
