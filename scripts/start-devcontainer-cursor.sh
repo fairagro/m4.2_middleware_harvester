@@ -52,8 +52,7 @@ if ! command -v devpod &>/dev/null; then
 fi
 
 if ! docker info &>/dev/null; then
-    echo "ERROR: Docker is not running or not reachable." >&2
-    exit 1
+    echo "WARNING: Local Docker daemon is not running or not reachable. If you are using a remote DevPod provider, you can ignore this." >&2
 fi
 
 echo "==> Starting DevPod workspace (devcontainer: ${devcontainer_path})"

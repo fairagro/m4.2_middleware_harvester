@@ -13,7 +13,10 @@ repo_root="${mydir}/.."
 
 # pre-commit and other dev tools live in the uv venv (not on PATH by default)
 if [ -d "${repo_root}/.venv/bin" ]; then
-    export PATH="${repo_root}/.venv/bin:${PATH}"
+    case ":${PATH}:" in
+        *:"${repo_root}/.venv/bin":*) ;;
+        *) export PATH="${repo_root}/.venv/bin:${PATH}" ;;
+    esac
 fi
 
 # import all public keyfiles into gpg keyring so sops can find them
