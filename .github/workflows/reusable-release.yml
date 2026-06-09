@@ -124,7 +124,7 @@ jobs:
 
   create-release-tag:
     name: CreateReleaseTag/Release
-    if: inputs.create_github_release == true
+    if: inputs.create_github_release == true || inputs.release_type == 'feature'
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -11,7 +11,8 @@ services:
     volumes:
       - ./config.yaml:/etc/harvester/config.yaml:ro
       - ./client.crt:/etc/harvester/client.crt:ro
-    command: >
-      sh -c "printf '%s' \"$$CLIENT_KEY_DATA\" > /run/secrets/client.key &&
-            /middleware/harvester/harvester -c /etc/harvester/config.yaml"
+    entrypoint: ["/bin/sh"]
+    command:
+      - -c
+      - "printf '%s' \"$$CLIENT_KEY_DATA\" > /run/secrets/client.key && /middleware/harvester/harvester -c /etc/harvester/config.yaml"
     restart: no

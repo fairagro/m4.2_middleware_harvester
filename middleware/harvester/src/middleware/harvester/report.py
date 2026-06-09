@@ -52,7 +52,7 @@ class HarvestUploadResult:
 
 
 @dataclass(frozen=True)
-class RepositoryReport:
+class RepositoryReport:  # pylint: disable=too-many-instance-attributes
     """Execution statistics for a single harvested repository."""
 
     rdi: str
