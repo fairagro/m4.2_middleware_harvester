@@ -24,7 +24,9 @@ fi
 
 export PATH="${repo_root}/.venv/bin:${PATH}"
 
-hook="${repo_root}/.git/hooks/pre-commit"
+git_hooks_dir="$(git -C "${repo_root}" rev-parse --git-path hooks 2>/dev/null || echo ".git/hooks")"
+[[ "$git_hooks_dir" = /* ]] || git_hooks_dir="${repo_root}/${git_hooks_dir}"
+hook="${git_hooks_dir}/pre-commit"
 if [ ! -f "$hook" ] || ! grep -Fq "INSTALL_PYTHON=${venv_python}" "$hook" 2>/dev/null; then
     echo "🔧 Installing pre-commit hooks..."
     (cd "${repo_root}" && uv run pre-commit install --hook-type pre-commit)
