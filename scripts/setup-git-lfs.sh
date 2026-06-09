@@ -7,7 +7,9 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS_SOURCE_DIR="$REPO_ROOT/scripts/git-hooks"
-HOOKS_TARGET_DIR="$REPO_ROOT/.git/hooks"
+git_hooks_dir="$(git -C "${REPO_ROOT}" rev-parse --git-path hooks 2>/dev/null || echo ".git/hooks")"
+[[ "$git_hooks_dir" = /* ]] || git_hooks_dir="${REPO_ROOT}/${git_hooks_dir}"
+HOOKS_TARGET_DIR="$git_hooks_dir"
 
 echo "🔧 Setting up Git LFS hooks for repository..."
 
@@ -31,7 +33,7 @@ fi
 echo "✅ Git LFS is available: $(git lfs version)"
 
 # Check if we're in a Git repository
-if [ ! -d "$REPO_ROOT/.git" ]; then
+if [ ! -e "$REPO_ROOT/.git" ]; then
     echo "❌ Not in a Git repository root"
     exit 1
 fi
