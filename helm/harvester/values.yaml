@@ -39,10 +39,10 @@ startingDeadlineSeconds: 3600
 # Container image
 # =============================================================================
 image:
-  # -- OCI registry. Change to docker.io for DockerHub.
-  registry: ghcr.io
+  # -- OCI registry. Use ghcr.io for GitHub Container Registry.
+  registry: docker.io
   # -- Image repository path inside the registry.
-  repository: fairagro/m4.2_middleware_harvester/harvester
+  repository: zalf/fairagro-advanced-middleware-harvester
   # -- Image tag. Overrides Chart.AppVersion when set.
   # -- Leave empty to use the appVersion baked into the chart at release time.
   # -- In production always pin to an explicit tag — never use "latest".
@@ -73,6 +73,15 @@ serviceAccount:
 # -- Pod-level security context.
 podSecurityContext:
   runAsNonRoot: true
+    # -- Must match the numeric UID/GID set in the Dockerfile (adduser -u 65532).
+  # -- Required for Kubernetes to verify runAsNonRoot when image USER is a named user.
+  # -- fsGroup causes mounted secret files to be owned by root:65532 and makes
+  # -- group-readable modes usable for the non-root process.
+  # -- 65532 follows the distroless/Chainguard "nonroot" convention and avoids
+  # -- colliding with typical desktop-user accounts (commonly 1000).
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
   seccompProfile:
     type: RuntimeDefault
 
@@ -212,12 +221,12 @@ config:
     # -- Retries for transient HTTP errors (5xx, connection resets).
     max_retries: 3
     # -- Path to the client certificate PEM file (for mutual TLS).
-    # -- Set to the tls.mountPath location when tls.enabled is true.
-    # client_cert_path: "/run/secrets/tls/client.crt"
+    # -- When tls.enabled is true, this must point to the mounted secret file.
+    # -- Example: client_cert_path: "/run/secrets/tls/client.crt"
     # -- Path to the client private key PEM file (for mutual TLS).
-    # client_key_path: "/run/secrets/tls/client.key"
+    # -- Example: client_key_path: "/run/secrets/tls/client.key"
     # -- Path to a custom CA bundle PEM file (for private/internal CAs).
-    # ca_cert_path: "/run/secrets/tls/ca.crt"
+    # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
   # -- plugin type (inspire or schema_org).
