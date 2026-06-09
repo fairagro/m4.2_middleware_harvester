@@ -36,6 +36,14 @@ alias ksn="kubectl config set-context --current --namespace"
 declare -F __start_kubectl &>/dev/null && complete -o default -F __start_kubectl k
 declare -F __start_docker &>/dev/null && complete -o default -F __start_docker d
 
+if command -v docker &>/dev/null; then
+    repo_root="${mydir}/.."
+    # shellcheck source=fix-docker-credentials.sh
+    source "${mydir}/fix-docker-credentials.sh"
+    setup_devcontainer_docker_config "${repo_root}"
+fi
+
+
 # Install pre-commit and Git LFS hooks if not already installed
 if command -v pre-commit &> /dev/null; then
     install_status=0
