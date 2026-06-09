@@ -24,7 +24,8 @@ dev = [
   "ruff>=0.15.16",
   "pre-commit>=4.0.0",
   "respx>=0.23.1",
-  "ggshield>=1.51.0"
+  "ggshield>=1.51.0",
+  "cryptography>=46.0.6",
 ]
 
 [tool.uv.sources]
@@ -37,6 +38,12 @@ members = [
     "middleware/inspire",
     "middleware/harvester",
     "middleware/schema_org",
+]
+
+# ggshield 1.51.0 pins cryptography~=43.0.1; override until upstream bumps (GitGuardian/ggshield#1194).
+[tool.uv]
+override-dependencies = [
+  "cryptography>=46.0.6",
 ]
 
 [tool.ruff]
