@@ -10,13 +10,20 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "$script_dir"
+
+# shellcheck source=../scripts/fix-docker-credentials.sh
+source "${repo_root}/scripts/fix-docker-credentials.sh"
+setup_devcontainer_docker_config "${repo_root}"
 
 # Parse arguments
 BUILD_FLAG=""
-if [[ "${1:-}" == "--build" ]]; then
-  BUILD_FLAG="--build"
-fi
+for arg in "$@"; do
+  case "$arg" in
+    --build | --rebuild) BUILD_FLAG="--build" ;;
+  esac
+done
 
 echo "==> Starting INSPIRE-to-ARC Harvester..."
 echo "    - Harvester will connect to the API configured in config.yaml"

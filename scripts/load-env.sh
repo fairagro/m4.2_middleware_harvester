@@ -30,6 +30,12 @@ alias ksn="kubectl config set-context --current --namespace"
 declare -F __start_kubectl &>/dev/null && complete -o default -F __start_kubectl k
 declare -F __start_docker &>/dev/null && complete -o default -F __start_docker d
 
+if command -v docker &>/dev/null; then
+    # shellcheck source=fix-docker-credentials.sh
+    source "${mydir}/fix-docker-credentials.sh"
+    setup_devcontainer_docker_config "${repo_root}"
+fi
+
 # ggshield (dev dependency in .venv; same PATH as pre-commit above)
 if command -v ggshield &> /dev/null; then
     if [ -n "${GITGUARDIAN_API_KEY:-}" ]; then
