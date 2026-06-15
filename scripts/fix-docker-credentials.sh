@@ -3,8 +3,6 @@
 # Inside DinD the agent on localhost:12049 is often unreachable. Use a repo-local
 # DOCKER_CONFIG without credsStore for public docker.io pulls.
 
-set -euo pipefail
-
 setup_devcontainer_docker_config() {
     local repo_root="${1:?repo root required}"
     local docker_config_dir="${repo_root}/.docker/devcontainer"
@@ -17,6 +15,7 @@ setup_devcontainer_docker_config() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -euo pipefail
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     setup_devcontainer_docker_config "$(cd "${script_dir}/.." && pwd)"
     echo "✅ Using DOCKER_CONFIG=${DOCKER_CONFIG} (bypasses DevPod credsStore in ~/.docker)"

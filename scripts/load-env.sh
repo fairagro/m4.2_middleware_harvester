@@ -72,7 +72,7 @@ if [ -f "$DECRYPTED_FILE" ] && [ -s "$DECRYPTED_FILE" ]; then
     echo "✅ $DECRYPTED_FILE already exists and is not empty - skipping decryption"
 
     # Still load for current shell if not already loaded
-    if [ -z "$GITLAB_API_TOKEN" ]; then
+    if [ -z "${GITLAB_API_TOKEN:-}" ]; then
         echo "🔄 Loading existing environment variables..."
         set -a
         source "$DECRYPTED_FILE"

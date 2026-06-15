@@ -8,7 +8,7 @@ COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY middleware ./middleware
 
 # Upgrade pip and install uv
-RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.18
+RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.21
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
@@ -21,19 +21,23 @@ RUN uv build --package inspire --wheel && uv build --package harvester --wheel &
 # ---- Binary Build Stage ----
 FROM python:3.12.13-alpine3.23 AS binary-builder
 
-# Install build tools for PyInstaller
+# Install build tools for PyInstaller.
+# libcrypto3/libssl3 must match openssl-dev: the python base image ships older
+# runtime libs (3.5.6) while Alpine main may only offer openssl-dev 3.5.7+.
 RUN apk add --no-cache \
     build-base=0.5-r3 \
     python3-dev=3.12.13-r0 \
     libffi-dev=3.5.2-r0 \
-    openssl-dev=3.5.6-r0 \
+    libcrypto3=3.5.7-r0 \
+    libssl3=3.5.7-r0 \
+    openssl-dev=3.5.7-r0 \
     cargo=1.91.1-r2 \
     git=2.52.0-r0
 
 WORKDIR /build
 
 # Install uv core tool
-RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.18
+RUN pip install --no-cache-dir --upgrade pip==26.1.2 uv==0.11.21
 
 # Declare build argument for versioning
 ARG APP_VERSION=0.0.0
