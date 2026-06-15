@@ -226,3 +226,6 @@ helmchart/**/server.conf
 .cache_ggshield
 
 dev_environment/demo_output
+.docker/devcontainer/*
+!.docker/devcontainerconfig.json
+docker/Dockerfile.harvester.bak
