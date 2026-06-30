@@ -27,7 +27,7 @@ dev = [
   "ggshield>=1.52.2",
   "cryptography>=49.0.0",
   "pyjwt>=2.12.0",
-  "pyopenssl>=26.0.0",
+  "pyopenssl>=26.3.0",
   "python-dotenv>=1.2.2",
 ]
 
@@ -48,7 +48,7 @@ members = [
 override-dependencies = [
   "cryptography>=49.0.0",
   "pyjwt>=2.12.0",
-  "pyopenssl>=26.0.0",
+  "pyopenssl>=26.3.0",
   "python-dotenv>=1.2.2",
   "requests>=2.33.0",
 ]
