@@ -20,6 +20,7 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 - `middleware/schema_org/spec/schemaorg-dataset-abstraction/spec.md` — Dataset payload abstraction and provider-specific dataset wrappers.
 - `middleware/schema_org/spec/html-jsonld-dataset/spec.md` — Dataset implementation that fetches an HTML page and extracts embedded JSON-LD.
 - `middleware/schema_org/spec/schemaorg-mapper/spec.md` — Graph-to-ARC mapping and RO-Crate serialization.
+- `middleware/schema_org/spec/record-filter/spec.md` — Optional post-fetch include/exclude filters on Schema.org metadata fields (e.g. `publisher.name`).
 
 ## Edge Cases
 

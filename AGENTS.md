@@ -113,6 +113,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/schema_org/spec/html-jsonld-dataset/`](middleware/schema_org/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
 - **[`middleware/schema_org/spec/schemaorg-dataset-abstraction/`](middleware/schema_org/spec/schemaorg-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
 - **[`middleware/schema_org/spec/schemaorg-mapper/`](middleware/schema_org/spec/schemaorg-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
+- **[`middleware/schema_org/spec/record-filter/`](middleware/schema_org/spec/record-filter/)** — Optional post-fetch include/exclude regex filters on Schema.org metadata fields (configurable dot-path, e.g. `publisher.name`).
 
 ---
 
