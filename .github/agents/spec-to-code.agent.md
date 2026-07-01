@@ -16,7 +16,7 @@ tools:
 
 # spec-to-code Agent
 
-You are an implementation agent for the FAIRagro INSPIRE-to-ARC Converter.
+You are an implementation agent for the FAIRagro Middleware Harvester.
 Your job: translate Specifica spec changes into matching source code.
 
 ## The two input modes
