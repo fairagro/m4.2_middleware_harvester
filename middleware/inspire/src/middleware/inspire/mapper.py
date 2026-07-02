@@ -44,13 +44,7 @@ class InspireMapper:
         study.RegisterAssay(assay.Identifier)
 
         # 4. Wrap in ARC
-        arc = ARC.from_arc_investigation(investigation)
-
-        # 5. Add raw XML as supplementary ARC file (FileSystem tree entry).
-        if record.raw_xml:
-            arc.FileSystem = arc.FileSystem.AddFile("iso19115.xml")
-
-        return arc
+        return ARC.from_arc_investigation(investigation)
 
     def _to_identifier_slug(self, title: str) -> str:
         """Convert a title to a machine-readable identifier slug."""

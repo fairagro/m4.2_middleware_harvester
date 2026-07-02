@@ -9,7 +9,6 @@ import pytest
 from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person  # type: ignore[import]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
 from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
-from arctrl.py.FileSystem.file_system_tree import FileSystemTree  # type: ignore[import]
 
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (
@@ -736,17 +735,6 @@ def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
     assert measurement_type.Name == "Spatial Data Acquisition"
     assert measurement_type.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C19026"
     assert measurement_type.TermSourceREF == "NCIT"
-
-
-def test_map_record_adds_xml_file(mapper: InspireMapper, sample_record: InspireRecord) -> None:
-    """Test that mapping a record with raw_xml registers iso19115.xml in the ARC FileSystem."""
-    sample_record.raw_xml = b"<xml>test content</xml>"
-    arc = mapper.map_record(sample_record)
-
-    assert "iso19115.xml" in arc.FileSystem.Tree.ToFilePaths()
-
-    additional_paths = list(FileSystemTree.to_file_paths()(arc.GetAdditionalPayload()))
-    assert "iso19115.xml" in additional_paths
 
 
 # ---------------------------------------------------------------------------
