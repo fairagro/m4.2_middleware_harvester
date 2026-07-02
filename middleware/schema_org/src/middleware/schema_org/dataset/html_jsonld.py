@@ -13,6 +13,8 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..errors import SchemaOrgDatasetError
+from ..jsonld_dataset import extract_schema_org_dataset_dict
+from ..jsonld_types import SchemaOrgDatasetDict
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 
 logger = logging.getLogger(__name__)
@@ -58,6 +60,7 @@ class HtmlJsonLdDataset(Dataset):
         self._client = client
         self._config = config
         self._jsonld_parse_threshold_bytes = config.jsonld_parse_threshold_bytes
+        self._jsonld_blocks: list[str] | None = None
 
     @property
     def identifier(self) -> str:
@@ -83,29 +86,44 @@ class HtmlJsonLdDataset(Dataset):
             config,
         )
 
-    async def to_graph(self) -> Graph:
-        """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
-        html_text = await self._fetch_html(self._url, self._client)
+    async def _ensure_jsonld_blocks(self) -> list[str]:
+        """Fetch HTML once and return normalized JSON-LD script block strings."""
+        if self._jsonld_blocks is not None:
+            return self._jsonld_blocks
 
+        html_text = await self._fetch_html(self._url, self._client)
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
 
         if not parser.blocks:
             raise SchemaOrgDatasetError(f"No JSON-LD blocks found in HTML at: {self._url}")
 
-        merged = Graph()
-
+        normalized_blocks: list[str] = []
         for block in parser.blocks:
             try:
-                # Parse with strict=False to tolerate raw control characters in
-                # string values (server-side data quality issue), then re-serialize
-                # to produce clean, standards-compliant JSON for rdflib.
-                block = json.dumps(json.loads(block, strict=False))
+                normalized_blocks.append(json.dumps(json.loads(block, strict=False)))
             except json.JSONDecodeError as exc:
                 raise SchemaOrgDatasetError(
                     f"Invalid JSON in JSON-LD block at {self._url}: {exc}\nBlock:\n{block}"
                 ) from exc
 
+        self._jsonld_blocks = normalized_blocks
+        return normalized_blocks
+
+    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
+        """Return the first Schema.org Dataset object from embedded JSON-LD."""
+        blocks = await self._ensure_jsonld_blocks()
+        try:
+            return extract_schema_org_dataset_dict(blocks)
+        except ValueError as exc:
+            raise SchemaOrgDatasetError(str(exc)) from exc
+
+    async def to_graph(self) -> Graph:
+        """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""
+        blocks = await self._ensure_jsonld_blocks()
+        merged = Graph()
+
+        for block in blocks:
             if len(block.encode("utf-8")) > self._jsonld_parse_threshold_bytes:
                 block_graph = await asyncio.to_thread(self._parse_jsonld_block, block)
             else:

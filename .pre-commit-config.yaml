@@ -51,9 +51,9 @@ repos:
         name: mypy type check
         entry: uv run mypy
         language: system
-        types: [python]
+        pass_filenames: false
         files: ^middleware/
-        args: [--config-file, pyproject.toml]
+        args: [--config-file, pyproject.toml, middleware/]
 
       # bandit - Security linting
       - id: bandit

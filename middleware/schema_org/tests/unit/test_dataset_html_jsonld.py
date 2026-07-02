@@ -26,6 +26,21 @@ def test_html_jsonld_dataset_identifier() -> None:
     asyncio.run(run())
 
 
+def test_html_jsonld_dataset_to_dataset_dict() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=SIMPLE_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            dataset_dict = await ds.to_dataset_dict()
+            return str(dataset_dict.get("name"))
+
+    assert asyncio.run(run()) == "My Dataset"
+
+
 def test_html_jsonld_dataset_to_graph_single_block() -> None:
     async def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text=SIMPLE_HTML, headers={"content-type": "text/html"})

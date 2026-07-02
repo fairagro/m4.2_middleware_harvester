@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
 
+from .record_filter import RecordFilterConfig
+
 
 class SitemapType(StrEnum):
     """Supported sitemap kinds for Schema.org harvesting."""
@@ -59,6 +61,10 @@ class Config(BaseModel):
             ),
             ge=1,
         ),
+    ] = None
+    record_filter: Annotated[
+        RecordFilterConfig | None,
+        Field(description="Optional post-fetch filter on Schema.org Dataset metadata."),
     ] = None
 
     @property

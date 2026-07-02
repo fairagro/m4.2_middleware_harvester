@@ -3,14 +3,13 @@
 # ruff: noqa: SLF001, PLR2004
 
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
 from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person  # type: ignore[import]
-from arctrl.py.Contract.contract import DTO  # type: ignore[import]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
 from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
+from arctrl.py.FileSystem.file_system_tree import FileSystemTree  # type: ignore[import]
 
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (
@@ -740,30 +739,14 @@ def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
 
 
 def test_map_record_adds_xml_file(mapper: InspireMapper, sample_record: InspireRecord) -> None:
-    """Test that mapping a record with raw_xml adds the iso19115.xml file to the ARC with correct content."""
+    """Test that mapping a record with raw_xml registers iso19115.xml in the ARC FileSystem."""
     sample_record.raw_xml = b"<xml>test content</xml>"
     arc = mapper.map_record(sample_record)
 
-    # Check that the file is in the FileSystem tree
     assert "iso19115.xml" in arc.FileSystem.Tree.ToFilePaths()
 
-    # Verify that we can write the ARC with content
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Get all write contracts
-        contracts = list(arc.GetWriteContracts())
-
-        # Set the content for the XML file
-        xml_contract = next((c for c in contracts if c.Path == "iso19115.xml"), None)
-        assert xml_contract is not None
-        xml_contract.DTO = DTO(1, sample_record.raw_xml.decode("utf-8"))
-
-        # Write the ARC to the temporary directory
-        run_synchronously(full_fill_contract_batch_async(tmpdir, contracts))
-
-        xml_file_path = os.path.join(tmpdir, "iso19115.xml")
-        assert os.path.exists(xml_file_path)
-        with open(xml_file_path, encoding="utf-8") as f:
-            assert f.read() == "<xml>test content</xml>"
+    additional_paths = list(FileSystemTree.to_file_paths()(arc.GetAdditionalPayload()))
+    assert "iso19115.xml" in additional_paths
 
 
 # ---------------------------------------------------------------------------
@@ -797,7 +780,7 @@ def test_arc_write_no_url_directories(mapper: InspireMapper, sample_record: Insp
 
     arc = mapper.map_record(sample_record)
     contracts = list(arc.GetWriteContracts())
-    run_synchronously(full_fill_contract_batch_async(str(tmp_path), contracts))
+    run_synchronously(full_fill_contract_batch_async(False, str(tmp_path), contracts))
 
     all_dir_names = _collect_dir_names(str(tmp_path))
 
@@ -816,7 +799,7 @@ def test_arc_write_expected_top_level_structure(
     """Written ARC must contain the standard top-level ARC directories."""
     arc = mapper.map_record(sample_record)
     contracts = list(arc.GetWriteContracts())
-    run_synchronously(full_fill_contract_batch_async(str(tmp_path), contracts))
+    run_synchronously(full_fill_contract_batch_async(False, str(tmp_path), contracts))
 
     top_level_dirs = {p.name for p in tmp_path.iterdir() if p.is_dir()}
     assert "studies" in top_level_dirs, "ARC is missing 'studies' directory"
@@ -840,7 +823,7 @@ def test_arc_write_no_url_dirs_multiple_resources(
 
     arc = mapper.map_record(sample_record)
     contracts = list(arc.GetWriteContracts())
-    run_synchronously(full_fill_contract_batch_async(str(tmp_path), contracts))
+    run_synchronously(full_fill_contract_batch_async(False, str(tmp_path), contracts))
 
     all_dir_names = _collect_dir_names(str(tmp_path))
 

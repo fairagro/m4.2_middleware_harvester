@@ -3,8 +3,7 @@
 ## Architecture overview
 
 Filtering is a plugin-level concern in `SchemaOrgPlugin._process_result()`,
-inserted after `Dataset.to_graph()` payload extraction and before
-`SchemaOrgMapper.map_graph()`:
+inserted after `Dataset.to_dataset_dict()` and before `SchemaOrgMapper.map_graph()`:
 
 ```text
 discover URL
@@ -27,6 +26,15 @@ RecordFilter ──resolve field path──► str | missing
    pass → map_graph
    fail → SkippedRecord
 ```
+
+Module layout:
+
+| Module | Responsibility |
+| ------ | -------------- |
+| `record_filter.py` | `RecordFilterConfig` (Pydantic) and `RecordFilter.evaluate()` |
+| `jsonld_dataset.py` | `extract_schema_org_dataset_dict()`, `resolve_field_value()` |
+| `dataset/html_jsonld.py` | `_ensure_jsonld_blocks()` cache; `to_dataset_dict()` |
+| `plugin.py` | Instantiates `RecordFilter` when configured; yields `SkippedRecord` on rejection |
 
 Each repository entry carries its own `record_filter`; the orchestrator RDI
 is unchanged. Two entries may share the same `sitemap_url` with complementary
@@ -81,9 +89,15 @@ include/exclude patterns (OpenAgrar / Thünen split).
    mid-harvest failures on typo patterns.
 
 8. **Extract Dataset dict helper shared between filter and tests**
-   — `HtmlJsonLdDataset` already parses JSON-LD blocks; the filter reuses the
-   same “find `@type`: Dataset object” selection logic (first Dataset in
-   merged blocks, or sole object). Keeps filter tests independent of HTTP.
+   — `jsonld_dataset.extract_schema_org_dataset_dict()` walks parsed JSON-LD
+   blocks for the first `@type: Dataset` object. `HtmlJsonLdDataset` caches
+   normalized blocks in `_ensure_jsonld_blocks()` so `to_dataset_dict()` and
+   `to_graph()` share one HTTP fetch per record.
+
+9. **`to_dataset_dict()` on the `Dataset` ABC**
+   — Filtering needs structured JSON-LD before RDF graph construction. The
+   abstract method keeps the plugin dataset-type agnostic; only
+   `HtmlJsonLdDataset` implements it today.
 
 ## Config model (sketch)
 

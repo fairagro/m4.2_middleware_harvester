@@ -16,6 +16,7 @@ from .dataset import Dataset, DiscoveryResult, DuplicateUrlDiscoveryResult
 from .dataset.dataset import UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .errors import SchemaOrgError
+from .record_filter import RecordFilter
 from .schema_org_mapper import SchemaOrgMapper
 from .sitemap import Sitemap
 
@@ -29,6 +30,9 @@ class SchemaOrgPlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
         self._mapper: SchemaOrgMapper = self.create_mapper(config)
+        self._record_filter: RecordFilter | None = (
+            RecordFilter(config.record_filter) if config.record_filter is not None else None
+        )
 
     @staticmethod
     def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
@@ -104,6 +108,12 @@ class SchemaOrgPlugin(Plugin):
             )
 
         try:
+            if self._record_filter is not None:
+                dataset_dict = await dataset.to_dataset_dict()
+                skip_reason = self._record_filter.evaluate(dataset_dict)
+                if skip_reason is not None:
+                    return SkippedRecord(skip_reason, source_url)
+
             graph = await dataset.to_graph()
             arc_json = await asyncio.to_thread(self._mapper.map_graph, graph)
             return arc_json, source_url

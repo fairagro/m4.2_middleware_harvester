@@ -46,7 +46,7 @@ class InspireMapper:
         # 4. Wrap in ARC
         arc = ARC.from_arc_investigation(investigation)
 
-        # 5. Add raw XML as file
+        # 5. Add raw XML as supplementary ARC file (FileSystem tree entry).
         if record.raw_xml:
             arc.FileSystem = arc.FileSystem.AddFile("iso19115.xml")
 
