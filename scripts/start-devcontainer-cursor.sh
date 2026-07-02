@@ -63,6 +63,10 @@ if ! docker info &>/dev/null; then
     echo "WARNING: Local Docker daemon is not running or not reachable. If you are using a remote DevPod provider, you can ignore this." >&2
 fi
 
+# Bind-mount sources must exist on the host (empty dirs are fine).
+mkdir -p "${HOME}/.ssh"
+chmod 700 "${HOME}/.ssh" 2>/dev/null || true
+
 echo "==> Starting DevPod workspace (devcontainer: ${devcontainer_path})"
 devpod up "${repo_root}" \
     --devcontainer-path "${devcontainer_path}" \
@@ -72,5 +76,7 @@ devpod up "${repo_root}" \
 echo ""
 echo "==> Done. Cursor should open the workspace in the Dev Container."
 echo "    One-time setup (uv sync, hooks) runs via postCreateCommand; load-env.sh loads env vars per shell."
-echo "    Host ~/.gitconfig is bind-mounted; GPG agent forwarding is Linux-only."
+echo "    Host ~/.gitconfig is bind-mounted read-only as ~/.gitconfig-host, copied to ~/.gitconfig;"
+echo "    gh auth persists in Docker volume middleware-harvester-gh-config (run gh auth login once)."
+echo "    GPG agent forwarding is Linux-only."
 echo "    See .devcontainer/cursor/README.md for mounts and macOS/Windows workarounds."

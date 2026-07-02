@@ -12,9 +12,11 @@
 		}
 	},
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/vscode/.gitconfig-host,type=bind,readonly",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.host-ssh,type=bind,readonly",
 		"source=${localEnv:XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.extra,target=/host-gpg/S.gpg-agent.extra,type=bind",
 		"source=${localEnv:HOME}/.gnupg/trustdb.gpg,target=/host-gpg/trustdb.gpg,type=bind,readonly",
+		"source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume",
 		"source=middleware-harvester-bashhistory,target=/commandhistory,type=volume"
 	],
 	"containerEnv": {
@@ -51,8 +53,10 @@
 	},
 	"postCreateCommand": {
 		"fix commandhistory permissions": "sudo chown -R vscode:vscode /commandhistory",
+		"fix gh config permissions": "sudo mkdir -p /home/vscode/.config/gh && sudo chown -R vscode:vscode /home/vscode/.config/gh",
 		"install dependencies": "bash ${containerWorkspaceFolder}/scripts/uv-sync-dev.sh",
 		"install dev hooks": "bash ${containerWorkspaceFolder}/scripts/install-dev-hooks.sh",
+		"setup container git": "bash ${containerWorkspaceFolder}/scripts/setup-container-git.sh",
 		"setup container gpg": "bash ${containerWorkspaceFolder}/scripts/setup-container-gpg.sh",
 		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc"
 	},

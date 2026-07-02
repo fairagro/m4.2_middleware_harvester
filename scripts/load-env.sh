@@ -44,6 +44,11 @@ alias ksn="kubectl config set-context --current --namespace"
 declare -F __start_kubectl &>/dev/null && complete -o default -F __start_kubectl k
 declare -F __start_docker &>/dev/null && complete -o default -F __start_docker d
 
+# Git: copy ~/.gitconfig-host → ~/.gitconfig (see setup-container-git.sh)
+# shellcheck source=setup-container-git.sh
+source "${mydir}/setup-container-git.sh"
+setup_container_git
+
 if command -v docker &>/dev/null; then
     # shellcheck source=fix-docker-credentials.sh
     source "${mydir}/fix-docker-credentials.sh"
