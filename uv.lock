@@ -47,15 +47,15 @@ wheels = [
 
 [[package]]
 name = "arctrl"
-version = "3.0.5"
+version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openpyxl" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b7/c6/2424b1a2de8d86ee743dfaaf9e5f99a0a4377a108cddda2a7848e9246d96/arctrl-3.0.5.tar.gz", hash = "sha256:29da7068882a5fbe32109b80c9699541b152afc9adf709ffabec05ca9f43ffe4", size = 661964, upload-time = "2026-04-20T17:40:45.371Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/70/60988c593c897a9426358e410512077a5c5bf1dfc2a9e3104e9c60db1fe8/arctrl-3.1.0.tar.gz", hash = "sha256:56aba9b9c83330e96abe9674238f800d02d18eab393b1908a4df1ef5eb202e99", size = 662060, upload-time = "2026-06-22T15:31:36.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/5a/5aab94de88a19b5429d6f16c6e71146f44fe690205419ffe0c22a1468bd8/arctrl-3.0.5-py3-none-any.whl", hash = "sha256:b3457c2679c31307a22bb692076053fad4f83522c2b7dc4263c287f82707c5a1", size = 958069, upload-time = "2026-04-20T17:40:43.038Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/d0/e237378b3146f117a3224388cda42c289766be526a4769dc20e84b3f6797/arctrl-3.1.0-py3-none-any.whl", hash = "sha256:d4d92d919467694d84b1eac193e3b0ce01cd7f3e0aee60aef0f41a9ffa270e78", size = 958160, upload-time = "2026-06-22T15:31:33.661Z" },
 ]
 
 [[package]]
@@ -578,7 +578,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "arctrl", specifier = ">=3.1.0" },
     { name = "fairagro-middleware-api-client", specifier = ">=8.8.1.dev12" },
     { name = "fairagro-middleware-shared", specifier = ">=8.8.1.dev12" },
     { name = "inspire", editable = "middleware/inspire" },
@@ -668,10 +668,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "arctrl", specifier = ">=3.1.0" },
     { name = "fairagro-middleware-api-client", specifier = ">=8.7.0" },
     { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
-    { name = "nameparser", specifier = ">=1.2.1" },
+    { name = "nameparser", specifier = ">=1.1.0" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]
@@ -1814,7 +1814,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.0.0b0" },
+    { name = "arctrl", specifier = ">=3.1.0" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
     { name = "pydantic", specifier = ">=2.0.0" },

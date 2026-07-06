@@ -5,7 +5,7 @@ description = "Harvester for INSPIRE metadata to ARC conversion"
 requires-python = ">=3.12"
 dependencies = [
     "owslib>=0.31.0",
-    "arctrl>=3.0.0b0",
+    "arctrl>=3.1.0",
     "pydantic>=2.0.0",
     "fairagro-middleware-api-client>=8.7.0",
     "fairagro-middleware-shared>=8.7.0",
