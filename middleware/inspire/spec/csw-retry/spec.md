@@ -9,7 +9,7 @@ Add transient-failure retry with exponential backoff to the `CSWClient` so that 
   - `retry_backoff_base: float = 1.0` (gt=0) — initial delay in seconds
   - `retry_backoff_factor: float = 2.0` (ge=1) — exponential multiplier applied per attempt
   - `retry_max_delay: float = 600.0` (ge=0) — upper bound on any single inter-attempt wait
-- [ ] `inspire.Config` exposes a `user_agent: str` field with default `"FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"`.
+- [ ] `inspire.Config` exposes a `user_agent: str` field with default `"FAIRagro-Harvester/2.0 (dataservice@fairagro.net)"`.
 - [ ] `CSWClient.connect()` forwards `user_agent` to `CatalogueServiceWeb` via `headers={"User-Agent": config.user_agent}`.
 - [ ] The following `CSWClient` methods are retried on `OSError` or `TimeoutError`:
   - `connect()`

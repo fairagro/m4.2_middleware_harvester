@@ -9,8 +9,12 @@ Used by `scripts/start-devcontainer-cursor.sh` with DevPod + Cursor.
 | Git config | `${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig` → `~/.gitconfig-host` (read-only), copied to `~/.gitconfig` | Linux, macOS, Windows |
 | SSH keys | `${localEnv:HOME}/.ssh` (read-only) | Linux, macOS, Windows |
 | GitHub CLI auth | Docker volume `middleware-harvester-gh-config` → `~/.config/gh` | all |
-| GPG agent socket | `${localEnv:XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.extra` | **Linux only** |
-| GPG trustdb | `${localEnv:HOME}/.gnupg/trustdb.gpg` | Linux, macOS, Windows (optional file) |
+| GPG agent + trustdb | `${localWorkspaceFolder}/.devcontainer/cursor/.host-gpg-cache` → `/host-gpg` | all |
+
+`ensure-gpg-mounts.sh` runs via `initializeCommand` (and from `start-devcontainer-cursor.sh`).
+Empty stub files are committed so the bind mount works even if the script cannot run.
+On Linux with a running host GPG agent it hard-links the agent socket and copies
+`trustdb.gpg`; otherwise stubs remain and container creation still succeeds.
 
 `start-devcontainer-cursor.sh` creates an empty `~/.ssh` on the host if missing so the SSH
 bind mount always succeeds.
@@ -32,19 +36,19 @@ gh auth login
 
 ## GPG agent forwarding (Linux only)
 
-The GPG agent bind mount relies on `XDG_RUNTIME_DIR`, which systemd sets on Linux
-(typically `/run/user/<uid>`). It is usually **not** set on macOS or Windows.
+Host GPG files are exposed through a cache directory bind-mounted at `/host-gpg`.
+`ensure-gpg-mounts.sh` prepares that directory before the container is created.
 
-If `XDG_RUNTIME_DIR` is empty, the mount source resolves to `/gnupg/S.gpg-agent.extra`,
-which does not exist, and **devcontainer creation fails**.
-
-### Linux
-
-Before `devpod up --recreate`, ensure the host agent is running:
+On Linux with systemd, ensure the host agent is running before recreate:
 
 ```bash
 gpg -K
+devpod up --recreate   # or reopen the devcontainer in Cursor
 ```
+
+When no agent socket is available (macOS, Windows, or cloud hosts), stub files are
+created so devcontainer creation succeeds. `setup-container-gpg.sh` skips agent
+forwarding and prints a warning.
 
 Host `~/.gitconfig` is mounted at `~/.gitconfig-host` and copied to `~/.gitconfig` on setup.
 Git LFS filters are configured in the repository (`.git/config`) via `git lfs install --local` in `setup-git-lfs.sh`.
@@ -85,8 +89,8 @@ This devcontainer variant does not support host GPG agent forwarding. Options:
 
    `scripts/load-env.sh` skips SOPS decryption when `.env` already exists.
 
-2. **Remove the GPG-related `mounts` entries** from `devcontainer.json` (and rely on
-   option 1 or on `public_gpg_keys/` for encrypt-only workflows).
+2. **Rely on stub mounts** — the container starts without host agent forwarding; decrypt
+   `.env` on the host (option 1) or use `public_gpg_keys/` for encrypt-only workflows.
 
 DevPod’s `--gpg-agent-forwarding` flag is not used here; it is a separate code path and
 was found unreliable on some Linux hosts.

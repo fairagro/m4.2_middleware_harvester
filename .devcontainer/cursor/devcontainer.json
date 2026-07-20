@@ -1,5 +1,6 @@
 {
 	"name": "Debian (Cursor - DinD)",
+	"initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/cursor/ensure-gpg-mounts.sh",
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"context": ".."
@@ -14,8 +15,7 @@
 	"mounts": [
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/vscode/.gitconfig-host,type=bind,readonly",
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.host-ssh,type=bind,readonly",
-		"source=${localEnv:XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.extra,target=/host-gpg/S.gpg-agent.extra,type=bind",
-		"source=${localEnv:HOME}/.gnupg/trustdb.gpg,target=/host-gpg/trustdb.gpg,type=bind,readonly",
+		"source=${localWorkspaceFolder}/.devcontainer/cursor/.host-gpg-cache,target=/host-gpg,type=bind",
 		"source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume",
 		"source=middleware-harvester-bashhistory,target=/commandhistory,type=volume"
 	],

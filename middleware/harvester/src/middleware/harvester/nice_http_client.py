@@ -66,7 +66,7 @@ class NiceHttpClientConfig(BaseModel):
     user_agent: Annotated[
         str,
         Field(description="User-Agent header value used for all outgoing requests."),
-    ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+    ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.net)"
     max_requests_per_second: Annotated[
         float | None,
         Field(

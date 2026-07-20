@@ -12,8 +12,13 @@
 #   ./scripts/start-devcontainer-cursor.sh --reset
 #
 # Platform notes:
-#   Host GPG agent bind-mount (SOPS in container) requires Linux and XDG_RUNTIME_DIR.
-#   On macOS/Windows, see .devcontainer/cursor/README.md (decrypt .env on the host).
+#   GPG bind mounts use .devcontainer/cursor/.host-gpg-cache/ in the repo (see README).
+#   On macOS/Windows without a host agent, decrypt .env on the host for SOPS secrets.
+
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    echo "ERROR: Do not source this script — run: ./scripts/start-devcontainer-cursor.sh" >&2
+    return 1 2>/dev/null || exit 1
+fi
 
 set -euo pipefail
 
@@ -41,8 +46,8 @@ Usage:
   ./scripts/start-devcontainer-cursor.sh --reset
 
 Platform notes:
-  Host GPG agent bind-mount (SOPS in container) requires Linux and XDG_RUNTIME_DIR.
-  On macOS/Windows, see .devcontainer/cursor/README.md (decrypt .env on the host).
+  GPG bind mounts use .devcontainer/cursor/.host-gpg-cache/ in the repo (see README).
+  On macOS/Windows without a host agent, decrypt .env on the host for SOPS secrets.
 EOF_HELP
             exit 0
             ;;
@@ -67,16 +72,38 @@ fi
 mkdir -p "${HOME}/.ssh"
 chmod 700 "${HOME}/.ssh" 2>/dev/null || true
 
+bash "${repo_root}/.devcontainer/cursor/ensure-gpg-mounts.sh"
+
+providers_json="$(devpod provider list --output json 2>/dev/null || echo '{}')"
+if [ "${providers_json}" = "{}" ]; then
+    echo "ERROR: No DevPod provider installed." >&2
+    echo "       Run: devpod provider add docker" >&2
+    echo "       See: https://devpod.sh/docs/getting-started/quickstart" >&2
+    exit 1
+fi
+
+if ! grep -q '"default"[[:space:]]*:[[:space:]]*true' <<<"${providers_json}"; then
+    echo "ERROR: No default DevPod provider configured." >&2
+    echo "       Run: devpod provider use docker   (or your preferred provider)" >&2
+    exit 1
+fi
+
 echo "==> Starting DevPod workspace (devcontainer: ${devcontainer_path})"
-devpod up "${repo_root}" \
+if ! devpod up "${repo_root}" \
     --devcontainer-path "${devcontainer_path}" \
     --ide cursor \
-    "${extra_args[@]}"
+    "${extra_args[@]}"; then
+    echo "ERROR: devpod up failed. Common fixes:" >&2
+    echo "  - devpod provider use docker" >&2
+    echo "  - ensure Docker is running" >&2
+    echo "  - ./scripts/start-devcontainer-cursor.sh --recreate" >&2
+    exit 1
+fi
 
 echo ""
 echo "==> Done. Cursor should open the workspace in the Dev Container."
 echo "    One-time setup (uv sync, hooks) runs via postCreateCommand; load-env.sh loads env vars per shell."
 echo "    Host ~/.gitconfig is bind-mounted read-only as ~/.gitconfig-host, copied to ~/.gitconfig;"
 echo "    gh auth persists in Docker volume middleware-harvester-gh-config (run gh auth login once)."
-echo "    GPG agent forwarding is Linux-only."
-echo "    See .devcontainer/cursor/README.md for mounts and macOS/Windows workarounds."
+echo "    GPG: ensure-gpg-mounts.sh prepares host cache; agent forwarding is Linux-only."
+echo "    See .devcontainer/cursor/README.md for mounts and SOPS workarounds."
