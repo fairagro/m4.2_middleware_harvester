@@ -17,7 +17,6 @@ from middleware.schema_org.config import (
     SitemapType,
 )
 from middleware.schema_org.dataset import UrlDiscoveryResult
-from middleware.schema_org.jsonld_types import SchemaOrgDatasetDict
 from middleware.schema_org.plugin import SchemaOrgPlugin
 
 
@@ -65,11 +64,6 @@ class FakeDataset:
         """Return a dummy graph payload for the fake dataset."""
         await asyncio.sleep(0)
         return f"graph:{self._url}"
-
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return a minimal Schema.org Dataset dict for filter tests."""
-        await asyncio.sleep(0)
-        return {"@type": "Dataset", "name": self._url}
 
 
 @pytest.mark.asyncio

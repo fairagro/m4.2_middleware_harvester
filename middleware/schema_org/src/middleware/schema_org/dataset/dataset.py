@@ -13,7 +13,6 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..errors import SchemaOrgDatasetError
-from ..jsonld_types import SchemaOrgDatasetDict
 from ..registry import Registry
 
 
@@ -67,11 +66,6 @@ class Dataset(ABC):
     @abstractmethod
     async def to_graph(self) -> Graph:
         """Return the dataset payload as an RDF graph."""
-        raise NotImplementedError
-
-    @abstractmethod
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return the extracted Schema.org Dataset object from the payload."""
         raise NotImplementedError
 
     @staticmethod

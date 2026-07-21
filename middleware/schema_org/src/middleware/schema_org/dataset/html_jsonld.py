@@ -13,8 +13,6 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..errors import SchemaOrgDatasetError
-from ..jsonld_dataset import extract_schema_org_dataset_dict
-from ..jsonld_types import SchemaOrgDatasetDict
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 
 logger = logging.getLogger(__name__)
@@ -109,14 +107,6 @@ class HtmlJsonLdDataset(Dataset):
 
         self._jsonld_blocks = normalized_blocks
         return normalized_blocks
-
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return the first Schema.org Dataset object from embedded JSON-LD."""
-        blocks = await self._ensure_jsonld_blocks()
-        try:
-            return extract_schema_org_dataset_dict(blocks)
-        except ValueError as exc:
-            raise SchemaOrgDatasetError(str(exc)) from exc
 
     async def to_graph(self) -> Graph:
         """Fetch the HTML page and parse all embedded JSON-LD blocks into an rdflib.Graph."""

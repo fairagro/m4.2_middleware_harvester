@@ -8,7 +8,6 @@ import httpx
 from middleware.schema_org.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.schema_org.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.schema_org.errors import SchemaOrgError
-from middleware.schema_org.jsonld_types import SchemaOrgDatasetDict
 
 DEFAULT_CONNECT_TIMEOUT = 5.0
 DEFAULT_READ_TIMEOUT = 15.0
@@ -62,11 +61,6 @@ class BadFakeDataset:
         await asyncio.sleep(0)
         return f"graph:{self._url}"
 
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return a minimal Schema.org Dataset dict for filter tests."""
-        await asyncio.sleep(0)
-        return {"@type": "Dataset", "name": self._url}
-
 
 class GoodFakeDataset:
     """A dataset implementation that successfully converts discovery results."""
@@ -91,48 +85,6 @@ class GoodFakeDataset:
         if client is not None or config is not None:
             del client, config
         return cls(discovery_result.url)
-
-    async def to_graph(self) -> str:
-        """Simulate successful dataset graph conversion."""
-        await asyncio.sleep(0)
-        return f"graph:{self._url}"
-
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return a minimal Schema.org Dataset dict for filter tests."""
-        await asyncio.sleep(0)
-        return {"@type": "Dataset", "name": self._url}
-
-
-class FilterableFakeDataset:
-    """Fake dataset with a class-level Schema.org Dataset dict for filter tests."""
-
-    dataset_dict: SchemaOrgDatasetDict = {"@type": "Dataset", "publisher": {"name": "OpenAgrar"}}
-
-    def __init__(self, url: str, _client: httpx.AsyncClient | None = None, _config: Config | None = None) -> None:
-        """Initialize a fake dataset with a resolved URL."""
-        self._url = url
-
-    @property
-    def identifier(self) -> str:
-        """Return the dataset identifier."""
-        return self._url
-
-    @classmethod
-    def from_discovery_result(
-        cls,
-        discovery_result: UrlDiscoveryResult,
-        client: httpx.AsyncClient | None = None,
-        config: Config | None = None,
-    ) -> "FilterableFakeDataset":
-        """Create a fake dataset from a discovery result."""
-        if client is not None or config is not None:
-            del client, config
-        return cls(discovery_result.url)
-
-    async def to_dataset_dict(self) -> SchemaOrgDatasetDict:
-        """Return the configured Schema.org Dataset dict."""
-        await asyncio.sleep(0)
-        return type(self).dataset_dict
 
     async def to_graph(self) -> str:
         """Simulate successful dataset graph conversion."""
