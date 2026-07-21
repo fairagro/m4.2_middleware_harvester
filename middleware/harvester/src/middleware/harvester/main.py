@@ -53,9 +53,26 @@ def _extract_arc_identifier(arc_json: str) -> str | None:
     return None
 
 
+def _format_source_url_annotation(url_counts: dict[str, int]) -> str:
+    """Format tracked source URLs (with occurrence counts) for a FailedRecord message."""
+    if not url_counts:
+        return ""
+
+    parts: list[str] = []
+    for url, count in url_counts.items():
+        if count > 1:
+            parts.append(f"{url} (×{count})")
+        else:
+            parts.append(url)
+
+    if len(parts) == 1:
+        return f"source URL: {parts[0]}"
+    return f"source URLs: {', '.join(parts)}"
+
+
 def _apply_client_errors(
     errors: list,
-    arc_id_to_urls: dict[str, list[str]],
+    arc_id_to_url_counts: dict[str, dict[str, int]],
     harvested_datasets: int | None,
     failed_datasets: int | None,
     failed_records: list[FailedRecord],
@@ -68,15 +85,8 @@ def _apply_client_errors(
             failed_datasets = 0
         failed_datasets += 1
         arc_id = err.arc_id or ""
-        urls = arc_id_to_urls.get(arc_id, [])
-        if urls:
-            unique_urls = list(dict.fromkeys(urls))
-            if len(unique_urls) == 1:
-                msg = f"{err.message} — source URL: {unique_urls[0]}"
-            else:
-                msg = f"{err.message} — source URLs: {', '.join(unique_urls)}"
-        else:
-            msg = err.message
+        annotation = _format_source_url_annotation(arc_id_to_url_counts.get(arc_id, {}))
+        msg = f"{err.message} — {annotation}" if annotation else err.message
         failed_records.append(FailedRecord(message=msg, record_id=err.arc_id))
     return harvested_datasets, failed_datasets
 
@@ -112,7 +122,7 @@ class _ArcStreamState:
     harvested_datasets: int | None = None
     failed_datasets: int | None = None
     skipped_datasets: int = 0
-    arc_id_to_urls: dict[str, list[str]] = field(default_factory=dict)
+    arc_id_to_url_counts: dict[str, dict[str, int]] = field(default_factory=dict)
     failed_records: list[FailedRecord] = field(default_factory=list)
 
 
@@ -137,9 +147,8 @@ async def _arc_stream(
             try:
                 arc_id = _extract_arc_identifier(arc_json)
                 if arc_id:
-                    urls = state.arc_id_to_urls.setdefault(arc_id, [])
-                    if source_url not in urls:
-                        urls.append(source_url)
+                    counts = state.arc_id_to_url_counts.setdefault(arc_id, {})
+                    counts[source_url] = counts.get(source_url, 0) + 1
             except Exception:  # noqa: BLE001
                 logger.debug("Failed to extract ARC identifier from arc_json for source_url tracking.", exc_info=True)
         if state.harvested_datasets is None:
@@ -184,7 +193,7 @@ async def _execute_harvest_upload(
                     harvest_id = result.harvest_id
                     state.harvested_datasets, state.failed_datasets = _apply_client_errors(
                         result.errors,
-                        state.arc_id_to_urls,
+                        state.arc_id_to_url_counts,
                         state.harvested_datasets,
                         state.failed_datasets,
                         state.failed_records,
