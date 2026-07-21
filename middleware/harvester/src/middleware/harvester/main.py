@@ -15,7 +15,12 @@ from opentelemetry import trace
 from middleware.api_client import ApiClient
 from middleware.api_client.models import HarvestErrorType
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.harvester.errors import (
+    HarvesterError,
+    RecordProcessingError,
+    SkippedRecord,
+    format_exception_for_report,
+)
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
@@ -202,7 +207,7 @@ async def _execute_harvest_upload(
                         "Error uploading arcs for repository %s (%s): %s",
                         repo.rdi,
                         repo.plugin_type,
-                        e,
+                        format_exception_for_report(e),
                     )
                     logger.debug(
                         "Exception during harvest upload for repository %s (%s).",
@@ -225,8 +230,9 @@ async def _execute_harvest_upload(
                 "harvester.arcs_uploaded",
                 state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
-            logger.error("Repository '%s' (%s) failed and will be skipped: %s", repo.rdi, repo.plugin_type, e)
-            state.failed_records.append(FailedRecord(message=f"{type(e).__name__}: {e}", url=repo.source_url))
+            detail = format_exception_for_report(e)
+            logger.error("Repository '%s' (%s) failed and will be skipped: %s", repo.rdi, repo.plugin_type, detail)
+            state.failed_records.append(FailedRecord(message=detail, url=repo.source_url))
 
     return HarvestUploadResult(
         harvest_id=harvest_id,
@@ -292,10 +298,11 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         finally:
             await plugin_gen.aclose()
     except Exception as exc:  # noqa: BLE001
-        logger.error("Unhandled exception in repository '%s', skipping.", repo.rdi)
+        detail = format_exception_for_report(exc)
+        logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
-        failed_records.append(FailedRecord(message=f"{type(exc).__name__}: {exc}", url=repo.source_url))
+        failed_records.append(FailedRecord(message=detail, url=repo.source_url))
 
     if harvest_started:
         if harvested_datasets is None:
@@ -347,11 +354,12 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 for repo, result in zip(config.repositories, results, strict=True):
                     if isinstance(result, BaseException):
+                        detail = format_exception_for_report(result)
                         logger.error(
                             "Repository task failed for %s (%s): %s",
                             repo.rdi,
                             repo.plugin_type,
-                            result,
+                            detail,
                         )
                         logger.debug(
                             "Repository task exception for %s (%s).",
@@ -368,6 +376,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                                 harvested_datasets=0,
                                 failed_datasets=None,
                                 skipped_datasets=0,
+                                failed_records=(FailedRecord(message=detail, url=repo.source_url),),
                             )
                         )
                     else:
