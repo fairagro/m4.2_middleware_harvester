@@ -1,6 +1,5 @@
 {
 	"name": "Debian (Cursor - DinD)",
-	"initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/cursor/ensure-gpg-mounts.sh",
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"context": ".."
@@ -12,17 +11,13 @@
 			"version": "28.5.1"
 		}
 	},
+	"containerEnv": {
+		"UV_LINK_MODE": "copy"
+	},
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/vscode/.gitconfig-host,type=bind,readonly",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.host-ssh,type=bind,readonly",
-		"source=${localWorkspaceFolder}/.devcontainer/cursor/.host-gpg-cache,target=/host-gpg,type=bind",
 		"source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume",
 		"source=middleware-harvester-bashhistory,target=/commandhistory,type=volume"
 	],
-	"containerEnv": {
-		"UV_LINK_MODE": "copy",
-		"GNUPGHOME": "/home/vscode/.gnupg"
-	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -56,9 +51,10 @@
 		"fix gh config permissions": "sudo mkdir -p /home/vscode/.config/gh && sudo chown -R vscode:vscode /home/vscode/.config/gh",
 		"install dependencies": "bash ${containerWorkspaceFolder}/scripts/uv-sync-dev.sh",
 		"install dev hooks": "bash ${containerWorkspaceFolder}/scripts/install-dev-hooks.sh",
-		"setup container git": "bash ${containerWorkspaceFolder}/scripts/setup-container-git.sh",
-		"setup container gpg": "bash ${containerWorkspaceFolder}/scripts/setup-container-gpg.sh",
-		"setup bashrc": "bash ${containerWorkspaceFolder}/scripts/setup-bashrc-load-env.sh",
+		"import public gpg keys": "bash ${containerWorkspaceFolder}/scripts/import-public-gpg-keys.sh"
+	},
+	"postStartCommand": {
+		"setup bashrc": "bash ${containerWorkspaceFolder}/scripts/setup-bashrc-load-env.sh"
 	},
 	"remoteUser": "vscode"
 }
