@@ -345,8 +345,13 @@ class CSWClient:
         fes_constraints: list[OgcExpression] | None,
         max_records: int | None,
     ) -> Iterator[InspireRecord | RecordProcessingError]:
-        """Retrieve all records using pagination, fetching chunk_size records per request."""
-        start_position = 0
+        """Retrieve all records using pagination, fetching chunk_size records per request.
+
+        CSW 2.0.2 ``startPosition`` is 1-based. Starting at 0 (OWSLib default) makes
+        servers treat the first page as position 1, then ``start += page_size`` requests
+        position ``page_size`` again and duplicates one record per page boundary.
+        """
+        start_position = 1
         records_yielded = 0
 
         while True:
@@ -369,10 +374,34 @@ class CSWClient:
             if max_records is not None and records_yielded >= max_records:
                 break
 
-            start_position += len(results)
+            next_start = self._next_start_position(start_position)
+            if next_start is None:
+                break
+            start_position = next_start
 
             if self._all_records_fetched(start_position):
                 break
+
+    def _next_start_position(self, current_start: int) -> int | None:
+        """Return the next 1-based CSW startPosition, or None when pagination is complete.
+
+        Prefers ``nextrecord`` from the last GetRecords response (0 means no more
+        records). Falls back to ``current_start + returned`` when the server omits it.
+        """
+        if self._csw is None:
+            return None
+
+        nextrecord = self._csw.results.get("nextrecord")
+        if isinstance(nextrecord, int):
+            if nextrecord <= 0:
+                return None
+            return nextrecord
+
+        returned = self._csw.results.get("returned")
+        if isinstance(returned, int) and returned > 0:
+            return current_start + returned
+
+        return None
 
     def _parse_iso_batch(
         self,

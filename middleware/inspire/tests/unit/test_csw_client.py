@@ -361,3 +361,61 @@ def test_get_record_count_raises_when_both_filters_are_configured() -> None:
 
     with pytest.raises(ValueError, match="Conflicting query parameters"):
         client.get_record_count()
+
+
+def test_next_start_position_prefers_nextrecord() -> None:
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    next_start = 51
+    csw.results = {"matches": 113, "returned": 50, "nextrecord": next_start}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._next_start_position(1) == next_start  # noqa: SLF001
+
+    csw.results = {"matches": 113, "returned": 13, "nextrecord": 0}
+    assert client._next_start_position(101) is None  # noqa: SLF001
+
+
+def test_next_start_position_falls_back_to_start_plus_returned() -> None:
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 113, "returned": 50, "nextrecord": None}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._next_start_position(1) == 1 + 50  # noqa: SLF001
+
+
+def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
+    """CSW startPosition is 1-based; pages must not request the previous boundary again."""
+    page_starts = [1, 51, 101]
+    nextrecords = [51, 101, 0]
+    last_full_page_index = 1
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        page_index = len(starts)
+        starts.append(start_position)
+        csw.results = {
+            "matches": 113,
+            "returned": 50 if page_index <= last_full_page_index else 13,
+            "nextrecord": nextrecords[page_index],
+        }
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == page_starts
