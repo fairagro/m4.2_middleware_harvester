@@ -19,6 +19,7 @@ from middleware.harvester.errors import (
     HarvesterError,
     RecordProcessingError,
     SkippedRecord,
+    failure_url_for_exception,
     format_exception_for_report,
 )
 from middleware.harvester.plugin_base import Plugin
@@ -241,7 +242,12 @@ async def _execute_harvest_upload(
             )
             detail = format_exception_for_report(e)
             logger.error("Repository '%s' (%s) failed and will be skipped: %s", repo.rdi, repo.plugin_type, detail)
-            state.failed_records.append(FailedRecord(message=detail, url=repo.source_url))
+            state.failed_records.append(
+                FailedRecord(
+                    message=detail,
+                    url=failure_url_for_exception(e) or repo.source_url,
+                )
+            )
 
     return HarvestUploadResult(
         harvest_id=harvest_id,
@@ -311,7 +317,12 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
-        failed_records.append(FailedRecord(message=detail, url=repo.source_url))
+        failed_records.append(
+            FailedRecord(
+                message=detail,
+                url=failure_url_for_exception(exc) or repo.source_url,
+            )
+        )
 
     if harvest_started:
         if harvested_datasets is None:
@@ -385,7 +396,12 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                                 harvested_datasets=0,
                                 failed_datasets=None,
                                 skipped_datasets=0,
-                                failed_records=(FailedRecord(message=detail, url=repo.source_url),),
+                                failed_records=(
+                                    FailedRecord(
+                                        message=detail,
+                                        url=failure_url_for_exception(result) or repo.source_url,
+                                    ),
+                                ),
                             )
                         )
                     else:

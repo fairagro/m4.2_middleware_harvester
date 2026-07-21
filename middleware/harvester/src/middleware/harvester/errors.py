@@ -18,6 +18,22 @@ _TIMEOUT_TYPE_NAMES = frozenset(
     }
 )
 
+_CONNECTION_TYPE_NAMES = frozenset(
+    {
+        "ConnectError",
+        "ConnectTimeout",
+        "NetworkError",
+        "ProxyError",
+        "UnsupportedProtocol",
+        "ProtocolError",
+        "RemoteProtocolError",
+        "LocalProtocolError",
+        "ReadError",
+        "WriteError",
+        "CloseError",
+    }
+)
+
 
 class HarvesterError(Exception):
     """Base exception for all Harvester and plugin-related errors."""
@@ -73,48 +89,137 @@ def _is_timeout_exception(exc: BaseException) -> bool:
     return type(exc).__name__ in _TIMEOUT_TYPE_NAMES
 
 
+def _is_connection_exception(exc: BaseException) -> bool:
+    """Return True for transport-level connection/network failures."""
+    name = type(exc).__name__
+    return name in _CONNECTION_TYPE_NAMES or isinstance(exc, ConnectionError | OSError)
+
+
+def _httpx_request_target(exc: BaseException) -> str | None:
+    """Return ``METHOD URL`` from an httpx RequestError when available."""
+    try:
+        request = getattr(exc, "request", None)
+    except RuntimeError:
+        # httpx raises when RequestError.request was never attached.
+        return None
+    if request is None:
+        return None
+    method = getattr(request, "method", None)
+    url = getattr(request, "url", None)
+    if method and url:
+        return f"{method} {url}"
+    if url:
+        return str(url)
+    return None
+
+
+def failure_url_for_exception(exc: BaseException) -> str | None:
+    """Return the HTTP request URL from an exception cause chain, if any."""
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        try:
+            request = getattr(current, "request", None)
+        except RuntimeError:
+            request = None
+        url = getattr(request, "url", None) if request is not None else None
+        if url is not None:
+            return str(url)
+        current = current.__cause__
+    return None
+
+
+def _os_error_detail(exc: BaseException) -> str | None:
+    """Return errno/strerror details for OSError-like exceptions."""
+    if not isinstance(exc, OSError):
+        return None
+    parts: list[str] = []
+    if getattr(exc, "errno", None) is not None:
+        parts.append(f"errno {exc.errno}")
+    strerror = getattr(exc, "strerror", None) or (str(exc.args[1]) if len(exc.args) > 1 else None)
+    if strerror:
+        parts.append(str(strerror))
+    elif str(exc).strip():
+        parts.append(str(exc).strip())
+    return ", ".join(parts) if parts else None
+
+
+def _category_for_exception(exc: BaseException) -> str | None:
+    """Return a short operator-facing category for the exception."""
+    status_code = getattr(exc, "status_code", None)
+    category: str | None = None
+    if isinstance(status_code, int):
+        category = f"HTTP {status_code}"
+    elif _is_timeout_exception(exc):
+        category = "timeout"
+    elif type(exc).__name__ == "ApiClientError" and exc.__cause__ is not None:
+        if _is_timeout_exception(exc.__cause__):
+            category = "timeout"
+        elif _is_connection_exception(exc.__cause__):
+            category = "API connection failed (request may not have reached the server)"
+        else:
+            category = "API request error"
+    elif type(exc).__name__ == "ConnectError":
+        category = "connection failed before HTTP response"
+    elif _is_connection_exception(exc):
+        category = "connection/network error"
+    return category
+
+
+def _detail_for_exception(exc: BaseException) -> str:
+    """Build the human-readable detail part for one exception segment."""
+    message = str(exc).strip()
+    request_target = _httpx_request_target(exc)
+    os_detail = _os_error_detail(exc)
+
+    bits: list[str] = []
+    if request_target:
+        bits.append(f"while calling {request_target}")
+
+    if _is_timeout_exception(exc) and not message:
+        bits.append("request timed out")
+    elif message in {"Request failed:", "Request failed"}:
+        cause = exc.__cause__
+        if cause is not None and _is_timeout_exception(cause):
+            bits.append("Request failed: request timed out")
+        elif cause is not None and _is_connection_exception(cause):
+            bits.append(
+                "Request failed: could not establish or keep TCP/TLS connection to the Middleware API "
+                "(often leaves no API-side log entry)"
+            )
+        else:
+            bits.append("Request failed: (no details from client)")
+    elif message:
+        bits.append(message)
+    elif os_detail:
+        bits.append(os_detail)
+    elif _is_timeout_exception(exc):
+        bits.append("request timed out")
+    else:
+        bits.append("(no message)")
+
+    if os_detail and os_detail not in bits[-1]:
+        bits.append(os_detail)
+
+    return "; ".join(bits)
+
+
 def _format_exception_segment(exc: BaseException) -> str:
     """Format a single exception without walking its cause chain."""
     label = _exception_type_label(exc)
-    message = str(exc).strip()
-    status_code = getattr(exc, "status_code", None)
-
-    qualifiers: list[str] = []
-    if _is_timeout_exception(exc):
-        qualifiers.append("timeout")
-    if isinstance(status_code, int):
-        qualifiers.append(f"HTTP {status_code}")
-    elif status_code is None and type(exc).__name__ == "ApiClientError" and exc.__cause__ is not None:
-        # Connection/timeout failures from the API client have no HTTP status.
-        if _is_timeout_exception(exc.__cause__):
-            qualifiers.append("timeout")
-        else:
-            qualifiers.append("connection/request error")
-
-    suffix = f" [{', '.join(qualifiers)}]" if qualifiers else ""
-
-    if _is_timeout_exception(exc) and not message:
-        return f"{label}{suffix}: request timed out"
-
-    # ApiClient often builds "Request failed: " with an empty httpx message.
-    if message in {"Request failed:", "Request failed"}:
-        if _is_timeout_exception(exc) or (exc.__cause__ is not None and _is_timeout_exception(exc.__cause__)):
-            return f"{label}{suffix}: Request failed: request timed out"
-        return f"{label}{suffix}: Request failed: (no details from client)"
-
-    if message:
-        return f"{label}{suffix}: {message}"
-
-    return f"{label}{suffix}: (no message)"
+    category = _category_for_exception(exc)
+    suffix = f" [{category}]" if category else ""
+    return f"{label}{suffix}: {_detail_for_exception(exc)}"
 
 
 def format_exception_for_report(exc: BaseException) -> str:
     """Build a log/report message that keeps timeout and cause details visible.
 
-    ``ApiClientError`` often wraps ``httpx.ReadTimeout`` (and similar) with an
-    empty string representation, which previously produced useless messages like
-    ``Request failed: ``. This helper always includes the exception type and walks
-    ``__cause__`` so operators can see e.g. ``httpx.ReadTimeout [timeout]``.
+    ``ApiClientError`` often wraps ``httpx.ConnectError`` / ``ReadTimeout`` with an
+    empty string representation. This helper always includes exception types, the
+    attempted HTTP target when present on the httpx error, OS-level errno details,
+    and walks ``__cause__``.
     """
     parts: list[str] = []
     current: BaseException | None = exc
