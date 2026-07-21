@@ -57,7 +57,7 @@ class CSWClient:
         csw_title = None
         if self._csw and hasattr(self._csw, "identification") and self._csw.identification:
             csw_title = getattr(self._csw.identification, "title", None)
-        logger.info("Connected to CSW: %s", csw_title)
+        logger.info("Connected to CSW at %s: %s", self._config.csw_url, csw_title)
 
     def connect(self) -> None:
         """Connect to the CSW service."""

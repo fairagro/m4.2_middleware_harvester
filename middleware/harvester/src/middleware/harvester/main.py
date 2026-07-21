@@ -78,26 +78,26 @@ def _apply_client_errors(
 
 def _handle_plugin_error(
     item: HarvesterError,
-    plugin_type: str,
+    rdi: str,
     failed_records: list[FailedRecord],
 ) -> None:
     """Log a plugin-level error and append a FailedRecord."""
     if isinstance(item, RecordProcessingError):
         logger.error(
-            "Processing error in plugin '%s' for record '%s': %s",
-            plugin_type,
+            "Processing error in repository '%s' for record '%s': %s",
+            rdi,
             item.record_id,
             item,
         )
         failed_records.append(FailedRecord(message=str(item), record_id=item.record_id, url=item.url))
     else:
-        logger.error("Processing error in plugin '%s': %s", plugin_type, item)
+        logger.error("Processing error in repository '%s': %s", rdi, item)
         failed_records.append(FailedRecord(message=str(item)))
 
 
-def _handle_skipped_record(item: SkippedRecord, plugin_type: str) -> None:
+def _handle_skipped_record(item: SkippedRecord, rdi: str) -> None:
     """Log a skipped plugin item at INFO level."""
-    logger.info("Skipped record in plugin '%s': %s", plugin_type, item)
+    logger.info("Skipped record in repository '%s': %s", rdi, item)
 
 
 @dataclass
@@ -113,19 +113,19 @@ class _ArcStreamState:
 
 async def _arc_stream(
     gen: AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None],
-    plugin_type: str,
+    rdi: str,
     state: _ArcStreamState,
 ) -> AsyncGenerator[str, None]:
     async for item in gen:
         if isinstance(item, SkippedRecord):
             state.skipped_datasets += 1
-            _handle_skipped_record(item, plugin_type)
+            _handle_skipped_record(item, rdi)
             continue
         if isinstance(item, HarvesterError):
             if state.failed_datasets is None:
                 state.failed_datasets = 0
             state.failed_datasets += 1
-            _handle_plugin_error(item, plugin_type, state.failed_records)
+            _handle_plugin_error(item, rdi, state.failed_records)
             continue
         arc_json, source_url = item
         if source_url is not None:
@@ -173,7 +173,7 @@ async def _execute_harvest_upload(
                     )
                     result = await client.harvest_arcs(
                         rdi=repo.rdi,
-                        arcs=_arc_stream(plugin_gen, repo.plugin_type, state),
+                        arcs=_arc_stream(plugin_gen, repo.rdi, state),
                         expected_datasets=expected_datasets,
                     )
                     harvest_id = result.harvest_id
@@ -190,7 +190,8 @@ async def _execute_harvest_upload(
                         state.harvested_datasets if state.harvested_datasets is not None else 0,
                     )
                     logger.info(
-                        "Finished processing repository %s. Harvest: %s",
+                        "Finished processing repository %s (%s). Harvest: %s",
+                        repo.rdi,
                         repo.plugin_type,
                         harvest_id,
                     )
@@ -224,7 +225,7 @@ async def _execute_harvest_upload(
                 "harvester.arcs_uploaded",
                 state.harvested_datasets if state.harvested_datasets is not None else 0,
             )
-            logger.error("Repository '%s' failed and will be skipped: %s", repo.plugin_type, e)
+            logger.error("Repository '%s' (%s) failed and will be skipped: %s", repo.rdi, repo.plugin_type, e)
             state.failed_records.append(FailedRecord(message=f"{type(e).__name__}: {e}", url=repo.source_url))
 
     return HarvestUploadResult(
@@ -238,7 +239,7 @@ async def _execute_harvest_upload(
 
 
 async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: trace.Tracer) -> RepositoryReport:
-    logger.info("Initializing plugin type: %s", repo.plugin_type)
+    logger.info("Initializing repository %s (%s)", repo.rdi, repo.plugin_type)
     start_time = datetime.now(UTC)
 
     expected_datasets: int | None = None
@@ -251,7 +252,7 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
 
     plugin_factory = _PLUGIN_FACTORIES.get(repo.plugin_type)
     if plugin_factory is None:
-        logger.error("Unknown repository type '%s', skipping...", repo.plugin_type)
+        logger.error("Unknown repository type '%s' for repository '%s', skipping...", repo.plugin_type, repo.rdi)
         return RepositoryReport(
             rdi=repo.rdi,
             harvest_id=None,

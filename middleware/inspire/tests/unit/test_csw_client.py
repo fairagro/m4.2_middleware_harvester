@@ -49,7 +49,7 @@ def test_connect_logs_cs_title_on_success(caplog: pytest.LogCaptureFixture) -> N
         client.connect()
 
     assert object.__getattribute__(client, "_csw") is fake_csw
-    assert "Connected to CSW: Test CSW" in caplog.text
+    assert "Connected to CSW at https://example.com/csw: Test CSW" in caplog.text
 
 
 def test_get_record_count_parses_list_matches() -> None:
