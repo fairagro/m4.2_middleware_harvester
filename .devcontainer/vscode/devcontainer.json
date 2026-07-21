@@ -52,7 +52,7 @@
 		"setup container gpg": "bash ${containerWorkspaceFolder}/scripts/setup-container-gpg.sh"
 	},
 	"postStartCommand": {
-		"setup bashrc": "grep -qF 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' ~/.bashrc || echo 'source \\${containerWorkspaceFolder}/scripts/load-env.sh' >> ~/.bashrc"
+		"setup bashrc": "bash ${containerWorkspaceFolder}/scripts/setup-bashrc-load-env.sh"
 	},
 	"remoteUser": "vscode"
 }

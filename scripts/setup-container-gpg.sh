@@ -16,7 +16,7 @@ grep -qF use-agent ~/.gnupg/gpg.conf 2>/dev/null || echo use-agent >> ~/.gnupg/g
 if [ -S /host-gpg/S.gpg-agent.extra ]; then
     ln -sf /host-gpg/S.gpg-agent.extra ~/.gnupg/S.gpg-agent
 else
-    echo "WARN: host gpg-agent socket missing — run gpg on host, then devpod up --recreate"
+    echo "WARN: host gpg-agent socket missing — run gpg on host, then rebuild/reopen devcontainer"
 fi
 
 # Writable copy: a readonly bind-mounted trustdb symlink breaks gpg --import on recreate.

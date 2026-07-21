@@ -9,7 +9,8 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 venv_python="${repo_root}/.venv/bin/python"
 
 _venv_usable() {
-    [ -x "$venv_python" ] && "$venv_python" -c 'pass' 2>/dev/null
+    [ -x "$venv_python" ] && "$venv_python" -c 'pass' 2>/dev/null \
+        && "$venv_python" -m pre_commit --version &>/dev/null
 }
 
 if ! _venv_usable; then
@@ -29,7 +30,7 @@ git_hooks_dir="$(git -C "${repo_root}" rev-parse --git-path hooks 2>/dev/null ||
 hook="${git_hooks_dir}/pre-commit"
 if [ ! -f "$hook" ] || ! grep -Fq "INSTALL_PYTHON=${venv_python}" "$hook" 2>/dev/null; then
     echo "🔧 Installing pre-commit hooks..."
-    (cd "${repo_root}" && uv run pre-commit install --hook-type pre-commit)
+    (cd "${repo_root}" && "${venv_python}" -m pre_commit install --hook-type pre-commit)
 else
     echo "✅ pre-commit hook up to date"
 fi

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# DevPod re-injects credsStore=devpod into ~/.docker/config.json on every docker call.
-# Inside DinD the agent on localhost:12049 is often unreachable. Use a repo-local
-# DOCKER_CONFIG without credsStore for public docker.io pulls.
+# DinD devcontainers may inherit a host ~/.docker/config.json with credential helpers
+# that are unreachable inside the container. Use a repo-local DOCKER_CONFIG for
+# public docker.io pulls.
 
 setup_devcontainer_docker_config() {
     local repo_root="${1:?repo root required}"
@@ -18,5 +18,5 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     set -euo pipefail
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     setup_devcontainer_docker_config "$(cd "${script_dir}/.." && pwd)"
-    echo "✅ Using DOCKER_CONFIG=${DOCKER_CONFIG} (bypasses DevPod credsStore in ~/.docker)"
+    echo "✅ Using DOCKER_CONFIG=${DOCKER_CONFIG} (isolated from host ~/.docker credentials)"
 fi

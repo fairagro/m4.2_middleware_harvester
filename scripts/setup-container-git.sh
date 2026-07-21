@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Container Git setup: copy read-only host ~/.gitconfig-host to writable ~/.gitconfig
-# and replace DevPod's credential.helper (port 12049) with gh.
+# and use gh for Git credentials inside the devcontainer.
 #
 # gh auth lives in ~/.config/gh (Docker volume middleware-harvester-gh-config).
-
-set -euo pipefail
 
 setup_container_git() {
     local host_gitconfig="${HOME}/.gitconfig-host"
@@ -14,7 +12,7 @@ setup_container_git() {
     if [[ -f "${host_gitconfig}" ]]; then
         cp "${host_gitconfig}" "${gitconfig}"
         chmod 600 "${gitconfig}"
-        # Host config often points at DevPod's broken in-container agent.
+        # Host credential helpers are usually not usable inside the container.
         git config --file "${gitconfig}" --unset-all credential.helper 2>/dev/null || true
         git config --file "${gitconfig}" --add credential.helper '!gh auth git-credential'
     else
@@ -35,9 +33,10 @@ setup_container_git() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -euo pipefail
     setup_container_git
     echo "✅ Git: copied ~/.gitconfig-host → ~/.gitconfig"
-    echo "   credential.helper → gh auth git-credential (DevPod helper removed)"
+    echo "   credential.helper → gh auth git-credential"
     if gh auth status &>/dev/null; then
         echo "✅ gh: authenticated (~/.config/gh volume)"
     else

@@ -229,3 +229,4 @@ dev_environment/demo_output
 docker/Dockerfile.harvester.bak
 .docker/devcontainer/
 !.docker/devcontainer/config.json
+.devcontainer/*/.host-gpg-cache/

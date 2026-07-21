@@ -54,5 +54,16 @@
   "pylint.args": [
     "--rcfile=${workspaceFolder}/pyproject.toml"
   ],
-  "pylint.importStrategy": "fromEnvironment"
+  "pylint.importStrategy": "fromEnvironment",
+  "cursorpyright.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/.venv",
+    "**/venv",
+    "dev_environment"
+  ],
+  "cursorpyright.analysis.extraPaths": [
+    "middleware/inspire/src"
+  ]
 }

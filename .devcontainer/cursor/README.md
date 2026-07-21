@@ -1,6 +1,7 @@
-# Cursor devcontainer (DevPod)
+# Cursor devcontainer
 
-Used by `scripts/start-devcontainer-cursor.sh` with DevPod + Cursor.
+Open with **Dev Containers: Reopen in Container** in Cursor (same flow as VS Code).
+Configuration: `.devcontainer/cursor/devcontainer.json`.
 
 ## Host bind mounts
 
@@ -11,24 +12,22 @@ Used by `scripts/start-devcontainer-cursor.sh` with DevPod + Cursor.
 | GitHub CLI auth | Docker volume `middleware-harvester-gh-config` → `~/.config/gh` | all |
 | GPG agent + trustdb | `${localWorkspaceFolder}/.devcontainer/cursor/.host-gpg-cache` → `/host-gpg` | all |
 
-`ensure-gpg-mounts.sh` runs via `initializeCommand` (and from `start-devcontainer-cursor.sh`).
+`ensure-gpg-mounts.sh` runs via `initializeCommand` before the container is created.
 Empty stub files are committed so the bind mount works even if the script cannot run.
 On Linux with a running host GPG agent it hard-links the agent socket and copies
 `trustdb.gpg`; otherwise stubs remain and container creation still succeeds.
 
-`start-devcontainer-cursor.sh` creates an empty `~/.ssh` on the host if missing so the SSH
-bind mount always succeeds.
+Ensure `~/.ssh` exists on the host (empty directory is fine) so the SSH bind mount succeeds.
 
-## Git credentials (DevPod workaround)
+## Git credentials
 
 The host `~/.gitconfig` is bind-mounted read-only at `~/.gitconfig-host`.
 `scripts/setup-container-git.sh` copies it to writable `~/.gitconfig`, replaces
-`credential.helper` with `!gh auth git-credential` (dropping DevPod's port 12049 agent),
-and refreshes on every shell via `load-env.sh`.
+`credential.helper` with `!gh auth git-credential`, and refreshes on every shell via
+`load-env.sh`.
 
 **gh auth** is stored in a **container volume** (`~/.config/gh`), not on the host — a host
-`~/.config/gh` directory is not required. Run once per DevPod machine (survives
-`--recreate`):
+`~/.config/gh` directory is not required. Run once per devcontainer (survives rebuild):
 
 ```bash
 gh auth login
@@ -39,11 +38,11 @@ gh auth login
 Host GPG files are exposed through a cache directory bind-mounted at `/host-gpg`.
 `ensure-gpg-mounts.sh` prepares that directory before the container is created.
 
-On Linux with systemd, ensure the host agent is running before recreate:
+On Linux with systemd, ensure the host agent is running before rebuild:
 
 ```bash
 gpg -K
-devpod up --recreate   # or reopen the devcontainer in Cursor
+# Dev Containers: Rebuild Container (or Reopen in Container)
 ```
 
 When no agent socket is available (macOS, Windows, or cloud hosts), stub files are
@@ -91,6 +90,3 @@ This devcontainer variant does not support host GPG agent forwarding. Options:
 
 2. **Rely on stub mounts** — the container starts without host agent forwarding; decrypt
    `.env` on the host (option 1) or use `public_gpg_keys/` for encrypt-only workflows.
-
-DevPod’s `--gpg-agent-forwarding` flag is not used here; it is a separate code path and
-was found unreliable on some Linux hosts.
