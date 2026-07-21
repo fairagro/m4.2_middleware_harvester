@@ -35,4 +35,4 @@ def test_user_agent_defaults_to_the_fallback_string() -> None:
         payload_type=PayloadType.general,
         http=NiceHttpClientConfig(),
     )
-    assert config.http.user_agent == "FAIRagro-Harvester/2.0 (dataservice@fairagro.net)"
+    assert config.http.user_agent == "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
