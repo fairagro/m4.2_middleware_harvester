@@ -11,6 +11,7 @@ from dataclasses import dataclass
 _TIMEOUT_TYPE_NAMES = frozenset(
     {
         "TimeoutException",
+        "TimeoutError",
         "ReadTimeout",
         "WriteTimeout",
         "ConnectTimeout",

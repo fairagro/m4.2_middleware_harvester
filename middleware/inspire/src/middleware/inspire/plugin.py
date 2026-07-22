@@ -44,7 +44,7 @@ class InspirePlugin(Plugin):
 
                 if record.hierarchy and record.hierarchy.lower() not in _HARVESTABLE_HIERARCHIES:
                     reason = f"Skipping non-dataset record {record.identifier} (hierarchy level: {record.hierarchy})"
-                    logger.info(reason)
+                    logger.debug(reason)
                     yield SkippedRecord(reason, record_url)
                     continue
 

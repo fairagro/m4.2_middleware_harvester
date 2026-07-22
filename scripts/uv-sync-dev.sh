@@ -13,6 +13,7 @@ _venv_script_shebang_stale() {
     [ ! -f "$script" ] && return 1
     local shebang
     shebang=$(head -1 "$script" | sed 's/^#!//')
+    shebang=${shebang%% *}
     [ -n "$shebang" ] && [ ! -x "$shebang" ]
 }
 
