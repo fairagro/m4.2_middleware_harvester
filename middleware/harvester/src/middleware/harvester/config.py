@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field, model_validator
 
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.inspire.config import Config as InspireConfig
-from middleware.schema_org.config import Config as SchemaOrgConfig
+from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.shared.config.config_base import ConfigBase
 
 # Union of all plugin config types. Extend when adding a new plugin.
-PluginConfig = InspireConfig | SchemaOrgConfig
+PluginConfig = InspireConfig | LinkedDataConfig
 
 
 class RepositoryConfig(BaseModel):
@@ -35,9 +35,9 @@ class RepositoryConfig(BaseModel):
         InspireConfig | None,
         Field(description="INSPIRE CSW plugin configuration"),
     ] = None
-    schema_org: Annotated[
-        SchemaOrgConfig | None,
-        Field(description="Schema.org harvesting plugin configuration"),
+    linked_data: Annotated[
+        LinkedDataConfig | None,
+        Field(description="Linked Data harvesting plugin configuration"),
     ] = None
 
     @model_validator(mode="after")

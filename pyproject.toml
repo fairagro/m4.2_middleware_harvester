@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
   "inspire",
   "harvester",
-  "schema_org",
+  "linked_data",
 ]
 
 [dependency-groups]
@@ -34,13 +34,13 @@ dev = [
 [tool.uv.sources]
 inspire = { workspace = true }
 harvester = { workspace = true }
-schema_org = { workspace = true }
+linked_data = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "middleware/inspire",
     "middleware/harvester",
-    "middleware/schema_org",
+    "middleware/linked_data",
 ]
 
 # ggshield 1.51.0 pins old transitive deps; override until upstream bumps.
@@ -126,8 +126,8 @@ namespace_packages = true
 mypy_path = [
   "middleware/inspire/src",
   "middleware/harvester/src",
-  "middleware/schema_org/src",
-  "middleware/schema_org/tests/unit",
+  "middleware/linked_data/src",
+  "middleware/linked_data/tests/unit",
 ]
 
 # Exclude directories from type checking
@@ -165,13 +165,13 @@ convention = "pep257" # oder "numpy", oder "google"
 testpaths = [
     "middleware/inspire/tests",
     "middleware/harvester/tests",
-    "middleware/schema_org/tests"
+    "middleware/linked_data/tests"
 ]
 pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
-    "middleware/schema_org/src",
-    "middleware/schema_org/tests/unit"
+    "middleware/linked_data/src",
+    "middleware/linked_data/tests/unit"
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -207,7 +207,7 @@ filterwarnings = [
 source = [
     "middleware/inspire/src/middleware/inspire",
     "middleware/harvester/src/middleware/harvester",
-    "middleware/schema_org/src/middleware/schema_org"
+    "middleware/linked_data/src/middleware/linked_data"
 ]
 omit = [
     "*/tests/*",

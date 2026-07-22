@@ -8,7 +8,7 @@ repositories:
       cql_query: ~
       xml_query: ~
   - rdi: "edal"
-    schema_org:
+    linked_data:
       url: https://doi.ipk-gatersleben.de/sitemap.xml
       sitemap_type: xml
       dataset_type: html_jsonld

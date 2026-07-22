@@ -17,7 +17,7 @@ middleware/harvester/report.py
 ├── RepositoryReport            # skipped_datasets: int = 0 field added
 └── JSON-LD serialiser          # fairagro:skippedDatasets always emitted
 
-middleware/schema_org/plugin.py
+middleware/linked_data/plugin.py
 └── _process_result()           # DuplicateUrlDiscoveryResult → SkippedRecord
 ```
 

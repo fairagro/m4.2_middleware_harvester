@@ -78,7 +78,7 @@ async def _run_orchestrator_with_test_plugins(
     expected_datasets: int,
 ) -> HarvestReport:
     with (
-        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": SuccessPlugin, "schema_org": FailingPlugin}),
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": SuccessPlugin, "linked_data": FailingPlugin}),
         patch("middleware.harvester.main.ApiClient", return_value=mock_client),
         patch.object(SuccessPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
         patch.object(FailingPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
@@ -272,7 +272,7 @@ async def test_skipped_record_items_are_counted_and_not_uploaded() -> None:
 
 @pytest.mark.asyncio
 async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets() -> None:
-    repos = [_make_repo("inspire"), _make_repo("schema_org")]
+    repos = [_make_repo("inspire"), _make_repo("linked_data")]
     mock_config = MagicMock()
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()

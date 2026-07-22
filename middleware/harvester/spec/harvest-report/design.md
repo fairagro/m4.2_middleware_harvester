@@ -49,7 +49,7 @@ iterating over `_run_repository` results, builds a `HarvestReport`, and calls
    `Action` type is the closest standard match.  Each per-RDI result entry is
    an `EntryPoint` (a named interaction point in the system), which captures
    the identifier/name pair natively.  PROV-O `Activity` was considered but
-   rejected because schema.org is already used in the schema_org plugin and
+   rejected because schema.org is already used in the linked_data plugin and
    requires no additional namespace declaration.
 
 3. **Custom `fairagro:` prefix for domain statistics**

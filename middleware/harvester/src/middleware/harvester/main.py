@@ -25,7 +25,7 @@ from middleware.harvester.errors import (
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
-from middleware.schema_org.plugin import SchemaOrgPlugin
+from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.shared.tracing import initialize_logging, initialize_tracing
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 _PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
-    "schema_org": SchemaOrgPlugin,
+    "linked_data": LinkedDataPlugin,
 }
 
 

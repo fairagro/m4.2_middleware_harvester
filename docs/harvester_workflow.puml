@@ -12,7 +12,7 @@ partition "Per repository (concurrent)" {
       :Map to ARC;
       :Serialize to RO-Crate JSON-LD;
     }
-  case (schema_org)
+  case (linked_data)
     :Discover dataset URLs\n(XML Sitemap / MyCoRe Solr request);
     partition "Per dataset (concurrent)" {
       :Fetch dataset landing page;

@@ -9,7 +9,7 @@ dependencies = [
     "fairagro-middleware-api-client>=8.8.1.dev12",
     "fairagro-middleware-shared>=8.8.1.dev12",
     "inspire",
-    "schema_org",
+    "linked_data",
 ]
 
 [build-system]

@@ -229,7 +229,7 @@ config:
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
-  # -- plugin type (inspire or schema_org).
+  # -- plugin type (inspire or linked_data).
   repositories:
 
     # -------------------------------------------------------------------------
@@ -266,7 +266,7 @@ config:
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-openagrar"
-      schema_org:
+      linked_data:
         # -- Sitemap entry point URL (required).
         sitemap_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
         # -- Sitemap protocol. Allowed: xml | mycore_solr
@@ -304,7 +304,7 @@ config:
     # Example 3: Schema.org via MyCoRe Solr discovery source
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-mycore-solr"
-      schema_org:
+      linked_data:
         sitemap_url: "https://repository.example.org/api/v2/search/objects"
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
