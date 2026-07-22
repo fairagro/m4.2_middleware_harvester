@@ -32,9 +32,12 @@
   ],
   "mypy-type-checker.preferDaemon": false,
 
-  // Ruff Extension Settings - ensure consistency with script
+  // Ruff: same binary as `uv run ruff` / pre-commit (project .venv).
+  // ruff.path must be ruff executables only — NOT ["uv","run","ruff"]
+  // (that would pick `uv` as the binary and break formatOnSave silently).
   "ruff.configuration": "./pyproject.toml",
-  "ruff.path": ["uv", "run", "ruff"],
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "ruff.importStrategy": "fromEnvironment",
 
   "python.analysis.extraPaths": [

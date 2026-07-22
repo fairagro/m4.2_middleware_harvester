@@ -3,7 +3,7 @@
 import logging
 from collections.abc import AsyncGenerator
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError
+from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import Plugin
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
@@ -11,6 +11,8 @@ from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import InspireRecord
 
 logger = logging.getLogger(__name__)
+
+_HARVESTABLE_HIERARCHIES = frozenset({"dataset", "series", "nongeographicdataset"})
 
 
 class InspirePlugin(Plugin):
@@ -20,11 +22,11 @@ class InspirePlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
 
-    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
-        """Run the harvest process and yield (arc_json, source_url) pairs or errors."""
+    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+        """Run the harvest process and yield (arc_json, source_url) pairs, errors, or skips."""
         return self._run()
 
-    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
         mapper = InspireMapper()
         count = 0
@@ -40,16 +42,10 @@ class InspirePlugin(Plugin):
                 record = item
                 record_url = csw_client.get_record_url(record.identifier)
 
-                if record.hierarchy and record.hierarchy.lower() not in [
-                    "dataset",
-                    "series",
-                    "nongeographicdataset",
-                ]:
-                    logger.info(
-                        "Skipping non-dataset record %s (Type: %s)",
-                        record.identifier,
-                        record.hierarchy,
-                    )
+                if record.hierarchy and record.hierarchy.lower() not in _HARVESTABLE_HIERARCHIES:
+                    reason = f"Skipping non-dataset record {record.identifier} (hierarchy level: {record.hierarchy})"
+                    logger.info(reason)
+                    yield SkippedRecord(reason, record_url)
                     continue
 
                 logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
