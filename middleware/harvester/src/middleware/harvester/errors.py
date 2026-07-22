@@ -91,9 +91,14 @@ def _is_timeout_exception(exc: BaseException) -> bool:
 
 
 def _is_connection_exception(exc: BaseException) -> bool:
-    """Return True for transport-level connection/network failures."""
+    """Return True for transport-level connection/network failures.
+
+    Matches httpx transport error type names and ``ConnectionError`` (including
+    subclasses such as ``ConnectionResetError``). Broader ``OSError`` subtypes
+    like ``FileNotFoundError`` are intentionally excluded.
+    """
     name = type(exc).__name__
-    return name in _CONNECTION_TYPE_NAMES or isinstance(exc, (ConnectionError, OSError))
+    return name in _CONNECTION_TYPE_NAMES or isinstance(exc, ConnectionError)
 
 
 def _httpx_request_target(exc: BaseException) -> str | None:

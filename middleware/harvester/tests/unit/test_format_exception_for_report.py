@@ -62,6 +62,14 @@ def test_format_exception_for_report_does_not_duplicate_oserror_detail() -> None
     assert "[Errno 104]" not in message
 
 
+def test_format_exception_for_report_does_not_treat_file_not_found_as_connection() -> None:
+    message = format_exception_for_report(FileNotFoundError(2, "No such file"))
+
+    assert "connection/network error" not in message
+    assert "FileNotFoundError" in message
+    assert "errno 2" in message
+
+
 @pytest.mark.parametrize(
     ("exc", "needle"),
     [
