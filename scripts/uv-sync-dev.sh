@@ -10,7 +10,7 @@ cd "${repo_root}"
 
 _venv_script_shebang_stale() {
     local script="${1:?script path required}"
-    [ ! -f "$script" ] && return 0
+    [ ! -f "$script" ] && return 1
     local shebang
     shebang=$(head -1 "$script" | sed 's/^#!//')
     [ -n "$shebang" ] && [ ! -x "$shebang" ]
