@@ -31,20 +31,20 @@ repos:
         language: system
         pass_filenames: false
 
-      # Ruff - Linting
+      # Ruff - Linting (same as CI: uv run ruff check)
       - id: ruff
         name: ruff lint
         entry: uv run ruff check --no-fix
         language: system
         types: [python]
 
-      # Ruff - Formatting
+      # Ruff - Formatting (same as CI: uv run ruff format --check --diff)
+      # IDE: formatOnSave via .venv/bin/ruff + pyproject.toml (same lockfile binary).
       - id: ruff-format
         name: ruff format
-        entry: uv run ruff format
+        entry: uv run ruff format --check --diff
         language: system
         types: [python]
-        args: [--check]
 
       # mypy - Type checking
       - id: mypy
