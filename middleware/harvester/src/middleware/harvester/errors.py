@@ -92,8 +92,7 @@ def _is_timeout_exception(exc: BaseException) -> bool:
 def _is_connection_exception(exc: BaseException) -> bool:
     """Return True for transport-level connection/network failures."""
     name = type(exc).__name__
-    return name in _CONNECTION_TYPE_NAMES or isinstance(exc, ConnectionError | OSError)
-
+    return name in _CONNECTION_TYPE_NAMES or isinstance(exc, (ConnectionError, OSError))
 
 def _httpx_request_target(exc: BaseException) -> str | None:
     """Return ``METHOD URL`` from an httpx RequestError when available."""
