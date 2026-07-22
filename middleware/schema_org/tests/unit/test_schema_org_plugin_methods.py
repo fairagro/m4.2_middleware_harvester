@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from rdflib import Graph
 from test_fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
@@ -205,7 +206,7 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
         return FakeSitemap(["https://example.org/dataset/slow"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.side_effect = lambda graph: f"mapped:{graph}"
+    mock_mapper.map_graph.return_value = "mapped:arc"
 
     monkeypatch.setattr(
         "middleware.schema_org.plugin.SchemaOrgPlugin.create_sitemap",
@@ -219,7 +220,10 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
 
     results = [item async for item in SchemaOrgPlugin(config).run()]
 
-    assert results == [("mapped:graph:https://example.org/dataset/slow", "https://example.org/dataset/slow")]
+    assert results == [("mapped:arc", "https://example.org/dataset/slow")]
+    mock_mapper.map_graph.assert_called_once()
+    (graph_arg,) = mock_mapper.map_graph.call_args.args
+    assert isinstance(graph_arg, Graph)
 
 
 @pytest.mark.asyncio

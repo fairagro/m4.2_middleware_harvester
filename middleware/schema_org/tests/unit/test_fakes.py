@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 import httpx
+from rdflib import Graph
 
 from middleware.schema_org.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.schema_org.dataset import DiscoveryResult, UrlDiscoveryResult
@@ -56,10 +57,10 @@ class BadFakeDataset:
             del client, config
         raise SchemaOrgError("bad dataset")
 
-    async def to_graph(self) -> str:
-        """Simulate dataset graph conversion."""
+    async def to_graph(self) -> Graph:
+        """Simulate dataset graph conversion (unreachable when from_discovery_result fails)."""
         await asyncio.sleep(0)
-        return f"graph:{self._url}"
+        return Graph()
 
 
 class GoodFakeDataset:
@@ -86,10 +87,10 @@ class GoodFakeDataset:
             del client, config
         return cls(discovery_result.url)
 
-    async def to_graph(self) -> str:
-        """Simulate successful dataset graph conversion."""
+    async def to_graph(self) -> Graph:
+        """Return an empty rdflib Graph, matching Dataset.to_graph()."""
         await asyncio.sleep(0)
-        return f"graph:{self._url}"
+        return Graph()
 
 
 _MINIMAL_CONFIG = Config(

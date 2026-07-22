@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from rdflib import Graph
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
@@ -60,10 +61,10 @@ class FakeDataset:
         del client, config
         return cls(discovery_result.url)
 
-    async def to_graph(self) -> str:
-        """Return a dummy graph payload for the fake dataset."""
+    async def to_graph(self) -> Graph:
+        """Return an empty rdflib Graph, matching Dataset.to_graph()."""
         await asyncio.sleep(0)
-        return f"graph:{self._url}"
+        return Graph()
 
 
 @pytest.mark.asyncio
@@ -98,6 +99,8 @@ async def test_schema_org_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mon
 
     assert results == [("mapped:graph", "https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
+    (graph_arg,) = mock_mapper.map_graph.call_args.args
+    assert isinstance(graph_arg, Graph)
     assert isinstance(results[0], tuple)
     assert isinstance(results[0][0], str)
 
