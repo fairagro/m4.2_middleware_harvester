@@ -374,7 +374,7 @@ class CSWClient:
             if max_records is not None and records_yielded >= max_records:
                 break
 
-            next_start = self._next_start_position(start_position)
+            next_start = self._next_start_position(start_position, records_in_batch=len(results))
             if next_start is None:
                 break
             if next_start <= start_position:
@@ -389,25 +389,59 @@ class CSWClient:
             if self._all_records_fetched(start_position):
                 break
 
-    def _next_start_position(self, current_start: int) -> int | None:
+    def _next_start_position(self, current_start: int, records_in_batch: int | None = None) -> int | None:
         """Return the next 1-based CSW startPosition, or None when pagination is complete.
 
         Prefers ``nextrecord`` from the last GetRecords response (0 means no more
-        records). Falls back to ``current_start + returned`` when the server omits it.
+        records). Falls back to ``current_start + returned``, then to
+        ``current_start + records_in_batch`` when ``matches`` still indicates
+        unread records (broken/incomplete CSW result metadata).
         """
         if self._csw is None:
             return None
 
-        nextrecord = self._csw.results.get("nextrecord")
-        if isinstance(nextrecord, int):
+        nextrecord = self._coerce_result_int(self._csw.results.get("nextrecord"))
+        if nextrecord is not None:
             if nextrecord <= 0:
                 return None
             return nextrecord
 
-        returned = self._csw.results.get("returned")
-        if isinstance(returned, int) and returned > 0:
+        returned = self._coerce_result_int(self._csw.results.get("returned"))
+        if returned is not None and returned > 0:
             return current_start + returned
 
+        batch_len = records_in_batch
+        if batch_len is None and self._csw.records:
+            batch_len = len(self._csw.records)
+        matches = self._coerce_result_int(self._csw.results.get("matches"))
+        if isinstance(batch_len, int) and batch_len > 0 and matches is not None:
+            next_start = current_start + batch_len
+            if next_start <= matches:
+                logger.warning(
+                    "CSW response missing nextrecord/returned; advancing by batch length %s "
+                    "to startPosition %s (matches=%s).",
+                    batch_len,
+                    next_start,
+                    matches,
+                )
+                return next_start
+
+        return None
+
+    @staticmethod
+    def _coerce_result_int(value: object) -> int | None:
+        """Coerce OWSLib result metadata values to int when possible."""
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                return None
+        if isinstance(value, list) and value:
+            return CSWClient._coerce_result_int(value[0])
         return None
 
     def _parse_iso_batch(
@@ -543,8 +577,8 @@ class CSWClient:
         """
         if self._csw is None:
             return True
-        matches = self._csw.results.get("matches")
-        return isinstance(matches, int) and start_position > matches
+        matches = self._coerce_result_int(self._csw.results.get("matches"))
+        return matches is not None and start_position > matches
 
     async def get_record_count_async(
         self,

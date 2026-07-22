@@ -385,6 +385,52 @@ def test_next_start_position_falls_back_to_start_plus_returned() -> None:
     assert client._next_start_position(1) == 1 + 50  # noqa: SLF001
 
 
+def test_next_start_position_falls_back_to_batch_length_when_metadata_missing() -> None:
+    """When nextrecord/returned are absent, advance using batch length if matches remain."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 113, "returned": None, "nextrecord": None}
+    object.__setattr__(client, "_csw", csw)
+
+    batch_size = 50
+    assert client._next_start_position(1, records_in_batch=batch_size) == 1 + batch_size  # noqa: SLF001
+    assert client._next_start_position(101, records_in_batch=13) is None  # noqa: SLF001
+
+
+def test_paged_harvest_advances_when_nextrecord_and_returned_missing() -> None:
+    """Missing pagination metadata must not truncate the harvest while matches remain."""
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    batch_sizes = [50, 50, 13]
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        starts.append(start_position)
+        csw.results = {"matches": 113, "returned": None, "nextrecord": None}
+        return True
+
+    def fake_parse() -> tuple[list[object], list[object], int]:
+        page_index = len(starts) - 1
+        size = batch_sizes[page_index]
+        return ([object()] * size, [], size)
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", side_effect=fake_parse),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == [1, 51, 101]
+
+
 def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
     """CSW startPosition is 1-based; pages must not request the previous boundary again."""
     page_starts = [1, 51, 101]
