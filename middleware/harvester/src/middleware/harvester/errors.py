@@ -191,17 +191,16 @@ def _detail_for_exception(exc: BaseException) -> str:
             )
         else:
             bits.append("Request failed: (no details from client)")
+    elif os_detail:
+        # Prefer structured errno/strerror over str(OSError) ("[Errno N] ...") to avoid
+        # near-duplicate detail when both forms would otherwise be appended.
+        bits.append(os_detail)
     elif message:
         bits.append(message)
-    elif os_detail:
-        bits.append(os_detail)
     elif _is_timeout_exception(exc):
         bits.append("request timed out")
     else:
         bits.append("(no message)")
-
-    if os_detail and os_detail not in bits[-1]:
-        bits.append(os_detail)
 
     return "; ".join(bits)
 

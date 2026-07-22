@@ -54,6 +54,14 @@ def test_format_exception_for_report_includes_connect_error_request_and_errno() 
     assert failure_url_for_exception(error) == "https://middleware-test.example/v3/harvests/h1/arcs"
 
 
+def test_format_exception_for_report_does_not_duplicate_oserror_detail() -> None:
+    message = format_exception_for_report(ConnectionResetError(104, "Connection reset by peer"))
+
+    assert message.count("Connection reset by peer") == 1
+    assert "errno 104" in message
+    assert "[Errno 104]" not in message
+
+
 @pytest.mark.parametrize(
     ("exc", "needle"),
     [
