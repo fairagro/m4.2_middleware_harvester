@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
+from rdflib import Graph
 from test_fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
@@ -61,13 +63,13 @@ async def test_schema_org_plugin_get_expected_datasets_returns_none_on_failure()
     )
 
     class FakeSitemapFailure:
-        def __init__(self, config: Config, client: object) -> None:
+        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
             pass
 
         async def get_expected_count(self) -> int | None:
             raise RuntimeError("failed")
 
-    def fake_create_sitemap(_config: Config, client: object) -> FakeSitemapFailure:
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemapFailure:
         return FakeSitemapFailure(_config, client)
 
     with patch(
@@ -90,13 +92,13 @@ async def test_schema_org_plugin_get_expected_datasets_returns_count() -> None:
     )
 
     class FakeSitemapCount:
-        def __init__(self, config: Config, client: object) -> None:
+        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
             pass
 
         async def get_expected_count(self) -> int | None:
             return 5
 
-    def fake_create_sitemap(_config: Config, client: object) -> FakeSitemapCount:
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemapCount:
         return FakeSitemapCount(_config, client)
 
     with patch(
@@ -120,7 +122,8 @@ async def test_schema_org_plugin_run_plugin_returns_record_processing_error_for_
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, **_kwargs: object) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/fast"])
 
     mock_mapper = MagicMock()
@@ -155,7 +158,7 @@ async def test_schema_org_plugin_run_plugin_yields_skipped_record_for_duplicate_
     )
 
     class DuplicateSitemap:
-        def __init__(self, config: Config, client: object) -> None:
+        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
             del config, client
 
         async def discover(self) -> AsyncGenerator[DuplicateUrlDiscoveryResult, None]:
@@ -164,7 +167,7 @@ async def test_schema_org_plugin_run_plugin_yields_skipped_record_for_duplicate_
         async def get_expected_count(self) -> int | None:
             return 1
 
-    def create_duplicate_sitemap(_config: Config, client: object) -> DuplicateSitemap:
+    def create_duplicate_sitemap(_config: Config, client: httpx.AsyncClient) -> DuplicateSitemap:
         return DuplicateSitemap(_config, client)
 
     monkeypatch.setattr(
@@ -198,11 +201,12 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, **_kwargs: object) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/slow"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.side_effect = lambda graph: f"mapped:{graph}"
+    mock_mapper.map_graph.return_value = "mapped:arc"
 
     monkeypatch.setattr(
         "middleware.schema_org.plugin.SchemaOrgPlugin.create_sitemap",
@@ -216,7 +220,10 @@ async def test_schema_org_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyte
 
     results = [item async for item in SchemaOrgPlugin(config).run()]
 
-    assert results == [("mapped:graph:https://example.org/dataset/slow", "https://example.org/dataset/slow")]
+    assert results == [("mapped:arc", "https://example.org/dataset/slow")]
+    mock_mapper.map_graph.assert_called_once()
+    (graph_arg,) = mock_mapper.map_graph.call_args.args
+    assert isinstance(graph_arg, Graph)
 
 
 @pytest.mark.asyncio
@@ -231,7 +238,8 @@ async def test_schema_org_plugin_run_plugin_returns_record_processing_error_when
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, **_kwargs: object) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/slow"])
 
     monkeypatch.setattr(

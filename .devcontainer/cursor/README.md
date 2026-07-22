@@ -1,49 +1,43 @@
-# Cursor devcontainer (DevPod)
+# Dev Container (Cursor / VS Code)
 
-Used by `scripts/start-devcontainer-cursor.sh` with DevPod + Cursor.
+Open with **Dev Containers: Reopen in Container**. Configurations:
 
-## Host bind mounts
+- Cursor: `.devcontainer/cursor/devcontainer.json`
+- VS Code: `.devcontainer/vscode/devcontainer.json`
 
-| Mount | Source | Platforms |
-| ----- | ------ | --------- |
-| Git config | `${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig` (read-only) | Linux, macOS, Windows |
-| GPG agent socket | `${localEnv:XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.extra` | **Linux only** |
-| GPG trustdb | `${localEnv:HOME}/.gnupg/trustdb.gpg` | Linux, macOS, Windows (optional file) |
+Both use the same Dockerfile (`.devcontainer/Dockerfile`) with Docker-in-Docker.
 
-## GPG agent forwarding (Linux only)
+## What the Dev Containers extension provides
 
-The GPG agent bind mount relies on `XDG_RUNTIME_DIR`, which systemd sets on Linux
-(typically `/run/user/<uid>`). It is usually **not** set on macOS or Windows.
+Git credentials, SSH agent forwarding, and GPG keys are handled by the
+[Dev Containers extension](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials)
+— no custom bind mounts required.
 
-If `XDG_RUNTIME_DIR` is empty, the mount source resolves to `/gnupg/S.gpg-agent.extra`,
-which does not exist, and **devcontainer creation fails**.
+Ensure on the **host**:
 
-### Linux
+- `git config --global user.name` / `user.email` are set
+- SSH agent is running with your keys loaded (`ssh-add`) for SSH remotes
+- GPG agent is running for SOPS decryption and commit signing (`gpg -K`)
 
-Before `devpod up --recreate`, ensure the host agent is running:
+## gh auth (HTTPS Git)
+
+`gh auth login` credentials are stored in a Docker volume (`middleware-harvester-gh-config`)
+so they survive container rebuilds. Run once per machine:
 
 ```bash
-gpg -K
+gh auth login
 ```
-
-Host `~/.gitconfig` is mounted read-only. Git LFS filters are configured in the
-repository (`.git/config`) via `git lfs install --local` in `setup-git-lfs.sh`.
-
-`scripts/setup-container-gpg.sh` (postCreate) symlinks the host agent socket to
-`~/.gnupg/S.gpg-agent`, copies the host `trustdb.gpg` into a **writable** local file
-(readonly bind mounts cannot be symlink targets for imports), and imports
-`public_gpg_keys/*.asc`.
 
 ## One-time setup (postCreateCommand)
 
-These run once per devcontainer create (not on every shell):
+Runs once per devcontainer create:
 
 - `uv sync --dev --all-packages`
 - `scripts/install-dev-hooks.sh` (pre-commit + Git LFS hooks)
-- `scripts/setup-container-gpg.sh` (host agent + trustdb + public keys)
+- `scripts/import-public-gpg-keys.sh` (project public GPG keys for SOPS)
 
-`scripts/load-env.sh` is sourced from `~/.bashrc` and only handles PATH, aliases, and
-environment variables (including SOPS decryption when needed).
+`scripts/load-env.sh` is sourced from `~/.bashrc` on each shell and handles PATH,
+aliases, ggshield status, and SOPS `.env` decryption.
 
 For a **local clone outside devcontainers**, run once after `uv sync`:
 
@@ -52,20 +46,13 @@ For a **local clone outside devcontainers**, run once after `uv sync`:
 ./scripts/import-public-gpg-keys.sh
 ```
 
-### macOS / Windows
+## macOS / Windows
 
-This devcontainer variant does not support host GPG agent forwarding. Options:
+GPG agent forwarding can be unreliable depending on the host OS and IDE version.
+If `sops -d .env.integration.enc` fails inside the container, decrypt on the host:
 
-1. **Decrypt secrets on the host** before starting the container (recommended):
+```bash
+sops -d .env.integration.enc > .env
+```
 
-   ```bash
-   sops -d .env.integration.enc > .env
-   ```
-
-   `scripts/load-env.sh` skips SOPS decryption when `.env` already exists.
-
-2. **Remove the GPG-related `mounts` entries** from `devcontainer.json` (and rely on
-   option 1 or on `public_gpg_keys/` for encrypt-only workflows).
-
-DevPod’s `--gpg-agent-forwarding` flag is not used here; it is a separate code path and
-was found unreliable on some Linux hosts.
+`scripts/load-env.sh` skips SOPS decryption when `.env` already exists.

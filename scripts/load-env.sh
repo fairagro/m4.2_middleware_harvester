@@ -4,6 +4,12 @@ if [ $sourced -eq 0 ]; then
   exit 1
 fi
 
+# Sourced from interactive ~/.bashrc — never abort the parent shell.
+__load_env_saved_opts="$(set +o)"
+set +e
+set +u
+set +o pipefail 2>/dev/null || true
+
 # Load Environment Script
 # Decrypts .env.integration.enc and generates .env for tests
 
@@ -19,7 +25,7 @@ if [ -d "${repo_root}/.venv/bin" ]; then
     esac
 fi
 
-# Repair stale .venv / git hooks after host↔DevPod switches (broken Python shebangs)
+# Repair stale .venv / git hooks after workspace path changes (broken script shebangs)
 if [ -e "${repo_root}/.git" ]; then
     venv_python="${repo_root}/.venv/bin/python"
     git_hooks_dir="$(git -C "${repo_root}" rev-parse --git-path hooks 2>/dev/null || echo ".git/hooks")"
@@ -44,12 +50,6 @@ alias ksn="kubectl config set-context --current --namespace"
 declare -F __start_kubectl &>/dev/null && complete -o default -F __start_kubectl k
 declare -F __start_docker &>/dev/null && complete -o default -F __start_docker d
 
-if command -v docker &>/dev/null; then
-    # shellcheck source=fix-docker-credentials.sh
-    source "${mydir}/fix-docker-credentials.sh"
-    setup_devcontainer_docker_config "${repo_root}"
-fi
-
 # ggshield (dev dependency in .venv; same PATH as pre-commit above)
 if command -v ggshield &> /dev/null; then
     if [ -n "${GITGUARDIAN_API_KEY:-}" ]; then
@@ -58,7 +58,7 @@ if command -v ggshield &> /dev/null; then
         echo "✅ ggshield: authenticated (~/.config/ggshield/auth_config.yaml)"
     else
         echo "🔐 ggshield not authenticated — run: ggshield auth login --method token"
-        echo "   Or set GITGUARDIAN_API_KEY (non-interactive / DevPod-friendly)"
+        echo "   Or set GITGUARDIAN_API_KEY (non-interactive)"
     fi
 else
     echo "⚠️ ggshield not available - run: uv sync --dev --all-packages"
@@ -75,24 +75,28 @@ if [ -f "$DECRYPTED_FILE" ] && [ -s "$DECRYPTED_FILE" ]; then
     if [ -z "${GITLAB_API_TOKEN:-}" ]; then
         echo "🔄 Loading existing environment variables..."
         set -a
+        # shellcheck source=/dev/null
         source "$DECRYPTED_FILE"
         set +a
         echo "✅ Environment variables loaded from existing $DECRYPTED_FILE"
     else
         echo "✅ Environment variables already loaded"
     fi
+    eval "${__load_env_saved_opts}"
     return 0
 fi
 
 # Check if SOPS is available
 if ! command -v sops &> /dev/null; then
     echo "⚠️ SOPS not available - skipping secrets loading"
+    eval "${__load_env_saved_opts}"
     return 0
 fi
 
 # Check if encrypted file exists
 if [ ! -f "$ENCRYPTED_FILE" ]; then
     echo "⚠️ $ENCRYPTED_FILE not found - skipping secrets loading"
+    eval "${__load_env_saved_opts}"
     return 0
 fi
 
@@ -105,6 +109,7 @@ if grep -q '"sops"' "$ENCRYPTED_FILE" 2>/dev/null; then
 
         # Also load for current shell
         set -a
+        # shellcheck source=/dev/null
         source "$DECRYPTED_FILE"
         set +a
     else
@@ -114,10 +119,11 @@ if grep -q '"sops"' "$ENCRYPTED_FILE" 2>/dev/null; then
         echo "   - GPG key not available"
         echo "   - SOPS configuration error"
         echo "📝 Tests may fail without valid GITLAB_API_TOKEN"
-        return 0  # Graceful return so sourcing continues
     fi
 else
     echo "⚠️ $ENCRYPTED_FILE is not encrypted or not in SOPS format"
     echo "📝 Tests may fail without valid GITLAB_API_TOKEN"
-    return 0  # Graceful return so sourcing continues
 fi
+
+eval "${__load_env_saved_opts}"
+return 0

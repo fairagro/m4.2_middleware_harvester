@@ -25,7 +25,7 @@ def test_connect(mock_csw_cls: MagicMock) -> None:
     assert mock_csw_cls.call_count == 1
     assert mock_csw_cls.call_args.kwargs["timeout"] == 30
     assert mock_csw_cls.call_args.kwargs["headers"] == {
-        "User-Agent": "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)",
+        "User-Agent": "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)",
     }
     assert client._csw is not None
 

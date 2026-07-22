@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.inspire.config import Config
 from middleware.inspire.models import InspireRecord
 from middleware.inspire.plugin import InspirePlugin
@@ -135,6 +135,49 @@ async def test_run_plugin_fatal_error_propagates() -> None:
         with pytest.raises(RuntimeError, match="CSW endpoint unreachable"):
             async for _ in InspirePlugin(mock_config).run():
                 pass
+
+
+@pytest.mark.asyncio
+async def test_run_plugin_skips_non_dataset_hierarchy() -> None:
+    mock_config = MagicMock(spec=Config)
+    mock_config.csw_url = "https://csw.example.com"
+    mock_config.cql_query = None
+    mock_config.xml_query = None
+    mock_config.chunk_size = 10
+
+    service_record = MagicMock(spec=InspireRecord)
+    service_record.identifier = "svc-1"
+    service_record.hierarchy = "service"
+
+    dataset_record = MagicMock(spec=InspireRecord)
+    dataset_record.identifier = "ds-1"
+    dataset_record.hierarchy = "dataset"
+
+    async def _records() -> AsyncGenerator[InspireRecord, None]:
+        yield service_record
+        yield dataset_record
+
+    with (
+        patch("middleware.inspire.plugin.CSWClient") as mock_csw_class,
+        patch("middleware.inspire.plugin.InspireMapper") as mock_mapper_class,
+    ):
+        mock_csw = mock_csw_class.return_value
+        mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
+        mock_csw.__aexit__ = AsyncMock(return_value=None)
+        mock_csw.get_records_async.return_value = _records()
+        mock_csw.get_record_url.side_effect = lambda ident: f"http://csw/{ident}"
+
+        mock_mapper = mock_mapper_class.return_value
+        mock_mapper.map_record.return_value = MagicMock()
+        mock_mapper.map_record.return_value.ToROCrateJsonString.return_value = "{}"
+
+        results = [item async for item in InspirePlugin(mock_config).run()]
+
+    assert len(results) == 2
+    assert isinstance(results[0], SkippedRecord)
+    assert "hierarchy level: service" in results[0].reason
+    assert results[0].url == "http://csw/svc-1"
+    assert results[1] == ("{}", "http://csw/ds-1")
 
 
 @pytest.mark.asyncio

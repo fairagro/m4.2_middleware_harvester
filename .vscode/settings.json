@@ -22,14 +22,22 @@
   },
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 
-  "sops-edit.onlyUseButtons": false,
-  "sops-edit.tempFilePreExtension": "decrypted",
+  // Mypy — .venv binary from `uv sync`, config in pyproject.toml [tool.mypy]
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
+  "mypy-type-checker.args": [
+    "--config-file",
+    "${workspaceFolder}/pyproject.toml",
+    "${workspaceFolder}/middleware"
+  ],
+  "mypy-type-checker.preferDaemon": false,
 
-  "mypy.dmypyExecutable": "${workspaceFolder}/.venv/bin/dmypy",
-
-  // Ruff Extension Settings - ensure consistency with script
+  // Ruff: same binary as `uv run ruff` / pre-commit (project .venv).
+  // ruff.path must be ruff executables only — NOT ["uv","run","ruff"]
+  // (that would pick `uv` as the binary and break formatOnSave silently).
   "ruff.configuration": "./pyproject.toml",
-  "ruff.path": ["uv", "run", "ruff"],
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "ruff.importStrategy": "fromEnvironment",
 
   "python.analysis.extraPaths": [
@@ -49,5 +57,16 @@
   "pylint.args": [
     "--rcfile=${workspaceFolder}/pyproject.toml"
   ],
-  "pylint.importStrategy": "fromEnvironment"
+  "pylint.importStrategy": "fromEnvironment",
+  "cursorpyright.analysis.exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "**/.venv",
+    "**/venv",
+    "dev_environment"
+  ],
+  "cursorpyright.analysis.extraPaths": [
+    "middleware/inspire/src"
+  ]
 }
