@@ -466,3 +466,31 @@ def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> 
         list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
 
     assert starts == page_starts
+
+
+def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
+    """A stuck nextrecord must not spin the pagination loop forever."""
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        starts.append(start_position)
+        csw.results = {"matches": 200, "returned": 50, "nextrecord": start_position}
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == [1]

@@ -18,3 +18,5 @@
    Pagination therefore starts at 1 and prefers the response `nextrecord`
    (0 = done), falling back to `start + returned`. Termination uses
    `start_position > matches` (not `>=`): position `matches` is still valid.
+   If `nextrecord` does not advance past the current start, pagination stops
+   with a warning to avoid an infinite loop on broken servers.

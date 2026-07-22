@@ -377,6 +377,13 @@ class CSWClient:
             next_start = self._next_start_position(start_position)
             if next_start is None:
                 break
+            if next_start <= start_position:
+                logger.warning(
+                    "CSW pagination did not advance (startPosition=%s, next=%s); stopping.",
+                    start_position,
+                    next_start,
+                )
+                break
             start_position = next_start
 
             if self._all_records_fetched(start_position):
