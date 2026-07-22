@@ -4,7 +4,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-load_env_line="source ${script_dir}/load-env.sh"
+load_env_line="source \"${script_dir}/load-env.sh\""
 
 if grep -qF 'scripts/load-env.sh' ~/.bashrc 2>/dev/null; then
     sed -i '\|scripts/load-env.sh|d' ~/.bashrc
