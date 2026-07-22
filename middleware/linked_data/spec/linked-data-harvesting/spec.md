@@ -21,6 +21,7 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 - `middleware/linked_data/spec/linked-data-dataset-abstraction/spec.md` — Dataset payload abstraction and provider-specific dataset wrappers.
 - `middleware/linked_data/spec/html-jsonld-dataset/spec.md` — Dataset implementation that fetches an HTML page and extracts embedded JSON-LD.
 - `middleware/linked_data/spec/regal-jsonld/spec.md` — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping.
+- `middleware/linked_data/spec/regal-to-arc-mapping/spec.md` — Regal ResearchData graph → ARC implementation contract (authoritative field rules in `docs/regal_mapping.md`).
 - `middleware/linked_data/spec/linked-data-mapper/spec.md` — Graph-to-ARC mapping and RO-Crate serialization.
 
 ## Edge Cases

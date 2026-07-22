@@ -114,6 +114,7 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/linked_data/spec/linked-data-dataset-abstraction/`](middleware/linked_data/spec/linked-data-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
 - **[`middleware/linked_data/spec/linked-data-mapper/`](middleware/linked_data/spec/linked-data-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
 - **[`middleware/linked_data/spec/regal-jsonld/`](middleware/linked_data/spec/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
+- **[`middleware/linked_data/spec/regal-to-arc-mapping/`](middleware/linked_data/spec/regal-to-arc-mapping/)** — Regal ResearchData → ARC implementation contract; authoritative field rules in [`docs/regal_mapping.md`](docs/regal_mapping.md).
 
 ---
 

@@ -33,9 +33,8 @@ native Regal JSON-LD (not schema.org); mapping produces ARC RO-Crate JSON-LD.
 ### Mapping (`payload_type`)
 
 - [ ] Support a dedicated Regal payload type that selects a Regal→ARC mapper.
-- [ ] Map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD.
-- [ ] Map title, description, creators, contributors, issuing institution, DOI/`@id` identifiers, issued date, license, subjects/DDC terms, language, and `hasPart` distributions when present in the graph.
-- [ ] Keep Regal mapping logic separate from schema.org mapping implementations.
+- [ ] Map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in [`docs/regal_mapping.md`](../../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md).
+- [ ] Keep Regal mapping logic separate from schema.org mapping implementations (`GeneralSchemaOrgMapper`).
 - [ ] Yield a mapping error (as `HarvesterError`) when the graph lacks mappable ResearchData metadata; do not crash the plugin.
 
 ## Edge Cases

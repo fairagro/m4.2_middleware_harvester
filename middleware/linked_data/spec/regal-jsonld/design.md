@@ -56,9 +56,8 @@ type enums — analogous to MyCoRe Solr configuration.
    `GeneralSchemaOrgMapper`**
    — Regal uses `https://frl.publisso.de/context.json` (DC, SKOS, BIBO,
    Bibframe, `hbz-nrw.de/regal#`), not `schema.org/Dataset`. Reusing the
-   schema.org mapper would force a lossy intermediate crosswalk. Field coverage
-   follows the conceptual Publisso→schema.org crosswalk from basic middleware,
-   targeting ARC directly.
+   schema.org mapper would force a lossy intermediate crosswalk. Authoritative
+   field rules: [`docs/regal_mapping.md`](../../../../docs/regal_mapping.md).
 
 6. **Keep vocabulary-specific mapper class names**
    — Plugin package and ABC are `linked_data` / `LinkedDataMapper`. Concrete
