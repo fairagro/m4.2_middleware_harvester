@@ -60,7 +60,7 @@ def _format_source_url_annotation(url_counts: dict[str, int]) -> str:
         return ""
 
     parts: list[str] = []
-    for url, count in url_counts.items():
+    for url, count in sorted(url_counts.items()):
         if count > 1:
             parts.append(f"{url} (×{count})")
         else:

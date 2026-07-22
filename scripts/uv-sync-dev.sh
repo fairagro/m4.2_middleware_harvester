@@ -12,7 +12,7 @@ _venv_script_shebang_stale() {
     local script="${1:?script path required}"
     [ ! -f "$script" ] && return 1
     local shebang
-    shebang=$(head -1 "$script" | sed 's/^#!//')
+    shebang=$(head -n 1 "$script" | sed 's/^#!//')
     shebang=${shebang%% *}
     [ -n "$shebang" ] && [ ! -x "$shebang" ]
 }
