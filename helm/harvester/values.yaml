@@ -252,7 +252,7 @@ config:
         # -- CSW connection timeout in seconds.
         timeout: 30
         # -- User-Agent header sent to the CSW server.
-        user_agent: "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+        user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
         # -- Retry attempts on transient CSW failures (network errors, 5xx).
         retry_attempts: 5
         # -- Initial retry backoff in seconds.
@@ -298,7 +298,7 @@ config:
           # -- Honour robots.txt crawl-delay and disallow directives.
           respect_robots_txt: true
           # -- User-Agent header sent with every HTTP request.
-          user_agent: "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+          user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
 
     # -------------------------------------------------------------------------
     # Example 3: Schema.org via MyCoRe Solr discovery source

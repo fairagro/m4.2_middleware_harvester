@@ -47,7 +47,7 @@ class Config(BaseModel):
     user_agent: Annotated[
         str,
         Field(description="User-Agent header value used for CSW requests."),
-    ] = "FAIRagro-Harvester/2.0 (dataservice@fairagro.org)"
+    ] = "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
 
     @field_validator("user_agent")
     @classmethod

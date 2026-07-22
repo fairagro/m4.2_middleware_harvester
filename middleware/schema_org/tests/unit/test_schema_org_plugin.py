@@ -1,14 +1,15 @@
 """Unit tests for the Schema.org plugin entrypoint."""
 
 import asyncio
-from collections.abc import AsyncGenerator
-from typing import Any
+from collections.abc import AsyncGenerator, Mapping
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
+from rdflib import Graph
 
 from middleware.harvester.errors import RecordProcessingError
-from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
+from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
 from middleware.schema_org.config import (
     Config,
     DatasetType,
@@ -40,7 +41,7 @@ class FakeSitemap:
 class FakeDataset:
     """A fake dataset implementation that successfully converts discovery results."""
 
-    def __init__(self, url: str, _client: Any = None, _config: Any = None) -> None:
+    def __init__(self, url: str, _client: NiceHttpClient | None = None, _config: Config | None = None) -> None:
         """Initialize the fake dataset with its URL."""
         self._url = url
 
@@ -53,17 +54,17 @@ class FakeDataset:
     def from_discovery_result(
         cls,
         discovery_result: UrlDiscoveryResult,
-        client: Any = None,
-        config: Any = None,
+        client: NiceHttpClient | None = None,
+        config: Config | None = None,
     ) -> "FakeDataset":
         """Create a fake dataset from the discovery result."""
         del client, config
         return cls(discovery_result.url)
 
-    async def to_graph(self) -> object:
-        """Return a dummy graph payload for the fake dataset."""
+    async def to_graph(self) -> Graph:
+        """Return an empty rdflib Graph, matching Dataset.to_graph()."""
         await asyncio.sleep(0)
-        return f"graph:{self._url}"
+        return Graph()
 
 
 @pytest.mark.asyncio
@@ -79,8 +80,8 @@ async def test_schema_org_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mon
     mock_mapper = MagicMock()
     mock_mapper.map_graph.return_value = "mapped:graph"
 
-    def fake_create_sitemap(_config: Config, client: Any | None = None, **_kwargs: object) -> FakeSitemap:
-        del client, _kwargs
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/1"])
 
     monkeypatch.setattr(
@@ -98,6 +99,8 @@ async def test_schema_org_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mon
 
     assert results == [("mapped:graph", "https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
+    (graph_arg,) = mock_mapper.map_graph.call_args.args
+    assert isinstance(graph_arg, Graph)
     assert isinstance(results[0], tuple)
     assert isinstance(results[0][0], str)
 
@@ -119,14 +122,14 @@ async def test_schema_org_plugin_run_yields_error_on_dataset_construction_failur
         def from_discovery_result(
             cls,
             _discovery_result: UrlDiscoveryResult,
-            client: Any = None,
-            config: Any = None,
+            client: NiceHttpClient | None = None,
+            config: Config | None = None,
         ) -> "BadDataset":
             del client, config
             raise RuntimeError("bad dataset")
 
-    def fake_create_sitemap(_config: Config, client: Any | None = None, **_kwargs: object) -> FakeSitemap:
-        del client, _kwargs
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/1"])
 
     monkeypatch.setattr(
@@ -154,8 +157,8 @@ async def test_schema_org_plugin_run_closes_cleanly_when_generator_is_cancelled(
         http=SchemaOrgNiceHttpClientConfig(max_connections=2),
     )
 
-    def fake_create_sitemap(_config: Config, client: Any | None = None, **_kwargs: object) -> FakeSitemap:
-        del client, _kwargs
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(
             [
                 "https://example.org/dataset/1",
@@ -182,7 +185,10 @@ async def test_schema_org_plugin_run_closes_cleanly_when_generator_is_cancelled(
     original_handler = loop.get_exception_handler()
     exceptions: list[BaseException | str] = []
 
-    def handle_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, object]) -> None:
+    def handle_exception(
+        _loop: asyncio.AbstractEventLoop,
+        context: Mapping[str, BaseException | str | None],
+    ) -> None:
         value = context.get("exception")
         if value is None:
             value = context.get("message", "unknown")
@@ -215,8 +221,8 @@ async def test_schema_org_plugin_run_yields_error_when_robots_disallows_url(monk
         http=SchemaOrgNiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, client: Any | None = None, **_kwargs: object) -> FakeSitemap:
-        del client, _kwargs
+    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+        del client
         return FakeSitemap(["https://example.org/dataset/1"])
 
     monkeypatch.setattr(

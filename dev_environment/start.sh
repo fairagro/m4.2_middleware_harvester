@@ -13,10 +13,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "$script_dir"
 
-# shellcheck source=../scripts/fix-docker-credentials.sh
-source "${repo_root}/scripts/fix-docker-credentials.sh"
-setup_devcontainer_docker_config "${repo_root}"
-
 # Parse arguments
 BUILD_FLAG=""
 for arg in "$@"; do

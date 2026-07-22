@@ -49,7 +49,7 @@ def test_connect_logs_cs_title_on_success(caplog: pytest.LogCaptureFixture) -> N
         client.connect()
 
     assert object.__getattribute__(client, "_csw") is fake_csw
-    assert "Connected to CSW: Test CSW" in caplog.text
+    assert "Connected to CSW at https://example.com/csw: Test CSW" in caplog.text
 
 
 def test_get_record_count_parses_list_matches() -> None:
@@ -361,3 +361,182 @@ def test_get_record_count_raises_when_both_filters_are_configured() -> None:
 
     with pytest.raises(ValueError, match="Conflicting query parameters"):
         client.get_record_count()
+
+
+def test_next_start_position_prefers_nextrecord() -> None:
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    next_start = 51
+    csw.results = {"matches": 113, "returned": 50, "nextrecord": next_start}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._next_start_position(1) == next_start  # noqa: SLF001
+
+    csw.results = {"matches": 113, "returned": 13, "nextrecord": 0}
+    assert client._next_start_position(101) is None  # noqa: SLF001
+
+
+def test_next_start_position_falls_back_to_start_plus_returned() -> None:
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 113, "returned": 50, "nextrecord": None}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._next_start_position(1) == 1 + 50  # noqa: SLF001
+
+
+def test_next_start_position_falls_back_to_batch_length_when_metadata_missing() -> None:
+    """When nextrecord/returned are absent, advance using batch length if matches remain."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 113, "returned": None, "nextrecord": None}
+    object.__setattr__(client, "_csw", csw)
+
+    batch_size = 50
+    assert client._next_start_position(1, records_in_batch=batch_size) == 1 + batch_size  # noqa: SLF001
+    assert client._next_start_position(101, records_in_batch=13) is None  # noqa: SLF001
+
+
+def test_paged_harvest_advances_when_nextrecord_and_returned_missing() -> None:
+    """Missing pagination metadata must not truncate the harvest while matches remain."""
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    batch_sizes = [50, 50, 13]
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        starts.append(start_position)
+        csw.results = {"matches": 113, "returned": None, "nextrecord": None}
+        return True
+
+    def fake_parse() -> tuple[list[object], list[object], int]:
+        page_index = len(starts) - 1
+        size = batch_sizes[page_index]
+        return ([object()] * size, [], size)
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", side_effect=fake_parse),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == [1, 51, 101]
+
+
+def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
+    """CSW startPosition is 1-based; pages must not request the previous boundary again."""
+    page_starts = [1, 51, 101]
+    nextrecords = [51, 101, 0]
+    last_full_page_index = 1
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        page_index = len(starts)
+        starts.append(start_position)
+        csw.results = {
+            "matches": 113,
+            "returned": 50 if page_index <= last_full_page_index else 13,
+            "nextrecord": nextrecords[page_index],
+        }
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == page_starts
+
+
+def test_all_records_fetched_allows_start_equal_to_matches() -> None:
+    """Position ``matches`` is still valid under 1-based CSW indexing."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 151}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._all_records_fetched(151) is False  # noqa: SLF001
+    assert client._all_records_fetched(152) is True  # noqa: SLF001
+
+
+def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> None:
+    """When nextrecord == matches, the last page must still be requested."""
+    page_starts = [1, 141, 151]
+    nextrecords = [141, 151, 0]
+    returned_counts = [140, 10, 1]
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        page_index = len(starts)
+        starts.append(start_position)
+        csw.results = {
+            "matches": 151,
+            "returned": returned_counts[page_index],
+            "nextrecord": nextrecords[page_index],
+        }
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == page_starts
+
+
+def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
+    """A stuck nextrecord must not spin the pagination loop forever."""
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        starts.append(start_position)
+        csw.results = {"matches": 200, "returned": 50, "nextrecord": start_position}
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == [1]

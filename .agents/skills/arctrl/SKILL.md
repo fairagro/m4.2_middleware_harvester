@@ -5,7 +5,8 @@ description: >
   Research Context) objects and serialize them to RO-Crate JSON-LD. Use when
   working with ArcInvestigation, ArcStudy, ArcAssay, ArcTable, CompositeHeader,
   CompositeCell, OntologyAnnotation, OntologySourceReference, Person, or
-  Publication objects, or when calling ToROCrateJsonString / WriteAsync.
+  Publication objects, or when calling ToROCrateJsonString / WriteAsync,
+  GetWriteContracts, GetAdditionalPayload, or supplementary ARC files.
 compatibility: Python 3.12+, arctrl (Fable-transpiled F# library)
 ---
 
@@ -267,6 +268,108 @@ await start_as_task(arc.WriteAsync("/path/to/output/dir"))
 
 ---
 
+## WriteContracts vs RO-Crate Serialization (two separate pipelines)
+
+ARCtrl maintains **two independent paths** from an `ARC` object:
+
+```text
+ARC object
+  ├─► GetWriteContracts() ──► full_fill_contract_batch_async() ──► files on disk
+  └─► ToROCrateJsonString() ──► ROCrate_encoder(arc, license, fs) ──► JSON-LD @graph
+```
+
+**WriteContracts do not affect `ToROCrateJsonString()`.** Manually created
+contracts appended to a contract list change neither the in-memory ARC state
+nor the serialized RO-Crate JSON.
+
+`GetWriteContracts()` generates contracts only for the ISA scaffold:
+investigation/study/assay xlsx files, datamaps, license, and `.gitkeep`
+placeholders. It does **not** include supplementary files added via
+`AddFile()`.
+
+To write supplementary file **content** to disk without ARCtrl changes,
+create a contract manually and fulfill it (after or alongside ISA contracts):
+
+```python
+from arctrl.py.Contract.contract import Contract, DTO, DTOType  # type: ignore[import-untyped]
+from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
+from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+
+manual = Contract.create_create(
+    "iso19115.xml",
+    DTOType(10),  # PlainText
+    DTO(1, "<xml>...</xml>"),
+)
+contracts = list(arc.GetWriteContracts()) + [manual]
+run_synchronously(full_fill_contract_batch_async(False, arc_dir, contracts))
+```
+
+`full_fill_contract_batch_async` signature (arctrl 3.1+):
+`(force_overwrite: bool, base_path: str, contracts)`.
+
+`WriteAsync()` / `TryWriteAsync()` call `GetWriteContracts()` internally —
+they write only the ISA scaffold, not `AddFile()` supplementary paths.
+
+---
+
+## Supplementary Files (`AddFile`, `GetAdditionalPayload`)
+
+Register a path in the ARC filesystem tree (metadata only — no content API
+on `AddFile` itself):
+
+```python
+arc.FileSystem = arc.FileSystem.AddFile("iso19115.xml")
+```
+
+| Mechanism | Supplementary `AddFile()` path |
+| --- | --- |
+| `FileSystem.Tree` / `ToFilePaths()` | ✓ path listed |
+| `GetAdditionalPayload()` | ✓ path listed |
+| `GetWriteContracts()` | ✗ not included |
+| `WriteAsync()` | ✗ file not written |
+| `ToROCrateJsonString()` `@graph` | ✗ no `File` entity (arctrl 3.1) |
+| ISA xlsx files (`isa.*.xlsx`) | ✗ unchanged |
+
+`GetAdditionalPayload()` returns a `FileSystemTree` of paths present in
+`FileSystem` but **not** part of the registered ISA payload
+(`GetRegisteredPayload()`). It lists paths only — not file bytes.
+
+`UpdateFileSystem()` rebuilds the ISA folder tree and unions it with the
+existing `FileSystem`; it does not create write contracts for supplementary
+files.
+
+**Implication for upload pipelines:** `ToROCrateJsonString()` alone cannot
+transport supplementary file content to a remote API. Pass file bytes in a
+separate payload and write them on the server after `WriteAsync()`, or embed
+content in ISA-modeled fields (see below).
+
+To reference a file in RO-Crate **metadata** (still without content), an
+ISA table `Output [URI]` column can produce a `URI=filename` node in
+`@graph` — distinct from `@type: File` and still without embedded bytes.
+
+---
+
+## In-memory vs on-disk vs RO-Crate
+
+| Action | ISA xlsx on disk | Supplementary file on disk | In `@graph` after `ToROCrateJsonString()` |
+| --- | --- | --- | --- |
+| `AddFile()` only | unchanged | not written | not present |
+| `AddFile()` + manual `Contract` | unchanged | written | not present |
+| `Comment.create(name, text)` | unchanged | not written | `text` property present |
+| `SetLicenseFulltext(text, path)` | unchanged | written (via license contract) | `CreativeWork` with `text` |
+
+`from_rocrate_json_string()` roundtrip: manually injected `@type: File` nodes
+may restore a path in `FileSystem` / `GetAdditionalPayload()`, but custom
+properties (e.g. embedded `text`) are **not** retained in the ARC object and
+disappear on re-serialization. Do not patch RO-Crate JSON to carry file
+bytes and expect `from_rocrate_json_string()` to preserve them.
+
+`License` is the only built-in ARC field that feeds **both** `GetWriteContracts()`
+and `ROCrate_encoder` — usable for text payload but semantically wrong for
+arbitrary supplementary files (serializes as `CreativeWork`, not `File`).
+
+---
+
 ## Identifiers
 
 - `assay.Identifier` — string property, read-only after creation
@@ -300,6 +403,15 @@ memory promptly.
 
 **`ArcAssay.create(technology_platform=None)`** — `None` is safe. An empty
 `OntologyAnnotation()` is also accepted.
+
+**`AddFile()` is not enough for harvest/upload** — registers a path in
+`FileSystem` and `GetAdditionalPayload()` only. For disk output, add a manual
+`Contract.create_create()` or write the file directly. For API upload, send
+bytes in a separate `files` payload; do not rely on RO-Crate JSON roundtrip.
+
+**Do not assert supplementary files via `GetWriteContracts()`** — use
+`FileSystem.Tree.ToFilePaths()` and/or `GetAdditionalPayload().ToFilePaths()`
+for path registration; use manual contracts or direct I/O for content.
 
 ---
 

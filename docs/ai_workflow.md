@@ -17,7 +17,9 @@ The workflow is built on three open standards:
 
 ---
 
-## VS Code Integration
+## IDE Integration
+
+### GitHub Copilot (VS Code)
 
 GitHub Copilot in VS Code natively supports the artifacts described in this
 document. Use **Chat: Open Customizations** (Command Palette `Ctrl+Shift+P`)
@@ -34,18 +36,39 @@ To verify which files are active, open the Copilot Chat panel, click the
 settings icon, and select **Open Customizations**. All discovered instructions
 and skill files are listed there.
 
+### Cursor
+
+Cursor loads the same project context via `AGENTS.md` and `.agents/skills/`.
+Custom subagents live in [`.cursor/agents/`](../.cursor/agents/) (see
+[Cursor subagents](https://cursor.com/docs/subagents)).
+
+| Artifact | Cursor mechanism |
+| -------- | ---------------- |
+| `AGENTS.md` | Project instructions — loaded automatically. |
+| `.agents/skills/*/SKILL.md` | Agent Skills — discovered by `description`, loaded on demand. |
+| `.cursor/agents/*.md` | Subagents — delegate with `/refactoring`, `/spec-to-code`, or by name in chat. |
+| `spec/**/*.md` | Read on demand via file tools. |
+
+The canonical agent definitions live in [`.github/agents/`](../.github/agents/).
+[`.cursor/agents/`](../.cursor/agents/) contains symbolic links to those files
+so both IDEs share one source. The `tools:` frontmatter block is used by
+Copilot only; Cursor ignores unknown frontmatter fields.
+
 ---
 
-## Custom Agents: `.github/agents/`
+## Custom Agents
 
-Custom agents (see [Custom agents in VS Code](https://code.visualstudio.com/docs/copilot/customization/custom-agents))
-combine a fixed persona, a curated tool set, and pre-loaded instructions into a
+Custom agents combine a fixed persona and pre-loaded instructions into a
 single, selectable configuration. Unlike skills — which are loaded on demand by
-any agent — a custom agent *is* the active agent for the whole conversation.
+any agent — a custom agent *is* the active agent for the whole conversation
+(Copilot) or a delegatable subagent (Cursor).
+
+| Agent | Source (edit here) | Cursor symlink |
+| ----- | ------------------ | -------------- |
+| `spec-to-code` | [`.github/agents/spec-to-code.agent.md`](../.github/agents/spec-to-code.agent.md) | `.cursor/agents/spec-to-code.md` |
+| `refactoring` | [`.github/agents/refactoring.agent.md`](../.github/agents/refactoring.agent.md) | `.cursor/agents/refactoring.md` |
 
 ### `spec-to-code` — Spec-driven implementation
-
-[`.github/agents/spec-to-code.agent.md`](../.github/agents/spec-to-code.agent.md)
 
 This agent's job is to translate Specifica spec changes into matching source
 code. Switch to it whenever a `spec.md` or `design.md` was updated and the code
@@ -72,6 +95,27 @@ tests), Problems tab — no browser, no git push.
 | Spec changed, code needs to follow | `spec-to-code` |
 | Exploratory coding, no spec context needed | default Agent mode |
 | Writing a new spec from scratch | default Agent mode + `create-specifica-feature` skill |
+
+**Cursor:** invoke with `/spec-to-code` or ask the agent to use the
+`spec-to-code` subagent.
+
+### `refactoring` — Structural code improvements
+
+Translates high-level refactoring goals into complete, well-placed changes
+(separation of concerns, DRY, correct module placement). Acts with engineering
+judgment beyond the explicit request — moves related code, updates all callers,
+and validates with `ruff` and `pytest`.
+
+**When to use it:**
+
+| Situation | Use |
+| --------- | --- |
+| Extract class/module, reduce coupling | `refactoring` |
+| Move shared code to `middleware/shared/` | `refactoring` |
+| Spec-driven feature work | `spec-to-code` |
+
+**Copilot:** select **refactoring** from the agent dropdown.
+**Cursor:** invoke with `/refactoring` or delegate to the `refactoring` subagent.
 
 ---
 

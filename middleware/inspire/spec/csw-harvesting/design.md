@@ -10,3 +10,14 @@
 
 3. **Convert `MD_Metadata` to `InspireRecord` immediately after parsing**
    — OWSLib returns `MD_Metadata` with attributes typed as `str | list | ElementMap`. Mapping to `InspireRecord` (a fully typed Pydantic model) at the boundary of `CSWClient` means `mapper.py` never has to deal with OWSLib internals or ambiguous types.
+
+4. **CSW `startPosition` is 1-based; advance via `nextrecord` / `returned`**
+   — CSW 2.0.2 positions start at 1. Starting at 0 (OWSLib's default) omits
+   `startPosition` so servers begin at 1, then `start += page_size` requests
+   position `page_size` again and duplicates one record per page boundary.
+   Pagination therefore starts at 1 and prefers the response `nextrecord`
+   (0 = done), falling back to `start + returned`, then to
+   `start + batch_length` when `matches` still indicates unread records.
+   Termination uses `start_position > matches` (not `>=`): position `matches`
+   is still valid. If pagination does not advance past the current start,
+   it stops with a warning to avoid an infinite loop on broken servers.
