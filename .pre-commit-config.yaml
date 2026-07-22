@@ -46,12 +46,13 @@ repos:
         language: system
         types: [python]
 
-      # mypy - Type checking
+      # mypy - Type checking (full middleware/ tree; only when Python under middleware/ changes)
       - id: mypy
         name: mypy type check
         entry: uv run mypy
         language: system
         pass_filenames: false
+        types: [python]
         files: ^middleware/
         args: [--config-file, pyproject.toml, middleware/]
 
