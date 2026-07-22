@@ -419,3 +419,50 @@ def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
         list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
 
     assert starts == page_starts
+
+
+def test_all_records_fetched_allows_start_equal_to_matches() -> None:
+    """Position ``matches`` is still valid under 1-based CSW indexing."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    csw.results = {"matches": 151}
+    object.__setattr__(client, "_csw", csw)
+
+    assert client._all_records_fetched(151) is False  # noqa: SLF001
+    assert client._all_records_fetched(152) is True  # noqa: SLF001
+
+
+def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> None:
+    """When nextrecord == matches, the last page must still be requested."""
+    page_starts = [1, 141, 151]
+    nextrecords = [141, 151, 0]
+    returned_counts = [140, 10, 1]
+    starts: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+        swallow_errors: bool = True,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints, swallow_errors
+        page_index = len(starts)
+        starts.append(start_position)
+        csw.results = {
+            "matches": 151,
+            "returned": returned_counts[page_index],
+            "nextrecord": nextrecords[page_index],
+        }
+        return True
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
+
+    assert starts == page_starts

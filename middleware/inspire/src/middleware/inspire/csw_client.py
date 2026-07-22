@@ -527,11 +527,17 @@ class CSWClient:
                     yield RecordProcessingError(str(e), record_id, original_error=e)
 
     def _all_records_fetched(self, start_position: int) -> bool:
-        """Check if all available records have been fetched."""
+        """Return True when *start_position* is past the last matching record.
+
+        CSW ``startPosition`` is 1-based, so position ``matches`` is still a
+        valid record. Only ``start_position > matches`` means there is nothing
+        left to fetch (``>=`` would skip the final record when ``nextrecord``
+        equals ``matches``).
+        """
         if self._csw is None:
             return True
         matches = self._csw.results.get("matches")
-        return isinstance(matches, int) and start_position >= matches
+        return isinstance(matches, int) and start_position > matches
 
     async def get_record_count_async(
         self,

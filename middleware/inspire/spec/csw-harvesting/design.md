@@ -16,4 +16,5 @@
    `startPosition` so servers begin at 1, then `start += page_size` requests
    position `page_size` again and duplicates one record per page boundary.
    Pagination therefore starts at 1 and prefers the response `nextrecord`
-   (0 = done), falling back to `start + returned`.
+   (0 = done), falling back to `start + returned`. Termination uses
+   `start_position > matches` (not `>=`): position `matches` is still valid.
