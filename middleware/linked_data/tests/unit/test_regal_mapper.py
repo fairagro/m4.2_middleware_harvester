@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from rdflib import Graph, Literal, URIRef
+from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 
 from middleware.linked_data.linked_data_mapper.regal_mapper import (
@@ -126,3 +126,35 @@ def test_regal_mapper_prefers_joined_funding() -> None:
     assert "442326535" in text
     assert "Deutsche Forschungsgemeinschaft" in text
     assert "ignored-flat-program" not in text
+
+
+def test_regal_mapper_skips_opaque_duplicates_for_dedicated_predicates() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, REGAL.catalogId, Literal("cat-42")))
+    item = URIRef("https://example.org/oai/1")
+    graph.add((SUBJECT, REGAL.itemID, item))
+    graph.add((item, SKOS.prefLabel, Literal("oai:frl.publisso.de:frl:123")))
+    graph.add((SUBJECT, REGAL.associatedPublication, URIRef("https://doi.org/10.1000/xyz")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    assert "Catalog ID" in text
+    assert "cat-42" in text
+    assert "OAI Identifier" in text
+    assert "oai:frl.publisso.de:frl:123" in text
+    assert "Associated Publication" in text
+    assert "https://doi.org/10.1000/xyz" in text
+    # Opaque fallback would emit the raw local names as comment names.
+    assert '"catalogId"' not in text
+    assert '"itemID"' not in text
+    assert '"associatedPublication"' not in text
+
+
+def test_regal_mapper_license_blank_node_uses_pref_label() -> None:
+    graph = _base_graph()
+    license_node = BNode()
+    graph.add((SUBJECT, REGAL.license, license_node))
+    graph.add((license_node, SKOS.prefLabel, Literal("CC BY 4.0")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    assert "CC BY 4.0" in text
+    assert "_:" not in text

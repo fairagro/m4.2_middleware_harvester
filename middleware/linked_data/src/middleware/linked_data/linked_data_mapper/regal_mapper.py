@@ -64,6 +64,9 @@ _KNOWN_PREDICATES = {
     URIRef("http://hbz-nrw.de/regal#accessScheme"),
     URIRef("http://hbz-nrw.de/regal#publishScheme"),
     URIRef("http://hbz-nrw.de/regal#embargoTime"),
+    REGAL.catalogId,
+    REGAL.itemID,
+    REGAL.associatedPublication,
 }
 
 
@@ -562,7 +565,12 @@ class RegalMapper(LinkedDataMapper):
         for obj in graph.objects(subject, REGAL.license):
             if isinstance(obj, Literal):
                 return str(obj)
-            return str(obj)
+            if isinstance(obj, URIRef):
+                return str(obj)
+            # Blank / non-URI nodes: prefer human-readable label over internal ids.
+            pref = self._str(graph, obj, SKOS.prefLabel)
+            if pref:
+                return pref
         return None
 
     def _title(self, graph: Graph, subject: Node) -> str:
