@@ -21,7 +21,7 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 - [ ] Deduplicate discovered dataset URLs; skip any URL already yielded in the current run.
 - [ ] Support Solr pagination: when `numFound > start + len(docs)`, issue further requests by incrementing the `start` parameter until all pages are consumed.
 - [ ] Raise `httpx.HTTPStatusError` on non-2xx HTTP responses (do not swallow).
-- [ ] Raise `ValueError` when the JSON response does not contain the expected `response.docs` key.
+- [ ] Raise `LinkedDataSitemapError` when the JSON body is not an object or lacks the expected `response` envelope (`numFound`, `start`, `docs`).
 
 ## Edge Cases
 

@@ -3,10 +3,12 @@
 import asyncio
 
 import httpx
+import pytest
 from test_fakes import UrlDiscoveryResult
 
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import MycoreSolrSitemap, XmlSitemap
 
@@ -448,3 +450,26 @@ def test_mycore_solr_sitemap_get_expected_count_uses_cached_first_page() -> None
 
     assert count == 1
     assert urls == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+
+
+def test_mycore_solr_sitemap_raises_on_non_object_payload() -> None:
+    config = Config(
+        sitemap_url="https://www.openagrar.de/servlets/solr/select",
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
+    )
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=["not", "an", "object"])
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> None:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            _ = [result async for result in sitemap.discover()]
+
+    with pytest.raises(LinkedDataSitemapError, match="JSON object"):
+        asyncio.run(collect())

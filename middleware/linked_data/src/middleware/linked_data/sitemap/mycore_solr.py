@@ -10,6 +10,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
+from ..errors import LinkedDataSitemapError
 from ..json_types import JsonValue
 from .sitemap import Sitemap
 
@@ -92,21 +93,23 @@ class MycoreSolrSitemap(Sitemap):
         response = await client.get_with_policy(request_url)
 
         payload = response.json()
+        if not isinstance(payload, dict):
+            raise LinkedDataSitemapError(f"Solr response must be a JSON object (got {type(payload).__name__})")
         response_object = payload.get("response")
         if not isinstance(response_object, dict):
-            raise ValueError("Missing Solr response envelope: response")
+            raise LinkedDataSitemapError("Missing Solr response envelope: response")
 
         num_found = response_object.get("numFound")
         if not isinstance(num_found, int):
-            raise ValueError("Missing or invalid response.numFound")
+            raise LinkedDataSitemapError("Missing or invalid response.numFound")
 
         returned_start = response_object.get("start")
         if not isinstance(returned_start, int):
-            raise ValueError("Missing or invalid response.start")
+            raise LinkedDataSitemapError("Missing or invalid response.start")
 
         docs = response_object.get("docs")
         if not isinstance(docs, list):
-            raise ValueError("Missing expected response.docs array")
+            raise LinkedDataSitemapError("Missing expected response.docs array")
 
         return num_found, docs, returned_start
 
