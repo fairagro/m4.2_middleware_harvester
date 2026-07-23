@@ -21,8 +21,8 @@ intentional omissions.
       present, zero by default).
 - [ ] The JSON-LD harvest report includes `fairagro:skippedDatasets` for every
       repository entry.
-- [ ] The linked_data plugin yields `SkippedRecord` for every
-      `DuplicateUrlDiscoveryResult` instead of `RecordProcessingError`.
+- [ ] The linked_data plugin yields `SkippedRecord` for duplicate discovery
+      identifiers (emitted by `Sitemap.discover()`).
 
 ## Edge Cases
 

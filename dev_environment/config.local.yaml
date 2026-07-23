@@ -12,7 +12,7 @@ repositories:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
       sitemap_type: xml
       dataset_type: html_jsonld
-      payload_type: general
+      payload_type: schema_org_general
 
 
 api_client:

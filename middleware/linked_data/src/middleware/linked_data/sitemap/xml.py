@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
-import httpx
 from defusedxml.ElementTree import fromstring  # type: ignore[import]
 
+from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import SitemapType
@@ -18,47 +18,41 @@ from .sitemap import Sitemap
 class XmlSitemap(Sitemap):
     """Sitemap parser for XML sitemap protocol sources."""
 
-    async def _discover(self, client: httpx.AsyncClient) -> AsyncGenerator[DiscoveryResult, None]:
+    async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
         seen_sitemaps: set[str] = set()
-        seen_dataset_urls: set[str] = set()
 
         async for discovery_result in self._fetch_sitemap(
             self.config.sitemap_url,
             client,
             seen_sitemaps,
-            seen_dataset_urls,
         ):
             yield discovery_result
 
     async def _fetch_sitemap(
         self,
         sitemap_url: str,
-        client: httpx.AsyncClient,
+        client: NiceHttpClient,
         seen_sitemaps: set[str],
-        seen_dataset_urls: set[str],
-    ) -> AsyncGenerator[DiscoveryResult, None]:
+    ) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
         if sitemap_url in seen_sitemaps:
             return
 
         seen_sitemaps.add(sitemap_url)
-        response = await NiceHttpClient.retry_get_with_client(client, self.config.http, sitemap_url)
-        response.raise_for_status()
+        response = await client.get_with_policy(sitemap_url)
 
         root = fromstring(response.text)
         root_name = self._local_name(root.tag)
 
         if root_name == "urlset":
-            for loc in root.findall(".//{*}loc"):
-                if not loc.text:
+            for index, loc in enumerate(root.findall(".//{*}loc")):
+                if not loc.text or not loc.text.strip():
+                    yield RecordProcessingError(
+                        f"XML sitemap {sitemap_url} has empty <loc> at index={index}",
+                        f"xml_sitemap:index={index}",
+                    )
                     continue
 
-                dataset_url = loc.text.strip()
-                if dataset_url in seen_dataset_urls:
-                    continue
-
-                seen_dataset_urls.add(dataset_url)
-                yield UrlDiscoveryResult(dataset_url)
-
+                yield UrlDiscoveryResult(loc.text.strip())
             return
 
         if root_name == "sitemapindex":
@@ -69,7 +63,6 @@ class XmlSitemap(Sitemap):
                         nested_sitemap_url,
                         client,
                         seen_sitemaps,
-                        seen_dataset_urls,
                     ):
                         yield dataset
             return

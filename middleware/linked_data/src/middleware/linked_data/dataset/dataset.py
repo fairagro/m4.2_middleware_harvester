@@ -18,25 +18,35 @@ from ..registry import Registry
 
 @dataclass
 class DiscoveryResult:
-    """Base class for results yielded by Sitemap discovery."""
+    """Base class for results yielded by Sitemap discovery.
+
+    Every discovery result carries a stable ``identifier`` used for
+    deduplication in ``Sitemap.discover()`` and for error reporting.
+    Concrete subclasses fill it with a URL, a Regal ``@id``, or another
+    provider-specific key.
+    """
+
+    identifier: str
 
 
 @dataclass
 class UrlDiscoveryResult(DiscoveryResult):
-    """Discovery result representing a dataset URL."""
+    """Discovery result representing a dataset URL.
 
-    url: str
+    The ``identifier`` is the dataset URL.
+    """
+
+    @property
+    def url(self) -> str:
+        """Return the discovered dataset URL (alias for ``identifier``)."""
+        return self.identifier
 
 
 @dataclass
-class DuplicateUrlDiscoveryResult(DiscoveryResult):
-    """Discovery result representing a URL that was already seen in this sitemap.
+class JsonLdDiscoveryResult(DiscoveryResult):
+    """Discovery result carrying an inline JSON-LD record payload."""
 
-    Yielded by Sitemap.discover() for every duplicate entry so that callers can
-    report it instead of silently dropping it.
-    """
-
-    url: str
+    payload: dict[str, object]
 
 
 T = TypeVar("T", bound="Dataset")

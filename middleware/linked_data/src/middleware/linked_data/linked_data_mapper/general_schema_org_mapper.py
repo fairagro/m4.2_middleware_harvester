@@ -32,7 +32,7 @@ from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper
 
 
-@LinkedDataMapper.register(PayloadType.general)
+@LinkedDataMapper.register(PayloadType.schema_org_general)
 class GeneralSchemaOrgMapper(LinkedDataMapper):
     """Maps a Schema.org RDF graph to ARC objects.
 

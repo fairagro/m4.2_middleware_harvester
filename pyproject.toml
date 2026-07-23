@@ -111,7 +111,10 @@ combine-as-imports = true
 
 # Per-file-ignores for test directories
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["D103"]  # missing-function-docstring in test files
+"**/tests/**" = [
+  "D103",  # missing-function-docstring in test files
+  "PLR2004",  # magic-value-comparison; literals in asserts are intentional
+]
 
 # Black and isort replaced by ruff format - configurations removed to avoid conflicts
 

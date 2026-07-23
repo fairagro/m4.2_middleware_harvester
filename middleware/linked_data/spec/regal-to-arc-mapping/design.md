@@ -3,7 +3,7 @@
 ## Architecture overview
 
 A `RegalMapper` (name illustrative) implements `LinkedDataMapper` for
-`PayloadType.regal`. It consumes an `rdflib.Graph` produced by the Regal dataset
+`PayloadType.regal_general`. It consumes an `rdflib.Graph` produced by the Regal dataset
 strategy and builds ARC objects with arctrl according to
 [docs/regal_mapping.md](../../../../docs/regal_mapping.md).
 

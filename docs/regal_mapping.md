@@ -68,7 +68,7 @@ expanded IRI from the Regal context is noted. Labelled nodes typically expose
 | --- | --- | --- | --- |
 | **`title`** | `dcterms:title` (often array) | Main title | `Investigation.Title`, `Study.Title`, `Assay.Title` (first non-empty value) |
 | **`alternative`** | `dcterms:alternative` | Alternative / subtitle | `Investigation` comment `Alternative Title` |
-| **`description`** | `dcterms:description` (array) | Abstract / summary | `Investigation.Description` and `Study.Description` (join multiple values with blank line or `; `) |
+| **`description`** | `dcterms:description` (array) | Abstract / summary | `Investigation.Description` and `Study.Description` (join multiple values with a blank line or `;`) |
 | **`usageManual`** | `regal:usageManual` | Usage notes | `Study.Description` appendix or `Investigation` comment `Usage Manual` |
 
 ### 3. Agents (creators, contributors, institutions)

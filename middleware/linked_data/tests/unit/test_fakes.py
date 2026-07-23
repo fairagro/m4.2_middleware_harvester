@@ -97,7 +97,7 @@ _MINIMAL_CONFIG = Config(
     sitemap_url="https://example.org/sitemap.xml",
     sitemap_type=SitemapType.xml,
     dataset_type=DatasetType.html_jsonld,
-    payload_type=PayloadType.general,
+    payload_type=PayloadType.schema_org_general,
     http=NiceHttpClientConfig(),
 )
 

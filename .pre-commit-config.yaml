@@ -56,20 +56,21 @@ repos:
         files: ^middleware/
         args: [--config-file, pyproject.toml, middleware/]
 
-      # bandit - Security linting
+      # bandit - Security linting (same as CI: uv run bandit -r middleware/ -c .bandit -ll)
       - id: bandit
         name: bandit security scan
-        entry: uv run bandit -r
+        entry: uv run bandit -r middleware/ -c .bandit -ll
         language: system
+        pass_filenames: false
         types: [python]
         files: ^middleware/
-        args: [-c, .bandit, -ll]
 
-      # pylint - Code quality
+      # pylint - Code quality (same as CI: uv run pylint middleware/)
       - id: pylint
         name: pylint
-        entry: uv run pylint
+        entry: uv run pylint middleware/
         language: system
+        pass_filenames: false
         types: [python]
         files: ^middleware/
 

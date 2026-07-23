@@ -8,7 +8,7 @@ from typing import TypeVar, cast
 
 from rdflib import Graph
 
-from ..config import PayloadType
+from ..config import Config, PayloadType
 from ..registry import Registry
 
 M = TypeVar("M", bound="LinkedDataMapper")
@@ -28,6 +28,15 @@ class LinkedDataMapper(ABC):
             return subclass
 
         return decorator
+
+    @classmethod
+    def from_config(cls, config: Config) -> LinkedDataMapper:
+        """Construct a mapper from plugin configuration.
+
+        Subclasses that need config fields (e.g. resource base URL) override this.
+        """
+        _ = config
+        return cls()
 
     @abstractmethod
     def map_graph(self, graph: Graph) -> str:

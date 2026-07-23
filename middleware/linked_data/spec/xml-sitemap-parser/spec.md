@@ -10,7 +10,8 @@ Parse standard XML sitemap documents and yield discovery results for Schema.org 
 - [ ] Support both `urlset` and `sitemapindex` document roots.
 - [ ] Recursively follow nested sitemap indexes.
 - [ ] Prevent sitemap loops by tracking already visited sitemap URLs.
-- [ ] Deduplicate discovered dataset URLs before yielding results.
+- [x] Deduplicate discovered dataset URLs before yielding results (as `SkippedRecord`).
+- [x] Yield `RecordProcessingError` for empty `<loc>` elements (do not silently skip).
 - [ ] Yield one `UrlDiscoveryResult` per unique dataset URL found in a `urlset`.
 - [ ] Use safe XML parsing (`defusedxml`) for untrusted content.
 - [ ] Fail fast with a `ValueError` when the root element is neither `urlset` nor `sitemapindex`.
@@ -19,5 +20,6 @@ Parse standard XML sitemap documents and yield discovery results for Schema.org 
 
 - Duplicate dataset URLs across nested sitemaps → yield only the first occurrence.
 - A sitemap URL already visited in the current traversal → skip silently.
-- Missing or empty `<loc>` elements → skip without stopping discovery.
+- Missing or empty `<loc>` elements → yield `RecordProcessingError` without stopping discovery.
+- Duplicate dataset URL already yielded in this run → `SkippedRecord`.
 - Empty `urlset` → yield zero results and exit cleanly.

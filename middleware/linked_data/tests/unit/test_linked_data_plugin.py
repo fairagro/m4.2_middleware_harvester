@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import AsyncGenerator, Mapping
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
 import pytest
 from rdflib import Graph
 
@@ -73,14 +72,14 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
     mock_mapper = MagicMock()
     mock_mapper.map_graph.return_value = "mapped:graph"
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/1"])
 
@@ -113,7 +112,7 @@ async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failu
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -128,7 +127,7 @@ async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failu
             del client, config
             raise RuntimeError("bad dataset")
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/1"])
 
@@ -153,11 +152,11 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=2),
     )
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(
             [
@@ -217,11 +216,11 @@ async def test_linked_data_plugin_run_yields_error_when_robots_disallows_url(mon
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/1"])
 

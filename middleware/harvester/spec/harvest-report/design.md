@@ -31,7 +31,14 @@ iterating over `_run_repository` results, builds a `HarvestReport`, and calls
       "schema:duration": "PT12.3S",
       "fairagro:expectedDatasets": 100,
       "fairagro:harvestedDatasets": 95,
-      "fairagro:failedDatasets": 5
+      "fairagro:failedDatasets": 5,
+      "fairagro:skippedDatasets": 2,
+      "fairagro:failedRecords": [
+        {
+          "fairagro:message": "Failed to map dataset frl:123: …",
+          "fairagro:recordId": "frl:123"
+        }
+      ]
     }
   ]
 }
@@ -52,12 +59,14 @@ iterating over `_run_repository` results, builds a `HarvestReport`, and calls
    rejected because schema.org is already used in the linked_data plugin and
    requires no additional namespace declaration.
 
-3. **Custom `fairagro:` prefix for domain statistics**
-   — `expectedDatasets`, `harvestedDatasets`, and `failedDatasets` have no
-   direct equivalent in schema.org or PROV-O.  Rather than misusing an
-   existing term, a project-owned `https://fairagro.net/ns/` prefix is used.
-   This keeps the document semantically honest and allows a future ontology
-   to define these terms precisely.
+3. **Custom `fairagro:` prefix for domain statistics and failure detail**
+   — `expectedDatasets`, `harvestedDatasets`, `failedDatasets`,
+   `skippedDatasets`, and the `failedRecords` list have no direct equivalent
+   in schema.org or PROV-O.  Rather than misusing an existing term, a
+   project-owned `https://fairagro.net/ns/` prefix is used.  Counts alone are
+   insufficient for operators: each yielded `HarvesterError` is also mirrored
+   as a `failedRecords` entry (`message`, optional `recordId` / `url`) so the
+   stdout report is the authoritative failure list, not only application logs.
 
 4. **ISO 8601 duration strings (`PT12.3S`) for per-repository timing**
    — `schema:duration` is defined with range `schema:Duration`, which expects

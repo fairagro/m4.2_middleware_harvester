@@ -12,9 +12,9 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
-from .dataset import Dataset, DiscoveryResult, DuplicateUrlDiscoveryResult
-from .dataset.dataset import UrlDiscoveryResult
+from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
+from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
 from .errors import LinkedDataError
 from .linked_data_mapper import LinkedDataMapper
 from .sitemap import Sitemap
@@ -31,7 +31,7 @@ class LinkedDataPlugin(Plugin):
         self._mapper: LinkedDataMapper = self.create_mapper(config)
 
     @staticmethod
-    def create_sitemap(config: Config, client: httpx.AsyncClient) -> Sitemap:
+    def create_sitemap(config: Config, client: NiceHttpClient) -> Sitemap:
         """Create the sitemap implementation for the configured sitemap type."""
         try:
             sitemap_cls = Sitemap.registry[config.sitemap_type]
@@ -61,12 +61,12 @@ class LinkedDataPlugin(Plugin):
         except KeyError as exc:
             raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
 
-        return mapper_cls()
+        return mapper_cls.from_config(config)
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for this Linked Data source."""
         async with NiceHttpClient(self._config.http) as nice_http:
-            sitemap = self.create_sitemap(self._config, client=nice_http.client)
+            sitemap = self.create_sitemap(self._config, client=nice_http)
             try:
                 return await sitemap.get_expected_count()
             except Exception as exc:  # noqa: BLE001
@@ -82,12 +82,9 @@ class LinkedDataPlugin(Plugin):
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
     ) -> tuple[str, str | None] | RecordProcessingError | SkippedRecord:
-        if isinstance(discovery_result, DuplicateUrlDiscoveryResult):
-            return SkippedRecord(
-                f"Duplicate sitemap entry skipped: {discovery_result.url}",
-                discovery_result.url,
-            )
-        source_url = discovery_result.url if isinstance(discovery_result, UrlDiscoveryResult) else None
+        # Only UrlDiscoveryResult carries a real fetched/landing URL; inline
+        # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
+        source_url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
             dataset_cls = Dataset.registry[self._config.dataset_type]
             dataset = dataset_cls.from_discovery_result(
@@ -98,7 +95,7 @@ class LinkedDataPlugin(Plugin):
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
             return RecordProcessingError(
                 f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
-                str(discovery_result),
+                discovery_result.identifier,
                 exc,
                 url=source_url,
             )
@@ -133,8 +130,9 @@ class LinkedDataPlugin(Plugin):
             except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
                 result = RecordProcessingError(
                     f"Failed to process discovery result {discovery_result}: {exc}",
-                    str(discovery_result),
+                    discovery_result.identifier,
                     exc,
+                    url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
                 )
             await results.put(result)
             active_workers -= 1
@@ -144,10 +142,14 @@ class LinkedDataPlugin(Plugin):
 
             async def producer() -> None:
                 nonlocal discovery_finished, active_workers
-                async for discovery_result in sitemap.discover():
+                async for item in sitemap.discover():
+                    # Inspire-style: discovery already yields shared harvester signals.
+                    if isinstance(item, (RecordProcessingError, SkippedRecord)):
+                        await results.put(item)
+                        continue
                     await semaphore.acquire()
                     active_workers += 1
-                    task_group.create_task(worker(discovery_result))
+                    task_group.create_task(worker(item))
                 discovery_finished = True
 
             # Run the discovery producer inside the TaskGroup so its lifecycle and
@@ -168,7 +170,7 @@ class LinkedDataPlugin(Plugin):
 
     async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
-            sitemap = self.create_sitemap(self._config, client=nice_http.client)
+            sitemap = self.create_sitemap(self._config, client=nice_http)
             worker_tasks = self._config.effective_worker_tasks
             async for item in self._run_with_task_group(sitemap, nice_http, worker_tasks):
                 yield item

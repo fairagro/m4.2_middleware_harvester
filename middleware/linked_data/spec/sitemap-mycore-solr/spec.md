@@ -5,7 +5,10 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 ## Requirements
 
 - [ ] Support `SitemapType.mycore_solr` in plugin configuration.
-- [ ] Accept a fully-formed Solr query URL (including all query parameters) in the existing `sitemap_url` config field.
+- [ ] Accept a fully-formed Solr query URL (including filter/query parameters) in the existing `sitemap_url` config field.
+- [ ] When `sitemap_url` contains a `rows` parameter, use it as the page size (it overrides config `page_size`).
+- [ ] When `sitemap_url` has no `rows` parameter, use config `page_size` (default 200) as Solr `rows`.
+- [x] Yield `RecordProcessingError` for non-object Solr docs and docs missing `id` (do not silently skip).
 - [ ] Issue an HTTP GET request to the Solr URL.
 - [ ] Parse the Solr JSON response envelope: read `response.numFound`, `response.start`, and `response.docs`.
 - [ ] Extract the `id` field from each document in `response.docs`.
@@ -19,7 +22,8 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 ## Edge Cases
 
 - Empty `docs` array on first page → yield zero results and exit cleanly.
-- A document missing the `id` field → skip that document without stopping discovery.
-- `id` value already yielded in this run → skip silently (deduplication).
+- A document missing the `id` field → yield `RecordProcessingError` without stopping discovery.
+- Non-object entry in `docs` → yield `RecordProcessingError` without stopping discovery.
+- `id` value already yielded in this run → `SkippedRecord` (deduplication).
 - `numFound` is zero → yield zero results without issuing further requests.
 - Last page has fewer docs than expected (partial page) → stop pagination correctly; do not request an empty page.

@@ -29,11 +29,21 @@ The current implementation supports only one concrete type per enum, but the plu
 5. **Implement `XmlSitemap` as the XML sitemap parser for the `xml` sitemap type**
    — The XML sitemap protocol is a distinct source format, so it is isolated in its own implementation file and can evolve separately from dataset parsing and mapping. This also keeps the plugin factory focused on type selection, not parsing details.
 
-6. **Keep `LinkedDataPlugin.run()` as an async generator yielding `str | HarvesterError`**
-   — This matches the harvester orchestrator contract directly and ensures errors are emitted as part of the same async stream instead of being raised out of band.
+6. **Keep `LinkedDataPlugin.run()` as an async generator yielding `tuple[str, str | None] | HarvesterError | SkippedRecord`**
+   — This matches the harvester orchestrator contract. Successes, record-level
+   failures, and deliberate skips share one stream so
+   [`harvest-report`](../../../harvester/spec/harvest-report/) statistics and
+   `fairagro:failedRecords` stay complete. Errors must be yielded, not only
+   logged inside sitemap/dataset code
+   ([`error-handling`](../../../../spec/error-handling/)).
 
 7. **Implement the `Sitemap.discover()` contract as an async generator**
    — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.
 
 8. **Keep vocabulary-specific mappers under vocabulary-specific names**
    — The shared ABC is `LinkedDataMapper`. Concrete mappers keep vocabulary-accurate names (e.g. `GeneralSchemaOrgMapper` for schema.org). Placeholders for the interface contract may use a generic dummy name, but production mappers must not pretend a schema.org crosswalk is vocabulary-neutral.
+
+9. **Inject shared `NiceHttpClient` into sitemaps; use `get_with_policy()` for discovery HTTP**
+   — Discovery (XML nesting, MyCoRe/Regal pagination) and dataset fetches share one
+   polite client so robots.txt, per-host rate limiting, and retry/backoff apply to
+   every outbound request—not only landing-page fetches.

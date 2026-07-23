@@ -11,13 +11,13 @@ modifying code that constructs `ArcInvestigation`, `ArcStudy`, or `ArcAssay` obj
 
 ## Requirements
 
-- [ ] Map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description, contacts, publications, and comments as defined in the authoritative mapping source.
-- [ ] Create one `ArcStudy` per record containing a Data Collection protocol (when applicable) and a Data Processing protocol.
-- [ ] Create a Spatial Sampling protocol on the Study only when `recordingCoordinates` and/or `recordingLocation` are present.
-- [ ] Create one `ArcAssay` per record with a single-row annotation table (`Output [URI]`, license/language/`hasPart` comments as specified).
-- [ ] Serialize the resulting ARC via `arc.ToROCrateJsonString()` and return the JSON string.
-- [ ] Reject (mapping error) graphs that are not Regal ResearchData or that lack both `@id` and `doi`.
-- [ ] Implement mapping in a dedicated Regal mapper registered under the Regal `payload_type`; do not reuse `GeneralSchemaOrgMapper`.
+- [x] Map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description, contacts, publications, and comments as defined in the authoritative mapping source.
+- [x] Create one `ArcStudy` per record containing a Data Collection protocol (when applicable) and a Data Processing protocol.
+- [x] Create a Spatial Sampling protocol on the Study only when `recordingCoordinates` and/or `recordingLocation` are present.
+- [x] Create one `ArcAssay` per record with a single-row annotation table (`Output [URI]`, license/language/`hasPart` comments as specified).
+- [x] Serialize the resulting ARC via `arc.ToROCrateJsonString()` and return the JSON string.
+- [x] Reject (mapping error) graphs that are not Regal ResearchData or that lack both `@id` and `doi`.
+- [x] Implement mapping in a dedicated Regal mapper registered under the Regal `payload_type`; do not reuse `GeneralSchemaOrgMapper`.
 
 ## Edge Cases
 

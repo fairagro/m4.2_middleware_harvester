@@ -40,8 +40,11 @@
   "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "ruff.importStrategy": "fromEnvironment",
 
+  // Keep in sync with [tool.mypy] mypy_path package roots in pyproject.toml
   "python.analysis.extraPaths": [
-    "middleware/inspire/src"
+    "middleware/inspire/src",
+    "middleware/harvester/src",
+    "middleware/linked_data/src"
   ],
 
   "python.analysis.exclude": [
@@ -53,10 +56,12 @@
     "dev_environment"
   ],
 
-  // Pylint Extension Settings
+  // Pylint Extension Settings — same rcfile as pre-commit / CI (pyproject.toml)
   "pylint.args": [
     "--rcfile=${workspaceFolder}/pyproject.toml"
   ],
+  "pylint.path": ["${workspaceFolder}/.venv/bin/pylint"],
+  "pylint.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "pylint.importStrategy": "fromEnvironment",
   "cursorpyright.analysis.exclude": [
     "**/node_modules",
@@ -67,6 +72,8 @@
     "dev_environment"
   ],
   "cursorpyright.analysis.extraPaths": [
-    "middleware/inspire/src"
+    "middleware/inspire/src",
+    "middleware/harvester/src",
+    "middleware/linked_data/src"
   ]
 }

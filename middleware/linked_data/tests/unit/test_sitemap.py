@@ -1,13 +1,16 @@
-"""Schema.org sitemap unit tests."""
+"""Linked Data sitemap unit tests."""
 
 import asyncio
 
 import httpx
 from test_fakes import UrlDiscoveryResult
 
+from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import MycoreSolrSitemap, XmlSitemap
+
+_TEST_HTTP = NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None)
 
 
 def test_create_sitemap_from_config() -> None:
@@ -15,15 +18,12 @@ def test_create_sitemap_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     async def create() -> None:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with NiceHttpClient(config.http) as client:
             sitemap = LinkedDataPlugin.create_sitemap(config, client=client)
             assert isinstance(sitemap, XmlSitemap)
 
@@ -35,8 +35,8 @@ def test_xml_sitemap_discover_urlset() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     urlset = """
@@ -52,10 +52,7 @@ def test_xml_sitemap_discover_urlset() -> None:
     transport = httpx.MockTransport(handler)
 
     async def collect() -> list[str]:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
+        async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = XmlSitemap(config, client)
             return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
@@ -68,8 +65,8 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     urlset = """
@@ -85,10 +82,7 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
     transport = httpx.MockTransport(handler)
 
     async def collect() -> list[str]:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
+        async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = XmlSitemap(config, client)
             return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
@@ -101,8 +95,8 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     root_index = """
@@ -136,10 +130,7 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
     transport = httpx.MockTransport(handler)
 
     async def collect() -> list[str]:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
+        async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = XmlSitemap(config, client)
             return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
@@ -152,15 +143,12 @@ def test_create_sitemap_from_config_mycore_solr() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     async def create() -> None:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with NiceHttpClient(config.http) as client:
             sitemap = LinkedDataPlugin.create_sitemap(config, client=client)
             assert isinstance(sitemap, MycoreSolrSitemap)
 
@@ -175,8 +163,8 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
         ),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     first_page = {
@@ -207,10 +195,7 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
     transport = httpx.MockTransport(handler)
 
     async def collect() -> list[str]:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
+        async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = MycoreSolrSitemap(config, client)
             return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
 
@@ -222,13 +207,93 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
     ]
 
 
+def test_mycore_solr_sitemap_url_rows_overrides_page_size() -> None:
+    config = Config(
+        sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=2&fl=id&wt=json"),
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        page_size=50,
+        http=_TEST_HTTP,
+    )
+    seen_rows: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        query = dict(request.url.params)
+        seen_rows.append(query["rows"])
+        start = int(query.get("start", "0"))
+        if start == 0:
+            return httpx.Response(
+                200,
+                json={
+                    "response": {
+                        "numFound": 1,
+                        "start": 0,
+                        "docs": [{"id": "openagrar_mods_0001"}],
+                    }
+                },
+            )
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+    assert seen_rows == ["2"]
+
+
+def test_mycore_solr_sitemap_uses_page_size_when_rows_absent() -> None:
+    config = Config(
+        sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&fl=id&wt=json"),
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        page_size=3,
+        http=_TEST_HTTP,
+    )
+    seen_rows: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        query = dict(request.url.params)
+        seen_rows.append(query["rows"])
+        start = int(query.get("start", "0"))
+        if start == 0:
+            return httpx.Response(
+                200,
+                json={
+                    "response": {
+                        "numFound": 1,
+                        "start": 0,
+                        "docs": [{"id": "openagrar_mods_0001"}],
+                    }
+                },
+            )
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+    assert seen_rows == ["3"]
+
+
 def test_mycore_solr_sitemap_get_expected_count_uses_cached_first_page() -> None:
     config = Config(
         sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json"),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
-        http=NiceHttpClientConfig(),
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
     )
 
     response = {
@@ -245,10 +310,7 @@ def test_mycore_solr_sitemap_get_expected_count_uses_cached_first_page() -> None
     transport = httpx.MockTransport(handler)
 
     async def collect() -> tuple[int | None, list[str]]:
-        timeout = httpx.Timeout(
-            connect=config.http.connect_timeout, read=config.http.read_timeout, write=None, pool=None
-        )
-        async with httpx.AsyncClient(transport=transport, timeout=timeout) as client:
+        async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = MycoreSolrSitemap(config, client)
             count = await sitemap.get_expected_count()
             urls = [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]

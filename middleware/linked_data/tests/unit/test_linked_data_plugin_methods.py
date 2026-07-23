@@ -5,15 +5,13 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 from rdflib import Graph
 from test_fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
+from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
-from middleware.linked_data.dataset import DuplicateUrlDiscoveryResult
 from middleware.linked_data.plugin import LinkedDataPlugin
 
 EXPECTED_DATASET_COUNT = 5
@@ -24,7 +22,7 @@ def test_create_mapper_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
     mapper = LinkedDataPlugin.create_mapper(config)
@@ -58,18 +56,18 @@ async def test_linked_data_plugin_get_expected_datasets_returns_none_on_failure(
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
     class FakeSitemapFailure:
-        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+        def __init__(self, config: Config, client: NiceHttpClient) -> None:
             pass
 
         async def get_expected_count(self) -> int | None:
             raise RuntimeError("failed")
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemapFailure:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient) -> FakeSitemapFailure:
         return FakeSitemapFailure(_config, client)
 
     with patch(
@@ -87,18 +85,18 @@ async def test_linked_data_plugin_get_expected_datasets_returns_count() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
     class FakeSitemapCount:
-        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+        def __init__(self, config: Config, client: NiceHttpClient) -> None:
             pass
 
         async def get_expected_count(self) -> int | None:
             return 5
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient) -> FakeSitemapCount:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient) -> FakeSitemapCount:
         return FakeSitemapCount(_config, client)
 
     with patch(
@@ -118,11 +116,11 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/fast"])
 
@@ -153,21 +151,24 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
     class DuplicateSitemap:
-        def __init__(self, config: Config, client: httpx.AsyncClient) -> None:
+        def __init__(self, config: Config, client: NiceHttpClient) -> None:
             del config, client
 
-        async def discover(self) -> AsyncGenerator[DuplicateUrlDiscoveryResult, None]:
-            yield DuplicateUrlDiscoveryResult("https://example.org/dataset/dup")
+        async def discover(self) -> AsyncGenerator[SkippedRecord, None]:
+            yield SkippedRecord(
+                "Duplicate discovery entry skipped: https://example.org/dataset/dup",
+                "https://example.org/dataset/dup",
+            )
 
         async def get_expected_count(self) -> int | None:
             return 1
 
-    def create_duplicate_sitemap(_config: Config, client: httpx.AsyncClient) -> DuplicateSitemap:
+    def create_duplicate_sitemap(_config: Config, client: NiceHttpClient) -> DuplicateSitemap:
         return DuplicateSitemap(_config, client)
 
     monkeypatch.setattr(
@@ -187,8 +188,57 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
 
     assert len(results) == 1
     assert isinstance(results[0], SkippedRecord)
-    assert results[0].reason == "Duplicate sitemap entry skipped: https://example.org/dataset/dup"
+    assert results[0].reason == "Duplicate discovery entry skipped: https://example.org/dataset/dup"
     assert results[0].url == "https://example.org/dataset/dup"
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_run_plugin_forwards_discovery_record_processing_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=NiceHttpClientConfig(),
+    )
+
+    class FailedDiscoverySitemap:
+        def __init__(self, config: Config, client: NiceHttpClient) -> None:
+            del config, client
+
+        async def discover(self) -> AsyncGenerator[RecordProcessingError, None]:
+            yield RecordProcessingError(
+                "Regal /find record at from=0 index=1 is missing @id",
+                "regal_find:from=0:index=1",
+            )
+
+        async def get_expected_count(self) -> int | None:
+            return 1
+
+    def create_failed_sitemap(_config: Config, client: NiceHttpClient) -> FailedDiscoverySitemap:
+        return FailedDiscoverySitemap(_config, client)
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(create_failed_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
+        staticmethod(lambda _config: MagicMock()),
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: GoodFakeDataset},
+    )
+
+    results = [item async for item in LinkedDataPlugin(config).run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], RecordProcessingError)
+    assert results[0].record_id == "regal_find:from=0:index=1"
+    assert "missing @id" in str(results[0])
 
 
 @pytest.mark.asyncio
@@ -197,11 +247,11 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/slow"])
 
@@ -234,11 +284,11 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_whe
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.general,
+        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
-    def fake_create_sitemap(_config: Config, client: httpx.AsyncClient | None = None) -> FakeSitemap:
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
         return FakeSitemap(["https://example.org/dataset/slow"])
 

@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-`MycoreSolrSitemap` is a concrete `Sitemap` subclass registered under `SitemapType.mycore_solr`. It follows the same structural contract as `XmlSitemap`: injected with a shared `httpx.AsyncClient` and the plugin `Config`, it implements `_discover()` as an async generator yielding `UrlDiscoveryResult` objects.
+`MycoreSolrSitemap` is a concrete `Sitemap` subclass registered under `SitemapType.mycore_solr`. It follows the same structural contract as `XmlSitemap`: injected with a shared `NiceHttpClient` and the plugin `Config`, it implements `_discover()` as an async generator yielding `UrlDiscoveryResult` objects.
 
 Internally it delegates to a private `_fetch_page(client, url, start)` coroutine that issues a single paginated Solr request and returns `(numFound, docs)`. The outer loop in `_discover()` advances `start` by `len(docs)` until all pages are exhausted.
 
@@ -23,8 +23,12 @@ _discover(client)
 
 ## Key Decisions
 
-1. **Full Solr URL in `sitemap_url`, no extra config fields**
-   — The complete Solr query URL (including `core`, `q`, `fl`, `wt`, `rows`) is supplied by the operator directly in the existing `sitemap_url` field. Building a query from separate fields would require a query-builder layer that adds complexity without increasing expressiveness. Operators already know how to construct a Solr URL from the admin interface.
+1. **Full Solr URL in `sitemap_url` for filters; `rows` vs config `page_size`**
+   — The Solr query URL (including `core`, `q`, `fl`, `wt`, and optionally
+   `rows`) remains operator-supplied because Solr filters are expressive.
+   `rows` is a page-size parameter: when present in `sitemap_url` it wins.
+   Otherwise config `page_size` (default 200) is applied as `rows`.
+   Pagination still only overrides `start`.
 
 2. **`base_url` derived from `sitemap_url` at runtime**
    — Rather than adding a separate `base_url` config field, the receive-page base URL is computed once by extracting the scheme and host from `sitemap_url`. This avoids configuration duplication while keeping the derivation rule explicit and testable.
@@ -36,4 +40,4 @@ _discover(client)
    — The conceptual role of this source is identical to an XML sitemap: it enumerates dataset URLs that feed the subsequent `Dataset` fetching stage. Implementing `Sitemap` reuses the existing registration, injection, and deduplication infrastructure without any interface changes.
 
 5. **Pagination via `start` query parameter, not cursor**
-   — Solr supports both offset (`start`) and cursor-based pagination. Offset pagination is simpler to implement and sufficient here because the result set is bounded (`rows=1000` per request, total typically in the hundreds to low thousands). Cursor pagination would be needed only if result sets could change between pages, which is negligible for a read-only harvesting window.
+   — Solr supports both offset (`start`) and cursor-based pagination. Offset pagination is simpler to implement and sufficient here because the result set is bounded (`rows` per request, total typically in the hundreds to low thousands). Cursor pagination would be needed only if result sets could change between pages, which is negligible for a read-only harvesting window.

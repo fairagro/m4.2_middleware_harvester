@@ -11,8 +11,9 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 - [ ] Implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
 - [ ] Select implementations using registries for sitemap, dataset, and mapper types.
 - [ ] Validate config at startup and fail fast on unsupported enum values.
-- [ ] Yield serialized RO-Crate JSON-LD strings or `HarvesterError` objects for every dataset processed.
+- [ ] Yield serialized RO-Crate JSON-LD strings, `HarvesterError` objects, or `SkippedRecord` objects for every dataset outcome (success, failure, or deliberate skip).
 - [ ] Continue harvesting remaining datasets when a dataset-level failure occurs.
+- [ ] Ensure every yielded `HarvesterError` and `SkippedRecord` reaches the orchestrator so harvest-report counters and `fairagro:failedRecords` stay complete; do not treat local logging as a substitute for yielding.
 
 ## Feature split
 
@@ -30,3 +31,5 @@ This spec defines the plugin entrypoint, configuration contract, and implementat
 - Duplicate dataset URLs in a sitemap must be deduplicated before parsing.
 - Unsupported sitemap, dataset, or payload types must fail fast during validation.
 - Dataset-level parse or map failures must be emitted as errors and should not stop the overall harvest.
+- Malformed discovery entries that cannot be turned into a dataset must be yielded as `RecordProcessingError` (shared harvester type), not only logged inside the sitemap.
+- Duplicate discovery identifiers must be yielded as `SkippedRecord`, not as failures.
