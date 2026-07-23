@@ -102,7 +102,10 @@ class LinkedDataPlugin(Plugin):
             )
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
             return RecordProcessingError(
-                f"Failed to construct dataset from discovery result {discovery_result}: {exc}",
+                (
+                    f"Failed to construct dataset from "
+                    f"{type(discovery_result).__name__} {discovery_result.identifier}: {exc}"
+                ),
                 discovery_result.identifier,
                 exc,
                 url=source_url,
@@ -137,7 +140,7 @@ class LinkedDataPlugin(Plugin):
                 result = await self._process_result(discovery_result, nice_http)
             except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
                 result = RecordProcessingError(
-                    f"Failed to process discovery result {discovery_result}: {exc}",
+                    (f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
                     discovery_result.identifier,
                     exc,
                     url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
