@@ -29,6 +29,7 @@ class LinkedDataPlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
         self._mapper: LinkedDataMapper = self.create_mapper(config)
+        self._dataset_cls: type[Dataset] = self.create_dataset_class(config)
 
     @staticmethod
     def create_sitemap(config: Config, client: NiceHttpClient) -> Sitemap:
@@ -63,6 +64,14 @@ class LinkedDataPlugin(Plugin):
 
         return mapper_cls.from_config(config)
 
+    @staticmethod
+    def create_dataset_class(config: Config) -> type[Dataset]:
+        """Resolve the dataset implementation for the configured dataset type."""
+        try:
+            return Dataset.registry[config.dataset_type]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported dataset type: {config.dataset_type}") from exc
+
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for this Linked Data source."""
         async with NiceHttpClient(self._config.http) as nice_http:
@@ -86,8 +95,7 @@ class LinkedDataPlugin(Plugin):
         # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
         source_url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
         try:
-            dataset_cls = Dataset.registry[self._config.dataset_type]
-            dataset = dataset_cls.from_discovery_result(
+            dataset = self._dataset_cls.from_discovery_result(
                 discovery_result,
                 client=nice_http,
                 config=self._config,

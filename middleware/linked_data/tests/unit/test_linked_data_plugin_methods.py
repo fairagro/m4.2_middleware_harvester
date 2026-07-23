@@ -44,6 +44,13 @@ def test_create_sitemap_rejects_unknown_sitemap_type() -> None:
         LinkedDataPlugin.create_sitemap(config, client=client)
 
 
+def test_create_dataset_class_rejects_unknown_dataset_type() -> None:
+    config = cast(Config, SimpleNamespace(dataset_type="bad"))
+
+    with pytest.raises(ValueError, match="Unsupported dataset type"):
+        LinkedDataPlugin.create_dataset_class(config)
+
+
 def test_extract_arc_identifier_handles_list_identifiers() -> None:
     arc_json = '{"@graph":[{"@id":"./","identifier":["10.1234/abc"]}]}'
     result = LinkedDataPlugin._extract_arc_identifier(arc_json)  # noqa: SLF001

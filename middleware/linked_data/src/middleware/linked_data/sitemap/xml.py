@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
-from defusedxml.ElementTree import fromstring  # type: ignore[import]
+from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
@@ -48,7 +48,7 @@ class XmlSitemap(Sitemap):
                 if not loc.text or not loc.text.strip():
                     yield RecordProcessingError(
                         f"XML sitemap {sitemap_url} has empty <loc> at index={index}",
-                        f"xml_sitemap:index={index}",
+                        f"xml_sitemap:{sitemap_url}:index={index}",
                     )
                     continue
 
