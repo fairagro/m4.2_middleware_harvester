@@ -4,8 +4,10 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
+from middleware.api_client.api_client import ApiClientError
 from middleware.harvester.errors import HarvesterError, SkippedRecord
 from middleware.harvester.main import _run_repository, run_orchestrator
 from middleware.harvester.plugin_base import Plugin
@@ -172,6 +174,50 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
     # harvest_arcs was called for both repos; first raised, second succeeded
     assert mock_client.harvest_arcs.call_count == len(repos)
     assert len(report.repository_reports) == len(repos)
+    assert report.repository_reports[0].harvest_id is None
+    assert report.repository_reports[1].harvest_id == "harvest-1"
+
+
+@pytest.mark.asyncio
+async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url() -> None:
+    """When harvest_arcs raises after create, report still carries the harvest id."""
+    repos = [_make_repo()]
+    mock_config = MagicMock()
+    mock_config.repositories = repos
+    mock_config.api_client = MagicMock()
+
+    class RunnerPlugin(Plugin):
+        def __init__(self, config: object) -> None:
+            self._config = config
+
+        def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+            async def generator() -> AsyncGenerator[tuple[str, str | None] | HarvesterError, None]:
+                yield "arc-json", None  # type: ignore[misc]
+
+            return generator()
+
+        async def get_expected_datasets(self) -> int | None:
+            return None
+
+    request = httpx.Request(
+        "POST",
+        "https://middleware-test.example/v3/harvests/harvest-967abfe8-27a3-4776-86e6-4bbe17d98ac2/arcs",
+    )
+    cause = httpx.ConnectError("", request=request)
+    error = ApiClientError("Request failed: ", status_code=None)
+    error.__cause__ = cause
+
+    mock_client = _make_mock_client()
+    mock_client.harvest_arcs.side_effect = error
+
+    with (
+        patch("middleware.harvester.main._PLUGIN_FACTORIES", {"inspire": RunnerPlugin}),
+        patch("middleware.harvester.main.ApiClient", return_value=mock_client),
+    ):
+        report = await run_orchestrator(mock_config)
+
+    assert report.repository_reports[0].harvest_id == "harvest-967abfe8-27a3-4776-86e6-4bbe17d98ac2"
+    assert len(report.repository_reports[0].failed_records) == 1
 
 
 @pytest.mark.asyncio

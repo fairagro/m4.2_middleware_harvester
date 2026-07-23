@@ -12,8 +12,9 @@ expected dataset count, outcome statistics, and a per-record failure list.
       and passes them to a `HarvestReport` builder.
 - [ ] `RepositoryReport` captures:
   - the RDI identifier (string)
-  - the `harvest_id` returned by `ApiClient.harvest_arcs` (`str | None` when the
-    upload was skipped or failed before a harvest was created)
+  - the `harvest_id` returned by `ApiClient.harvest_arcs`, or recovered from the
+    failure when `harvest_arcs` raised after creating a harvest (`str | None`
+    only when the upload was skipped or failed before a harvest was created)
   - wall-clock duration of the repository harvest in seconds (`float`)
   - `expected_datasets`: the value returned by `Plugin.get_expected_datasets()`
     (`int | None` if unavailable)
@@ -54,10 +55,11 @@ expected dataset count, outcome statistics, and a per-record failure list.
 
 ## Edge Cases
 
-Repository task raised an unhandled exception → `harvest_id` is `None`,
-`failed_datasets` equals `expected_datasets` if known, otherwise `None`;
-`failed_records` contains at least one entry describing the repository-level
-failure.
+Repository task raised an unhandled exception → `harvest_id` is the created
+harvest id when recoverable (e.g. from the failing `/v3/harvests/{id}/…`
+request URL), otherwise `None`; `failed_datasets` equals `expected_datasets`
+if known, otherwise `None`; `failed_records` contains at least one entry
+describing the repository-level failure.
 
 `get_expected_datasets()` returned `None` → `expected_datasets` is omitted
 from the JSON-LD output (the key is not emitted rather than set to `null`).

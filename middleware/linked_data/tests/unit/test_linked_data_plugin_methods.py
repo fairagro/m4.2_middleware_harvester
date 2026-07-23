@@ -6,8 +6,8 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 from rdflib import Graph
-from test_fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError

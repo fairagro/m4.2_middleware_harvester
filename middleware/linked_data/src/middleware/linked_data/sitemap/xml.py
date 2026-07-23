@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from xml.etree.ElementTree import ParseError
 
 from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
@@ -11,6 +12,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
+from ..errors import LinkedDataSitemapError
 from .sitemap import Sitemap
 
 
@@ -40,7 +42,13 @@ class XmlSitemap(Sitemap):
         seen_sitemaps.add(sitemap_url)
         response = await client.get_with_policy(sitemap_url)
 
-        root = fromstring(response.text)
+        try:
+            root = fromstring(response.text)
+        except (ParseError, ValueError, TypeError) as exc:
+            # ParseError is a SyntaxError subclass and would otherwise escape the
+            # plugin producer; ValueError covers defusedxml DefusedXmlException.
+            raise LinkedDataSitemapError(f"Failed to parse XML sitemap {sitemap_url}: {exc}") from exc
+
         root_name = self._local_name(root.tag)
 
         if root_name == "urlset":
@@ -67,7 +75,7 @@ class XmlSitemap(Sitemap):
                         yield dataset
             return
 
-        raise ValueError(f"Unsupported sitemap root element: {root_name}")
+        raise LinkedDataSitemapError(f"Unsupported sitemap root element: {root_name} (sitemap {sitemap_url})")
 
     @staticmethod
     def _local_name(tag: str) -> str:

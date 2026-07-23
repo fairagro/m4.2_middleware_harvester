@@ -254,6 +254,8 @@ extension-pkg-allow-list = ["lxml"]
 ignore-patterns = ["^\\..*", ".*\\.egg-info"]
 # Fail if the score is below 8.0
 fail-under = 8.0
+# Same-directory helpers for linked_data unit tests (`from fakes import …`)
+source-roots = ["middleware/linked_data/tests/unit"]
 
 [tool.pylint.messages_control]
 # Disable checks that are already covered by ruff

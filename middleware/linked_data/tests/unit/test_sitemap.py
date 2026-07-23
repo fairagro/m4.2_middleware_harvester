@@ -4,11 +4,11 @@ import asyncio
 
 import httpx
 import pytest
-from test_fakes import UrlDiscoveryResult
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.dataset import UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import MycoreSolrSitemap, XmlSitemap
@@ -100,6 +100,54 @@ def test_xml_sitemap_yields_error_for_empty_loc_with_sitemap_url_in_record_id() 
     assert urls == ["https://example.org/dataset/1"]
     assert len(errors) == 1
     assert errors[0].record_id == "xml_sitemap:https://example.org/sitemap.xml:index=0"
+
+
+def test_xml_sitemap_raises_sitemap_error_on_malformed_xml() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
+    )
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<urlset><url><loc>broken")
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> None:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = XmlSitemap(config, client)
+            async for _ in sitemap.discover():
+                pass
+
+    with pytest.raises(LinkedDataSitemapError, match="Failed to parse XML sitemap"):
+        asyncio.run(run())
+
+
+def test_xml_sitemap_raises_sitemap_error_on_unsupported_root() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
+    )
+
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html><body>not a sitemap</body></html>")
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> None:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = XmlSitemap(config, client)
+            async for _ in sitemap.discover():
+                pass
+
+    with pytest.raises(LinkedDataSitemapError, match="Unsupported sitemap root element"):
+        asyncio.run(run())
 
 
 def test_xml_sitemap_deduplicates_dataset_urls() -> None:

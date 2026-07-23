@@ -14,7 +14,9 @@ Parse standard XML sitemap documents and yield discovery results for Schema.org 
 - [x] Yield `RecordProcessingError` for empty `<loc>` elements (do not silently skip).
 - [ ] Yield one `UrlDiscoveryResult` per unique dataset URL found in a `urlset`.
 - [ ] Use safe XML parsing (`defusedxml`) for untrusted content.
-- [ ] Fail fast with a `ValueError` when the root element is neither `urlset` nor `sitemapindex`.
+- [ ] Fail fast with `LinkedDataSitemapError` when XML parsing fails (malformed
+      or truncated body) or when the root element is neither `urlset` nor
+      `sitemapindex`.
 
 ## Edge Cases
 
@@ -23,3 +25,6 @@ Parse standard XML sitemap documents and yield discovery results for Schema.org 
 - Missing or empty `<loc>` elements → yield `RecordProcessingError` without stopping discovery.
 - Duplicate dataset URL already yielded in this run → `SkippedRecord`.
 - Empty `urlset` → yield zero results and exit cleanly.
+- Malformed / non-XML body → raise `LinkedDataSitemapError` (fatal discovery failure;
+  plugin producer yields it into the harvest report).
+- Unsupported root element → raise `LinkedDataSitemapError` the same way.

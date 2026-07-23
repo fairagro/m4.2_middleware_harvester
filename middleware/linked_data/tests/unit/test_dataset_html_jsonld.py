@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
-from test_fakes import _MINIMAL_CONFIG, BAD_JSON_HTML, MULTI_BLOCK_HTML, NO_JSONLD_HTML, SIMPLE_HTML
+from fakes import _MINIMAL_CONFIG, BAD_JSON_HTML, MULTI_BLOCK_HTML, NO_JSONLD_HTML, SIMPLE_HTML
 
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.linked_data.config import Config, DatasetType, PayloadType, SitemapType

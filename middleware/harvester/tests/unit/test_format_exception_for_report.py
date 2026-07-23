@@ -4,7 +4,11 @@ import httpx
 import pytest
 
 from middleware.api_client.api_client import ApiClientError
-from middleware.harvester.errors import failure_url_for_exception, format_exception_for_report
+from middleware.harvester.errors import (
+    failure_url_for_exception,
+    format_exception_for_report,
+    harvest_id_from_exception,
+)
 
 
 def test_format_exception_for_report_includes_read_timeout_cause() -> None:
@@ -52,6 +56,18 @@ def test_format_exception_for_report_includes_connect_error_request_and_errno() 
     assert "errno 104" in message
     assert "Connection reset by peer" in message
     assert failure_url_for_exception(error) == "https://middleware-test.example/v3/harvests/h1/arcs"
+    assert harvest_id_from_exception(error) == "h1"
+
+
+def test_harvest_id_from_exception_prefers_explicit_attribute() -> None:
+    error = ApiClientError("Request failed: ", status_code=None)
+    error.harvest_id = "harvest-explicit"  # type: ignore[attr-defined]
+
+    assert harvest_id_from_exception(error) == "harvest-explicit"
+
+
+def test_harvest_id_from_exception_returns_none_without_url_or_attribute() -> None:
+    assert harvest_id_from_exception(RuntimeError("boom")) is None
 
 
 def test_format_exception_for_report_does_not_duplicate_oserror_detail() -> None:

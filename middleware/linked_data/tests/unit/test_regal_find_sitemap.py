@@ -9,6 +9,7 @@ from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.linked_data.dataset import JsonLdDiscoveryResult
+from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import RegalFindSitemap
 
@@ -236,7 +237,6 @@ async def test_regal_find_sitemap_raises_on_non_array_payload() -> None:
     transport = httpx.MockTransport(handler)
     async with NiceHttpClient(_config().http, transport=transport) as client:
         sitemap = RegalFindSitemap(_config(), client)
-        from middleware.linked_data.errors import LinkedDataSitemapError
 
         with pytest.raises(LinkedDataSitemapError, match="JSON array"):
             _ = [result async for result in sitemap.discover()]
