@@ -17,8 +17,11 @@ is not sufficient for operator-visible discovery or mapping problems.
 ### Discovery (`Sitemap`)
 
 - [x] Support a dedicated Regal sitemap type in plugin configuration.
-- [x] Accept a Regal `/find` base URL in `sitemap_url` **without** query parameters; the harvester builds `q`, `format`, `from`, and `until`.
-- [x] Use config `page_size` (default 200) as the `/find` `until` value; do not take page size from an `until` query parameter on `sitemap_url`.
+- [x] Accept a Regal `/find` endpoint in `sitemap_url`; query parameters are optional.
+- [x] When `sitemap_url` omits overridable params, fill defaults: `q=contentType:researchData` and `until` from config `page_size`.
+- [x] When `sitemap_url` already contains an overridable query parameter (`q`, extra filters, …), keep the operator-supplied value.
+- [x] Always set `format=json` and pagination `from` in software; ignore those keys on `sitemap_url`.
+- [x] When `sitemap_url` contains `until`, use it as the page size (overrides config `page_size`); otherwise use config `page_size` (default 200).
 - [x] Use optional `resource_base_url` to expand compact Regal `@id` values to absolute IRIs; when unset, derive `{scheme}://{host}/resource/` from `sitemap_url`.
 - [x] Issue HTTP GET requests to the constructed `/find` URL.
 - [x] Parse the response as a JSON array of Regal JSON-LD records.
@@ -65,4 +68,7 @@ is not sufficient for operator-visible discovery or mapping problems.
 - Inline payload present but JSON-LD context unresolved / parse failure → emit a dataset or mapping error for that record (`HarvesterError`) and continue.
 - Configured Regal dataset type receiving a URL-only discovery result → raise a descriptive dataset construction error (plugin yields `HarvesterError`).
 - Non-`ResearchData` Regal types in the result set → map-error that record (`HarvesterError`); do not abort the run.
+- Operator `format=xml` (or any other `format`) on `sitemap_url` → ignored; request still uses `format=json`.
+- Operator `q=…` on `sitemap_url` → overrides default `contentType:researchData`.
+- Operator `until=N` on `sitemap_url` → overrides config `page_size` for pagination.
 - Fatal `/find` transport or response-shape failure (non-array body, HTTP error) → raise (full plugin failure), not yield.

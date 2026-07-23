@@ -5,7 +5,11 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 ## Requirements
 
 - [ ] Support `SitemapType.mycore_solr` in plugin configuration.
-- [ ] Accept a fully-formed Solr query URL (including filter/query parameters) in the existing `sitemap_url` config field.
+- [ ] Accept a MyCoRe Solr select endpoint in `sitemap_url`; query parameters are optional.
+- [ ] When `sitemap_url` has no query string (or omits overridable params), fill defaults: `core=main`, `q=*:*`, `fl=id`, and `rows` from config `page_size`.
+- [ ] Always set `wt=json` in software; ignore any `wt` already present on `sitemap_url`.
+- [ ] When `sitemap_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`, `rows`, …), keep the operator-supplied value and do not overwrite it with a default.
+- [ ] Always set pagination `start` in software; ignore any `start` already present on `sitemap_url`.
 - [ ] When `sitemap_url` contains a `rows` parameter, use it as the page size (it overrides config `page_size`).
 - [ ] When `sitemap_url` has no `rows` parameter, use config `page_size` (default 200) as Solr `rows`.
 - [x] Yield `RecordProcessingError` for non-object Solr docs and docs missing `id` (do not silently skip).
@@ -27,3 +31,6 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 - `id` value already yielded in this run → `SkippedRecord` (deduplication).
 - `numFound` is zero → yield zero results without issuing further requests.
 - Last page has fewer docs than expected (partial page) → stop pagination correctly; do not request an empty page.
+- Query-free `sitemap_url` → request uses overridable defaults plus forced `wt=json`.
+- Operator filter such as `q=category.top:"mir_genres:research_data"` → overrides default `q=*:*`; other defaults still apply.
+- Operator `wt=xml` (or any other `wt`) on `sitemap_url` → ignored; request still uses `wt=json`.

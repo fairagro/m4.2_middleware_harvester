@@ -24,12 +24,12 @@ A new `DiscoveryResult` subtype carries the inline JSON object (and its stable
 yield raw content rather than URLs. The Regal dataset implementation accepts
 `client=None` as permitted by the dataset abstraction.
 
-Operators configure PUBLISSO-style sources with a query-free `/find` base URL
-plus the three Regal type enums. Config `page_size` (default 200) controls
-`/find` page length via the request's `until` parameter; the harvester always
-adds `q=contentType:researchData` and `format=json`. An `until` on
-`sitemap_url` is ignored (unlike Solr `rows`, it is not treated as a page-size
-override).
+Operators configure PUBLISSO-style sources with a `/find` base URL (query-free
+is fine) plus the three Regal type enums. Config `page_size` (default 200)
+controls `/find` page length via `until` unless the URL supplies `until`.
+Defaults fill `q=contentType:researchData`; operator query params override
+overridable keys. `format=json` and pagination `from` are always set by the
+software.
 
 ## Key Decisions
 
@@ -42,9 +42,9 @@ override).
 2. **Name strategies after the Regal platform (`regal_find` / `regal_jsonld` /
    `regal_general`), not `publisso`**
    — `/find`, the Regal JSON-LD context, and `regal#ResearchData` are platform
-   contracts shared across Regal installations. The research-data filter is
-   fixed in software (`contentType:researchData`); institution-specific hosts
-   differ only by the `/find` base URL.
+   contracts shared across Regal installations. The default research-data filter
+   is `contentType:researchData` (overridable via URL `q`); institution-specific
+   hosts differ mainly by the `/find` base URL.
 
 3. **Inline JSON-LD in discovery results, not HTML/RDFa scraping**
    — `/find` already returns complete Regal JSON-LD records. Landing pages are
@@ -52,16 +52,17 @@ override).
    Carrying the payload in discovery avoids a useless second fetch and matches
    production behaviour in `m4.2_basic_middleware`.
 
-4. **Query-free `/find` base URL; software owns pagination and filter**
-   — `sitemap_url` is only the endpoint (e.g. `https://frl.publisso.de/find`).
-   The sitemap builds `q=contentType:researchData`, `format=json`, and
-   paginates with `from` / `until`. Page size comes from config `page_size`
-   (default 200). Unlike MyCoRe Solr `rows`, an `until` on `sitemap_url` does
-   not override page size. Any query string on `sitemap_url` is ignored.
-   Compact Regal `@id` values are expanded with optional `resource_base_url`
-   (default:
-   `{scheme}://{host}/resource/` from `sitemap_url`) so RDF subjects are
-   absolute IRIs without hardcoding a host in source.
+4. **Query-free `/find` URL with mergeable defaults (aligned with MyCoRe Solr)**
+   — `sitemap_url` may be only the endpoint (e.g. `https://frl.publisso.de/find`).
+   Missing overridable params are filled (`q=contentType:researchData`,
+   `until` from config `page_size`). Operator-supplied query params override
+   those defaults and extra keys are forwarded. Response format and pagination
+   offset are not operator-configurable: `format=json` and `from` are always
+   set by the software. URL `until` overrides config `page_size` (same role as
+   Solr `rows`). Compact Regal `@id` values are expanded with optional
+   `resource_base_url` (default: `{scheme}://{host}/resource/` from
+   `sitemap_url`) so RDF subjects are absolute IRIs without hardcoding a host
+   in source.
 
 5. **Regal→ARC mapper as its own `payload_type`, not reuse of
    `schema_org_general` / `GeneralSchemaOrgMapper`**

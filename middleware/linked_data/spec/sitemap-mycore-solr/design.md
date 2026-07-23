@@ -23,12 +23,17 @@ _discover(client)
 
 ## Key Decisions
 
-1. **Full Solr URL in `sitemap_url` for filters; `rows` vs config `page_size`**
-   — The Solr query URL (including `core`, `q`, `fl`, `wt`, and optionally
-   `rows`) remains operator-supplied because Solr filters are expressive.
-   `rows` is a page-size parameter: when present in `sitemap_url` it wins.
-   Otherwise config `page_size` (default 200) is applied as `rows`.
-   Pagination still only overrides `start`.
+1. **Query-free select URL with mergeable defaults**
+   — Like Regal `/find`, operators may supply only the select endpoint
+   (e.g. `https://host/servlets/solr/select`). Missing overridable parameters
+   are filled automatically: `core=main`, `q=*:*`, `fl=id`, and `rows` from
+   config `page_size` (default 200). Unlike Regal (which ignores any query
+   string), operator-supplied Solr params override those defaults so
+   repository-specific filters (`q`, `fq`, …) remain expressible without
+   repeating boilerplate. Response format is not operator-configurable:
+   `wt=json` is always set by the software because discovery parses the Solr
+   JSON envelope. Pagination always sets `start` (URL `start` is ignored).
+   URL `rows` still wins over config `page_size`.
 
 2. **`base_url` derived from `sitemap_url` at runtime**
    — Rather than adding a separate `base_url` config field, the receive-page base URL is computed once by extracting the scheme and host from `sitemap_url`. This avoids configuration duplication while keeping the derivation rule explicit and testable.

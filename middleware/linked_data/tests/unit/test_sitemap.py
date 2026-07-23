@@ -207,6 +207,134 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
     ]
 
 
+def test_mycore_solr_sitemap_fills_defaults_for_query_free_url() -> None:
+    config = Config(
+        sitemap_url="https://www.openagrar.de/servlets/solr/select",
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        page_size=7,
+        http=_TEST_HTTP,
+    )
+    seen_query: dict[str, str] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_query
+        seen_query = dict(request.url.params)
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "numFound": 1,
+                    "start": 0,
+                    "docs": [{"id": "openagrar_mods_0001"}],
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+    assert seen_query == {
+        "core": "main",
+        "q": "*:*",
+        "fl": "id",
+        "wt": "json",
+        "rows": "7",
+        "start": "0",
+    }
+
+
+def test_mycore_solr_sitemap_operator_params_override_defaults() -> None:
+    config = Config(
+        sitemap_url=(
+            "https://www.openagrar.de/servlets/solr/select?"
+            "q=category.top%3A%22mir_genres%3Aresearch_data%22&fq=state%3Apublished"
+        ),
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        page_size=4,
+        http=_TEST_HTTP,
+    )
+    seen_query: dict[str, str] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_query
+        seen_query = dict(request.url.params)
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "numFound": 1,
+                    "start": 0,
+                    "docs": [{"id": "openagrar_mods_0001"}],
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+    assert seen_query["q"] == 'category.top:"mir_genres:research_data"'
+    assert seen_query["fq"] == "state:published"
+    assert seen_query["core"] == "main"
+    assert seen_query["fl"] == "id"
+    assert seen_query["wt"] == "json"
+    assert seen_query["rows"] == "4"
+    assert seen_query["start"] == "0"
+
+
+def test_mycore_solr_sitemap_ignores_operator_wt() -> None:
+    config = Config(
+        sitemap_url="https://www.openagrar.de/servlets/solr/select?wt=xml&q=test",
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        page_size=2,
+        http=_TEST_HTTP,
+    )
+    seen_query: dict[str, str] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_query
+        seen_query = dict(request.url.params)
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "numFound": 1,
+                    "start": 0,
+                    "docs": [{"id": "openagrar_mods_0001"}],
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[str]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert results == ["https://www.openagrar.de/receive/openagrar_mods_0001"]
+    assert seen_query["wt"] == "json"
+    assert seen_query["q"] == "test"
+
+
 def test_mycore_solr_sitemap_url_rows_overrides_page_size() -> None:
     config = Config(
         sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=2&fl=id&wt=json"),

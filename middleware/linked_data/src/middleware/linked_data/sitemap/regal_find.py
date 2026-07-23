@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
@@ -14,8 +14,15 @@ from ..errors import LinkedDataSitemapError
 from ..json_types import JsonValue
 from .sitemap import Sitemap
 
-_REGAL_FIND_QUERY = "contentType:researchData"
-_REGAL_FIND_FORMAT = "json"
+# Overridable defaults when absent from ``sitemap_url``. Operator-supplied
+# query parameters always win for these (and any other non-owned keys).
+_DEFAULT_REGAL_PARAMS: tuple[tuple[str, str], ...] = (("q", "contentType:researchData"),)
+
+# Owned by the harvester: never taken from ``sitemap_url``.
+# ``until`` is resolved once (URL override or config ``page_size``) and always
+# written by the software so pagination stop conditions stay consistent.
+_SOFTWARE_REGAL_PARAMS: tuple[tuple[str, str], ...] = (("format", "json"),)
+_SOFTWARE_OWNED_QUERY_NAMES = frozenset({"from", "format", "until"})
 
 
 @Sitemap.register(SitemapType.regal_find)
@@ -25,7 +32,7 @@ class RegalFindSitemap(Sitemap):
     def __init__(self, config: Config, client: NiceHttpClient) -> None:
         """Initialize the Regal find sitemap parser."""
         super().__init__(config, client)
-        self._page_size = config.page_size
+        self._page_size = self._resolve_page_size(config.sitemap_url, config.page_size)
 
     async def get_expected_count(self) -> int | None:
         """Return None; Regal `/find` does not expose a total hit count."""
@@ -90,19 +97,44 @@ class RegalFindSitemap(Sitemap):
         return None
 
     @staticmethod
-    def _build_request_url(sitemap_url: str, offset: int, page_size: int) -> str:
-        """Build a `/find` request URL from a query-free base URL.
+    def _resolve_page_size(sitemap_url: str, page_size: int) -> int:
+        """Return URL ``until`` when present and valid; otherwise config ``page_size``."""
+        for name, value in parse_qsl(urlparse(sitemap_url).query, keep_blank_values=True):
+            if name != "until":
+                continue
+            try:
+                parsed = int(value)
+            except ValueError:
+                break
+            if parsed >= 1:
+                return parsed
+            break
+        return page_size
 
-        Query parameters (`q`, `format`, `from`, `until`) are always set by the
-        software. Any query string already present on ``sitemap_url`` is ignored.
+    @staticmethod
+    def _build_request_url(sitemap_url: str, offset: int, page_size: int) -> str:
+        """Build a `/find` request URL with defaults and operator overrides.
+
+        ``sitemap_url`` may be a query-free `/find` endpoint. Missing
+        overridable parameters (notably ``q``) are filled from defaults.
+        Operator-supplied values for those keys win; extra filter/sort params
+        are forwarded. ``format=json``, pagination ``from``, and ``until``
+        (resolved from URL ``until`` or config ``page_size``) are always set
+        by the software because discovery parses a JSON array response.
         """
         parsed_url = urlparse(sitemap_url)
-        query = urlencode(
-            [
-                ("q", _REGAL_FIND_QUERY),
-                ("format", _REGAL_FIND_FORMAT),
-                ("from", str(offset)),
-                ("until", str(page_size)),
-            ]
-        )
-        return urlunparse(parsed_url._replace(query=query, params="", fragment=""))
+        operator_pairs = [
+            (name, value)
+            for name, value in parse_qsl(parsed_url.query, keep_blank_values=True)
+            if name not in _SOFTWARE_OWNED_QUERY_NAMES
+        ]
+        operator_names = {name for name, _ in operator_pairs}
+
+        query_pairs: list[tuple[str, str]] = [
+            (name, value) for name, value in _DEFAULT_REGAL_PARAMS if name not in operator_names
+        ]
+        query_pairs.extend(operator_pairs)
+        query_pairs.extend(_SOFTWARE_REGAL_PARAMS)
+        query_pairs.append(("until", str(page_size)))
+        query_pairs.append(("from", str(offset)))
+        return urlunparse(parsed_url._replace(query=urlencode(query_pairs), params="", fragment=""))

@@ -40,7 +40,13 @@ class Config(BaseModel):
         str,
         Field(
             description=(
-                "Sitemap entry point URL. For `regal_find`, supply the `/find` base URL without query parameters."
+                "Sitemap entry point URL. For `regal_find` and `mycore_solr`, a "
+                "query-free endpoint is fine; missing overridable parameters are "
+                "filled automatically and operator-supplied query parameters "
+                "override those defaults. Software always owns response format "
+                "and pagination offsets (`format`/`from` for Regal; `wt`/`start` "
+                "for Solr). Page size uses config `page_size` unless URL "
+                "`until` (Regal) or `rows` (Solr) is set."
             ),
         ),
     ]
@@ -66,10 +72,10 @@ class Config(BaseModel):
         Field(
             description=(
                 "Default page size for paginated discovery. Used as Regal `/find` "
-                "`until`, and as MyCoRe Solr `rows` when `sitemap_url` has no "
-                "`rows` parameter. A Solr `rows` query parameter overrides this "
-                "value; Regal `until` in `sitemap_url` does not (query params on "
-                "Regal URLs are ignored)."
+                "`until` and MyCoRe Solr `rows` when the URL has no page-size "
+                "parameter. URL `until` (Regal) or `rows` (Solr) overrides this "
+                "value. Regal `format`/`from` and Solr `wt`/`start` on "
+                "`sitemap_url` are always ignored (software-owned)."
             ),
             ge=1,
         ),

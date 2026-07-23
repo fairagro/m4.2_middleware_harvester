@@ -67,26 +67,27 @@ async def test_regal_find_sitemap_paginates_and_yields_inline_payloads() -> None
 
 
 @pytest.mark.asyncio
-async def test_regal_find_sitemap_ignores_query_on_sitemap_url() -> None:
-    seen_urls: list[str] = []
+async def test_regal_find_sitemap_merges_operator_query_overrides() -> None:
+    seen_query: dict[str, str] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
-        seen_urls.append(str(request.url))
+        nonlocal seen_query
+        seen_query = dict(httpx.QueryParams(request.url.query))
         return httpx.Response(200, json=[])
 
     transport = httpx.MockTransport(handler)
     async with NiceHttpClient(_config().http, transport=transport) as client:
         sitemap = RegalFindSitemap(
-            _config("https://frl.publisso.de/find?q=other&from=99&until=1&format=xml"),
+            _config("https://frl.publisso.de/find?q=otherType:x&sort=title&from=99&format=xml"),
             client,
         )
         _ = [result async for result in sitemap.discover()]
 
-    assert len(seen_urls) == 1
-    assert "q=contentType%3AresearchData" in seen_urls[0]
-    assert "format=json" in seen_urls[0]
-    assert "from=0" in seen_urls[0]
-    assert "until=2" in seen_urls[0]
+    assert seen_query["q"] == "otherType:x"
+    assert seen_query["sort"] == "title"
+    assert seen_query["format"] == "json"
+    assert seen_query["from"] == "0"
+    assert seen_query["until"] == "2"
 
 
 @pytest.mark.asyncio
@@ -114,7 +115,7 @@ async def test_regal_find_sitemap_uses_config_default_page_size() -> None:
 
 
 @pytest.mark.asyncio
-async def test_regal_find_sitemap_ignores_until_in_sitemap_url() -> None:
+async def test_regal_find_sitemap_url_until_overrides_page_size() -> None:
     seen_until: list[str] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -129,7 +130,7 @@ async def test_regal_find_sitemap_ignores_until_in_sitemap_url() -> None:
         )
         _ = [result async for result in sitemap.discover()]
 
-    assert seen_until == ["5"]
+    assert seen_until == ["1"]
 
 
 @pytest.mark.asyncio

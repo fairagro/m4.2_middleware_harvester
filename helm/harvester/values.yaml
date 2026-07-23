@@ -305,7 +305,11 @@ config:
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-mycore-solr"
       linked_data:
-        sitemap_url: "https://repository.example.org/api/v2/search/objects"
+        # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
+        # -- core=main, q=*:* , fl=id, rows=<page_size>. wt=json is always set
+        # -- by the software (URL wt is ignored).
+        # -- Add filters as needed, e.g. ?q=category.top:"mir_genres:research_data"
+        sitemap_url: "https://www.openagrar.de/servlets/solr/select"
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
         payload_type: schema_org_general
@@ -325,9 +329,10 @@ config:
     # -------------------------------------------------------------------------
     - rdi: "example-publisso-regal"
       linked_data:
-        # -- Regal /find base URL without query parameters (required).
-        # -- The harvester adds q=contentType:researchData, format=json,
-        # -- and paginates with from / until.
+        # -- Regal /find endpoint (query-free is fine). Defaults fill
+        # -- q=contentType:researchData and until=<page_size>. Operator query
+        # -- params override overridable keys; format=json and from are always
+        # -- set by the software. URL until overrides page_size.
         sitemap_url: "https://frl.publisso.de/find"
         # -- Allowed: xml | mycore_solr | regal_find
         sitemap_type: regal_find
@@ -335,8 +340,8 @@ config:
         dataset_type: regal_jsonld
         # -- Allowed: schema_org_general | regal_general
         payload_type: regal_general
-        # -- Page size for /find `until` (default 200). Unlike Solr `rows`,
-        # -- an `until` on sitemap_url is ignored.
+        # -- Page size for /find `until` (default 200). URL `until` overrides
+        # -- this value (same role as Solr `rows`).
         page_size: 200
         # -- Base URL for expanding compact Regal ids (frl:…) to absolute IRIs.
         # -- null → derived as {scheme}://{host}/resource/ from sitemap_url.

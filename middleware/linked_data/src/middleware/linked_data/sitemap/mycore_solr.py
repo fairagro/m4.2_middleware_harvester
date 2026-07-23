@@ -13,6 +13,19 @@ from ..dataset import DiscoveryResult, UrlDiscoveryResult
 from ..json_types import JsonValue
 from .sitemap import Sitemap
 
+# Overridable defaults when absent from ``sitemap_url``. Operator-supplied
+# query parameters always win for these. ``q=*:*`` matches Solr's usual
+# match-all; narrow with an explicit ``q`` / ``fq`` on the URL when needed.
+_DEFAULT_SOLR_PARAMS: tuple[tuple[str, str], ...] = (
+    ("core", "main"),
+    ("q", "*:*"),
+    ("fl", "id"),
+)
+
+# Owned by the harvester: never taken from ``sitemap_url``.
+_SOFTWARE_SOLR_PARAMS: tuple[tuple[str, str], ...] = (("wt", "json"),)
+_SOFTWARE_OWNED_QUERY_NAMES = frozenset({"start", "wt"})
+
 
 @Sitemap.register(SitemapType.mycore_solr)
 class MycoreSolrSitemap(Sitemap):
@@ -99,25 +112,33 @@ class MycoreSolrSitemap(Sitemap):
 
     @staticmethod
     def _build_request_url(sitemap_url: str, start: int, page_size: int) -> str:
-        """Build a Solr request URL, overriding ``start``.
+        """Build a Solr request URL with defaults and operator overrides.
 
-        Keep ``rows`` from ``sitemap_url`` when present (``rows`` is a page-size
-        parameter). Otherwise set ``rows`` from config ``page_size``.
+        ``sitemap_url`` may be a query-free select endpoint
+        (e.g. ``https://host/servlets/solr/select``). Missing overridable
+        parameters (``core``, ``q``, ``fl``, ``rows``) are filled
+        automatically; operator-supplied values for those keys win.
+        ``wt=json`` and pagination ``start`` are always set by the software
+        (values from ``sitemap_url`` are ignored) because the parser requires
+        the Solr JSON response envelope.
         """
         parsed_url = urlparse(sitemap_url)
-        query_pairs: list[tuple[str, str]] = []
-        has_rows = False
-        for name, value in parse_qsl(parsed_url.query, keep_blank_values=True):
-            if name == "start":
-                continue
-            if name == "rows":
-                has_rows = True
-            query_pairs.append((name, value))
+        operator_pairs = [
+            (name, value)
+            for name, value in parse_qsl(parsed_url.query, keep_blank_values=True)
+            if name not in _SOFTWARE_OWNED_QUERY_NAMES
+        ]
+        operator_names = {name for name, _ in operator_pairs}
 
-        if not has_rows:
+        query_pairs: list[tuple[str, str]] = [
+            (name, value) for name, value in _DEFAULT_SOLR_PARAMS if name not in operator_names
+        ]
+        if "rows" not in operator_names:
             query_pairs.append(("rows", str(page_size)))
+        query_pairs.extend(operator_pairs)
+        query_pairs.extend(_SOFTWARE_SOLR_PARAMS)
         query_pairs.append(("start", str(start)))
-        return urlunparse(parsed_url._replace(query=urlencode(query_pairs)))
+        return urlunparse(parsed_url._replace(query=urlencode(query_pairs), params="", fragment=""))
 
     @staticmethod
     def _build_base_url(sitemap_url: str) -> str:
