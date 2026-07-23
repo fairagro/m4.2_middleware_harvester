@@ -53,10 +53,10 @@ class MycoreSolrSitemap(Sitemap):
 
         while True:
             if self._first_page_cache is not None and start == 0:
-                num_found, docs, returned_start = self._first_page_cache
+                num_found, docs, _returned_start = self._first_page_cache
                 self._first_page_cache = None
             else:
-                num_found, docs, returned_start = await self._fetch_page(self.config.sitemap_url, client, start)
+                num_found, docs, _returned_start = await self._fetch_page(self.config.sitemap_url, client, start)
             if not docs:
                 break
 
