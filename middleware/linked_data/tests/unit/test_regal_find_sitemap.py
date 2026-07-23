@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.linked_data.dataset import JsonLdDiscoveryResult
@@ -64,6 +64,35 @@ async def test_regal_find_sitemap_paginates_and_yields_inline_payloads() -> None
     }
     assert seen_queries[1]["from"] == "2"
     assert seen_queries[1]["until"] == "2"
+
+
+@pytest.mark.asyncio
+async def test_regal_find_sitemap_duplicate_identifier_skip_has_no_url() -> None:
+    calls = {"n": 0}
+
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] > 1:
+            return httpx.Response(200, json=[])
+        return httpx.Response(
+            200,
+            json=[
+                {"@id": "frl:dup", "title": ["First"]},
+                {"@id": "frl:dup", "title": ["Duplicate"]},
+            ],
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(_config().http, transport=transport) as client:
+        sitemap = RegalFindSitemap(_config(), client)
+        results = [result async for result in sitemap.discover()]
+
+    assert len(results) == 2
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].identifier == "frl:dup"
+    assert isinstance(results[1], SkippedRecord)
+    assert "frl:dup" in results[1].reason
+    assert results[1].url is None
 
 
 @pytest.mark.asyncio

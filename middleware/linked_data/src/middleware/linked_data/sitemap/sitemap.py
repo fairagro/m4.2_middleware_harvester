@@ -43,9 +43,10 @@ class Sitemap(ABC):
                 yield result
                 continue
             if result.identifier in seen:
+                url = result.identifier if isinstance(result, UrlDiscoveryResult) else None
                 yield SkippedRecord(
                     f"Duplicate discovery entry skipped: {result.identifier}",
-                    result.identifier,
+                    url,
                 )
                 continue
             seen.add(result.identifier)

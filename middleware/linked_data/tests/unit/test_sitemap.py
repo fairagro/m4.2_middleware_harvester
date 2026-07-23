@@ -6,6 +6,7 @@ import httpx
 import pytest
 from test_fakes import UrlDiscoveryResult
 
+from middleware.harvester.errors import SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.linked_data.errors import LinkedDataSitemapError
@@ -83,13 +84,22 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
 
     transport = httpx.MockTransport(handler)
 
-    async def collect() -> list[str]:
+    async def collect() -> tuple[list[str], list[SkippedRecord]]:
         async with NiceHttpClient(config.http, transport=transport) as client:
             sitemap = XmlSitemap(config, client)
-            return [result.url async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+            urls: list[str] = []
+            skips: list[SkippedRecord] = []
+            async for result in sitemap.discover():
+                if isinstance(result, UrlDiscoveryResult):
+                    urls.append(result.url)
+                elif isinstance(result, SkippedRecord):
+                    skips.append(result)
+            return urls, skips
 
-    results = asyncio.run(collect())
-    assert results == ["https://example.org/dataset/1"]
+    urls, skips = asyncio.run(collect())
+    assert urls == ["https://example.org/dataset/1"]
+    assert len(skips) == 1
+    assert skips[0].url == "https://example.org/dataset/1"
 
 
 def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
