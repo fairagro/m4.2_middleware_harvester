@@ -24,6 +24,9 @@ repositories:
   #     dataset_type: html_jsonld
   #     payload_type: schema_org_general
   #     # page_size: 200
+  #     # OpenAgrar robots.txt Disallow: /servlets/ blocks the Solr API path.
+  #     http:
+  #       respect_robots_txt: false
 
   # Example: PUBLISSO FRL via Regal /find (inline JSON-LD, no HTML scraping)
   # - rdi: "publisso"
@@ -36,6 +39,10 @@ repositories:
   #     # page_size: 200
   #     # Optional override; default is https://frl.publisso.de/resource/
   #     resource_base_url: "https://repository.publisso.de/resource/"
+  #     # FRL robots.txt is User-agent: * / Disallow: / (blocks all polite clients).
+  #     # /find remains a public machine API; disable robots checks for this RDI.
+  #     http:
+  #       respect_robots_txt: false
 
 # repositories:
 #   - rdi: "dwd"

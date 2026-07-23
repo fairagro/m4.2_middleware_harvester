@@ -17,6 +17,7 @@ from middleware.linked_data.config import (
     SitemapType,
 )
 from middleware.linked_data.dataset import UrlDiscoveryResult
+from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
 
 
@@ -239,3 +240,43 @@ async def test_linked_data_plugin_run_yields_error_when_robots_disallows_url(mon
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots_disallows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Discovery-level robots blocks must yield LinkedDataSitemapError, not ExceptionGroup."""
+    config = Config(
+        sitemap_url="https://frl.publisso.de/find",
+        sitemap_type=SitemapType.regal_find,
+        dataset_type=DatasetType.regal_jsonld,
+        payload_type=PayloadType.regal_general,
+        http=LinkedDataNiceHttpClientConfig(),
+    )
+
+    class FailingSitemap:
+        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:
+            raise RobotsTxtDisallowedError(
+                "URL disallowed by robots.txt: https://frl.publisso.de/find?q=contentType:researchData"
+            )
+            yield  # pragma: no cover — make this an async generator
+
+        async def get_expected_count(self) -> int | None:
+            return None
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FailingSitemap:
+        del client
+        return FailingSitemap()
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+
+    results = [item async for item in LinkedDataPlugin(config).run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], LinkedDataSitemapError)
+    assert "Sitemap discovery failed" in str(results[0])
+    assert "robots.txt" in str(results[0])

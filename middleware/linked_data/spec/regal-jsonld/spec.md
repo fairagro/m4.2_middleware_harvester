@@ -71,4 +71,5 @@ is not sufficient for operator-visible discovery or mapping problems.
 - Operator `format=xml` (or any other `format`) on `sitemap_url` → ignored; request still uses `format=json`.
 - Operator `q=…` on `sitemap_url` → overrides default `contentType:researchData`.
 - Operator `until=N` on `sitemap_url` → overrides config `page_size` for pagination.
-- Fatal `/find` transport or response-shape failure (non-array body, HTTP error) → raise (full plugin failure), not yield.
+- Fatal `/find` transport or response-shape failure (non-array body, HTTP error) → raise (full plugin failure), not yield; the plugin producer converts such failures (including `RobotsTxtDisallowedError`) into a yielded `LinkedDataSitemapError` so the orchestrator does not see an opaque `ExceptionGroup`.
+- PUBLISSO FRL `robots.txt` is `User-agent: *` / `Disallow: /` while `/find` remains a public JSON API. Operators must set `http.respect_robots_txt: false` for this RDI (see config examples / helm values); the default polite client otherwise blocks discovery before any records are fetched.

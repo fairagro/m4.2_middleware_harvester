@@ -322,7 +322,9 @@ config:
           max_connections: 5
           retry_attempts: 5
           max_requests_per_second: 1.0
-          respect_robots_txt: true
+          # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
+          # -- requires respect_robots_txt: false (machine-to-machine endpoint).
+          respect_robots_txt: false
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
@@ -353,7 +355,9 @@ config:
           max_connections: 5
           retry_attempts: 5
           max_requests_per_second: 2.0
-          respect_robots_txt: true
+          # -- FRL robots.txt is Disallow: / for all agents; /find is still a
+          # -- public machine API. Set false for this RDI or discovery fails.
+          respect_robots_txt: false
 
 # =============================================================================
 # Pod scheduling

@@ -8,14 +8,14 @@ from collections.abc import AsyncGenerator
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import Plugin
 
 from .config import Config
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
-from .errors import LinkedDataError
+from .errors import LinkedDataError, LinkedDataSitemapError
 from .linked_data_mapper import LinkedDataMapper
 from .sitemap import Sitemap
 
@@ -153,15 +153,33 @@ class LinkedDataPlugin(Plugin):
 
             async def producer() -> None:
                 nonlocal discovery_finished, active_workers
-                async for item in sitemap.discover():
-                    # Inspire-style: discovery already yields shared harvester signals.
-                    if isinstance(item, (RecordProcessingError, SkippedRecord)):
-                        await results.put(item)
-                        continue
-                    await semaphore.acquire()
-                    active_workers += 1
-                    task_group.create_task(worker(item))
-                discovery_finished = True
+                try:
+                    async for item in sitemap.discover():
+                        # Inspire-style: discovery already yields shared harvester signals.
+                        if isinstance(item, (RecordProcessingError, SkippedRecord)):
+                            await results.put(item)
+                            continue
+                        await semaphore.acquire()
+                        active_workers += 1
+                        task_group.create_task(worker(item))
+                except (
+                    LinkedDataError,
+                    RobotsTxtDisallowedError,
+                    RuntimeError,
+                    ValueError,
+                    OSError,
+                    httpx.HTTPError,
+                ) as exc:
+                    # Discovery-level failure must not escape TaskGroup as ExceptionGroup;
+                    # yield a HarvesterError so the orchestrator can report it cleanly.
+                    if isinstance(exc, HarvesterError):
+                        await results.put(exc)
+                    else:
+                        await results.put(
+                            LinkedDataSitemapError(f"Sitemap discovery failed for {self._config.sitemap_url}: {exc}")
+                        )
+                finally:
+                    discovery_finished = True
 
             # Run the discovery producer inside the TaskGroup so its lifecycle and
             # exceptions are managed together with the worker tasks.

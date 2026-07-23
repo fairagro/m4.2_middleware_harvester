@@ -34,3 +34,4 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 - Query-free `sitemap_url` → request uses overridable defaults plus forced `wt=json`.
 - Operator filter such as `q=category.top:"mir_genres:research_data"` → overrides default `q=*:*`; other defaults still apply.
 - Operator `wt=xml` (or any other `wt`) on `sitemap_url` → ignored; request still uses `wt=json`.
+- Hosts whose `robots.txt` disallows `/servlets/` (e.g. OpenAgrar) block the Solr select path under the default polite client; operators must set `http.respect_robots_txt: false` for machine-to-machine Solr discovery on those RDIs.
