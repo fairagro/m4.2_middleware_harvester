@@ -1,4 +1,4 @@
-"""Schema.org configuration unit tests."""
+"""Linked Data configuration unit tests."""
 
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 
