@@ -33,6 +33,27 @@ def _base_graph() -> Graph:
     return graph
 
 
+def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
+    graph = _base_graph()
+    orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((SUBJECT, DCTERMS.creator, orcid))
+    graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    assert "https://orcid.org/0000-0003-2547-933X" in text
+
+
+def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
+    graph = _base_graph()
+    fake = URIRef("https://evil-orcid.org/0000-0003-2547-933X")
+    graph.add((SUBJECT, DCTERMS.creator, fake))
+    graph.add((fake, SKOS.prefLabel, Literal("Fuerst, Julia")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    assert "Fuerst" in text
+    assert "evil-orcid.org" not in text
+
+
 def test_regal_mapper_maps_core_fields() -> None:
     graph = _base_graph()
     creator = URIRef("https://orcid.org/0000-0003-2547-933X")

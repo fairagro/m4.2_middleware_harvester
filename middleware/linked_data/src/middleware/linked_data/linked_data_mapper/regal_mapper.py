@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from typing import cast
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -389,9 +389,15 @@ class RegalMapper(LinkedDataMapper):
         family, given = self._split_pref_label(pref_label)
         person = Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
         node_id = str(node)
-        if "orcid.org" in node_id.lower():
+        if self._is_orcid_uri(node_id):
             person.Comments.append(Comment.create("ORCID", node_id))
         return person
+
+    @staticmethod
+    def _is_orcid_uri(uri: str) -> bool:
+        """Return True when ``uri`` has host ``orcid.org`` (or a subdomain)."""
+        host = (urlparse(uri).hostname or "").lower()
+        return host == "orcid.org" or host.endswith(".orcid.org")
 
     def _add_publications(
         self,
