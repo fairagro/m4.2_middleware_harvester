@@ -11,6 +11,7 @@ from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.models import InspireRecord
 
 _expected_record_count = 42
 
@@ -729,15 +730,20 @@ def test_max_records_truncates_oversized_page() -> None:
     assert call_count == 1
 
 
+def _stub_inspire_record(identifier: str) -> InspireRecord:
+    """Minimal InspireRecord for limit/pagination unit tests."""
+    return InspireRecord.model_construct(identifier=identifier, title=identifier, abstract="")
+
+
 def test_limit_page_keeps_errors_after_success_budget() -> None:
     """max_records caps successes only; RecordProcessingErrors on the page are still kept."""
-    ok1, ok2, ok3 = MagicMock(), MagicMock(), MagicMock()
+    ok1, ok2, ok3 = (_stub_inspire_record(f"ok-{i}") for i in range(1, 4))
     err_mid = RecordProcessingError("mid", record_id="e-mid")
     err_tail = RecordProcessingError("tail", record_id="e-tail")
-    page: list[MagicMock | RecordProcessingError] = [ok1, err_mid, ok2, ok3, err_tail]
+    page: list[InspireRecord | RecordProcessingError] = [ok1, err_mid, ok2, ok3, err_tail]
 
     limited, successes = CSWClient._limit_page_to_max_records(  # noqa: SLF001
-        page,  # type: ignore[arg-type]
+        page,
         count=3,
         records_yielded=0,
         max_records=2,
@@ -749,12 +755,12 @@ def test_limit_page_keeps_errors_after_success_budget() -> None:
 
 def test_limit_page_keeps_errors_when_success_budget_already_exhausted() -> None:
     """When remaining <= 0, successes are dropped but page errors are still returned."""
-    ok = MagicMock()
+    ok = _stub_inspire_record("ok-1")
     err = RecordProcessingError("still report me", record_id="e-1")
-    page: list[MagicMock | RecordProcessingError] = [ok, err]
+    page: list[InspireRecord | RecordProcessingError] = [ok, err]
 
     limited, successes = CSWClient._limit_page_to_max_records(  # noqa: SLF001
-        page,  # type: ignore[arg-type]
+        page,
         count=1,
         records_yielded=5,
         max_records=5,
