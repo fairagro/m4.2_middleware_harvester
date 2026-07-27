@@ -488,14 +488,16 @@ class CSWClient:
 
     @staticmethod
     def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
-        """Return the GetRecords element from a parsed xml_query document."""
+        """Return *root* when it is a CSW GetRecords element; otherwise None.
+
+        Only the document root is accepted (no descendant lookup), matching the
+        xml_query contract and keeping namespace declarations on the serialized body.
+        """
         if root.tag in _CSW_GET_RECORDS_TAGS:
             return root
-        local = lxml.etree.QName(root).localname if isinstance(root.tag, str) else ""
-        if local == "GetRecords":
+        if isinstance(root.tag, str) and lxml.etree.QName(root).localname == "GetRecords":
             return root
-        found = root.find(f".//{{{_CSW_NS}}}GetRecords")
-        return found
+        return None
 
     @staticmethod
     def _serialize_xml_query(root: lxml.etree._Element, as_bytes: bool) -> str | bytes:

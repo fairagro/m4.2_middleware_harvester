@@ -661,3 +661,27 @@ def test_xml_invalid_paging_attrs_log_and_fall_back(caplog: pytest.LogCaptureFix
     assert 'startPosition="1"' in sent_xml
     assert any("maxRecords" in record.message for record in caplog.records)
     assert any("startPosition" in record.message for record in caplog.records)
+
+
+def test_xml_query_requires_get_records_root() -> None:
+    """xml_query without a GetRecords root raises before contacting CSW."""
+    client = CSWClient(_make_csw_config())
+    object.__setattr__(client, "_csw", MagicMock())
+
+    with pytest.raises(ValueError, match="GetRecords"):
+        list(client.get_records(xml_query="<Filter/>"))
+
+
+def test_xml_query_rejects_nested_get_records() -> None:
+    """GetRecords must be the document root, not a descendant."""
+    client = CSWClient(_make_csw_config())
+    object.__setattr__(client, "_csw", MagicMock())
+    wrapped = (
+        "<wrapper>"
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2"/>'
+        "</wrapper>"
+    )
+
+    with pytest.raises(ValueError, match="GetRecords"):
+        list(client.get_records(xml_query=wrapped))
