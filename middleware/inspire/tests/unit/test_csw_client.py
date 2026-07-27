@@ -747,6 +747,23 @@ def test_limit_page_keeps_errors_after_success_budget() -> None:
     assert limited == [ok1, err_mid, ok2, err_tail]
 
 
+def test_limit_page_keeps_errors_when_success_budget_already_exhausted() -> None:
+    """When remaining <= 0, successes are dropped but page errors are still returned."""
+    ok = MagicMock()
+    err = RecordProcessingError("still report me", record_id="e-1")
+    page: list[MagicMock | RecordProcessingError] = [ok, err]
+
+    limited, successes = CSWClient._limit_page_to_max_records(  # noqa: SLF001
+        page,  # type: ignore[arg-type]
+        count=1,
+        records_yielded=5,
+        max_records=5,
+    )
+
+    assert successes == 0
+    assert limited == [err]
+
+
 def test_pagination_fallback_uses_fetched_size_not_trimmed_yield() -> None:
     """Missing nextrecord/returned must advance by the fetched page size, not a trimmed yield list."""
     starts: list[int] = []
@@ -856,18 +873,30 @@ def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) 
     assert any("outputSchema" in record.message for record in caplog.records)
 
 
-def test_fetch_iso_batch_returns_false_on_error() -> None:
-    """ISO fetch failures are logged and return False instead of raising."""
+def test_fetch_iso_batch_raises_csw_connection_error_on_failure() -> None:
+    """ISO fetch failures raise CswConnectionError so async retry can observe them."""
     client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = TimeoutError("timed out")
 
-    assert client._fetch_iso_batch(10, 1, None, None) is False  # noqa: SLF001
+    with pytest.raises(CswConnectionError, match="Failed to fetch ISO records"):
+        client._fetch_iso_batch(10, 1, None, None)  # noqa: SLF001
 
 
-def test_paged_harvest_stops_gracefully_on_iso_fetch_failure() -> None:
-    """A mid-harvest ISO fetch failure ends pagination without raising."""
+def test_fetch_iso_batch_propagates_value_error() -> None:
+    """ValueError from OWSLib must propagate unwrapped (not retryable)."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.getrecords2.side_effect = ValueError("bad filter")
+
+    with pytest.raises(ValueError, match="bad filter"):
+        client._fetch_iso_batch(10, 1, None, None)  # noqa: SLF001
+
+
+def test_paged_harvest_raises_on_iso_fetch_failure() -> None:
+    """A mid-harvest ISO fetch failure raises CswConnectionError (retryable on async path)."""
     client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
@@ -884,15 +913,17 @@ def test_paged_harvest_stops_gracefully_on_iso_fetch_failure() -> None:
 
     csw.getrecords2.side_effect = fake_getrecords2
 
-    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object(), object()], [], 2)):
-        results = list(client.get_records())
+    with (
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object(), object()], [], 2)),
+        pytest.raises(CswConnectionError, match="Failed to fetch ISO records"),
+    ):
+        list(client.get_records())
 
-    assert len(results) == 2
     assert call_count == 2
 
 
-def test_fetch_iso_batch_xml_returns_false_on_error() -> None:
-    """XML ISO fetch failures return False on network error."""
+def test_fetch_iso_batch_xml_raises_csw_connection_error_on_failure() -> None:
+    """XML ISO fetch failures raise CswConnectionError on network error."""
     client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
@@ -902,7 +933,20 @@ def test_fetch_iso_batch_xml_returns_false_on_error() -> None:
         chunk_size=10,
     )
 
-    assert (
+    with pytest.raises(CswConnectionError, match="Failed to fetch ISO records"):
         client._fetch_iso_batch_xml(root, batch_size=10, start_position=1, as_bytes=as_bytes)  # noqa: SLF001
-        is False
+
+
+def test_fetch_iso_batch_xml_propagates_value_error() -> None:
+    """ValueError from XML ISO fetch must propagate unwrapped (not retryable)."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.getrecords2.side_effect = ValueError("bad xml request")
+    root, _page_size, _start, as_bytes = client._prepare_xml_paging(  # noqa: SLF001
+        _minimal_get_records_xml(),
+        chunk_size=10,
     )
+
+    with pytest.raises(ValueError, match="bad xml request"):
+        client._fetch_iso_batch_xml(root, batch_size=10, start_position=1, as_bytes=as_bytes)  # noqa: SLF001

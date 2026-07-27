@@ -413,7 +413,8 @@ class CSWClient:
             return results, count
         remaining = max_records - records_yielded
         if remaining <= 0:
-            return [], 0
+            # Success budget already exhausted — still surface parse errors from this page.
+            return [item for item in results if isinstance(item, RecordProcessingError)], 0
         if count <= remaining:
             return results, count
 
@@ -575,8 +576,8 @@ class CSWClient:
 
         Paging attributes and ISO ``outputSchema`` are applied on a deep copy so the
         operator template (filter body and original attributes) stays intact across pages.
-        Transient fetch failures are logged and return False so pagination can stop without
-        aborting the generator.
+        Transient ``OSError``/``TimeoutError`` are wrapped as ``CswConnectionError`` so the
+        async retry layer can retry. ``ValueError`` propagates unwrapped (not retryable).
         """
         if self._csw is None:
             self.connect()
@@ -592,9 +593,12 @@ class CSWClient:
         try:
             self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
             return True
-        except (OSError, TimeoutError, ValueError) as e:
+        except ValueError:
+            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
+            raise
+        except (OSError, TimeoutError) as e:
             logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-            return False
+            raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
     def _fetch_dc_ids_xml(
         self,
@@ -757,8 +761,8 @@ class CSWClient:
     ) -> bool:
         """Fetch a batch of records in ISO 19139 format.
 
-        Transient fetch failures are logged and return False so pagination can stop without
-        aborting the generator.
+        Transient ``OSError``/``TimeoutError`` are wrapped as ``CswConnectionError`` so the
+        async retry layer can retry. ``ValueError`` propagates unwrapped (not retryable).
         """
         if self._csw is None:
             self.connect()
@@ -779,9 +783,12 @@ class CSWClient:
             else:
                 self._csw.getrecords2(**kwargs)
             return True
-        except (OSError, TimeoutError, ValueError) as e:
+        except ValueError:
+            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
+            raise
+        except (OSError, TimeoutError) as e:
             logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-            return False
+            raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
     def _yield_iso_records(self) -> Iterator[InspireRecord | RecordProcessingError]:
         """Yield parsed ISO records from the last-fetched batch (ISO-first, no DC involved)."""
