@@ -35,3 +35,5 @@
    only N for a test run”. Dublin Core identifier fallback for broken ISO
    batches deep-copies the template, switches `outputSchema` to CSW/DC and
    `ElementSetName` to `brief`, then applies the same paging attributes.
+   Non-ISO `outputSchema` on the template is overridden to ISO 19139 for the
+   primary fetch (with a warning), matching `_fetch_iso_batch`.

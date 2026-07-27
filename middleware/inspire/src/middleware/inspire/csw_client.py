@@ -532,8 +532,15 @@ class CSWClient:
             raise RuntimeError("CSW client is not initialized.")
 
         self._apply_xml_paging_attrs(xml_root, batch_size, start_position)
-        # Keep ISO output when the operator omitted or set a different schema.
-        if not xml_root.get("outputSchema"):
+        # Same as _fetch_iso_batch: ISO parsing only yields MD_Metadata for gmd schema.
+        current_schema = xml_root.get("outputSchema")
+        if current_schema != _ISO_OUTPUT_SCHEMA:
+            if current_schema is not None:
+                logger.warning(
+                    "xml_query outputSchema=%r overridden to ISO (%s) for harvest parsing",
+                    current_schema,
+                    _ISO_OUTPUT_SCHEMA,
+                )
             xml_root.set("outputSchema", _ISO_OUTPUT_SCHEMA)
 
         try:

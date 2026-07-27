@@ -685,3 +685,31 @@ def test_xml_query_rejects_nested_get_records() -> None:
 
     with pytest.raises(ValueError, match="GetRecords"):
         list(client.get_records(xml_query=wrapped))
+
+
+def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) -> None:
+    """ISO fetch path forces gmd outputSchema even when xml_query sets another schema."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+    xml_query = (
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2" resultType="results" '
+        'outputSchema="http://www.opengis.net/cat/csw/2.0.2">'
+        '<csw:Query typeNames="csw:Record">'
+        "<csw:ElementSetName>full</csw:ElementSetName>"
+        "</csw:Query>"
+        "</csw:GetRecords>"
+    )
+
+    with (
+        caplog.at_level(logging.WARNING, logger="middleware.inspire.csw_client"),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client.get_records(xml_query=xml_query))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'outputSchema="http://www.isotc211.org/2005/gmd"' in sent_xml
+    assert any("outputSchema" in record.message for record in caplog.records)
