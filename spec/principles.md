@@ -62,15 +62,21 @@ closed, apply least privilege.
   (defined in `middleware.harvester.errors`).
 - Code quality gates: Ruff (lint + format), mypy, pylint, bandit, pytest —
   all must pass before merge. Every new feature requires matching tests.
-- **All quality tool invocations (VS Code, pre-commit, CI) must produce identical
-  results.** This is achieved by having each tool read its configuration exclusively
-  from a single shared config file — normally `pyproject.toml` (`[tool.ruff]`,
-  `[tool.mypy]`, `[tool.pylint.*]`). Tools that cannot be configured via
-  `pyproject.toml` (e.g. bandit) must have a dedicated config file (e.g. `.bandit`)
+- **All quality tool invocations (VS Code / Cursor, pre-commit, CI) must produce
+  identical results.** This is achieved by having each tool read its configuration
+  exclusively from a single shared config file — normally `pyproject.toml`
+  (`[tool.ruff]`, `[tool.mypy]`, `[tool.pylint.*]`). Tools that cannot be configured
+  via `pyproject.toml` (e.g. bandit) must have a dedicated config file (e.g. `.bandit`)
   shared by all invocations. Individual invocations must contain no extra CLI flags
   that override shared config; the only acceptable flags are those that cannot be
   expressed in a config file. The tool version used in every context must be the one
   locked in `uv.lock` — use `uv run <tool>` everywhere.
+  For type checking specifically: the merge gate is **mypy**
+  (`uv run mypy --config-file pyproject.toml middleware/`). The IDE must run the
+  same via `ms-python.mypy-type-checker` (see `.vscode/settings.json`: same binary,
+  same config file, same `middleware/` target, `reportingScope=workspace`).
+  cursorpyright / Pylance diagnostics are not a substitute and must not be treated
+  as “type check passed”.
 - No `noqa` / `type: ignore` suppressions unless technically unavoidable.
 - Validation belongs in Pydantic models where possible. Use `Literal` types or
   `@field_validator` to enforce valid values — a `ValidationError` triggers the

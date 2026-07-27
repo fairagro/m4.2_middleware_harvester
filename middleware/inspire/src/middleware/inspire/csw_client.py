@@ -379,6 +379,10 @@ class CSWClient:
                 break
 
             results, count = page
+            results, count = self._limit_page_to_max_records(results, count, records_yielded, max_records)
+            if not results:
+                break
+
             yield from results
             records_yielded += count
 
@@ -389,6 +393,36 @@ class CSWClient:
             if next_start is None:
                 break
             start_position = next_start
+
+    @staticmethod
+    def _limit_page_to_max_records(
+        results: list[InspireRecord | RecordProcessingError],
+        count: int,
+        records_yielded: int,
+        max_records: int | None,
+    ) -> tuple[list[InspireRecord | RecordProcessingError], int]:
+        """Trim a page so successful records do not exceed the remaining max_records budget."""
+        if max_records is None:
+            return results, count
+        remaining = max_records - records_yielded
+        if remaining <= 0:
+            return [], 0
+        if count <= remaining:
+            return results, count
+
+        limited: list[InspireRecord | RecordProcessingError] = []
+        successes = 0
+        for item in results:
+            if isinstance(item, RecordProcessingError):
+                if successes >= remaining:
+                    break
+                limited.append(item)
+                continue
+            if successes >= remaining:
+                break
+            limited.append(item)
+            successes += 1
+        return limited, successes
 
     def _fetch_and_parse_page(
         self,
@@ -488,14 +522,12 @@ class CSWClient:
 
     @staticmethod
     def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
-        """Return *root* when it is a CSW GetRecords element; otherwise None.
+        """Return *root* when it is a CSW 2.0.2 GetRecords element; otherwise None.
 
-        Only the document root is accepted (no descendant lookup), matching the
-        xml_query contract and keeping namespace declarations on the serialized body.
+        Only the document root is accepted, and only unnamespaced ``GetRecords`` or the
+        CSW 2.0.2 namespace — not an arbitrary ``*:GetRecords``.
         """
         if root.tag in _CSW_GET_RECORDS_TAGS:
-            return root
-        if isinstance(root.tag, str) and lxml.etree.QName(root).localname == "GetRecords":
             return root
         return None
 

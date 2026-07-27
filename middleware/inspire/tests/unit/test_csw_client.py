@@ -687,6 +687,42 @@ def test_xml_query_rejects_nested_get_records() -> None:
         list(client.get_records(xml_query=wrapped))
 
 
+def test_xml_query_rejects_wrong_get_records_namespace() -> None:
+    """GetRecords in a non-CSW namespace is rejected."""
+    client = CSWClient(_make_csw_config())
+    object.__setattr__(client, "_csw", MagicMock())
+
+    with pytest.raises(ValueError, match="GetRecords"):
+        list(client.get_records(xml_query='<GetRecords xmlns="http://example.org/not-csw"/>'))
+
+
+def test_max_records_truncates_oversized_page() -> None:
+    """max_records must not yield more successful records than N within a page."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, max_records=2))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 10, "returned": 5, "nextrecord": 6}
+    csw.records = {}
+    call_count = 0
+
+    def fake_getrecords2(**_kwargs: object) -> None:
+        nonlocal call_count
+        call_count += 1
+
+    csw.getrecords2.side_effect = fake_getrecords2
+    page: tuple[list[object], list[object], int] = (
+        [object(), object(), object(), object(), object()],
+        [],
+        5,
+    )
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=page):
+        results = list(client.get_records(xml_query=_minimal_get_records_xml()))
+
+    assert len(results) == 2
+    assert call_count == 1
+
+
 def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) -> None:
     """ISO fetch path forces gmd outputSchema even when xml_query sets another schema."""
     client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5))
