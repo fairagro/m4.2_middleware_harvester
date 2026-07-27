@@ -136,18 +136,23 @@ class LinkedDataPlugin(Plugin):
 
         async def worker(discovery_result: DiscoveryResult) -> None:
             nonlocal active_workers
+            # Always release the permit and decrement the counter, including on
+            # CancelledError — otherwise the consumer loop can deadlock waiting
+            # for active_workers to reach 0 while results.get() never completes.
             try:
-                result = await self._process_result(discovery_result, nice_http)
-            except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
-                result = RecordProcessingError(
-                    (f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
-                    discovery_result.identifier,
-                    exc,
-                    url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
-                )
-            await results.put(result)
-            active_workers -= 1
-            semaphore.release()
+                try:
+                    result = await self._process_result(discovery_result, nice_http)
+                except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
+                    result = RecordProcessingError(
+                        (f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
+                        discovery_result.identifier,
+                        exc,
+                        url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
+                    )
+                await results.put(result)
+            finally:
+                active_workers -= 1
+                semaphore.release()
 
         async with asyncio.TaskGroup() as task_group:
 
