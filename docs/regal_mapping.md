@@ -14,7 +14,7 @@ model used by ARC.
 > `https://frl.publisso.de/context.json` (or an equivalent Regal context). Predicates mix
 > Dublin Core Terms, SKOS, BIBO/Bibframe fragments, and the Regal vocabulary
 > `http://hbz-nrw.de/regal#`. This document maps **Regal → ARC directly**. The historical
-> Publisso→schema.org crosswalk in `m4.2_basic_middleware` (`publiso_conversor.jq`) is a
+> Publisso→schema.org crosswalk in `m4.2_basic_middleware` (`publisso_conversor.jq`) is a
 > conceptual reference for field coverage only.
 
 ## Concept
