@@ -100,7 +100,7 @@ class LinkedDataPlugin(Plugin):
                 client=nice_http,
                 config=self._config,
             )
-        except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+        except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(
                 (
                     f"Failed to construct dataset from "
@@ -115,7 +115,7 @@ class LinkedDataPlugin(Plugin):
             graph = await dataset.to_graph()
             arc_json = await asyncio.to_thread(self._mapper.map_graph, graph)
             return arc_json, source_url
-        except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:  # pragma: no cover
+        except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(
                 f"Failed to map dataset {dataset.identifier}: {exc}",
                 dataset.identifier,

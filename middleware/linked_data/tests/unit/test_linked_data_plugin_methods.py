@@ -151,6 +151,43 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
 
 
 @pytest.mark.asyncio
+async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for_mapping_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=NiceHttpClientConfig(),
+    )
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
+        del client
+        return FakeSitemap(["https://example.org/dataset/fast"])
+
+    mock_mapper = MagicMock()
+    mock_mapper.map_graph.side_effect = ValueError("bad mapping")
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: GoodFakeDataset})
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
+        staticmethod(lambda _config: mock_mapper),
+    )
+
+    results = [item async for item in LinkedDataPlugin(config).run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], RecordProcessingError)
+    assert "Failed to map dataset" in str(results[0])
+    assert results[0].record_id == "https://example.org/dataset/fast"
+
+
+@pytest.mark.asyncio
 async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate_entry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
