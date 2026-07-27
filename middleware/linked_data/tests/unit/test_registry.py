@@ -1,4 +1,4 @@
-"""Unit tests for the reusable Schema.org registry implementation."""
+"""Unit tests for the reusable linked_data registry implementation."""
 
 import pytest
 
