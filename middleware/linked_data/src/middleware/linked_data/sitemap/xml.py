@@ -64,15 +64,21 @@ class XmlSitemap(Sitemap):
             return
 
         if root_name == "sitemapindex":
-            for loc in root.findall(".//{*}loc"):
-                if loc.text:
-                    nested_sitemap_url = loc.text.strip()
-                    async for dataset in self._fetch_sitemap(
-                        nested_sitemap_url,
-                        client,
-                        seen_sitemaps,
-                    ):
-                        yield dataset
+            for index, loc in enumerate(root.findall(".//{*}loc")):
+                if not loc.text or not loc.text.strip():
+                    yield RecordProcessingError(
+                        f"XML sitemap {sitemap_url} has empty <loc> at index={index}",
+                        f"xml_sitemap:{sitemap_url}:index={index}",
+                    )
+                    continue
+
+                nested_sitemap_url = loc.text.strip()
+                async for dataset in self._fetch_sitemap(
+                    nested_sitemap_url,
+                    client,
+                    seen_sitemaps,
+                ):
+                    yield dataset
             return
 
         raise LinkedDataSitemapError(f"Unsupported sitemap root element: {root_name} (sitemap {sitemap_url})")

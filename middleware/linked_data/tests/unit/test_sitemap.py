@@ -102,6 +102,55 @@ def test_xml_sitemap_yields_error_for_empty_loc_with_sitemap_url_in_record_id() 
     assert errors[0].record_id == "xml_sitemap:https://example.org/sitemap.xml:index=0"
 
 
+def test_xml_sitemap_yields_error_for_empty_loc_in_sitemapindex() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
+    )
+
+    root_index = """
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <sitemap><loc></loc></sitemap>
+      <sitemap><loc>https://example.org/child.xml</loc></sitemap>
+    </sitemapindex>
+    """
+
+    child_urlset = """
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://example.org/dataset/1</loc></url>
+    </urlset>
+    """
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url == httpx.URL("https://example.org/sitemap.xml"):
+            return httpx.Response(200, text=root_index)
+        if request.url == httpx.URL("https://example.org/child.xml"):
+            return httpx.Response(200, text=child_urlset)
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> tuple[list[str], list[RecordProcessingError]]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = XmlSitemap(config, client)
+            urls: list[str] = []
+            errors: list[RecordProcessingError] = []
+            async for result in sitemap.discover():
+                if isinstance(result, UrlDiscoveryResult):
+                    urls.append(result.url)
+                elif isinstance(result, RecordProcessingError):
+                    errors.append(result)
+            return urls, errors
+
+    urls, errors = asyncio.run(collect())
+    assert urls == ["https://example.org/dataset/1"]
+    assert len(errors) == 1
+    assert errors[0].record_id == "xml_sitemap:https://example.org/sitemap.xml:index=0"
+
+
 def test_xml_sitemap_raises_sitemap_error_on_malformed_xml() -> None:
     config = Config(
         sitemap_url="https://example.org/sitemap.xml",

@@ -16,3 +16,8 @@ The parser starts from a single configured URL and traverses nested `sitemapinde
 
 3. **Use `defusedxml` for XML parsing**
    — Sitemap content comes from external sources and must be treated as untrusted. `defusedxml` prevents XML entity attacks.
+
+4. **Empty `<loc>` is a record-level failure for both roots**
+   — `urlset` and `sitemapindex` yield `RecordProcessingError` for missing/blank
+   `<loc>` (same message / `record_id` shape). Index entries are not silently
+   skipped; discovery continues with remaining nested sitemaps.
