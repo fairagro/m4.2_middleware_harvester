@@ -321,8 +321,8 @@ class CSWClient:
     def _get_records_by_xml(
         self, xml_query: str | bytes, chunk_size: int, max_records: int | None
     ) -> Iterator[InspireRecord | RecordProcessingError]:
-        """Retrieve records using a raw XML GetRecords body with pagination."""
-        logger.info("Using raw XML request for harvesting.")
+        """Retrieve records using a GetRecords XML body with pagination."""
+        logger.info("Using XML GetRecords request for harvesting (paginated).")
         yield from self._get_records_paged(chunk_size, None, None, max_records, xml_query=xml_query)
 
     def _get_records_by_fes(
