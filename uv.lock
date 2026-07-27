@@ -444,15 +444,15 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-api-client"
-version = "10.0.2.dev24"
+version = "10.0.3.dev26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/18/2d/82830e43a16367e18b7f51b7caf84a6e41cb4276735805a37d41d0a9218d/fairagro_middleware_api_client-10.0.2.dev24.tar.gz", hash = "sha256:276967d413d69507475fa5f0e807d652a4be15e1078bef4f6eb33bd67cbb243b", size = 27346, upload-time = "2026-07-21T12:32:36.479Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/57/73bf16c4ed62af1789de0e0c8142e43c0af3327f1ac1f12b427912f3e586/fairagro_middleware_api_client-10.0.3.dev26.tar.gz", hash = "sha256:d362a647267cd93c3ac788eda3446f5b34e0d567a4ce4bbbf7cde2f4a1f46e44", size = 28433, upload-time = "2026-07-23T17:34:05.909Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/d1/9e72fe2807a5e9f2d91dbb769d37ffba5a3990a6b70258110a442eebb48f/fairagro_middleware_api_client-10.0.2.dev24-py3-none-any.whl", hash = "sha256:10d22112446cd628cb42b83eeed59c98182cd4d135202f016c6f49f203d2403c", size = 14252, upload-time = "2026-07-21T12:32:34.442Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/55/97f405b53010803e7725e4abaf96369f7d595c7b13913f916b4f727d1ca7/fairagro_middleware_api_client-10.0.3.dev26-py3-none-any.whl", hash = "sha256:f4bc8d810a6de56c6e25beb513da6fb21fb4b141af633a289b8d8079814989a0", size = 14754, upload-time = "2026-07-23T17:34:04.073Z" },
 ]
 
 [[package]]
@@ -593,7 +593,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=3.1.1" },
-    { name = "fairagro-middleware-api-client", specifier = ">=8.8.1.dev12" },
+    { name = "fairagro-middleware-api-client", specifier = ">=10.0.3.dev26" },
     { name = "fairagro-middleware-shared", specifier = ">=8.8.1.dev12" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -683,7 +683,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=3.1.1" },
-    { name = "fairagro-middleware-api-client", specifier = ">=8.7.0" },
+    { name = "fairagro-middleware-api-client", specifier = ">=10.0.3.dev26" },
     { name = "fairagro-middleware-shared", specifier = ">=8.7.0" },
     { name = "nameparser", specifier = ">=1.1.0" },
     { name = "owslib", specifier = ">=0.31.0" },
