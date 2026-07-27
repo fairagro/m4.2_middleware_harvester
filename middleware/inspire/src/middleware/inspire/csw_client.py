@@ -564,12 +564,13 @@ class CSWClient:
         batch_size: int,
         start_position: int,
         as_bytes: bool,
-        swallow_errors: bool = True,
     ) -> bool:
         """Fetch one ISO page without mutating the shared xml_query template.
 
         Paging attributes and ISO ``outputSchema`` are applied on a deep copy so the
         operator template (filter body and original attributes) stays intact across pages.
+        Transient fetch failures are logged and return False so pagination can stop without
+        aborting the generator.
         """
         if self._csw is None:
             self.connect()
@@ -586,10 +587,8 @@ class CSWClient:
             self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
             return True
         except (OSError, TimeoutError, ValueError) as e:
-            if swallow_errors:
-                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
-            raise
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+            return False
 
     def _fetch_dc_ids_xml(
         self,
@@ -749,9 +748,12 @@ class CSWClient:
         start_position: int,
         cql_query: str | None,
         fes_constraints: list[OgcExpression] | None,
-        swallow_errors: bool = True,
     ) -> bool:
-        """Fetch a batch of records in ISO 19139 format."""
+        """Fetch a batch of records in ISO 19139 format.
+
+        Transient fetch failures are logged and return False so pagination can stop without
+        aborting the generator.
+        """
         if self._csw is None:
             self.connect()
         if self._csw is None:
@@ -771,16 +773,9 @@ class CSWClient:
             else:
                 self._csw.getrecords2(**kwargs)
             return True
-        except (OSError, TimeoutError) as e:
-            if swallow_errors:
-                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
-            raise
-        except ValueError as e:
-            if swallow_errors:
-                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
-            raise
+        except (OSError, TimeoutError, ValueError) as e:
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+            return False
 
     def _yield_iso_records(self) -> Iterator[InspireRecord | RecordProcessingError]:
         """Yield parsed ISO records from the last-fetched batch (ISO-first, no DC involved)."""

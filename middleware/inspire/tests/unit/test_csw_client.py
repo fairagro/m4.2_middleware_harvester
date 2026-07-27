@@ -410,9 +410,8 @@ def test_paged_harvest_advances_when_nextrecord_and_returned_missing() -> None:
         start_position: int,
         cql_query: str | None,
         fes_constraints: object,
-        swallow_errors: bool = True,
     ) -> bool:
-        del batch_size, cql_query, fes_constraints, swallow_errors
+        del batch_size, cql_query, fes_constraints
         starts.append(start_position)
         csw.results = {"matches": 113, "returned": None, "nextrecord": None}
         return True
@@ -446,9 +445,8 @@ def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
         start_position: int,
         cql_query: str | None,
         fes_constraints: object,
-        swallow_errors: bool = True,
     ) -> bool:
-        del batch_size, cql_query, fes_constraints, swallow_errors
+        del batch_size, cql_query, fes_constraints
         page_index = len(starts)
         starts.append(start_position)
         csw.results = {
@@ -493,9 +491,8 @@ def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> 
         start_position: int,
         cql_query: str | None,
         fes_constraints: object,
-        swallow_errors: bool = True,
     ) -> bool:
-        del batch_size, cql_query, fes_constraints, swallow_errors
+        del batch_size, cql_query, fes_constraints
         page_index = len(starts)
         starts.append(start_position)
         csw.results = {
@@ -526,9 +523,8 @@ def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
         start_position: int,
         cql_query: str | None,
         fes_constraints: object,
-        swallow_errors: bool = True,
     ) -> bool:
-        del batch_size, cql_query, fes_constraints, swallow_errors
+        del batch_size, cql_query, fes_constraints
         starts.append(start_position)
         csw.results = {"matches": 200, "returned": 50, "nextrecord": start_position}
         return True
@@ -791,3 +787,55 @@ def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) 
     sent_xml = csw.getrecords2.call_args.kwargs["xml"]
     assert 'outputSchema="http://www.isotc211.org/2005/gmd"' in sent_xml
     assert any("outputSchema" in record.message for record in caplog.records)
+
+
+def test_fetch_iso_batch_returns_false_on_error() -> None:
+    """ISO fetch failures are logged and return False instead of raising."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.getrecords2.side_effect = TimeoutError("timed out")
+
+    assert client._fetch_iso_batch(10, 1, None, None) is False  # noqa: SLF001
+
+
+def test_paged_harvest_stops_gracefully_on_iso_fetch_failure() -> None:
+    """A mid-harvest ISO fetch failure ends pagination without raising."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    call_count = 0
+
+    def fake_getrecords2(**_kwargs: object) -> None:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            csw.results = {"matches": 100, "returned": 2, "nextrecord": 3}
+            csw.records = {}
+            return
+        raise TimeoutError("page 2 failed")
+
+    csw.getrecords2.side_effect = fake_getrecords2
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object(), object()], [], 2)):
+        results = list(client.get_records())
+
+    assert len(results) == 2
+    assert call_count == 2
+
+
+def test_fetch_iso_batch_xml_returns_false_on_error() -> None:
+    """XML ISO fetch failures return False on network error."""
+    client = CSWClient(_make_csw_config())
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.getrecords2.side_effect = OSError("boom")
+    root, _page_size, _start, as_bytes = client._prepare_xml_paging(  # noqa: SLF001
+        _minimal_get_records_xml(),
+        chunk_size=10,
+    )
+
+    assert (
+        client._fetch_iso_batch_xml(root, batch_size=10, start_position=1, as_bytes=as_bytes)  # noqa: SLF001
+        is False
+    )
