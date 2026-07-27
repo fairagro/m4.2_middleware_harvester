@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
@@ -726,6 +727,72 @@ def test_max_records_truncates_oversized_page() -> None:
 
     assert len(results) == 2
     assert call_count == 1
+
+
+def test_limit_page_keeps_errors_after_success_budget() -> None:
+    """max_records caps successes only; RecordProcessingErrors on the page are still kept."""
+    ok1, ok2, ok3 = MagicMock(), MagicMock(), MagicMock()
+    err_mid = RecordProcessingError("mid", record_id="e-mid")
+    err_tail = RecordProcessingError("tail", record_id="e-tail")
+    page: list[MagicMock | RecordProcessingError] = [ok1, err_mid, ok2, ok3, err_tail]
+
+    limited, successes = CSWClient._limit_page_to_max_records(  # noqa: SLF001
+        page,  # type: ignore[arg-type]
+        count=3,
+        records_yielded=0,
+        max_records=2,
+    )
+
+    assert successes == 2
+    assert limited == [ok1, err_mid, ok2, err_tail]
+
+
+def test_pagination_fallback_uses_fetched_size_not_trimmed_yield() -> None:
+    """Missing nextrecord/returned must advance by the fetched page size, not a trimmed yield list."""
+    starts: list[int] = []
+    batch_sizes_seen: list[int] = []
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5, max_records=100))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+
+    def fake_fetch(
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: object,
+    ) -> bool:
+        del batch_size, cql_query, fes_constraints
+        starts.append(start_position)
+        csw.results = {"matches": 20, "returned": None, "nextrecord": None}
+        return True
+
+    def fake_limit(
+        results: list[object],
+        count: int,
+        records_yielded: int,
+        max_records: int | None,
+    ) -> tuple[list[object], int]:
+        del count, records_yielded, max_records
+        # Shrink the yield list while leaving budget so pagination continues.
+        return results[:2], 2
+
+    real_advance = client._advance_start_position  # noqa: SLF001
+
+    def tracking_advance(start_position: int, records_in_batch: int) -> int | None:
+        batch_sizes_seen.append(records_in_batch)
+        return real_advance(start_position, records_in_batch=records_in_batch)
+
+    with (
+        patch.object(CSWClient, "_fetch_iso_batch", side_effect=fake_fetch),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()] * 5, [], 5)),
+        patch.object(CSWClient, "_limit_page_to_max_records", side_effect=fake_limit),
+        patch.object(client, "_advance_start_position", side_effect=tracking_advance),
+    ):
+        list(client._get_records_paged(5, None, None, 100))  # noqa: SLF001
+
+    assert batch_sizes_seen[0] == 5
+    assert starts[0] == 1
+    assert starts[1] == 6
 
 
 def test_xml_iso_fetch_does_not_mutate_shared_template() -> None:

@@ -379,6 +379,7 @@ class CSWClient:
                 break
 
             results, count = page
+            fetched_batch_size = len(results)
             results, count = self._limit_page_to_max_records(results, count, records_yielded, max_records)
             if not results:
                 break
@@ -389,7 +390,9 @@ class CSWClient:
             if max_records is not None and records_yielded >= max_records:
                 break
 
-            next_start = self._advance_start_position(start_position, records_in_batch=len(results))
+            # Use the fetched page size, not a max_records-trimmed yield list, so the
+            # missing-nextrecord/returned fallback advances by the real CSW batch length.
+            next_start = self._advance_start_position(start_position, records_in_batch=fetched_batch_size)
             if next_start is None:
                 break
             start_position = next_start
@@ -401,7 +404,11 @@ class CSWClient:
         records_yielded: int,
         max_records: int | None,
     ) -> tuple[list[InspireRecord | RecordProcessingError], int]:
-        """Trim a page so successful records do not exceed the remaining max_records budget."""
+        """Trim a page so successful records do not exceed the remaining max_records budget.
+
+        ``RecordProcessingError`` items are never capped: every error from the fetched page
+        is kept so data-quality failures remain visible even when the success budget is full.
+        """
         if max_records is None:
             return results, count
         remaining = max_records - records_yielded
@@ -414,12 +421,10 @@ class CSWClient:
         successes = 0
         for item in results:
             if isinstance(item, RecordProcessingError):
-                if successes >= remaining:
-                    break
                 limited.append(item)
                 continue
             if successes >= remaining:
-                break
+                continue
             limited.append(item)
             successes += 1
         return limited, successes
