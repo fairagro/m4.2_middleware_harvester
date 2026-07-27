@@ -4,7 +4,7 @@
 
 `NiceHttpClientConfig` is a standalone Pydantic `BaseModel` that holds all HTTP
 politeness parameters. Plugin-specific config classes (e.g.
-`middleware.schema_org.Config`) embed it as a nested `http` field; they do not
+`middleware.linked_data.Config`) embed it as a nested `http` field; they do not
 define individual HTTP parameters themselves.
 
 `NiceHttpClient` is an async context manager that wraps an

@@ -6,7 +6,7 @@ Defines a project-wide, standardized exception hierarchy for the core orchestrat
 
 - [ ] Provide a central base exception class `HarvesterError` in `middleware.harvester.errors`.
 - [ ] Provide a global `RecordProcessingError` inheriting from `HarvesterError` inside `middleware.harvester.errors` that carries structured record context (`record_id`, optional `original_error`).
-- [ ] Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `SchemaOrgError`) that inherits directly from `HarvesterError`. All further plugin-internal exception classes MUST inherit from that plugin-specific base — never directly from `HarvesterError`.
+- [ ] Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `LinkedDataError`) that inherits directly from `HarvesterError`. All further plugin-internal exception classes MUST inherit from that plugin-specific base — never directly from `HarvesterError`.
 - [ ] The `AsyncGenerator` contract of every plugin MUST be `AsyncGenerator[str | HarvesterError, None]`.
 - [ ] Plugins MUST NOT swallow or locally log expected record-level parsing or mapping failures. Instead, they must `yield` a `HarvesterError` instance to the orchestrator.
 - [ ] When a record identifier is available at the time of failure, plugins MUST yield `RecordProcessingError` (not the plugin-specific base type), so the orchestrator can extract a structured `record_id` for telemetry.

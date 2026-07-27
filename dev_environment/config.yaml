@@ -7,11 +7,11 @@ repositories:
       csw_url: "https://repository-staging.dataservice.zalf.de/catalogue/csw"
 
   - rdi: "edal"
-    schema_org:
+    linked_data:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
       sitemap_type: xml
       dataset_type: html_jsonld
-      payload_type: general
+      payload_type: schema_org_general
 
 # repositories:
 #   - rdi: "dwd"

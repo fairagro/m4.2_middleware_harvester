@@ -229,7 +229,7 @@ config:
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
-  # -- plugin type (inspire or schema_org).
+  # -- plugin type (inspire or linked_data).
   repositories:
 
     # -------------------------------------------------------------------------
@@ -266,15 +266,15 @@ config:
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-openagrar"
-      schema_org:
+      linked_data:
         # -- Sitemap entry point URL (required).
         sitemap_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
         # -- Sitemap protocol. Allowed: xml | mycore_solr
         sitemap_type: xml
         # -- Provider-specific dataset page format. Allowed: html_jsonld
         dataset_type: html_jsonld
-        # -- Expected JSON-LD payload shape. Allowed: general
-        payload_type: general
+        # -- Expected JSON-LD payload shape. Allowed: schema_org_general
+        payload_type: schema_org_general
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -304,18 +304,60 @@ config:
     # Example 3: Schema.org via MyCoRe Solr discovery source
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-mycore-solr"
-      schema_org:
-        sitemap_url: "https://repository.example.org/api/v2/search/objects"
+      linked_data:
+        # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
+        # -- core=main, q=*:* , fl=id, rows=<page_size>. wt=json is always set
+        # -- by the software (URL wt is ignored).
+        # -- Add filters as needed, e.g. ?q=category.top:"mir_genres:research_data"
+        sitemap_url: "https://www.openagrar.de/servlets/solr/select"
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
-        payload_type: general
+        payload_type: schema_org_general
+        # -- Optional page size (default 200). Used as Solr `rows` only when
+        # -- sitemap_url has no `rows` parameter; URL `rows` wins when present.
+        page_size: 100
         http:
           connect_timeout: 10.0
           read_timeout: 30.0
           max_connections: 5
           retry_attempts: 5
           max_requests_per_second: 1.0
-          respect_robots_txt: true
+          # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
+          # -- requires respect_robots_txt: false (machine-to-machine endpoint).
+          respect_robots_txt: false
+
+    # -------------------------------------------------------------------------
+    # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
+    # -------------------------------------------------------------------------
+    - rdi: "example-publisso-regal"
+      linked_data:
+        # -- Regal /find endpoint (query-free is fine). Defaults fill
+        # -- q=contentType:researchData and until=<page_size>. Operator query
+        # -- params override overridable keys; format=json and from are always
+        # -- set by the software. URL until overrides page_size.
+        sitemap_url: "https://frl.publisso.de/find"
+        # -- Allowed: xml | mycore_solr | regal_find
+        sitemap_type: regal_find
+        # -- Allowed: html_jsonld | regal_jsonld
+        dataset_type: regal_jsonld
+        # -- Allowed: schema_org_general | regal_general
+        payload_type: regal_general
+        # -- Page size for /find `until` (default 200). URL `until` overrides
+        # -- this value (same role as Solr `rows`).
+        page_size: 200
+        # -- Base URL for expanding compact Regal ids (frl:…) to absolute IRIs.
+        # -- null → derived as {scheme}://{host}/resource/ from sitemap_url.
+        # -- PUBLISSO landing pages use repository.publisso.de; override if needed:
+        resource_base_url: "https://repository.publisso.de/resource/"
+        http:
+          connect_timeout: 10.0
+          read_timeout: 60.0
+          max_connections: 5
+          retry_attempts: 5
+          max_requests_per_second: 2.0
+          # -- FRL robots.txt is Disallow: / for all agents; /find is still a
+          # -- public machine API. Set false for this RDI or discovery fails.
+          respect_robots_txt: false
 
 # =============================================================================
 # Pod scheduling

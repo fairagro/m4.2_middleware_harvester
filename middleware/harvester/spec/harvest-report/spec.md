@@ -3,7 +3,7 @@
 At the end of each harvester run, the orchestrator emits a machine-readable
 summary of the completed harvest to **stdout** as a JSON-LD document.  The
 document describes every repository that was processed, including timing,
-expected dataset count, and outcome statistics.
+expected dataset count, outcome statistics, and a per-record failure list.
 
 ## Requirements
 
@@ -12,15 +12,21 @@ expected dataset count, and outcome statistics.
       and passes them to a `HarvestReport` builder.
 - [ ] `RepositoryReport` captures:
   - the RDI identifier (string)
-  - the `harvest_id` returned by `ApiClient.harvest_arcs` (`str | None` when the
-    upload was skipped or failed before a harvest was created)
+  - the `harvest_id` returned by `ApiClient.harvest_arcs`, or recovered from the
+    failure when `harvest_arcs` raised after creating a harvest (`str | None`
+    only when the upload was skipped or failed before a harvest was created)
   - wall-clock duration of the repository harvest in seconds (`float`)
   - `expected_datasets`: the value returned by `Plugin.get_expected_datasets()`
     (`int | None` if unavailable)
   - `harvested_datasets`: number of ARC strings successfully yielded by the
     plugin and forwarded to the API
   - `failed_datasets`: number of `HarvesterError` instances yielded by the
-    plugin
+    plugin (plus API-client failures applied later)
+  - `skipped_datasets`: number of `SkippedRecord` instances yielded by the
+    plugin (see [`spec/skipped-datasets/`](../../../spec/skipped-datasets/))
+  - `failed_records`: an ordered list of failed-record entries collected while
+    consuming the plugin stream (and API-client errors), each with a
+    human-readable `message` and optional `record_id` / `url`
 - [ ] `HarvestReport` captures:
   - overall wall-clock duration of the entire run in seconds (`float`)
   - the list of `RepositoryReport` objects
@@ -32,7 +38,11 @@ expected dataset count, and outcome statistics.
 - [ ] The JSON-LD document uses an additional `fairagro:` prefix
       (`https://fairagro.net/ns/`) for domain-specific properties
       (`expectedDatasets`, `harvestedDatasets`, `failedDatasets`,
-      `harvestDurationSeconds`).
+      `skippedDatasets`, `harvestDurationSeconds`, `failedRecords`, and
+      nested `message` / `recordId` / `url` on each failed-record entry).
+- [ ] Every yielded `HarvesterError` increments `failed_datasets` and appends
+      one entry to `failed_records` (orchestrator responsibility; plugins must
+      not rely on local logging alone for operator-visible failures).
 - [ ] `schema:startTime` and `schema:endTime` on the top-level `Action` are
       ISO 8601 UTC timestamps (e.g. `"2026-05-06T14:00:00Z"`).
 - [ ] `schema:duration` on each repository entry is an ISO 8601 duration string
@@ -45,11 +55,17 @@ expected dataset count, and outcome statistics.
 
 ## Edge Cases
 
-Repository task raised an unhandled exception → `harvest_id` is `None`,
-`failed_datasets` equals `expected_datasets` if known, otherwise `None`.
+Repository task raised an unhandled exception → `harvest_id` is the created
+harvest id when recoverable (e.g. from the failing `/v3/harvests/{id}/…`
+request URL), otherwise `None`; `failed_datasets` equals `expected_datasets`
+if known, otherwise `None`; `failed_records` contains at least one entry
+describing the repository-level failure.
 
 `get_expected_datasets()` returned `None` → `expected_datasets` is omitted
 from the JSON-LD output (the key is not emitted rather than set to `null`).
+
+No failed records for a repository → omit `fairagro:failedRecords` (do not
+emit an empty array).
 
 No repositories configured → an `Action` with an empty `result` array and
 a zero-duration is emitted.

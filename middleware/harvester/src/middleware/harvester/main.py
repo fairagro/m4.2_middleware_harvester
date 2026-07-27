@@ -21,11 +21,12 @@ from middleware.harvester.errors import (
     SkippedRecord,
     failure_url_for_exception,
     format_exception_for_report,
+    harvest_id_from_exception,
 )
 from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.report import FailedRecord, HarvestReport, HarvestUploadResult, RepositoryReport, print_report
 from middleware.inspire.plugin import InspirePlugin
-from middleware.schema_org.plugin import SchemaOrgPlugin
+from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.shared.tracing import initialize_logging, initialize_tracing
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 _PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
-    "schema_org": SchemaOrgPlugin,
+    "linked_data": LinkedDataPlugin,
 }
 
 
@@ -213,6 +214,12 @@ async def _execute_harvest_upload(
                 except Exception as e:
                     upload_span.set_status(trace.StatusCode.ERROR)
                     upload_span.record_exception(e)
+                    # harvest_arcs creates the harvest before uploading; recover the
+                    # id from the error when the call raises instead of returning.
+                    if harvest_id is None:
+                        harvest_id = harvest_id_from_exception(e)
+                    if harvest_id is not None:
+                        upload_span.set_attribute("harvester.harvest_id", harvest_id)
                     logger.error(
                         "Error uploading arcs for repository %s (%s): %s",
                         repo.rdi,
@@ -236,6 +243,10 @@ async def _execute_harvest_upload(
         except Exception as e:  # noqa: BLE001
             plugin_span.set_status(trace.StatusCode.ERROR)
             plugin_span.record_exception(e)
+            if harvest_id is None:
+                harvest_id = harvest_id_from_exception(e)
+            if harvest_id is not None:
+                plugin_span.set_attribute("harvester.harvest_id", harvest_id)
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
                 state.harvested_datasets if state.harvested_datasets is not None else 0,
@@ -317,6 +328,8 @@ async def _run_repository(repo: RepositoryConfig, client: ApiClient, tracer: tra
         logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
         logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
         unhandled_failure = True
+        if harvest_id is None:
+            harvest_id = harvest_id_from_exception(exc)
         failed_records.append(
             FailedRecord(
                 message=detail,

@@ -6,7 +6,10 @@ and all plugins to standardize error handling and logging.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+
+_HARVEST_ID_IN_URL = re.compile(r"/v3/harvests/([^/?#]+)")
 
 _TIMEOUT_TYPE_NAMES = frozenset(
     {
@@ -134,6 +137,29 @@ def failure_url_for_exception(exc: BaseException) -> str | None:
             return str(url)
         current = current.__cause__
     return None
+
+
+def harvest_id_from_exception(exc: BaseException) -> str | None:
+    """Recover a harvest id from *exc* when ``harvest_arcs`` fails after create.
+
+    Prefers an explicit ``harvest_id`` attribute on the exception chain (if the
+    API client attaches one), otherwise parses ``/v3/harvests/{id}`` from a
+    request URL carried by httpx errors.
+    """
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        attached = getattr(current, "harvest_id", None)
+        if isinstance(attached, str) and attached.strip():
+            return attached.strip()
+        current = current.__cause__
+
+    url = failure_url_for_exception(exc)
+    if not url:
+        return None
+    match = _HARVEST_ID_IN_URL.search(url)
+    return match.group(1) if match else None
 
 
 def _os_error_detail(exc: BaseException) -> str | None:

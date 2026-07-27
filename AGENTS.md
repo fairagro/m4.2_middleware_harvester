@@ -105,14 +105,16 @@ Before generating or modifying code, read the relevant spec folders:
 - **[`middleware/inspire/spec/csw-threadpool/`](middleware/inspire/spec/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
 - **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 
-**Component-level** (`middleware/schema_org/spec/`) — schema_org plugin internals:
+**Component-level** (`middleware/linked_data/spec/`) — linked_data plugin internals:
 
-- **[`middleware/schema_org/spec/schema-org-harvesting/`](middleware/schema_org/spec/schema-org-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
-- **[`middleware/schema_org/spec/xml-sitemap-parser/`](middleware/schema_org/spec/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
-- **[`middleware/schema_org/spec/sitemap-mycore-solr/`](middleware/schema_org/spec/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
-- **[`middleware/schema_org/spec/html-jsonld-dataset/`](middleware/schema_org/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
-- **[`middleware/schema_org/spec/schemaorg-dataset-abstraction/`](middleware/schema_org/spec/schemaorg-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
-- **[`middleware/schema_org/spec/schemaorg-mapper/`](middleware/schema_org/spec/schemaorg-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
+- **[`middleware/linked_data/spec/linked-data-harvesting/`](middleware/linked_data/spec/linked-data-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
+- **[`middleware/linked_data/spec/xml-sitemap-parser/`](middleware/linked_data/spec/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
+- **[`middleware/linked_data/spec/sitemap-mycore-solr/`](middleware/linked_data/spec/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
+- **[`middleware/linked_data/spec/html-jsonld-dataset/`](middleware/linked_data/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
+- **[`middleware/linked_data/spec/linked-data-dataset-abstraction/`](middleware/linked_data/spec/linked-data-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
+- **[`middleware/linked_data/spec/linked-data-mapper/`](middleware/linked_data/spec/linked-data-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
+- **[`middleware/linked_data/spec/regal-jsonld/`](middleware/linked_data/spec/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
+- **[`middleware/linked_data/spec/regal-to-arc-mapping/`](middleware/linked_data/spec/regal-to-arc-mapping/)** — Regal ResearchData → ARC implementation contract; authoritative field rules in [`docs/regal_mapping.md`](docs/regal_mapping.md).
 
 ---
 

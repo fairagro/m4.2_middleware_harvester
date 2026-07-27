@@ -17,8 +17,8 @@ middleware/harvester/report.py
 ├── RepositoryReport            # skipped_datasets: int = 0 field added
 └── JSON-LD serialiser          # fairagro:skippedDatasets always emitted
 
-middleware/schema_org/plugin.py
-└── _process_result()           # DuplicateUrlDiscoveryResult → SkippedRecord
+middleware/linked_data/plugin.py
+└── producer()                  # forwards SkippedRecord / RecordProcessingError from sitemap.discover()
 ```
 
 ## Key Decisions

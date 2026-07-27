@@ -6,7 +6,7 @@ Concurrency is introduced at four independent layers:
 
 1. **Thread offload** (`inspire/csw_client.py`) — OWSLib synchronous calls
    wrapped in `asyncio.to_thread()`; the `CSWClient` internal API is unchanged.
-2. **Task-level parallelism** (`schema_org/plugin.py`) — `asyncio.Semaphore` +
+2. **Task-level parallelism** (`linked_data/plugin.py`) — `asyncio.Semaphore` +
    `asyncio.TaskGroup` for concurrent dataset fetches within a single plugin
    invocation.
 3. **Repository-level parallelism** (`harvester/main.py`) — `asyncio.gather()`

@@ -21,7 +21,7 @@ operations must run concurrently to overlap network latency.
 
 ### Concurrent Dataset Fetching
 
-- [ ] The Schema.org plugin fetches multiple dataset URLs concurrently,
+- [ ] The Linked Data plugin fetches multiple dataset URLs concurrently,
       bounded by an `asyncio.Semaphore` initialised from `Config.max_connections`.
 - [ ] The concurrency limit for dataset fetching uses the same `max_connections`
       value already used as the httpx connection pool ceiling — no new
