@@ -347,7 +347,7 @@ def test_get_records_by_xml(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
     mock_instance = MagicMock()
     mock_csw_cls.return_value = mock_instance
     mock_instance.records = {"uuid-123": mock_iso_record}
-    mock_instance.results = {"matches": 1}
+    mock_instance.results = {"matches": 1, "returned": 1, "nextrecord": 0}
 
     # Patch isinstance
     original_isinstance = isinstance
@@ -357,16 +357,24 @@ def test_get_records_by_xml(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
             return True
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"))
+    xml_query = (
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2" resultType="results" '
+        'outputSchema="http://www.isotc211.org/2005/gmd">'
+        '<csw:Query typeNames="csw:Record">'
+        "<csw:ElementSetName>full</csw:ElementSetName>"
+        "</csw:Query>"
+        "</csw:GetRecords>"
+    )
+    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=25))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
-        # Trigger XML path
-        results = list(client.get_records(xml_query="<Filter>...</Filter>"))
+        results = list(client.get_records(xml_query=xml_query))
 
     assert len(results) == 1
     mock_instance.getrecords2.assert_called()
-    # Check if xml was used in call args if possible, or just ensure it didn't crash
     kwargs = mock_instance.getrecords2.call_args.kwargs
     assert "xml" in kwargs
+    assert 'maxRecords="25"' in kwargs["xml"]
 
 
 def test_get_records_by_constraints(mock_csw_cls: MagicMock, mock_iso_record: MagicMock) -> None:

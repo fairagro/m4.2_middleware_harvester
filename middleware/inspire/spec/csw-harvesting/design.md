@@ -21,3 +21,22 @@
    Termination uses `start_position > matches` (not `>=`): position `matches`
    is still valid. If pagination does not advance past the current start,
    it stops with a warning to avoid an infinite loop on broken servers.
+
+5. **`xml_query` reuses the same pagination loop; only paging attrs are rewritten**
+   — Operators need complex FES filters that are awkward as CQL. Passing a
+   full `GetRecords` document used to be a single unpaged call, so omitting
+   `maxRecords` silently harvested only the server default page (often 10).
+   The XML filter/query body stays intact; each page deep-copies the template
+   and sets `startPosition` / `maxRecords` on that copy only. Page size defaults
+   to config `chunk_size`; a valid XML `maxRecords` overrides page size only
+   (same role as Solr `rows` / Regal `until` in linked_data). A valid XML
+   `startPosition` overrides the initial offset. Harvest-wide caps use config
+   `max_records` so operators are not forced to overload CSW `maxRecords` for
+   “download only N for a test run”. Dublin Core identifier fallback for broken
+   ISO batches deep-copies the template, switches `outputSchema` to CSW/DC and
+   `ElementSetName` to `brief`, then applies the same paging attributes.
+   Non-ISO `outputSchema` on the template is overridden to ISO 19139 on each
+   ISO request copy (warned once at prepare), matching `_fetch_iso_batch`.
+   GetRecords structure is validated via `_prepare_xml_query_before_network`
+   in `get_records` / `get_records_async` / `get_record_count` **before**
+   `connect()`, so invalid XML never triggers a CSW network call.

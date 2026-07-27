@@ -19,16 +19,34 @@ class Config(BaseModel):
     ] = None
     xml_query: Annotated[
         str | None,
-        Field(alias="xml_request", description="Raw GetRecords XML body (overrides cql_query)"),
+        Field(
+            alias="xml_request",
+            description=(
+                "Raw GetRecords XML body (overrides cql_query). Paginated: filter preserved; "
+                "startPosition/maxRecords rewritten per page. XML maxRecords overrides chunk_size; "
+                "XML startPosition overrides the initial offset. Use config max_records to cap total."
+            ),
+        ),
     ] = None
     chunk_size: Annotated[
         int,
-        Field(description="Number of records to fetch per paginated request.", ge=1),
+        Field(
+            description=(
+                "Number of records to fetch per paginated CSW request. "
+                "For xml_query, a valid GetRecords maxRecords attribute overrides this page size."
+            ),
+            ge=1,
+        ),
     ] = 50
 
     max_records: Annotated[
         int | None,
-        Field(description="Maximum number of records to harvest (None = all records). Debug option."),
+        Field(
+            description=(
+                "Maximum number of records to harvest across all pages (None = all records). "
+                "Debug/test limit for every query mode; not the CSW per-request maxRecords page size."
+            ),
+        ),
     ] = None
 
     timeout: Annotated[

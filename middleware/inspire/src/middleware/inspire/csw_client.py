@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import copy
 import logging
 import random
 from collections.abc import AsyncGenerator, Callable, Iterator
@@ -25,6 +26,11 @@ from .models import InspireRecord
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
+
+_CSW_NS = "http://www.opengis.net/cat/csw/2.0.2"
+_CSW_GET_RECORDS_TAG = f"{{{_CSW_NS}}}GetRecords"
+_ISO_OUTPUT_SCHEMA = "http://www.isotc211.org/2005/gmd"
+_DC_OUTPUT_SCHEMA = "http://www.opengis.net/cat/csw/2.0.2"
 
 
 class CSWClient:
@@ -186,7 +192,7 @@ class CSWClient:
         """Retrieve records from the CSW, yielding InspireRecord or RecordProcessingError objects.
 
         Exactly one filter mode may be active at a time (including values inherited from Config):
-          - xml_query       — raw GetRecords XML; no pagination
+          - xml_query       — raw GetRecords XML; paginated (paging attrs rewritten per page)
           - fes_constraints — OWSLib FES constraint objects; paginated
           - cql_query       — CQL text query string; paginated
           - (none)          — fetch all records; paginated
@@ -196,6 +202,9 @@ class CSWClient:
 
         Explicit arguments override the corresponding Config fields.
         chunk_size and max_records fall back to Config values when not provided.
+        For ``xml_query``, a valid XML ``maxRecords`` overrides page size (chunk_size);
+        a valid XML ``startPosition`` overrides the initial offset. Config ``max_records``
+        remains the harvest-wide cap for all modes.
 
         Args:
             cql_query: CQL filter string, e.g. "AnyText LIKE '%agriculture%'". Overrides
@@ -211,14 +220,16 @@ class CSWClient:
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        if effective_xml is not None:
-            yield from self._get_records_by_xml(effective_xml)
+        if prepared_xml is not None:
+            yield from self._get_records_by_xml_prepared(prepared_xml, effective_max_records)
         elif effective_fes is not None:
             yield from self._get_records_by_fes(effective_fes, effective_chunk_size, effective_max_records)
         elif effective_cql is not None:
@@ -238,15 +249,26 @@ class CSWClient:
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             await self._retry_async(self._connect, "connect")
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        name, fn, args = self._pick_strategy(
-            effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
-        )
+        strategy: tuple[str, Callable[..., Iterator[InspireRecord | RecordProcessingError]], tuple[object, ...]]
+        if prepared_xml is not None:
+            strategy = (
+                "get_records_by_xml",
+                self._get_records_by_xml_prepared,
+                (prepared_xml, effective_max_records),
+            )
+        else:
+            strategy = self._pick_strategy(
+                effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
+            )
+        name, fn, args = strategy
         records = await self._retry_async(self._iter_to_list, name, fn, *args)
         for item in records:
             yield item
@@ -261,7 +283,11 @@ class CSWClient:
     ) -> tuple[str, Callable[..., Iterator[InspireRecord | RecordProcessingError]], tuple[object, ...]]:
         """Return (strategy_name, callable, args) for the active filter mode."""
         if effective_xml:
-            return "get_records_by_xml", self._get_records_by_xml, (effective_xml,)
+            return (
+                "get_records_by_xml",
+                self._get_records_by_xml,
+                (effective_xml, effective_chunk_size, effective_max_records),
+            )
         if effective_fes:
             return (
                 "get_records_by_fes",
@@ -305,25 +331,30 @@ class CSWClient:
             return xml_query.encode("utf-8")
         return xml_query
 
-    def _get_records_by_xml(self, xml_query: str | bytes) -> Iterator[InspireRecord | RecordProcessingError]:
-        """Retrieve records using a raw XML request."""
-        logger.info("Using raw XML request for harvesting.")
-        if self._csw is None:
-            self.connect()
-        if self._csw is None:
-            raise RuntimeError("CSW client is not initialized.")
+    def _prepare_xml_query_before_network(
+        self, xml_query: str | bytes | None, chunk_size: int
+    ) -> tuple[lxml.etree._Element, int, int, bool] | None:
+        """Parse/validate ``xml_query`` before connect; return prepared paging state or None."""
+        if xml_query is None:
+            return None
+        return self._prepare_xml_paging(xml_query, chunk_size)
 
-        xml_query = self._normalize_xml_query(xml_query)
+    def _get_records_by_xml(
+        self, xml_query: str | bytes, chunk_size: int, max_records: int | None
+    ) -> Iterator[InspireRecord | RecordProcessingError]:
+        """Retrieve records using a GetRecords XML body with pagination."""
+        logger.info("Using XML GetRecords request for harvesting (paginated).")
+        yield from self._get_records_paged(chunk_size, None, None, max_records, xml=xml_query)
 
-        self._csw.getrecords2(xml=xml_query)
-        if self._csw.records:
-            for uuid, record in self._csw.records.items():
-                if isinstance(record, MD_Metadata):
-                    try:
-                        yield self._parse_iso_record(record, record_uuid=uuid)
-                    except Exception as e:  # noqa: BLE001
-                        # We yield instead of raising to allow the generator to continue
-                        yield RecordProcessingError(str(e), uuid, original_error=e)
+    def _get_records_by_xml_prepared(
+        self,
+        prepared_xml: tuple[lxml.etree._Element, int, int, bool],
+        max_records: int | None,
+    ) -> Iterator[InspireRecord | RecordProcessingError]:
+        """Paginate using XML already validated/prepared before connect."""
+        logger.info("Using XML GetRecords request for harvesting (paginated).")
+        page_size = prepared_xml[1]
+        yield from self._get_records_paged(page_size, None, None, max_records, xml=prepared_xml)
 
     def _get_records_by_fes(
         self, fes_constraints: list[OgcExpression], chunk_size: int, max_records: int | None
@@ -344,29 +375,46 @@ class CSWClient:
         cql_query: str | None,
         fes_constraints: list[OgcExpression] | None,
         max_records: int | None,
+        xml: str | bytes | tuple[lxml.etree._Element, int, int, bool] | None = None,
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve all records using pagination, fetching chunk_size records per request.
 
         CSW 2.0.2 ``startPosition`` is 1-based. Starting at 0 (OWSLib default) makes
         servers treat the first page as position 1, then ``start += page_size`` requests
         position ``page_size`` again and duplicates one record per page boundary.
+
+        When ``xml`` is set, the GetRecords filter body is preserved and only paging
+        attributes are rewritten. Pass prepared paging state from
+        ``_prepare_xml_query_before_network`` so invalid XML fails before ``connect()``.
         """
         start_position = 1
+        effective_chunk_size = chunk_size
+        xml_page: tuple[lxml.etree._Element, bool] | None = None
+        if isinstance(xml, tuple):
+            xml_root, effective_chunk_size, start_position, xml_as_bytes = xml
+            xml_page = (xml_root, xml_as_bytes)
+        elif xml is not None:
+            xml_root, effective_chunk_size, start_position, xml_as_bytes = self._prepare_xml_paging(xml, chunk_size)
+            xml_page = (xml_root, xml_as_bytes)
+
         records_yielded = 0
 
         while True:
-            iso_ok = self._fetch_iso_batch(chunk_size, start_position, cql_query, fes_constraints)
-            if not iso_ok:
+            page = self._fetch_and_parse_page(
+                effective_chunk_size,
+                start_position,
+                cql_query,
+                fes_constraints,
+                xml_page,
+            )
+            if page is None:
                 break
 
-            results, errors_without_id, count = self._parse_iso_batch()
-
+            results, count = page
+            fetched_batch_size = len(results)
+            results, count = self._limit_page_to_max_records(results, count, records_yielded, max_records)
             if not results:
                 break
-
-            if errors_without_id:
-                dc_ids = self._fetch_dc_ids(chunk_size, start_position, cql_query, fes_constraints)
-                self._apply_dc_fallback(results, errors_without_id, dc_ids)
 
             yield from results
             records_yielded += count
@@ -374,20 +422,242 @@ class CSWClient:
             if max_records is not None and records_yielded >= max_records:
                 break
 
-            next_start = self._next_start_position(start_position, records_in_batch=len(results))
+            # Use the fetched page size, not a max_records-trimmed yield list, so the
+            # missing-nextrecord/returned fallback advances by the real CSW batch length.
+            next_start = self._advance_start_position(start_position, records_in_batch=fetched_batch_size)
             if next_start is None:
-                break
-            if next_start <= start_position:
-                logger.warning(
-                    "CSW pagination did not advance (startPosition=%s, next=%s); stopping.",
-                    start_position,
-                    next_start,
-                )
                 break
             start_position = next_start
 
-            if self._all_records_fetched(start_position):
-                break
+    @staticmethod
+    def _limit_page_to_max_records(
+        results: list[InspireRecord | RecordProcessingError],
+        count: int,
+        records_yielded: int,
+        max_records: int | None,
+    ) -> tuple[list[InspireRecord | RecordProcessingError], int]:
+        """Trim a page so successful records do not exceed the remaining max_records budget.
+
+        ``RecordProcessingError`` items are never capped: every error from the fetched page
+        is kept so data-quality failures remain visible even when the success budget is full.
+        """
+        if max_records is None:
+            return results, count
+        remaining = max_records - records_yielded
+        if remaining <= 0:
+            # Success budget already exhausted — still surface parse errors from this page.
+            return [item for item in results if isinstance(item, RecordProcessingError)], 0
+        if count <= remaining:
+            return results, count
+
+        limited: list[InspireRecord | RecordProcessingError] = []
+        successes = 0
+        for item in results:
+            if isinstance(item, RecordProcessingError):
+                limited.append(item)
+                continue
+            if successes >= remaining:
+                continue
+            limited.append(item)
+            successes += 1
+        return limited, successes
+
+    def _fetch_and_parse_page(
+        self,
+        batch_size: int,
+        start_position: int,
+        cql_query: str | None,
+        fes_constraints: list[OgcExpression] | None,
+        xml_page: tuple[lxml.etree._Element, bool] | None,
+    ) -> tuple[list[InspireRecord | RecordProcessingError], int] | None:
+        """Fetch one CSW page and parse it; return None when the page is empty or fetch fails."""
+        if xml_page is not None:
+            xml_root, xml_as_bytes = xml_page
+            iso_ok = self._fetch_iso_batch_xml(xml_root, batch_size, start_position, xml_as_bytes)
+        else:
+            iso_ok = self._fetch_iso_batch(batch_size, start_position, cql_query, fes_constraints)
+        if not iso_ok:
+            return None
+
+        results, errors_without_id, count = self._parse_iso_batch()
+        if not results:
+            return None
+
+        if errors_without_id:
+            if xml_page is not None:
+                xml_root, xml_as_bytes = xml_page
+                dc_ids = self._fetch_dc_ids_xml(xml_root, batch_size, start_position, xml_as_bytes)
+            else:
+                dc_ids = self._fetch_dc_ids(batch_size, start_position, cql_query, fes_constraints)
+            self._apply_dc_fallback(results, errors_without_id, dc_ids)
+
+        return results, count
+
+    def _advance_start_position(self, start_position: int, records_in_batch: int) -> int | None:
+        """Return the next page start, or None when pagination is complete or stuck."""
+        next_start = self._next_start_position(start_position, records_in_batch=records_in_batch)
+        if next_start is None:
+            return None
+        if next_start <= start_position:
+            logger.warning(
+                "CSW pagination did not advance (startPosition=%s, next=%s); stopping.",
+                start_position,
+                next_start,
+            )
+            return None
+        if self._all_records_fetched(next_start):
+            return None
+        return next_start
+
+    def _prepare_xml_paging(
+        self, xml_query: str | bytes, chunk_size: int
+    ) -> tuple[lxml.etree._Element, int, int, bool]:
+        """Parse GetRecords XML and resolve page size / initial start overrides.
+
+        Returns:
+            (root element, page_size, start_position, serialize_as_bytes)
+        """
+        normalized = self._normalize_xml_query(xml_query)
+        as_bytes = isinstance(normalized, (bytes, bytearray))
+        try:
+            root = lxml.etree.fromstring(normalized)
+        except lxml.etree.XMLSyntaxError as exc:
+            raise ValueError(f"xml_query is not well-formed XML: {exc}") from exc
+
+        get_records = self._find_get_records_element(root)
+        if get_records is None:
+            raise ValueError("xml_query must have a CSW GetRecords root element")
+
+        page_size = chunk_size
+        raw_max = get_records.get("maxRecords")
+        if raw_max is not None:
+            xml_max = self._coerce_result_int(raw_max)
+            if xml_max is not None and xml_max > 0:
+                page_size = xml_max
+                logger.info("xml_query maxRecords=%s overrides chunk_size for page size", xml_max)
+            else:
+                logger.warning(
+                    "xml_query maxRecords=%r is invalid or non-positive; using chunk_size=%s",
+                    raw_max,
+                    chunk_size,
+                )
+
+        start_position = 1
+        raw_start = get_records.get("startPosition")
+        if raw_start is not None:
+            xml_start = self._coerce_result_int(raw_start)
+            if xml_start is not None and xml_start >= 1:
+                start_position = xml_start
+                if xml_start != 1:
+                    logger.info("xml_query startPosition=%s overrides initial paging offset", xml_start)
+            else:
+                logger.warning(
+                    "xml_query startPosition=%r is invalid or non-positive; using startPosition=1",
+                    raw_start,
+                )
+
+        # Inspect only — request copies apply ISO schema so the shared template stays intact.
+        raw_schema = get_records.get("outputSchema")
+        if raw_schema is not None and raw_schema != _ISO_OUTPUT_SCHEMA:
+            logger.warning(
+                "xml_query outputSchema=%r will be overridden to ISO (%s) for harvest parsing",
+                raw_schema,
+                _ISO_OUTPUT_SCHEMA,
+            )
+
+        return get_records, page_size, start_position, as_bytes
+
+    @staticmethod
+    def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
+        """Return *root* when it is a CSW 2.0.2 GetRecords element; otherwise None.
+
+        Only the document root is accepted. The element must expand to the CSW 2.0.2
+        namespace (any prefix or default xmlns is fine); unnamespaced ``GetRecords``
+        and GetRecords in any other namespace are rejected.
+        """
+        if root.tag == _CSW_GET_RECORDS_TAG:
+            return root
+        return None
+
+    @staticmethod
+    def _serialize_xml_query(root: lxml.etree._Element, as_bytes: bool) -> str | bytes:
+        """Serialize a GetRecords element for OWSLib."""
+        if as_bytes:
+            payload = lxml.etree.tostring(root, encoding="UTF-8", xml_declaration=True)
+            if not isinstance(payload, (bytes, bytearray)):
+                raise TypeError("expected bytes from lxml.etree.tostring")
+            return bytes(payload)
+        payload = lxml.etree.tostring(root, encoding="unicode")
+        if not isinstance(payload, str):
+            raise TypeError("expected str from lxml.etree.tostring")
+        return payload
+
+    def _apply_xml_paging_attrs(self, root: lxml.etree._Element, batch_size: int, start_position: int) -> None:
+        """Set CSW paging attributes on a GetRecords root (in-place)."""
+        root.set("startPosition", str(start_position))
+        root.set("maxRecords", str(batch_size))
+
+    def _fetch_iso_batch_xml(
+        self,
+        xml_root: lxml.etree._Element,
+        batch_size: int,
+        start_position: int,
+        as_bytes: bool,
+    ) -> bool:
+        """Fetch one ISO page without mutating the shared xml_query template.
+
+        Paging attributes and ISO ``outputSchema`` are applied on a deep copy so the
+        operator template (filter body and original attributes) stays intact across pages.
+        Transient ``OSError``/``TimeoutError`` are wrapped as ``CswConnectionError`` so the
+        async retry layer can retry. ``ValueError`` propagates unwrapped (not retryable).
+        """
+        if self._csw is None:
+            self.connect()
+        if self._csw is None:
+            raise RuntimeError("CSW client is not initialized.")
+
+        request_root = copy.deepcopy(xml_root)
+        self._apply_xml_paging_attrs(request_root, batch_size, start_position)
+        # Same as _fetch_iso_batch: ISO parsing only yields MD_Metadata for gmd schema.
+        if request_root.get("outputSchema") != _ISO_OUTPUT_SCHEMA:
+            request_root.set("outputSchema", _ISO_OUTPUT_SCHEMA)
+
+        try:
+            self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
+            return True
+        except ValueError:
+            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
+            raise
+        except (OSError, TimeoutError) as e:
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+            raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
+
+    def _fetch_dc_ids_xml(
+        self,
+        xml_root: lxml.etree._Element,
+        batch_size: int,
+        start_position: int,
+        as_bytes: bool,
+    ) -> list[str]:
+        """Fetch DC identifiers for a page using a mutated copy of the xml_query template."""
+        if self._csw is None:
+            self.connect()
+        if self._csw is None:
+            raise RuntimeError("CSW client is not initialized.")
+
+        try:
+            dc_root = copy.deepcopy(xml_root)
+            self._apply_xml_paging_attrs(dc_root, batch_size, start_position)
+            dc_root.set("outputSchema", _DC_OUTPUT_SCHEMA)
+            for element_set in dc_root.iter():
+                if isinstance(element_set.tag, str) and lxml.etree.QName(element_set).localname == "ElementSetName":
+                    element_set.text = "brief"
+                    break
+            self._csw.getrecords2(xml=self._serialize_xml_query(dc_root, as_bytes))
+            return [rec.identifier for rec in self._csw.records.values()]
+        except (OSError, TimeoutError, ValueError) as e:
+            logger.warning("Failed to fetch DC IDs for XML batch at %d: %s", start_position, e)
+            return []
 
     def _next_start_position(self, current_start: int, records_in_batch: int | None = None) -> int | None:
         """Return the next 1-based CSW startPosition, or None when pagination is complete.
@@ -520,9 +790,12 @@ class CSWClient:
         start_position: int,
         cql_query: str | None,
         fes_constraints: list[OgcExpression] | None,
-        swallow_errors: bool = True,
     ) -> bool:
-        """Fetch a batch of records in ISO 19139 format."""
+        """Fetch a batch of records in ISO 19139 format.
+
+        Transient ``OSError``/``TimeoutError`` are wrapped as ``CswConnectionError`` so the
+        async retry layer can retry. ``ValueError`` propagates unwrapped (not retryable).
+        """
         if self._csw is None:
             self.connect()
         if self._csw is None:
@@ -542,16 +815,12 @@ class CSWClient:
             else:
                 self._csw.getrecords2(**kwargs)
             return True
+        except ValueError:
+            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
+            raise
         except (OSError, TimeoutError) as e:
-            if swallow_errors:
-                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
-            raise
-        except ValueError as e:
-            if swallow_errors:
-                logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
-                raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
-            raise
+            logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
+            raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
     def _yield_iso_records(self) -> Iterator[InspireRecord | RecordProcessingError]:
         """Yield parsed ISO records from the last-fetched batch (ISO-first, no DC involved)."""
@@ -619,6 +888,8 @@ class CSWClient:
             Total number of matching records.
         """
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        self._prepare_xml_query_before_network(effective_xml, self._config.chunk_size)
 
         if self._csw is None:
             self.connect()

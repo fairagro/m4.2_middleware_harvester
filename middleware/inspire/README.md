@@ -25,10 +25,10 @@ The plugin is configured as part of a `repository` entry in the central Harveste
 | :--- | :--- | :--- | :--- |
 | `csw_url` | string | *(required)* | Base URL of the CSW 2.0.2 endpoint. |
 | `cql_query` | string | `None` | OGC CQL filter (e.g., `AnyText LIKE '%agriculture%'`). |
-| `xml_query` | string | `None` | Raw XML body for `GetRecords` (mutually exclusive with `cql_query`). |
-| `chunk_size` | int | `50` | Number of records to fetch per paginated request. |
+| `xml_query` | string | `None` | Raw `GetRecords` XML body (mutually exclusive with `cql_query`). Paginated: filter body is preserved; `startPosition`/`maxRecords` are rewritten per page. |
+| `chunk_size` | int | `50` | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`. |
 | `timeout` | int | `30` | Network timeout for CSW requests in seconds. |
-| `max_records` | int | `None` | Debug limit: stop after N records (set to `None` for all). |
+| `max_records` | int | `None` | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this. |
 
 ### Example Plugin Configuration
 
