@@ -518,6 +518,15 @@ class CSWClient:
                     raw_start,
                 )
 
+        # Inspect only — request copies apply ISO schema so the shared template stays intact.
+        raw_schema = get_records.get("outputSchema")
+        if raw_schema is not None and raw_schema != _ISO_OUTPUT_SCHEMA:
+            logger.warning(
+                "xml_query outputSchema=%r will be overridden to ISO (%s) for harvest parsing",
+                raw_schema,
+                _ISO_OUTPUT_SCHEMA,
+            )
+
         return get_records, page_size, start_position, as_bytes
 
     @staticmethod
@@ -557,26 +566,24 @@ class CSWClient:
         as_bytes: bool,
         swallow_errors: bool = True,
     ) -> bool:
-        """Fetch one ISO page by rewriting paging attributes on the xml_query template."""
+        """Fetch one ISO page without mutating the shared xml_query template.
+
+        Paging attributes and ISO ``outputSchema`` are applied on a deep copy so the
+        operator template (filter body and original attributes) stays intact across pages.
+        """
         if self._csw is None:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        self._apply_xml_paging_attrs(xml_root, batch_size, start_position)
+        request_root = copy.deepcopy(xml_root)
+        self._apply_xml_paging_attrs(request_root, batch_size, start_position)
         # Same as _fetch_iso_batch: ISO parsing only yields MD_Metadata for gmd schema.
-        current_schema = xml_root.get("outputSchema")
-        if current_schema != _ISO_OUTPUT_SCHEMA:
-            if current_schema is not None:
-                logger.warning(
-                    "xml_query outputSchema=%r overridden to ISO (%s) for harvest parsing",
-                    current_schema,
-                    _ISO_OUTPUT_SCHEMA,
-                )
-            xml_root.set("outputSchema", _ISO_OUTPUT_SCHEMA)
+        if request_root.get("outputSchema") != _ISO_OUTPUT_SCHEMA:
+            request_root.set("outputSchema", _ISO_OUTPUT_SCHEMA)
 
         try:
-            self._csw.getrecords2(xml=self._serialize_xml_query(xml_root, as_bytes))
+            self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
             return True
         except (OSError, TimeoutError, ValueError) as e:
             if swallow_errors:

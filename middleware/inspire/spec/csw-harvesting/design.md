@@ -26,14 +26,14 @@
    — Operators need complex FES filters that are awkward as CQL. Passing a
    full `GetRecords` document used to be a single unpaged call, so omitting
    `maxRecords` silently harvested only the server default page (often 10).
-   The XML filter/query body stays intact; each page sets `startPosition` and
-   `maxRecords` on the `GetRecords` root. Page size defaults to config
-   `chunk_size`; a valid XML `maxRecords` overrides page size only (same role
-   as Solr `rows` / Regal `until` in linked_data). A valid XML `startPosition`
-   overrides the initial offset. Harvest-wide caps use config `max_records`
-   so operators are not forced to overload CSW `maxRecords` for “download
-   only N for a test run”. Dublin Core identifier fallback for broken ISO
-   batches deep-copies the template, switches `outputSchema` to CSW/DC and
+   The XML filter/query body stays intact; each page deep-copies the template
+   and sets `startPosition` / `maxRecords` on that copy only. Page size defaults
+   to config `chunk_size`; a valid XML `maxRecords` overrides page size only
+   (same role as Solr `rows` / Regal `until` in linked_data). A valid XML
+   `startPosition` overrides the initial offset. Harvest-wide caps use config
+   `max_records` so operators are not forced to overload CSW `maxRecords` for
+   “download only N for a test run”. Dublin Core identifier fallback for broken
+   ISO batches deep-copies the template, switches `outputSchema` to CSW/DC and
    `ElementSetName` to `brief`, then applies the same paging attributes.
-   Non-ISO `outputSchema` on the template is overridden to ISO 19139 for the
-   primary fetch (with a warning), matching `_fetch_iso_batch`.
+   Non-ISO `outputSchema` on the template is overridden to ISO 19139 on each
+   ISO request copy (warned once at prepare), matching `_fetch_iso_batch`.

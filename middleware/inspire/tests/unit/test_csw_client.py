@@ -723,6 +723,39 @@ def test_max_records_truncates_oversized_page() -> None:
     assert call_count == 1
 
 
+def test_xml_iso_fetch_does_not_mutate_shared_template() -> None:
+    """ISO page fetches must not rewrite the shared xml_query root in-place."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 3, "returned": 2, "nextrecord": 3}
+    csw.records = {}
+
+    original_schema = "http://www.opengis.net/cat/csw/2.0.2"
+    xml_query = (
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2" resultType="results" '
+        f'outputSchema="{original_schema}" startPosition="9" maxRecords="99">'
+        '<csw:Query typeNames="csw:Record">'
+        "<csw:ElementSetName>full</csw:ElementSetName>"
+        "</csw:Query>"
+        "</csw:GetRecords>"
+    )
+    root, page_size, start, as_bytes = client._prepare_xml_paging(xml_query, chunk_size=2)  # noqa: SLF001
+    assert page_size == 99
+    assert start == 9
+
+    client._fetch_iso_batch_xml(root, batch_size=2, start_position=1, as_bytes=as_bytes)  # noqa: SLF001
+    client._fetch_iso_batch_xml(root, batch_size=2, start_position=3, as_bytes=as_bytes)  # noqa: SLF001
+
+    assert root.get("outputSchema") == original_schema
+    assert root.get("startPosition") == "9"
+    assert root.get("maxRecords") == "99"
+    sent = csw.getrecords2.call_args_list[-1].kwargs["xml"]
+    assert 'outputSchema="http://www.isotc211.org/2005/gmd"' in sent
+    assert 'startPosition="3"' in sent
+
+
 def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) -> None:
     """ISO fetch path forces gmd outputSchema even when xml_query sets another schema."""
     client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5))
