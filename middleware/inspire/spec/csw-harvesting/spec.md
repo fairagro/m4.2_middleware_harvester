@@ -27,7 +27,7 @@ Query the Catalogue Service for Web (CSW) endpoints and parse ISO 19139 XML into
 - Broken XML responses or invalid attribute access → yield `RecordProcessingError`, continue iteration.
 - `fes_constraints` has no Config-level equivalent because OWSLib `OgcExpression` objects are runtime-only and not YAML-serializable; it can only be supplied at call time.
 - An XML query with an encoding declaration must be converted to `bytes` before being passed to OWSLib to avoid an lxml `Unicode strings with encoding declaration` error.
-- `xml_query` whose root is not CSW 2.0.2 `GetRecords` (wrong element, nested, or non-CSW namespace) → raise `ValueError` before any network call.
+- `xml_query` whose root is not CSW 2.0.2 `GetRecords` in the CSW namespace (wrong element, nested, unnamespaced, or non-CSW namespace) → raise `ValueError` before any network call.
 - `xml_query` with invalid / non-positive `maxRecords` or `startPosition` → ignore that attribute, log a warning, and fall back to config / default (same as if omitted).
 - `xml_query` plus config `max_records=N` → stop after N successfully counted records across pages (same semantics as CQL/standard); the final page is truncated so the yield count does not exceed N.
 - Operator sets XML `maxRecords="10"` and config `chunk_size=50` → each page requests 10 records; harvest continues across pages until exhausted or `max_records` stops it.

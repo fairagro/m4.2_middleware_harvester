@@ -28,7 +28,7 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 _CSW_NS = "http://www.opengis.net/cat/csw/2.0.2"
-_CSW_GET_RECORDS_TAGS = frozenset({"GetRecords", f"{{{_CSW_NS}}}GetRecords"})
+_CSW_GET_RECORDS_TAG = f"{{{_CSW_NS}}}GetRecords"
 _ISO_OUTPUT_SCHEMA = "http://www.isotc211.org/2005/gmd"
 _DC_OUTPUT_SCHEMA = "http://www.opengis.net/cat/csw/2.0.2"
 
@@ -533,10 +533,10 @@ class CSWClient:
     def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
         """Return *root* when it is a CSW 2.0.2 GetRecords element; otherwise None.
 
-        Only the document root is accepted, and only unnamespaced ``GetRecords`` or the
-        CSW 2.0.2 namespace — not an arbitrary ``*:GetRecords``.
+        Only the document root is accepted, and it must be in the CSW 2.0.2 namespace
+        (not unnamespaced ``GetRecords`` or an arbitrary ``*:GetRecords``).
         """
-        if root.tag in _CSW_GET_RECORDS_TAGS:
+        if root.tag == _CSW_GET_RECORDS_TAG:
             return root
         return None
 

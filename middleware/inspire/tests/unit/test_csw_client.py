@@ -696,6 +696,15 @@ def test_xml_query_rejects_wrong_get_records_namespace() -> None:
         list(client.get_records(xml_query='<GetRecords xmlns="http://example.org/not-csw"/>'))
 
 
+def test_xml_query_rejects_unnamespaced_get_records() -> None:
+    """Bare GetRecords without the CSW 2.0.2 namespace is rejected."""
+    client = CSWClient(_make_csw_config())
+    object.__setattr__(client, "_csw", MagicMock())
+
+    with pytest.raises(ValueError, match="GetRecords"):
+        list(client.get_records(xml_query='<GetRecords service="CSW" version="2.0.2"/>'))
+
+
 def test_max_records_truncates_oversized_page() -> None:
     """max_records must not yield more successful records than N within a page."""
     client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, max_records=2))
