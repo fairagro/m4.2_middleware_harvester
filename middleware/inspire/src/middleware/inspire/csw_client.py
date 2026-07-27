@@ -220,14 +220,16 @@ class CSWClient:
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        if effective_xml is not None:
-            yield from self._get_records_by_xml(effective_xml, effective_chunk_size, effective_max_records)
+        if prepared_xml is not None:
+            yield from self._get_records_by_xml_prepared(prepared_xml, effective_max_records)
         elif effective_fes is not None:
             yield from self._get_records_by_fes(effective_fes, effective_chunk_size, effective_max_records)
         elif effective_cql is not None:
@@ -247,15 +249,26 @@ class CSWClient:
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             await self._retry_async(self._connect, "connect")
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
-        name, fn, args = self._pick_strategy(
-            effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
-        )
+        strategy: tuple[str, Callable[..., Iterator[InspireRecord | RecordProcessingError]], tuple[object, ...]]
+        if prepared_xml is not None:
+            strategy = (
+                "get_records_by_xml",
+                self._get_records_by_xml_prepared,
+                (prepared_xml, effective_max_records),
+            )
+        else:
+            strategy = self._pick_strategy(
+                effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
+            )
+        name, fn, args = strategy
         records = await self._retry_async(self._iter_to_list, name, fn, *args)
         for item in records:
             yield item
@@ -318,12 +331,30 @@ class CSWClient:
             return xml_query.encode("utf-8")
         return xml_query
 
+    def _prepare_xml_query_before_network(
+        self, xml_query: str | bytes | None, chunk_size: int
+    ) -> tuple[lxml.etree._Element, int, int, bool] | None:
+        """Parse/validate ``xml_query`` before connect; return prepared paging state or None."""
+        if xml_query is None:
+            return None
+        return self._prepare_xml_paging(xml_query, chunk_size)
+
     def _get_records_by_xml(
         self, xml_query: str | bytes, chunk_size: int, max_records: int | None
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve records using a GetRecords XML body with pagination."""
         logger.info("Using XML GetRecords request for harvesting (paginated).")
-        yield from self._get_records_paged(chunk_size, None, None, max_records, xml_query=xml_query)
+        yield from self._get_records_paged(chunk_size, None, None, max_records, xml=xml_query)
+
+    def _get_records_by_xml_prepared(
+        self,
+        prepared_xml: tuple[lxml.etree._Element, int, int, bool],
+        max_records: int | None,
+    ) -> Iterator[InspireRecord | RecordProcessingError]:
+        """Paginate using XML already validated/prepared before connect."""
+        logger.info("Using XML GetRecords request for harvesting (paginated).")
+        page_size = prepared_xml[1]
+        yield from self._get_records_paged(page_size, None, None, max_records, xml=prepared_xml)
 
     def _get_records_by_fes(
         self, fes_constraints: list[OgcExpression], chunk_size: int, max_records: int | None
@@ -344,7 +375,7 @@ class CSWClient:
         cql_query: str | None,
         fes_constraints: list[OgcExpression] | None,
         max_records: int | None,
-        xml_query: str | bytes | None = None,
+        xml: str | bytes | tuple[lxml.etree._Element, int, int, bool] | None = None,
     ) -> Iterator[InspireRecord | RecordProcessingError]:
         """Retrieve all records using pagination, fetching chunk_size records per request.
 
@@ -352,17 +383,18 @@ class CSWClient:
         servers treat the first page as position 1, then ``start += page_size`` requests
         position ``page_size`` again and duplicates one record per page boundary.
 
-        When ``xml_query`` is set, the GetRecords filter body is preserved and only
-        paging attributes are rewritten. XML ``maxRecords`` / ``startPosition`` override
-        page size and initial offset when valid.
+        When ``xml`` is set, the GetRecords filter body is preserved and only paging
+        attributes are rewritten. Pass prepared paging state from
+        ``_prepare_xml_query_before_network`` so invalid XML fails before ``connect()``.
         """
         start_position = 1
         effective_chunk_size = chunk_size
         xml_page: tuple[lxml.etree._Element, bool] | None = None
-        if xml_query is not None:
-            xml_root, effective_chunk_size, start_position, xml_as_bytes = self._prepare_xml_paging(
-                xml_query, chunk_size
-            )
+        if isinstance(xml, tuple):
+            xml_root, effective_chunk_size, start_position, xml_as_bytes = xml
+            xml_page = (xml_root, xml_as_bytes)
+        elif xml is not None:
+            xml_root, effective_chunk_size, start_position, xml_as_bytes = self._prepare_xml_paging(xml, chunk_size)
             xml_page = (xml_root, xml_as_bytes)
 
         records_yielded = 0
@@ -856,6 +888,8 @@ class CSWClient:
             Total number of matching records.
         """
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
+        # Spec: invalid GetRecords must raise before any network call (including connect).
+        self._prepare_xml_query_before_network(effective_xml, self._config.chunk_size)
 
         if self._csw is None:
             self.connect()

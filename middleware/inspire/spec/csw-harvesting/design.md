@@ -37,3 +37,6 @@
    `ElementSetName` to `brief`, then applies the same paging attributes.
    Non-ISO `outputSchema` on the template is overridden to ISO 19139 on each
    ISO request copy (warned once at prepare), matching `_fetch_iso_batch`.
+   GetRecords structure is validated via `_prepare_xml_query_before_network`
+   in `get_records` / `get_records_async` / `get_record_count` **before**
+   `connect()`, so invalid XML never triggers a CSW network call.

@@ -87,7 +87,7 @@ def test_get_record_count_uses_xml_query() -> None:
     object.__setattr__(client, "_csw", fake_csw)
 
     expected_count = 7
-    count = client.get_record_count(xml_query="<xml />")
+    count = client.get_record_count(xml_query=_minimal_get_records_xml())
 
     assert count == expected_count
 
@@ -105,7 +105,7 @@ def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
     object.__setattr__(client, "_csw", fake_csw)
 
     expected_count = 11
-    xml_request = '<?xml version="1.0" encoding="UTF-8"?><xml />'
+    xml_request = '<?xml version="1.0" encoding="UTF-8"?>' + _minimal_get_records_xml()
     count = client.get_record_count(xml_query=xml_request)
 
     assert count == expected_count
@@ -330,9 +330,9 @@ async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
         patch("middleware.inspire.csw_client.asyncio.get_running_loop", return_value=fake_loop),
         patch.object(CSWClient, "_get_executor", return_value=MagicMock()),
         patch.object(CSWClient, "_connect", return_value=None),
-        patch.object(CSWClient, "_get_records_by_xml", return_value=iter(["record1"])) as mock_sync,
+        patch.object(CSWClient, "_get_records_by_xml_prepared", return_value=iter(["record1"])) as mock_sync,
     ):
-        records = [item async for item in client.get_records_async(xml_query="<xml/>")]
+        records = [item async for item in client.get_records_async(xml_query=_minimal_get_records_xml())]
 
     assert records == ["record1"]
     assert mock_sync.called
@@ -664,16 +664,19 @@ def test_xml_invalid_paging_attrs_log_and_fall_back(caplog: pytest.LogCaptureFix
 def test_xml_query_requires_get_records_root() -> None:
     """xml_query without a GetRecords root raises before contacting CSW."""
     client = CSWClient(_make_csw_config())
-    object.__setattr__(client, "_csw", MagicMock())
 
-    with pytest.raises(ValueError, match="GetRecords"):
+    with (
+        patch.object(client, "connect") as mock_connect,
+        pytest.raises(ValueError, match="GetRecords"),
+    ):
         list(client.get_records(xml_query="<Filter/>"))
+
+    mock_connect.assert_not_called()
 
 
 def test_xml_query_rejects_nested_get_records() -> None:
     """GetRecords must be the document root, not a descendant."""
     client = CSWClient(_make_csw_config())
-    object.__setattr__(client, "_csw", MagicMock())
     wrapped = (
         "<wrapper>"
         '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
@@ -681,26 +684,39 @@ def test_xml_query_rejects_nested_get_records() -> None:
         "</wrapper>"
     )
 
-    with pytest.raises(ValueError, match="GetRecords"):
+    with (
+        patch.object(client, "connect") as mock_connect,
+        pytest.raises(ValueError, match="GetRecords"),
+    ):
         list(client.get_records(xml_query=wrapped))
+
+    mock_connect.assert_not_called()
 
 
 def test_xml_query_rejects_wrong_get_records_namespace() -> None:
     """GetRecords in a non-CSW namespace is rejected."""
     client = CSWClient(_make_csw_config())
-    object.__setattr__(client, "_csw", MagicMock())
 
-    with pytest.raises(ValueError, match="GetRecords"):
+    with (
+        patch.object(client, "connect") as mock_connect,
+        pytest.raises(ValueError, match="GetRecords"),
+    ):
         list(client.get_records(xml_query='<GetRecords xmlns="http://example.org/not-csw"/>'))
+
+    mock_connect.assert_not_called()
 
 
 def test_xml_query_rejects_unnamespaced_get_records() -> None:
     """Bare GetRecords without the CSW 2.0.2 namespace is rejected."""
     client = CSWClient(_make_csw_config())
-    object.__setattr__(client, "_csw", MagicMock())
 
-    with pytest.raises(ValueError, match="GetRecords"):
+    with (
+        patch.object(client, "connect") as mock_connect,
+        pytest.raises(ValueError, match="GetRecords"),
+    ):
         list(client.get_records(xml_query='<GetRecords service="CSW" version="2.0.2"/>'))
+
+    mock_connect.assert_not_called()
 
 
 def test_max_records_truncates_oversized_page() -> None:
