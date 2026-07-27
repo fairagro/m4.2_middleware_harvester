@@ -615,6 +615,14 @@ class RegalMapper(LinkedDataMapper):
         return "unknown"
 
     def _resource_url(self, regal_id: str) -> str:
+        """Expand a compact Regal id to an absolute resource URL.
+
+        Absolute ``http(s)`` IRIs (including values already under
+        ``resource_base_url`` after JSON-LD expansion) are returned unchanged
+        so callers such as ``hasPart`` do not double-prefix.
+        """
+        if regal_id.startswith(("http://", "https://")):
+            return regal_id
         return f"{self._resource_base_url}{quote(regal_id, safe=':')}"
 
     def _labelled_nodes(self, graph: Graph, subject: Node, predicate: Node) -> list[tuple[str, str | None]]:

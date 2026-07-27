@@ -78,6 +78,20 @@ def test_regal_mapper_maps_core_fields() -> None:
     assert "10.4126/FRL01-0000123" in text
     assert "Fuerst" in text
     assert "readme.txt" in text
+    assert f"{RESOURCE_BASE}frl:file1" in text
+    assert f"{RESOURCE_BASE}{RESOURCE_BASE}" not in text
+    assert "https:%2F%2F" not in text
+
+
+def test_regal_mapper_expands_compact_has_part_id() -> None:
+    graph = _base_graph()
+    part = URIRef("frl:file-compact")
+    graph.add((SUBJECT, DCTERMS.hasPart, part))
+    graph.add((part, SKOS.prefLabel, Literal("data.csv")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    assert f"{RESOURCE_BASE}frl:file-compact" in text
+    assert "data.csv" in text
 
 
 def test_regal_mapper_requires_research_data_type() -> None:

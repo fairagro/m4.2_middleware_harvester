@@ -126,7 +126,7 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 | Regal Field | Context / IRI (typical) | Description | ARC Mapping |
 | --- | --- | --- | --- |
-| **`hasPart`** | `dcterms:hasPart` | File / part nodes (`prefLabel`, `@id`) | Assay Annotation comments `Online Resource` / `Online Resource Name` (semicolon-joined); part URL = `https://repository.publisso.de/resource/{part @id}` when `@id` present |
+| **`hasPart`** | `dcterms:hasPart` | File / part nodes (`prefLabel`, `@id`) | Assay Annotation comments `Online Resource` / `Online Resource Name` (semicolon-joined); part URL = absolute `@id` when already `http(s)`, else `{resource_base_url}{part @id}` |
 | **`associatedPublication`** | URI or node | Related publication | `Investigation.Publications` (title/DOI extracted when possible; else comment with URI) |
 | **`associatedDataset`** | — | Related dataset | `Investigation` comment `Associated Dataset` (URI list) |
 | **`previousVersion` / `nextVersion`** | — | Version chain | `Investigation` comment `Previous Version` / `Next Version` |
