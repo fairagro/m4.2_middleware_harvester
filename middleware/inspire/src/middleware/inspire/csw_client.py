@@ -538,8 +538,9 @@ class CSWClient:
     def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
         """Return *root* when it is a CSW 2.0.2 GetRecords element; otherwise None.
 
-        Only the document root is accepted, and it must be in the CSW 2.0.2 namespace
-        (not unnamespaced ``GetRecords`` or an arbitrary ``*:GetRecords``).
+        Only the document root is accepted. The element must expand to the CSW 2.0.2
+        namespace (any prefix or default xmlns is fine); unnamespaced ``GetRecords``
+        and GetRecords in any other namespace are rejected.
         """
         if root.tag == _CSW_GET_RECORDS_TAG:
             return root
