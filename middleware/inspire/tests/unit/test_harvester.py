@@ -97,13 +97,24 @@ def test_get_records_xml(mock_csw_cls: MagicMock) -> None:
     mock_record.dataquality = mock_dataquality
 
     mock_csw_instance.records = {"uuid-xml": mock_record}
+    mock_csw_instance.results = {"matches": 1, "returned": 1, "nextrecord": 0}
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"))
-    xml_query = "<csw:GetRecords>...</csw:GetRecords>"
+    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=50))
+    xml_query = (
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2" resultType="results" '
+        'outputSchema="http://www.isotc211.org/2005/gmd">'
+        '<csw:Query typeNames="csw:Record">'
+        "<csw:ElementSetName>full</csw:ElementSetName>"
+        "</csw:Query>"
+        "</csw:GetRecords>"
+    )
     records = list(client.get_records(xml_query=xml_query))
 
-    # Verify getrecords2 was called with xml argument
-    mock_csw_instance.getrecords2.assert_called_once_with(xml=xml_query)
+    mock_csw_instance.getrecords2.assert_called_once()
+    sent_xml = mock_csw_instance.getrecords2.call_args.kwargs["xml"]
+    assert 'startPosition="1"' in sent_xml
+    assert 'maxRecords="50"' in sent_xml
 
     assert len(records) == 1
     assert isinstance(records[0], InspireRecord)

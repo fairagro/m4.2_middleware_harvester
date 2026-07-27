@@ -540,3 +540,124 @@ def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
         list(client._get_records_paged(50, None, None, None))  # noqa: SLF001
 
     assert starts == [1]
+
+
+def _minimal_get_records_xml(**attrs: str) -> str:
+    attr_str = " ".join(f'{key}="{value}"' for key, value in attrs.items())
+    return (
+        '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'service="CSW" version="2.0.2" resultType="results" '
+        'outputSchema="http://www.isotc211.org/2005/gmd"'
+        f"{(' ' + attr_str) if attr_str else ''}>"
+        '<csw:Query typeNames="csw:Record">'
+        "<csw:ElementSetName>full</csw:ElementSetName>"
+        "</csw:Query>"
+        "</csw:GetRecords>"
+    )
+
+
+def test_xml_paging_uses_chunk_size_across_pages() -> None:
+    """xml_query without maxRecords uses config chunk_size and pages via nextrecord."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    sent: list[str] = []
+    pages = [
+        {"matches": 3, "returned": 2, "nextrecord": 3},
+        {"matches": 3, "returned": 1, "nextrecord": 0},
+    ]
+
+    def fake_getrecords2(*, xml: str) -> None:
+        sent.append(xml)
+        page = pages[len(sent) - 1]
+        csw.results = page
+        csw.records = {}
+
+    csw.getrecords2.side_effect = fake_getrecords2
+
+    with patch.object(CSWClient, "_parse_iso_batch", side_effect=[([object(), object()], [], 2), ([object()], [], 1)]):
+        list(client.get_records(xml_query=_minimal_get_records_xml()))
+
+    assert len(sent) == 2
+    assert 'maxRecords="2"' in sent[0]
+    assert 'startPosition="1"' in sent[0]
+    assert 'maxRecords="2"' in sent[1]
+    assert 'startPosition="3"' in sent[1]
+
+
+def test_xml_max_records_overrides_chunk_size() -> None:
+    """Valid XML maxRecords overrides config chunk_size as page size only."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records(xml_query=_minimal_get_records_xml(maxRecords="7")))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="7"' in sent_xml
+
+
+def test_xml_start_position_overrides_initial_offset() -> None:
+    """Valid XML startPosition is used as the first page offset."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 20, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records(xml_query=_minimal_get_records_xml(startPosition="11")))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'startPosition="11"' in sent_xml
+
+
+def test_xml_config_max_records_caps_harvest() -> None:
+    """Config max_records stops XML harvest across pages (not XML maxRecords)."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2, max_records=2))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    call_count = 0
+
+    def fake_getrecords2(*, xml: str) -> None:
+        del xml
+        nonlocal call_count
+        call_count += 1
+        csw.results = {"matches": 100, "returned": 2, "nextrecord": 3}
+        csw.records = {}
+
+    csw.getrecords2.side_effect = fake_getrecords2
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object(), object()], [], 2)):
+        results = list(client.get_records(xml_query=_minimal_get_records_xml()))
+
+    assert len(results) == 2
+    assert call_count == 1
+
+
+def test_xml_invalid_paging_attrs_log_and_fall_back(caplog: pytest.LogCaptureFixture) -> None:
+    """Invalid XML maxRecords/startPosition are ignored with a warning."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=9))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with (
+        caplog.at_level(logging.WARNING, logger="middleware.inspire.csw_client"),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(
+            client.get_records(
+                xml_query=_minimal_get_records_xml(maxRecords="0", startPosition="bogus"),
+            )
+        )
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="9"' in sent_xml
+    assert 'startPosition="1"' in sent_xml
+    assert any("maxRecords" in record.message for record in caplog.records)
+    assert any("startPosition" in record.message for record in caplog.records)
