@@ -6,8 +6,8 @@ model used by ARC.
 
 **Related specs:**
 
-- Harvesting / discovery: [`middleware/linked_data/spec/regal-jsonld/`](../middleware/linked_data/spec/regal-jsonld/)
-- Implementation contract: [`middleware/linked_data/spec/regal-to-arc-mapping/`](../middleware/linked_data/spec/regal-to-arc-mapping/)
+- Harvesting / discovery: [`openspec/specs/regal-jsonld/`](../openspec/specs/regal-jsonld/)
+- Implementation contract: [`openspec/specs/regal-to-arc-mapping/`](../openspec/specs/regal-to-arc-mapping/)
 
 > [!NOTE]
 > Regal records are **not** schema.org. The JSON-LD `@context` is typically

@@ -5,6 +5,7 @@ Open with **Dev Containers: Reopen in Container**. Config:
 - [`.devcontainer/devcontainer.json`](devcontainer.json)
 
 Uses [`.devcontainer/Dockerfile`](Dockerfile) with Docker-in-Docker.
+Includes Node.js and the [OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI (`openspec`) for spec-driven development.
 
 ## What the Dev Containers extension provides
 

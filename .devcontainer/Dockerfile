@@ -20,6 +20,8 @@ ARG YAMLFMT_VERSION=v0.14.0
 ARG HADOLINT_VERSION=v2.12.0
 ARG CST_VERSION=v1.19.1
 ARG MINIKUBE_VERSION=v1.37.0
+ARG NODE_VERSION=v22.17.0
+ARG OPENSPEC_VERSION=1.7.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -103,6 +105,12 @@ RUN curl -fsSL "https://github.com/GoogleContainerTools/container-structure-test
         -o /usr/local/bin/container-structure-test && \
     chmod +x /usr/local/bin/container-structure-test && \
     ln -sf /usr/local/bin/container-structure-test /usr/local/bin/cst
+
+# ── Node.js (OpenSpec CLI prerequisite) ───────────────────────────────────────
+RUN curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz" \
+        | tar -xJ --strip-components=1 -C /usr/local \
+            node-${NODE_VERSION}-linux-x64/{bin,include,lib,share} && \
+    npm install -g "@fission-ai/openspec@${OPENSPEC_VERSION}"
 
 # ── Bash completions (build-time, lazy-loaded via bash-completion) ───────────
 RUN mkdir -p /usr/share/bash-completion/completions && \

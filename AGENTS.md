@@ -19,35 +19,30 @@ This file contains critical context about the FAIRagro Middleware Harvester proj
 .agents/
 └── skills/                # Agent Skills (agentskills.io standard)
     ├── arctrl/            # arctrl Python library reference
-    ├── config-wrapper/    # ConfigWrapper / ConfigBase pattern
-    └── create-specifica-feature/  # How to create a new Specifica feature
+    └── config-wrapper/    # ConfigWrapper / ConfigBase pattern
+
+openspec/                  # OpenSpec — spec-driven development
+├── config.yaml            # Project context + artifact rules
+├── specs/                 # Current behaviour (source of truth)
+└── changes/               # In-flight change proposals
 
 docs/
 └── ai_workflow.md         # AI agent workflow documentation
 
-spec/                      # Project-level architecture & design
-└── principles.md          # Project principles and foundation contract
-
 middleware/
 ├── harvester/             # Central orchestrator and configuration
-│   └── spec/              # Component-level architecture & design
-│       ├── harvester-orchestration/  # Orchestration loop and plugin contract
-│       └── configuration/            # Configuration file structure
-├── inspire/        # INSPIRE to ARC harvester (Core logic)
-│   ├── spec/              # Component-level architecture & design
-    │   ├── csw-harvesting/          # CSW connections and logic
-    │   ├── inspire-to-arc-mapping/  # Mapping to ARC concepts
-    │   └── workflow-execution/      # The processing loop
-    ├── src/middleware/inspire/
-    │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
-    │   ├── csw_client.py  # CSW client and ISO 19139 parser
-    │   ├── mapper.py      # INSPIRE to ARC mapping logic
-    │   ├── models.py      # Pydantic domain models (InspireRecord, Contact, etc.)
-    │   ├── config.py      # Configuration model
-    │   └── errors.py      # Custom exceptions
-    └── tests/
-        ├── unit/          # Unit tests for mapper and harvester
-        └── integration/   # Integration tests with real CSW endpoints
+├── inspire/               # INSPIRE to ARC harvester (Core logic)
+│   ├── src/middleware/inspire/
+│   │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
+│   │   ├── csw_client.py  # CSW client and ISO 19139 parser
+│   │   ├── mapper.py      # INSPIRE to ARC mapping logic
+│   │   ├── models.py      # Pydantic domain models (InspireRecord, Contact, etc.)
+│   │   ├── config.py      # Configuration model
+│   │   └── errors.py      # Custom exceptions
+│   └── tests/
+│       ├── unit/          # Unit tests for mapper and harvester
+│       └── integration/   # Integration tests with real CSW endpoints
+└── linked_data/           # Linked-data / sitemap / Regal harvester
 ```
 
 ## 🔧 Important Commands
@@ -58,7 +53,7 @@ middleware/
 # Run tests
 uv run pytest middleware/ -v
 
-# Quality checks (all read config from pyproject.toml — see spec/principles.md)
+# Quality checks (all read config from pyproject.toml — see openspec/specs/principles/)
 uv run ruff format --check middleware/
 uv run ruff check middleware/
 uv run mypy --config-file pyproject.toml middleware/
@@ -75,46 +70,61 @@ uv sync --dev --all-packages
 uv run python -m middleware.harvester.main -c config.yaml
 ```
 
+### OpenSpec
+
+```bash
+# List current specs / active changes
+openspec list --specs
+openspec list
+
+# Validate
+openspec validate --specs
+```
+
+In Cursor chat: `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-explore`.
+In GitHub Copilot: the same via `.github/prompts/opsx-*.prompt.md`.
+
 ## Architecture & Design
 
-**Read [`spec/principles.md`](spec/principles.md) first.** It defines the plugin contract, module dependency rules, values, constraints, and code quality requirements. Do not restate what is there.
+**Read [`openspec/specs/principles/`](openspec/specs/principles/) first.** It defines the plugin contract, module dependency rules, values, constraints, and code quality requirements. Do not restate what is there.
 
-Before generating or modifying code, read the relevant spec folders:
+Before generating or modifying code, read the relevant OpenSpec domains under `openspec/specs/`. For new work, prefer `/opsx-propose` so changes land as deltas in `openspec/changes/` and are archived into main specs.
 
-**Project-level** (`spec/`) — cross-cutting concerns:
+**Project-level** (cross-cutting):
 
-- **[`spec/principles.md`](spec/principles.md)** — Authoritative project principles (start here).
-- **[`spec/error-handling/`](spec/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
-- **[`spec/demo-environment/`](spec/demo-environment/)** — One-command local demo environment (mock API + harvester).
-- **[`spec/async-concurrency/`](spec/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
-- **[`spec/nice-http-client/`](spec/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
-- **[`spec/skipped-datasets/`](spec/skipped-datasets/)** — `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and `fairagro:skippedDatasets` in the JSON-LD harvest report.
+- **[`openspec/specs/principles/`](openspec/specs/principles/)** — Authoritative project principles (start here).
+- **[`openspec/specs/error-handling/`](openspec/specs/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
+- **[`openspec/specs/demo-environment/`](openspec/specs/demo-environment/)** — One-command local demo environment (mock API + harvester).
+- **[`openspec/specs/async-concurrency/`](openspec/specs/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
+- **[`openspec/specs/nice-http-client/`](openspec/specs/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
+- **[`openspec/specs/skipped-datasets/`](openspec/specs/skipped-datasets/)** — `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and `fairagro:skippedDatasets` in the JSON-LD harvest report.
 
-**Harvester component** (`middleware/harvester/spec/`) — orchestrator internals:
+**Harvester** (orchestrator internals):
 
-- **[`middleware/harvester/spec/harvester-orchestration/`](middleware/harvester/spec/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
-- **[`middleware/harvester/spec/configuration/`](middleware/harvester/spec/configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
-- **[`middleware/harvester/spec/otlp-observability/`](middleware/harvester/spec/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
-- **[`middleware/harvester/spec/harvest-report/`](middleware/harvester/spec/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
-- **[`middleware/harvester/spec/liveness-probe/`](middleware/harvester/spec/liveness-probe/)** — Kubernetes liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary; `heartbeat_path` and `heartbeat_interval` config fields.
+- **[`openspec/specs/harvester-orchestration/`](openspec/specs/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
+- **[`openspec/specs/harvester-configuration/`](openspec/specs/harvester-configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
+- **[`openspec/specs/otlp-observability/`](openspec/specs/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
+- **[`openspec/specs/harvest-report/`](openspec/specs/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
+- **[`openspec/specs/liveness-probe/`](openspec/specs/liveness-probe/)** — Kubernetes liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary; `heartbeat_path` and `heartbeat_interval` config fields.
 
-**Component-level** (`middleware/inspire/spec/`) — inspire internals:
+**INSPIRE plugin**:
 
-- **[`middleware/inspire/spec/csw-harvesting/`](middleware/inspire/spec/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for identifier recovery on broken records.
-- **[`middleware/inspire/spec/csw-retry/`](middleware/inspire/spec/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
-- **[`middleware/inspire/spec/csw-threadpool/`](middleware/inspire/spec/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
-- **[`middleware/inspire/spec/inspire-to-arc-mapping/`](middleware/inspire/spec/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
+- **[`openspec/specs/csw-harvesting/`](openspec/specs/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for identifier recovery on broken records.
+- **[`openspec/specs/csw-retry/`](openspec/specs/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
+- **[`openspec/specs/csw-threadpool/`](openspec/specs/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
+- **[`openspec/specs/inspire-to-arc-mapping/`](openspec/specs/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
+- **[`openspec/specs/inspire-workflow-execution/`](openspec/specs/inspire-workflow-execution/)** — The INSPIRE plugin processing loop.
 
-**Component-level** (`middleware/linked_data/spec/`) — linked_data plugin internals:
+**Linked-data plugin**:
 
-- **[`middleware/linked_data/spec/linked-data-harvesting/`](middleware/linked_data/spec/linked-data-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
-- **[`middleware/linked_data/spec/xml-sitemap-parser/`](middleware/linked_data/spec/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
-- **[`middleware/linked_data/spec/sitemap-mycore-solr/`](middleware/linked_data/spec/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
-- **[`middleware/linked_data/spec/html-jsonld-dataset/`](middleware/linked_data/spec/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
-- **[`middleware/linked_data/spec/linked-data-dataset-abstraction/`](middleware/linked_data/spec/linked-data-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
-- **[`middleware/linked_data/spec/linked-data-mapper/`](middleware/linked_data/spec/linked-data-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
-- **[`middleware/linked_data/spec/regal-jsonld/`](middleware/linked_data/spec/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
-- **[`middleware/linked_data/spec/regal-to-arc-mapping/`](middleware/linked_data/spec/regal-to-arc-mapping/)** — Regal ResearchData → ARC implementation contract; authoritative field rules in [`docs/regal_mapping.md`](docs/regal_mapping.md).
+- **[`openspec/specs/linked-data-harvesting/`](openspec/specs/linked-data-harvesting/)** — Top-level harvesting loop: sitemap discovery → dataset fetch → mapper → upload.
+- **[`openspec/specs/xml-sitemap-parser/`](openspec/specs/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` / `sitemapindex` traversal and deduplication.
+- **[`openspec/specs/sitemap-mycore-solr/`](openspec/specs/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source; Solr pagination, `id`→`/receive/{id}` URL construction.
+- **[`openspec/specs/html-jsonld-dataset/`](openspec/specs/html-jsonld-dataset/)** — HTML page scraping and embedded JSON-LD extraction.
+- **[`openspec/specs/linked-data-dataset-abstraction/`](openspec/specs/linked-data-dataset-abstraction/)** — `Dataset` base class and `DiscoveryResult` abstraction.
+- **[`openspec/specs/linked-data-mapper/`](openspec/specs/linked-data-mapper/)** — Mapping rdflib `Graph` to ARC RO-Crate JSON-LD.
+- **[`openspec/specs/regal-jsonld/`](openspec/specs/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
+- **[`openspec/specs/regal-to-arc-mapping/`](openspec/specs/regal-to-arc-mapping/)** — Regal ResearchData → ARC implementation contract; authoritative field rules in [`docs/regal_mapping.md`](docs/regal_mapping.md).
 
 ---
 
@@ -134,5 +144,5 @@ When editing files:
 
 ---
 
-**Last Updated**: 2026-04-16
-**Maintainer Notes**: This repository is the standalone Middleware Harvester. It is decoupled from the main Middleware API.
+**Last Updated**: 2026-07-29
+**Maintainer Notes**: This repository is the standalone Middleware Harvester. It is decoupled from the main Middleware API. Spec-driven development uses [OpenSpec](https://github.com/Fission-AI/OpenSpec).
