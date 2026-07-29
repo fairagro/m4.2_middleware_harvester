@@ -8,6 +8,7 @@
 		"ghcr.io/devcontainers/features/docker-in-docker:4": {
 			"moby": false,
 			"disableIp6tables": true,
+			"iptablesSwitchAtRuntime": false,
 			"version": "28.5.1"
 		}
 	},
@@ -56,5 +57,6 @@
 	"postStartCommand": {
 		"setup bashrc": "bash ${containerWorkspaceFolder}/scripts/setup-bashrc-load-env.sh"
 	},
-	"remoteUser": "vscode"
+	"remoteUser": "vscode",
+	"updateRemoteUserUID": false
 }
