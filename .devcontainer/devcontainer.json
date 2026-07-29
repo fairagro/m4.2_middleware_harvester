@@ -1,8 +1,8 @@
 {
-	"name": "Debian (Cursor - DinD)",
+	"name": "Middleware Harvester (DinD)",
 	"build": {
-		"dockerfile": "../Dockerfile",
-		"context": ".."
+		"dockerfile": "Dockerfile",
+		"context": "."
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:4": {

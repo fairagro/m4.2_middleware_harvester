@@ -29,8 +29,7 @@ Note: Generated ARCs will be saved to `dev_environment/demo_output/`.
 
 The preferred method for working with this repository is using a **Dev Container** (VS Code or Cursor).
 
-- **VS Code**: `.devcontainer/vscode/devcontainer.json`
-- **Cursor**: `.devcontainer/cursor/devcontainer.json` — see [`.devcontainer/cursor/README.md`](.devcontainer/cursor/README.md) for setup notes
+- Config: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) — see [`.devcontainer/README.md`](.devcontainer/README.md) for setup notes
 
 ### 1. Prerequisites (for manual setups only)
 

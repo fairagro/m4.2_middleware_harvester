@@ -1,11 +1,10 @@
 # Dev Container (Cursor / VS Code)
 
-Open with **Dev Containers: Reopen in Container**. Configurations:
+Open with **Dev Containers: Reopen in Container**. Config:
 
-- Cursor: `.devcontainer/cursor/devcontainer.json`
-- VS Code: `.devcontainer/vscode/devcontainer.json`
+- [`.devcontainer/devcontainer.json`](devcontainer.json)
 
-Both use the same Dockerfile (`.devcontainer/Dockerfile`) with Docker-in-Docker.
+Uses [`.devcontainer/Dockerfile`](Dockerfile) with Docker-in-Docker.
 
 ## What the Dev Containers extension provides
 
