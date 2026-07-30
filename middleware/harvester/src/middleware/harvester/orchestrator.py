@@ -53,7 +53,9 @@ async def run_repository(
     try:
         plugin_factory = PLUGIN_FACTORIES.get(repo.plugin_type)
         if plugin_factory is None:
-            logger.error("Unknown repository type '%s' for repository '%s', skipping...", repo.plugin_type, repo.rdi)
+            detail = f"Unknown repository type '{repo.plugin_type}'"
+            logger.error("%s for repository '%s', skipping...", detail, repo.rdi)
+            scope.record_failed(detail, url=repo.source_url)
             return
 
         logger.debug("Initializing plugin for repository %s (%s)", repo.rdi, repo.plugin_type)

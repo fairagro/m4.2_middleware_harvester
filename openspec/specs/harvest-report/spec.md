@@ -107,3 +107,15 @@ least one failure describing the repository-level error.
 - **WHEN** a repository task fails after a harvest id is known
 - **THEN** the repository scope retains that `harvest_id` and records the
   failure via `record_failed`
+
+### Requirement: Edge case — unknown plugin type
+
+When `PLUGIN_FACTORIES` has no entry for `repo.plugin_type`, the repository
+scope MUST record one failure describing the unknown type (so the report does
+not look like an empty success) and MUST NOT call the API client.
+
+#### Scenario: Unknown plugin type
+
+- **WHEN** `run_repository` is called with an unrecognised `plugin_type`
+- **THEN** the scope records one `record_failed` and `harvest_arcs` is not
+  invoked

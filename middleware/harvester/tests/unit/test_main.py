@@ -470,7 +470,10 @@ async def test_run_repository_unknown_plugin_skips_repo() -> None:
     assert mock_client.harvest_arcs.call_count == 0
     mock_logger.error.assert_called_once()
     assert len(report.repository_reports) == 1
-    assert report.repository_reports[0].harvested_datasets == 0
+    entry = report.repository_reports[0]
+    assert entry.harvested_datasets == 0
+    assert entry.failed_datasets == 1
+    assert entry.failed_records[0].message == "Unknown repository type 'unknown'"
 
 
 @pytest.mark.asyncio
