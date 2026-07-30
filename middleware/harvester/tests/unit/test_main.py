@@ -1,5 +1,6 @@
 """Unit tests for the Harvester orchestrator."""
 
+import asyncio
 import json
 from collections.abc import AsyncGenerator, AsyncIterable
 from datetime import UTC, datetime
@@ -479,6 +480,8 @@ async def test_run_repository_unknown_plugin_skips_repo() -> None:
 @pytest.mark.asyncio
 async def test_run_orchestrator_returns_report_when_all_tasks_fail() -> None:
     repos = [_make_repo(), _make_repo()]
+    repos[0].rdi = "inspire-rdi-0"
+    repos[1].rdi = "inspire-rdi-1"
     mock_config = MagicMock()
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
@@ -502,3 +505,38 @@ async def test_run_orchestrator_returns_report_when_all_tasks_fail() -> None:
     assert len(report.repository_reports) == len(repos)
     assert all(repo.harvest_id is None for repo in report.repository_reports)
     assert all(repo.failed_datasets == 1 for repo in report.repository_reports)
+
+
+@pytest.mark.asyncio
+async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
+    """CancelledError after open_repository must keep a single report entry."""
+    repos = [_make_repo()]
+    mock_config = MagicMock()
+    mock_config.repositories = repos
+    mock_config.api_client = MagicMock()
+    mock_client = _make_mock_client()
+
+    class CancellingPlugin(Plugin):
+        def __init__(self, config: object) -> None:
+            self._config = config
+
+        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+                if False:  # pragma: no cover - required for AsyncGenerator typing
+                    yield HarvestedArc(arc_json="{}")
+                raise asyncio.CancelledError
+
+            return generator()
+
+        async def get_expected_datasets(self) -> int | None:
+            raise asyncio.CancelledError
+
+    with (
+        patch("middleware.harvester.orchestrator.PLUGIN_FACTORIES", {"inspire": CancellingPlugin}),
+        patch("middleware.harvester.orchestrator.ApiClient", return_value=mock_client),
+    ):
+        report = await run_orchestrator(mock_config)
+
+    assert len(report.repository_reports) == 1
+    assert report.repository_reports[0].failed_datasets == 1
+    assert mock_client.harvest_arcs.call_count == 0

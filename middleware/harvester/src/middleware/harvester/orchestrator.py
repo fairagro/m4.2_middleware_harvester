@@ -20,7 +20,7 @@ from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.upload import execute_harvest_upload
 from middleware.inspire.plugin import InspirePlugin
 from middleware.linked_data.plugin import LinkedDataPlugin
-from middleware.shared.report import HarvestReport
+from middleware.shared.report import HarvestReport, RepositoryScope
 
 logger = logging.getLogger(__name__)
 
@@ -81,19 +81,63 @@ async def run_repository(
             )
         finally:
             await plugin_gen.aclose()
-    except Exception as exc:  # noqa: BLE001
-        detail = format_exception_for_report(exc)
-        logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
-        logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
-        recovered_id = harvest_id_from_exception(exc)
-        if recovered_id is not None:
-            scope.set_harvest_id(recovered_id)
-        scope.record_failed(
-            detail,
-            url=failure_url_for_exception(exc) or repo.source_url,
-        )
+    except BaseException as exc:
+        _record_repository_failure(scope, repo, exc)
+        if not isinstance(exc, Exception):
+            raise
     finally:
         scope.close()
+
+
+def _record_repository_failure(
+    scope: RepositoryScope,
+    repo: RepositoryConfig,
+    exc: BaseException,
+) -> None:
+    """Log and record a repository-level failure on an existing scope."""
+    detail = format_exception_for_report(exc)
+    logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
+    logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
+    recovered_id = harvest_id_from_exception(exc)
+    if recovered_id is not None:
+        scope.set_harvest_id(recovered_id)
+    scope.record_failed(
+        detail,
+        url=failure_url_for_exception(exc) or repo.source_url,
+    )
+
+
+def _ensure_gather_failure_recorded(
+    report: HarvestReport,
+    repo: RepositoryConfig,
+    exc: BaseException,
+) -> None:
+    """Record a gather-escaped failure only when no scope exists for ``repo.rdi``.
+
+    ``run_repository`` already opens (and usually records on) one scope per
+    repository. Opening again here would violate one-entry-per-RDI.
+    """
+    detail = format_exception_for_report(exc)
+    logger.error(
+        "Repository task failed for %s (%s): %s",
+        repo.rdi,
+        repo.plugin_type,
+        detail,
+    )
+    logger.debug(
+        "Repository task exception for %s (%s).",
+        repo.rdi,
+        repo.plugin_type,
+        exc_info=exc,
+    )
+    if any(entry.rdi == repo.rdi for entry in report.repository_reports):
+        return
+    scope = report.open_repository(repo.rdi)
+    scope.record_failed(
+        detail,
+        url=failure_url_for_exception(exc) or repo.source_url,
+    )
+    scope.close()
 
 
 async def run_orchestrator(config: Config) -> HarvestReport:
@@ -115,25 +159,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
                     results = await asyncio.gather(*tasks, return_exceptions=True)
                     for repo, result in zip(config.repositories, results, strict=True):
                         if isinstance(result, BaseException):
-                            detail = format_exception_for_report(result)
-                            logger.error(
-                                "Repository task failed for %s (%s): %s",
-                                repo.rdi,
-                                repo.plugin_type,
-                                detail,
-                            )
-                            logger.debug(
-                                "Repository task exception for %s (%s).",
-                                repo.rdi,
-                                repo.plugin_type,
-                                exc_info=result,
-                            )
-                            scope = report.open_repository(repo.rdi)
-                            scope.record_failed(
-                                detail,
-                                url=failure_url_for_exception(result) or repo.source_url,
-                            )
-                            scope.close()
+                            _ensure_gather_failure_recorded(report, repo, result)
     finally:
         heartbeat_task.cancel()
         report.finish()

@@ -45,6 +45,14 @@ per configured repository.
 - **THEN** `HarvestReport.repository_reports` has exactly one entry per
   configured repository
 
+#### Scenario: Gather escape does not duplicate a scope
+
+- **GIVEN** `run_repository` already opened a scope for an RDI
+- **WHEN** the task still surfaces a `BaseException` to `asyncio.gather`
+- **THEN** the orchestrator MUST NOT call `open_repository` again for that RDI
+  (one report entry; failure already recorded on the original scope when the
+  exception escaped after the scope was opened)
+
 ### Requirement: Drive shared fields from the live harvest
 
 For each repository the orchestrator MUST:
