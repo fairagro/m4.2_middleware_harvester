@@ -12,9 +12,6 @@ from arctrl import (  # type: ignore[import-untyped]
     ArcStudy,
     ArcTable,
     Comment,
-    CompositeCell,
-    CompositeHeader,
-    IOType,
     OntologyAnnotation,
     Person,
     Publication,
@@ -24,6 +21,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.harvester.arctrl_compat import CompositeCell, CompositeHeader, IOType
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType

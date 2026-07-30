@@ -13,15 +13,14 @@ from arctrl import (  # type: ignore[import-untyped]
     ArcStudy,
     ArcTable,
     Comment,
-    CompositeCell,
-    CompositeHeader,
-    IOType,
     OntologyAnnotation,
     Person,
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 from nameparser import HumanName  # type: ignore[import-untyped]
+
+from middleware.harvester.arctrl_compat import CompositeCell, CompositeHeader, IOType
 
 from .models import Contact, InspireRecord
 

@@ -40,7 +40,7 @@ from the bare `arctrl` package.
 override is not in place):
 
 ```python
-from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+from fable_library.async_ import start_as_task  # type: ignore[import-untyped]
 from arctrl.py.Core.Table.composite_cell import Data  # type: ignore[import-untyped]
 ```
 
@@ -53,16 +53,14 @@ from arctrl import (
     ArcInvestigation,
     ArcStudy,
     ArcTable,
-    CompositeCell,
-    CompositeHeader,
-    IOType,
     OntologyAnnotation,
     Person,
     Publication,
 )
+from middleware.harvester.arctrl_compat import CompositeCell, CompositeHeader, IOType
 
-# Async write helper lives in the Fable internals:
-from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+# Async write helper (top-level fable-library package since arctrl 3.2):
+from fable_library.async_ import start_as_task  # type: ignore[import-untyped]
 ```
 
 ---
@@ -293,7 +291,7 @@ create a contract manually and fulfill it (after or alongside ISA contracts):
 ```python
 from arctrl.py.Contract.contract import Contract, DTO, DTOType  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
-from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
 manual = Contract.create_create(
     "iso19115.xml",
