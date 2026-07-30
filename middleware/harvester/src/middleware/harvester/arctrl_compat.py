@@ -1,9 +1,9 @@
 """arctrl 3.2+ compatibility helpers.
 
-In arctrl 3.2 the public names ``CompositeHeader``, ``IOType``, and
-``CompositeCell`` are redefined as ``type`` aliases (unions of tagged cases).
-That shadows the concrete classes that expose factory methods such as
-``parameter()``, ``input()``, and ``free_text()``.
+Requires ``arctrl>=3.2``. In arctrl 3.2 the public names ``CompositeHeader``,
+``IOType``, and ``CompositeCell`` are redefined as ``type`` aliases (unions of
+tagged cases). That shadows the concrete classes that expose factory methods
+such as ``parameter()``, ``input()``, and ``free_text()``.
 
 Import the underscore implementations under the familiar public names so
 call sites keep working until upstream restores factories on the public

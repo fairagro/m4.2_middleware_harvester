@@ -656,7 +656,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.1.1" },
+    { name = "arctrl", specifier = ">=3.2" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.0.1.dev28" },
     { name = "fairagro-middleware-shared", specifier = ">=11.0.1.dev29" },
     { name = "inspire", editable = "middleware/inspire" },
@@ -746,7 +746,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.1.1" },
+    { name = "arctrl", specifier = ">=3.2" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.0.1.dev28" },
     { name = "fairagro-middleware-shared", specifier = ">=11.0.1.dev29" },
     { name = "nameparser", specifier = ">=1.1.0" },
@@ -898,7 +898,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.1.1" },
+    { name = "arctrl", specifier = ">=3.2" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.0.1.dev29" },
     { name = "pydantic", specifier = ">=2.0.0" },
