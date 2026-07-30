@@ -81,10 +81,13 @@ async def run_repository(
             )
         finally:
             await plugin_gen.aclose()
-    except BaseException as exc:
+    except Exception as exc:  # noqa: BLE001
         _record_repository_failure(scope, repo, exc)
-        if not isinstance(exc, Exception):
-            raise
+    except BaseException as exc:
+        # CancelledError / SystemExit / etc. — record on this scope, then re-raise
+        # so gather does not open a duplicate repository entry for the same RDI.
+        _record_repository_failure(scope, repo, exc)
+        raise
     finally:
         scope.close()
 
