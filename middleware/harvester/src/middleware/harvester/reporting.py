@@ -96,8 +96,11 @@ def record_plugin_error(item: HarvesterError, rdi: str, scope: RepositoryScope) 
 
 
 def handle_skipped_record(item: SkippedRecord, rdi: str) -> None:
-    """Log a skipped plugin item at INFO level."""
-    logger.info("Skipped record in repository '%s': %s", rdi, item)
+    """Log a skipped plugin item at INFO level (reason and URL when present)."""
+    if item.url:
+        logger.info("Skipped record in repository '%s': %s (url=%s)", rdi, item.reason, item.url)
+    else:
+        logger.info("Skipped record in repository '%s': %s", rdi, item.reason)
 
 
 def emit_report(report: HarvestReport) -> None:

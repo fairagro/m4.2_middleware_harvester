@@ -65,8 +65,9 @@ present).
 
 #### Scenario: INFO log for a skip
 
-- **WHEN** `arc_stream` handles a `SkippedRecord`
-- **THEN** an INFO log entry is emitted for that repository and skip reason
+- **WHEN** `arc_stream` handles a `SkippedRecord` with a URL
+- **THEN** an INFO log entry is emitted for that repository, skip reason, and
+  URL
 
 ### Requirement: skipped_datasets is always present on the repository report
 
