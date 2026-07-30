@@ -4,7 +4,7 @@
 
 Transforms the fully populated `InspireRecord` object into ARC investigation components (ISA).
 
-**Authoritative Mapping Source:** [docs/inspire_mapping.md](../../../../docs/inspire_mapping.md) defines the conceptual mapping rules. This spec captures the implementation contract.
+**Authoritative Mapping Source:** [docs/inspire_mapping.md](../../../docs/inspire_mapping.md) defines the conceptual mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs `ArcInvestigation`, `ArcStudy`, or `ArcAssay` objects.
 

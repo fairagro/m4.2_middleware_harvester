@@ -32,10 +32,10 @@ The current implementation supports only one concrete type per enum, but the plu
 6. **Keep `LinkedDataPlugin.run()` as an async generator yielding `HarvestedArc | HarvesterError | SkippedRecord`**
    — This matches the harvester orchestrator contract. Successes, record-level
    failures, and deliberate skips share one stream so
-   [`harvest-report`](../../../harvest-report/) statistics and
+   [`harvest-report`](../harvest-report/) statistics and
    `fairagro:failedRecords` stay complete. Errors must be yielded, not only
    logged inside sitemap/dataset code
-   ([`error-handling`](../../../../openspec/specs/error-handling/)).
+   ([`error-handling`](../error-handling/)).
 
 7. **Implement the `Sitemap.discover()` contract as an async generator**
    — The abstract method explicitly returns `AsyncGenerator[DiscoveryResult, None]`, so concrete sitemap implementations can asynchronously yield raw discovery results and the plugin can consume them with `async for` consistently.

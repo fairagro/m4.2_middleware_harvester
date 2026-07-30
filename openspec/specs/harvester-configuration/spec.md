@@ -7,7 +7,7 @@ is validated at startup via Pydantic; an invalid config aborts the process
 before any harvesting begins.
 
 The top-level `Config` class follows the `ConfigWrapper / ConfigBase` pattern —
-see skill [`config-wrapper`](../../../../.agents/skills/config-wrapper/SKILL.md).
+see skill [`config-wrapper`](../../../.agents/skills/config-wrapper/SKILL.md).
 Plugin configs (nested under each repository entry) are plain Pydantic `BaseModel`
 subclasses; they are populated by the same YAML loading but do not extend `ConfigBase`.
 

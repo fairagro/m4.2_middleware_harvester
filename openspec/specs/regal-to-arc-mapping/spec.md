@@ -5,7 +5,7 @@
 Transforms a Regal `ResearchData` RDF graph (from inline `/find` JSON-LD) into ARC
 investigation components (ISA).
 
-**Authoritative Mapping Source:** [docs/regal_mapping.md](../../../../docs/regal_mapping.md)
+**Authoritative Mapping Source:** [docs/regal_mapping.md](../../../docs/regal_mapping.md)
 defines the conceptual mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or

@@ -3,7 +3,7 @@
 ## Structure
 
 `Config` extends `ConfigBase` (see skill
-[`config-wrapper`](../../../../.agents/skills/config-wrapper/SKILL.md))
+[`config-wrapper`](../../../.agents/skills/config-wrapper/SKILL.md))
 and contains `api_client` and a list of `RepositoryConfig` entries. Each
 `RepositoryConfig` holds shared fields (currently only `rdi`) and exactly one
 optional plugin field whose Pydantic type is the plugin's own config model.

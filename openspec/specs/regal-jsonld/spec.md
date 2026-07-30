@@ -9,9 +9,9 @@ native Regal JSON-LD (not schema.org); mapping produces ARC RO-Crate JSON-LD.
 
 Record-level outcomes must surface through the plugin yield contract so the
 orchestrator can update harvest-report statistics and the failure list
-([`harvest-report`](../../../harvest-report/),
-[`error-handling`](../../../../openspec/specs/error-handling/),
-[`skipped-datasets`](../../../../openspec/specs/skipped-datasets/)). Local logging alone
+([`harvest-report`](../harvest-report/),
+[`error-handling`](../error-handling/),
+[`skipped-datasets`](../skipped-datasets/)). Local logging alone
 is not sufficient for operator-visible discovery or mapping problems.
 
 ## Requirements
@@ -199,11 +199,11 @@ The system SHALL support a dedicated Regal payload type that selects a Regal→A
 - **THEN** Support a dedicated Regal payload type that selects a Regal→ARC mapper
 
 ### Requirement: Map Regal ResearchData graphs to serialized ARC RO-Crate JSON-LD as…
-The system SHALL map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in [`docs/regal_mapping.md`](../../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md).
+The system SHALL map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in [`docs/regal_mapping.md`](../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md).
 
 #### Scenario: Satisfies — Map Regal ResearchData graphs to serialized ARC RO-Crate JSON-LD as…
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in [`docs/regal_mapping.md`](../../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md)
+- **THEN** Map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in [`docs/regal_mapping.md`](../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md)
 
 ### Requirement: Keep Regal mapping logic separate from schema.org mapping implementations (GeneralSchemaOrgMapper)
 The system SHALL keep Regal mapping logic separate from schema.org mapping implementations (`GeneralSchemaOrgMapper`).

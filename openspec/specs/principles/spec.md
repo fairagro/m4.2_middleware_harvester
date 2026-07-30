@@ -26,9 +26,9 @@ Implementations SHALL honour the Values, Constraints, and Module Dependency Grap
 
 ## Foundation Contract
 
-The authoritative contract for each harvesting plugin is the mapping document
-in the respective component's `spec/` folder (e.g.
-[openspec/specs/inspire-to-arc-mapping/](../openspec/specs/inspire-to-arc-mapping/)).
+The authoritative contract for each harvesting plugin is the mapping domain
+under `openspec/specs/` (e.g.
+[inspire-to-arc-mapping](../inspire-to-arc-mapping/)).
 Each document defines the source metadata fields, how they map to ARC concepts,
 and required/optional semantics. **All feature specs assume these documents as
 given.** Feature specs do not restate mapping rules; they reference the relevant
