@@ -4,7 +4,7 @@ import logging
 from collections.abc import AsyncGenerator
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import Plugin
+from middleware.harvester.plugin_base import HarvestedArc, Plugin
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.mapper import InspireMapper
@@ -22,11 +22,11 @@ class InspirePlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
 
-    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
-        """Run the harvest process and yield (arc_json, source_url) pairs, errors, or skips."""
+    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+        """Run the harvest process and yield harvested ARCs, errors, or skips."""
         return self._run()
 
-    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+    async def _run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
         mapper = InspireMapper()
         count = 0
@@ -52,8 +52,7 @@ class InspirePlugin(Plugin):
 
                 try:
                     arc = mapper.map_record(record)
-                    json_str = arc.ToROCrateJsonString()
-                    yield json_str, record_url
+                    yield HarvestedArc.from_arctrl(arc, source_url=record_url)
                     logger.info(
                         "Successfully generated ARC for record %s - URL: %s",
                         record.identifier,

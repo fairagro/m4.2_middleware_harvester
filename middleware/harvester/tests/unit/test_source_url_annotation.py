@@ -3,20 +3,24 @@
 from types import SimpleNamespace
 
 from middleware.api_client.models import HarvestErrorType
-from middleware.harvester.main import _apply_client_errors, _format_source_url_annotation
-from middleware.harvester.report import FailedRecord
+from middleware.harvester.reporting import (
+    ArcStreamState,
+    format_source_url_annotation,
+    record_upload_outcomes,
+)
+from middleware.shared.report import HarvestReport
 
 
 def test_format_source_url_annotation_single_occurrence() -> None:
-    assert _format_source_url_annotation({"https://example.org/a": 1}) == "source URL: https://example.org/a"
+    assert format_source_url_annotation({"https://example.org/a": 1}) == "source URL: https://example.org/a"
 
 
 def test_format_source_url_annotation_repeated_same_url() -> None:
-    assert _format_source_url_annotation({"https://example.org/a": 2}) == "source URL: https://example.org/a (×2)"
+    assert format_source_url_annotation({"https://example.org/a": 2}) == "source URL: https://example.org/a (×2)"
 
 
 def test_format_source_url_annotation_multiple_urls_with_counts() -> None:
-    annotation = _format_source_url_annotation(
+    annotation = format_source_url_annotation(
         {
             "https://example.org/a": 2,
             "https://example.org/b": 1,
@@ -25,7 +29,8 @@ def test_format_source_url_annotation_multiple_urls_with_counts() -> None:
     assert annotation == "source URLs: https://example.org/a (×2), https://example.org/b"
 
 
-def test_apply_client_errors_includes_occurrence_counts_for_duplicates() -> None:
+def test_record_upload_outcomes_counts_from_api_result() -> None:
+    """Harvested = submitted - errors; each API error becomes record_failed."""
     errors = [
         SimpleNamespace(
             error_type=HarvestErrorType.DUPLICATE,
@@ -33,18 +38,22 @@ def test_apply_client_errors_includes_occurrence_counts_for_duplicates() -> None
             message="Duplicate ARC identifier 'arc-1' — two ARCs share the same identifier",
         )
     ]
-    failed_records: list[FailedRecord] = []
-
-    harvested, failed = _apply_client_errors(
-        errors,
-        {"arc-1": {"https://csw.example/record/1": 2}},
-        harvested_datasets=2,
-        failed_datasets=0,
-        failed_records=failed_records,
+    state = ArcStreamState(
+        arc_id_to_url_counts={"arc-1": {"https://csw.example/record/1": 2}},
+        submitted=2,
+        studies=2,
+        assays=1,
     )
+    report = HarvestReport()
+    scope = report.open_repository("bonares")
 
-    assert harvested == 1
-    assert failed == 1
-    assert len(failed_records) == 1
-    assert failed_records[0].record_id == "arc-1"
-    assert "source URL: https://csw.example/record/1 (×2)" in failed_records[0].message
+    record_upload_outcomes(errors, state, scope)
+
+    snap = scope.snapshot()
+    assert snap.harvested_datasets == 1
+    assert snap.failed_datasets == 1
+    assert snap.total_studies == 2
+    assert snap.total_assays == 1
+    assert len(snap.failed_records) == 1
+    assert snap.failed_records[0].record_id == "arc-1"
+    assert "source URL: https://csw.example/record/1 (×2)" in snap.failed_records[0].message

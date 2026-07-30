@@ -31,6 +31,16 @@ docs/
 
 middleware/
 ├── harvester/             # Central orchestrator and configuration
+│   └── src/middleware/harvester/
+│       ├── main.py            # CLI entrypoint
+│       ├── orchestrator.py    # Multi-repository harvest loop
+│       ├── upload.py          # Plugin stream → API upload
+│       ├── reporting.py       # Shared HarvestReport wiring / emit
+│       ├── plugin_base.py     # Plugin protocol + HarvestedArc
+│       ├── config.py
+│       ├── errors.py
+│       ├── nice_http_client.py
+│       └── healthcheck.py
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
 │   ├── src/middleware/inspire/
 │   │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
@@ -86,30 +96,48 @@ In GitHub Copilot: the same via `.github/prompts/opsx-*.prompt.md`.
 
 ## Architecture & Design
 
-**Read [`openspec/specs/principles/`](openspec/specs/principles/) first.** It defines the plugin contract, module dependency rules, values, constraints, and code quality requirements. Do not restate what is there.
+**Read [`openspec/specs/principles/`](openspec/specs/principles/) first.** It defines the plugin
+contract, module dependency rules, values, constraints, and code quality requirements. Do not
+restate what is there.
 
-Before generating or modifying code, read the relevant OpenSpec domains under `openspec/specs/`. For new work, prefer `/opsx-propose` so changes land as deltas in `openspec/changes/` and are archived into main specs.
+Before generating or modifying code, read the relevant OpenSpec domains under `openspec/specs/`.
+For new work, prefer `/opsx-propose` so changes land as deltas in `openspec/changes/` and are
+archived into main specs.
 
 **Project-level** (cross-cutting):
 
 - **[`openspec/specs/principles/`](openspec/specs/principles/)** — Authoritative project principles (start here).
 - **[`openspec/specs/error-handling/`](openspec/specs/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 - **[`openspec/specs/demo-environment/`](openspec/specs/demo-environment/)** — One-command local demo environment (mock API + harvester).
-- **[`openspec/specs/async-concurrency/`](openspec/specs/async-concurrency/)** — `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup, `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
-- **[`openspec/specs/nice-http-client/`](openspec/specs/nice-http-client/)** — `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout, retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make direct HTTP requests.
-- **[`openspec/specs/skipped-datasets/`](openspec/specs/skipped-datasets/)** — `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and `fairagro:skippedDatasets` in the JSON-LD harvest report.
+- **[`openspec/specs/async-concurrency/`](openspec/specs/async-concurrency/)** —
+  `asyncio.to_thread()` for OWSLib, concurrent dataset fetching via Semaphore+TaskGroup,
+  `asyncio.gather()` for repositories, `harvest_arcs` for pipelined batch uploads.
+- **[`openspec/specs/nice-http-client/`](openspec/specs/nice-http-client/)** —
+  `NiceHttpClient` and `NiceHttpClientConfig`: shared polite-HTTP wrapper (timeout,
+  retry/backoff, rate limiting, user-agent, optional robots.txt) used by all plugins that make
+  direct HTTP requests.
+- **[`openspec/specs/skipped-datasets/`](openspec/specs/skipped-datasets/)** —
+  `SkippedRecord` signal type, `skipped_datasets` counter in `RepositoryReport`, and
+  `fairagro:skippedDatasets` in the JSON-LD harvest report.
 
 **Harvester** (orchestrator internals):
 
 - **[`openspec/specs/harvester-orchestration/`](openspec/specs/harvester-orchestration/)** — Orchestration loop and plugin `AsyncGenerator` contract.
 - **[`openspec/specs/harvester-configuration/`](openspec/specs/harvester-configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
 - **[`openspec/specs/otlp-observability/`](openspec/specs/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
-- **[`openspec/specs/harvest-report/`](openspec/specs/harvest-report/)** — JSON-LD harvest-run report printed to stdout at program end; per-RDI statistics (harvest_id, duration, expected/harvested/failed datasets).
-- **[`openspec/specs/liveness-probe/`](openspec/specs/liveness-probe/)** — Kubernetes liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary; `heartbeat_path` and `heartbeat_interval` config fields.
+- **[`openspec/specs/harvest-report/`](openspec/specs/harvest-report/)** — How the
+  orchestrator drives `HarvestReport` / `RepositoryScope` counting methods and emits via
+  `JsonLdReportSerializer`; contract owned by
+  [`m4.2_advanced_middleware_api`](https://github.com/fairagro/m4.2_advanced_middleware_api).
+- **[`openspec/specs/liveness-probe/`](openspec/specs/liveness-probe/)** — Kubernetes
+  liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary;
+  `heartbeat_path` and `heartbeat_interval` config fields.
 
 **INSPIRE plugin**:
 
-- **[`openspec/specs/csw-harvesting/`](openspec/specs/csw-harvesting/)** — Polling standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for identifier recovery on broken records.
+- **[`openspec/specs/csw-harvesting/`](openspec/specs/csw-harvesting/)** — Polling
+  standard CSW endpoints and ISO 19139 batch fetching logic; lazy Dublin Core fallback for
+  identifier recovery on broken records.
 - **[`openspec/specs/csw-retry/`](openspec/specs/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
 - **[`openspec/specs/csw-threadpool/`](openspec/specs/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
 - **[`openspec/specs/inspire-to-arc-mapping/`](openspec/specs/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.

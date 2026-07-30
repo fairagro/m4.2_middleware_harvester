@@ -84,7 +84,9 @@ class Config(ConfigBase):  # or BaseModel if ConfigBase fields aren't needed
 
 ## ConfigBase vs PluginConfig
 
-**Use `ConfigBase`** (from `middleware.shared`) only for **top-level component configs** — i.e., the `Config` class that is loaded from a YAML file via `ConfigWrapper`. It adds `log_level`, `otel`, and `from_config_wrapper`.
+**Use `ConfigBase`** (from `middleware.shared`) only for **top-level component configs** — i.e.,
+the `Config` class that is loaded from a YAML file via `ConfigWrapper`. It adds `log_level`,
+`otel`, and `from_config_wrapper`.
 
 ---
 
@@ -139,7 +141,9 @@ config: Annotated[InspireToArcConfig, Field(description="Inspire plugin configur
 
 **All defaults belong in the `Config` class — never in application code.**
 
-If application code needs a fallback value (e.g. `sys.maxsize`, a hardcoded constant, or a magic number), that value belongs as a Pydantic field default in the relevant `Config` class instead. This makes the default visible, overridable via env/secret/YAML, and documented.
+If application code needs a fallback value (e.g. `sys.maxsize`, a hardcoded constant, or a magic
+number), that value belongs as a Pydantic field default in the relevant `Config` class instead.
+This makes the default visible, overridable via env/secret/YAML, and documented.
 
 ```python
 # ✗ Wrong — default hidden in application code, not overridable

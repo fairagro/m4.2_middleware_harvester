@@ -2,19 +2,19 @@
 
 ## Module Overview
 
-All tracing initialisation and span management is concentrated in
-`middleware/harvester/src/middleware/harvester/main.py`. The two functions
-`initialize_tracing` and `initialize_logging` from `middleware.shared.tracing`
-are the only entry points used. Plugins have no tracing dependency.
+Tracing initialisation lives in `main.py`; span creation lives in the
+orchestrator/upload modules. The two functions `initialize_tracing` and
+`initialize_logging` from `middleware.shared.tracing` are the only entry
+points used. Plugins have no tracing dependency.
 
 ```text
 main.py
-  └─ initialize_tracing()   (middleware.shared.tracing)
-  └─ initialize_logging()   (middleware.shared.tracing)
-  └─ run_orchestrator()
+  └─ initialize_tracing() / initialize_logging()  (middleware.shared.tracing)
+  └─ run_orchestrator()   (orchestrator.py)
        └─ harvest_run span
-            └─ plugin_run span  (per repository)
-                 └─ harvest_upload span  (harvest_arcs call, per repository)
+            └─ run_repository → execute_harvest_upload (upload.py)
+                 └─ plugin_run span
+                      └─ harvest_upload span  (harvest_arcs call)
 ```
 
 ## Key Decisions
@@ -28,12 +28,11 @@ main.py
    internal implementation of the shared library can be swapped for logfire at a
    later point without any changes required in this repository.
 
-2. **Tracing is confined to `main.py`; plugins are tracing-free**
+2. **Tracing is confined to the harvester orchestrator; plugins are tracing-free**
    — Plugins expose an `AsyncGenerator` contract and must not be coupled to any
-   observability framework. The orchestrator in `main.py` is the sole consumer of
-   plugin output and the natural place to emit spans. This preserves the
-   Failure-isolation principle: a tracing misconfiguration cannot break plugin
-   execution.
+   observability framework. `orchestrator.py` / `upload.py` consume plugin output
+   and emit spans. This preserves the Failure-isolation principle: a tracing
+   misconfiguration cannot break plugin execution.
 
 3. **`service_name` is a hard-coded constant, not a config field**
    — `OtelConfig` already covers runtime-variable settings (`endpoint`,

@@ -8,6 +8,8 @@ from typing import TypeVar, cast
 
 from rdflib import Graph
 
+from middleware.harvester.plugin_base import HarvestedArc
+
 from ..config import Config, PayloadType
 from ..registry import Registry
 
@@ -39,6 +41,6 @@ class LinkedDataMapper(ABC):
         return cls()
 
     @abstractmethod
-    def map_graph(self, graph: Graph) -> str:
-        """Return a serialized RO-Crate JSON-LD string for the given graph."""
+    def map_graph(self, graph: Graph) -> HarvestedArc:
+        """Return a harvested ARC (JSON + composition counts) for the given graph."""
         raise NotImplementedError

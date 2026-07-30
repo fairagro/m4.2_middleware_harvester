@@ -2,121 +2,108 @@
 
 ## Purpose
 
-At the end of each harvester run, the orchestrator emits a machine-readable
-summary of the completed harvest to **stdout** as a JSON-LD document.  The
-document describes every repository that was processed, including timing,
-expected dataset count, outcome statistics, and a per-record failure list.
+At the end of each harvester run, the orchestrator emits an operator-facing
+harvest summary to **stdout**. The report **domain model, counting API,
+JSON-LD shape, and vocabulary** are defined and owned by
+[`fairagro/m4.2_advanced_middleware_api`](https://github.com/fairagro/m4.2_advanced_middleware_api)
+(`middleware.shared.report` in `fairagro-middleware-shared`).
+
+This domain only specifies how the harvester **drives and emits** that shared
+report. Do not restate the shared contract here — read the API repository’s
+OpenSpec `harvest-report` capability and `ns/harvest-report/v1/`.
 
 ## Requirements
 
-### Requirement: After all repository tasks finish (whether they succeed or fail),…
-The system SHALL ensure that after all repository tasks finish (whether they succeed or fail), the.
+### Requirement: Use the shared report counting API
 
-#### Scenario: Satisfies — After all repository tasks finish (whether they succeed or fail),…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** After all repository tasks finish (whether they succeed or fail), the
+The harvester MUST create a mutable `HarvestReport` at the start of the run,
+open one `RepositoryScope` per configured repository, invoke the shared
+counting methods on that scope for harvest events, call `finish()` when the
+run ends, and render with `JsonLdReportSerializer`. It MUST NOT maintain
+parallel counters for harvested, failed, skipped, expected, study, or assay
+statistics, and MUST NOT duplicate the report domain model or JSON-LD
+serializer.
 
-### Requirement: RepositoryReport captures:
-The system SHALL ensure that `RepositoryReport` captures:.
+#### Scenario: Event updates go through the scope
 
-#### Scenario: Satisfies — RepositoryReport captures:
-- **WHEN** the conditions described by this requirement apply
-- **THEN** `RepositoryReport` captures:
+- **GIVEN** an open `RepositoryScope` for a repository
+- **WHEN** a dataset is harvested, fails, or is skipped
+- **THEN** the orchestrator calls `record_harvested`, `record_failed`, or
+  `record_skipped` on that scope (and does not later copy a separate counter
+  into the report)
 
-### Requirement: HarvestReport captures:
-The system SHALL ensure that `HarvestReport` captures:.
+### Requirement: One repository scope per configured repository
 
-#### Scenario: Satisfies — HarvestReport captures:
-- **WHEN** the conditions described by this requirement apply
-- **THEN** `HarvestReport` captures:
+After all repository tasks finish (whether they succeed or fail), the
+finished `HarvestReport` MUST contain exactly one repository scope snapshot
+per configured repository.
 
-### Requirement: The report is serialised as JSON-LD and printed to **stdout**…
-The report SHALL be serialised as JSON-LD and printed to **stdout** (not to the.
+#### Scenario: Successful and failed repositories both produce entries
 
-#### Scenario: Satisfies — The report is serialised as JSON-LD and printed to **stdout**…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The report is serialised as JSON-LD and printed to **stdout** (not to the
+- **WHEN** the harvest run finishes with a mix of successful and failed
+  repository tasks
+- **THEN** `HarvestReport.repository_reports` has exactly one entry per
+  configured repository
 
-### Requirement: The JSON-LD document uses https://schema.org/ as its primary
-The JSON-LD document SHALL use `https://schema.org/` as its primary.
+### Requirement: Drive shared fields from the live harvest
 
-#### Scenario: Satisfies — The JSON-LD document uses https://schema.org/ as its primary
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The JSON-LD document uses `https://schema.org/` as its primary
+For each repository the orchestrator MUST:
 
-### Requirement: The JSON-LD document uses an additional fairagro: prefix
-The JSON-LD document SHALL use an additional `fairagro:` prefix.
+- open the scope with the repository RDI
+- call `set_expected_datasets` when `Plugin.get_expected_datasets()` returns a
+  value
+- call `set_harvest_id` when a harvest id is known (including recovery from a
+  post-create API failure)
+- call `record_failed` for each per-item API error, then `record_harvested`
+  once per remaining submitted ARC (`submitted - len(errors)`) after
+  `harvest_arcs` returns. On catastrophic upload abort, count each submitted
+  ARC as failed instead (or one failure if none were submitted)
+- call `record_failed` for each plugin `HarvesterError` (with optional record
+  id / URL)
+- call `record_skipped` for each yielded `SkippedRecord` (see also
+  [`skipped-datasets`](../skipped-datasets/))
+- call `add_studies` / `add_assays` with the composition counts carried on each
+  yielded `HarvestedArc` (plugins set these from the arctrl ARC object before
+  serialization; no JSON re-parse in the orchestrator)
 
-#### Scenario: Satisfies — The JSON-LD document uses an additional fairagro: prefix
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The JSON-LD document uses an additional `fairagro:` prefix
+#### Scenario: Sum studies and assays from harvested ARCs
 
-### Requirement: Every yielded HarvesterError increments failed_datasets and appends
-The system SHALL ensure that every yielded `HarvesterError` increments `failed_datasets` and appends.
+- **GIVEN** two successfully uploaded ARCs containing one Study and one Assay
+  each
+- **WHEN** the repository scope is snapshotted after the run
+- **THEN** `total_studies` is 2 and `total_assays` is 2
 
-#### Scenario: Satisfies — Every yielded HarvesterError increments failed_datasets and appends
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Every yielded `HarvesterError` increments `failed_datasets` and appends
+#### Scenario: API duplicate does not count as harvested
 
-### Requirement: Schema:startTime and schema:endTime on the top-level Action are
-The system SHALL ensure that `schema:startTime` and `schema:endTime` on the top-level `Action` are.
+- **GIVEN** two ARCs submitted and one per-item API duplicate error
+- **WHEN** upload outcomes are recorded
+- **THEN** `record_harvested` is called once and `record_failed` once
 
-#### Scenario: Satisfies — Schema:startTime and schema:endTime on the top-level Action are
-- **WHEN** the conditions described by this requirement apply
-- **THEN** `schema:startTime` and `schema:endTime` on the top-level `Action` are
+#### Scenario: Plugin yields a HarvesterError
 
-### Requirement: Schema:duration on each repository entry is an ISO 8601 duration…
-The system SHALL ensure that `schema:duration` on each repository entry is an ISO 8601 duration string.
+- **WHEN** the plugin stream yields a `HarvesterError`
+- **THEN** the orchestrator calls `record_failed` on the repository scope
 
-#### Scenario: Satisfies — Schema:duration on each repository entry is an ISO 8601 duration…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** `schema:duration` on each repository entry is an ISO 8601 duration string
+### Requirement: Print after tracing shutdown via JsonLdReportSerializer
 
-### Requirement: Printing the report must not raise; if serialisation fails for…
-The system SHALL ensure that printing the report must not raise; if serialisation fails for any reason.
+The orchestrator MUST serialize the finished report with
+`JsonLdReportSerializer().render(report)` and print the resulting string to
+stdout **after** tracing shutdown has been initiated. Serialization or print
+failures MUST be logged and MUST NOT change the process exit code.
 
-#### Scenario: Satisfies — Printing the report must not raise; if serialisation fails for…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Printing the report must not raise; if serialisation fails for any reason
+#### Scenario: Ordering relative to OTLP shutdown
 
-### Requirement: The report is printed **after** tracing shutdown has been initiated…
-The report SHALL be printed **after** tracing shutdown has been initiated so.
+- **WHEN** the harvester process is shutting down after a completed run
+- **THEN** tracing shutdown is initiated before the JSON-LD report is printed
 
-#### Scenario: Satisfies — The report is printed **after** tracing shutdown has been initiated…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The report is printed **after** tracing shutdown has been initiated so
+### Requirement: Edge case — unhandled repository exception
 
-### Requirement: Edge case — Repository task raised an unhandled exception
-The system SHALL handle this edge case: when Repository task raised an unhandled exception, then `harvest_id` is the created harvest id when recoverable (e.g. from the failing `/v3/harvests/{id}/…` request URL), otherwise `None`; `failed_datasets` equals `expected_datasets` if known, otherwise `None`; `failed_records` contains at least one entry describing the repository-level failure.
+When a repository task raises an unhandled exception, `harvest_id` MUST be the
+created harvest id when recoverable, otherwise unset; the scope MUST record at
+least one failure describing the repository-level error.
 
-#### Scenario: Edge case — Repository task raised an unhandled exception
-- **WHEN** Repository task raised an unhandled exception
-- **THEN** `harvest_id` is the created harvest id when recoverable (e.g. from the failing `/v3/harvests/{id}/…` request URL), otherwise `None`; `failed_datasets` equals `expected_datasets` if known, otherwise `None`; `failed_records` contains at least one entry describing the repository-level failure
+#### Scenario: Unhandled exception after harvest creation
 
-### Requirement: Edge case — Get_expected_datasets() returned None
-The system SHALL handle this edge case: when `get_expected_datasets()` returned `None`, then `expected_datasets` is omitted from the JSON-LD output (the key is not emitted rather than set to `null`).
-
-#### Scenario: Edge case — Get_expected_datasets() returned None
-- **WHEN** `get_expected_datasets()` returned `None`
-- **THEN** `expected_datasets` is omitted from the JSON-LD output (the key is not emitted rather than set to `null`)
-
-### Requirement: Edge case — No failed records for a repository
-The system SHALL handle this edge case: when No failed records for a repository, then omit `fairagro:failedRecords` (do not emit an empty array).
-
-#### Scenario: Edge case — No failed records for a repository
-- **WHEN** No failed records for a repository
-- **THEN** omit `fairagro:failedRecords` (do not emit an empty array)
-
-### Requirement: Edge case — No repositories configured
-The system SHALL handle this edge case: when No repositories configured, then an `Action` with an empty `result` array and a zero-duration is emitted.
-
-#### Scenario: Edge case — No repositories configured
-- **WHEN** No repositories configured
-- **THEN** an `Action` with an empty `result` array and a zero-duration is emitted
-
-### Requirement: Edge case — Serialisation of the report raises
-The system SHALL handle this edge case: when Serialisation of the report raises, then a single `WARNING` log line is emitted; the harvester exits with the same code it would have used otherwise.
-
-#### Scenario: Edge case — Serialisation of the report raises
-- **WHEN** Serialisation of the report raises
-- **THEN** a single `WARNING` log line is emitted; the harvester exits with the same code it would have used otherwise
+- **WHEN** a repository task fails after a harvest id is known
+- **THEN** the repository scope retains that `harvest_id` and records the
+  failure via `record_failed`

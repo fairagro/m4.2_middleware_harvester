@@ -1,15 +1,15 @@
 """Linked Data harvester plugin integration point."""
 
 import asyncio
-import json
 import logging
 from collections.abc import AsyncGenerator
+from dataclasses import replace
 
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
-from middleware.harvester.plugin_base import Plugin
+from middleware.harvester.plugin_base import HarvestedArc, Plugin
 
 from .config import Config
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
@@ -40,19 +40,6 @@ class LinkedDataPlugin(Plugin):
             raise ValueError(f"Unsupported sitemap type: {config.sitemap_type}") from exc
 
         return sitemap_cls(config, client)
-
-    @staticmethod
-    def _extract_arc_identifier(arc_json: str) -> str | None:
-        """Extract the RO-Crate identifier from a serialized ARC JSON string."""
-        graph = json.loads(arc_json).get("@graph")
-        if isinstance(graph, list):
-            for item in graph:
-                if isinstance(item, dict) and item.get("@id") == "./":
-                    identifier = item.get("identifier")
-                    if isinstance(identifier, list):
-                        identifier = identifier[0] if identifier else None
-                    return str(identifier) if identifier else None
-        return None
 
     @staticmethod
     def create_mapper(config: Config) -> LinkedDataMapper:
@@ -90,7 +77,7 @@ class LinkedDataPlugin(Plugin):
         self,
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
-    ) -> tuple[str, str | None] | RecordProcessingError | SkippedRecord:
+    ) -> HarvestedArc | RecordProcessingError | SkippedRecord:
         # Only UrlDiscoveryResult carries a real fetched/landing URL; inline
         # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
         source_url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
@@ -113,8 +100,8 @@ class LinkedDataPlugin(Plugin):
 
         try:
             graph = await dataset.to_graph()
-            arc_json = await asyncio.to_thread(self._mapper.map_graph, graph)
-            return arc_json, source_url
+            harvested = await asyncio.to_thread(self._mapper.map_graph, graph)
+            return replace(harvested, source_url=source_url)
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(
                 f"Failed to map dataset {dataset.identifier}: {exc}",
@@ -128,8 +115,8 @@ class LinkedDataPlugin(Plugin):
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks: int,
-    ) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
-        results: asyncio.Queue[tuple[str, str | None] | HarvesterError | SkippedRecord] = asyncio.Queue()
+    ) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+        results: asyncio.Queue[HarvestedArc | HarvesterError | SkippedRecord] = asyncio.Queue()
         semaphore = asyncio.Semaphore(worker_tasks)
         discovery_finished = False
         active_workers = 0
@@ -198,11 +185,11 @@ class LinkedDataPlugin(Plugin):
                 except GeneratorExit:
                     return
 
-    def run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
-        """Run the plugin and yield (arc_json, source_url) pairs, errors, or skips."""
+    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+        """Run the plugin and yield harvested ARCs, errors, or skips."""
         return self._run()
 
-    async def _run(self) -> AsyncGenerator[tuple[str, str | None] | HarvesterError | SkippedRecord, None]:
+    async def _run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http)
             worker_tasks = self._config.effective_worker_tasks

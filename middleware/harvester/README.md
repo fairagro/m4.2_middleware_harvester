@@ -4,7 +4,9 @@ The Middleware Harvester is a high-performance, modular orchestrator designed to
 
 ## Overview
 
-The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles the orchestration loop, configuration management, and reliable transmission of Annotated Research Context (ARC) objects to the FAIRagro Middleware API.
+The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles
+the orchestration loop, configuration management, and reliable transmission of Annotated Research
+Context (ARC) objects to the FAIRagro Middleware API.
 
 ### Key Features
 

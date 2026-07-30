@@ -1,6 +1,10 @@
 # FAIRagro Middleware Harvester
 
-This repository contains the Middleware Harvester, a core component of the FAIRagro advanced middleware architecture. It acts as an orchestrator that runs specialized harvesting plugins (like the INSPIRE-to-ARC converter). It enables Research Data Infrastructure (RDI) providers to harvest metadata from standardized sources (like CSW), transform them into standardized Annotated Research Context (ARC) objects, and transmit them to the central FAIRagro Middleware API.
+This repository contains the Middleware Harvester, a core component of the FAIRagro advanced
+middleware architecture. It acts as an orchestrator that runs specialized harvesting plugins
+(like the INSPIRE-to-ARC converter). It enables Research Data Infrastructure (RDI) providers to
+harvest metadata from standardized sources (like CSW), transform them into standardized Annotated
+Research Context (ARC) objects, and transmit them to the central FAIRagro Middleware API.
 
 ## 📁 Repository Structure
 
@@ -61,7 +65,9 @@ Detailed information on how to use, configure, and deploy the specific component
 
 ## 🤖 AI-Native Development
 
-This project uses **[OpenSpec](https://github.com/Fission-AI/OpenSpec)** for spec-driven development. Current behaviour lives in `openspec/specs/`; in-flight work uses `openspec/changes/` via `/opsx-propose` → `/opsx-apply` → `/opsx-archive`.
+This project uses **[OpenSpec](https://github.com/Fission-AI/OpenSpec)** for spec-driven
+development. Current behaviour lives in `openspec/specs/`; in-flight work uses
+`openspec/changes/` via `/opsx-propose` → `/opsx-apply` → `/opsx-archive`.
 
 AI agents use these specs along with `AGENTS.md` and `.agents/skills/` for high-context assistance.
 

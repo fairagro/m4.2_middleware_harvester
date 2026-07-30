@@ -1,91 +1,54 @@
 # Harvest Report — Design
 
+## Ownership
+
+The harvest-report **contract** (mutable model, counting methods, JSON-LD
+serializer, vocabulary) lives in
+[`fairagro/m4.2_advanced_middleware_api`](https://github.com/fairagro/m4.2_advanced_middleware_api):
+
+- Package: `middleware.shared.report` (`fairagro-middleware-shared`)
+- OpenSpec: `openspec/specs/harvest-report/` (after archive of
+  `shared-harvest-report`)
+- Vocabulary: `ns/harvest-report/v1/`
+
+This harvester repo only wires that library into the orchestration loop.
+
 ## Module Overview
 
-A new module `middleware/harvester/src/middleware/harvester/report.py` owns all
-reporting concerns: the `RepositoryReport` and `HarvestReport` dataclasses, the
-JSON-LD serialiser, and the `print_report()` helper.
+```text
+middleware/harvester/
+  orchestrator.py   HarvestReport() at run start; open_repository per RDI
+  upload.py         stream ARCs; apply scope.record_* from API outcomes
+  reporting.py      emit_report / source-URL annotation / outcome helpers
+  plugin_base.py    HarvestedArc (+ from_arctrl) / Plugin protocol
+  main.py           CLI; emit_report after tracing shutdown
 
-`main.py` is the only caller.  It accumulates `RepositoryReport` objects while
-iterating over `_run_repository` results, builds a `HarvestReport`, and calls
-`print_report()` once — after tracing shutdown, before `sys.exit`.
-
-## JSON-LD Shape
-
-```json
-{
-  "@context": {
-    "@vocab": "https://schema.org/",
-    "fairagro": "https://fairagro.net/ns/"
-  },
-  "@type": "Action",
-  "name": "FAIRagro Harvest Run",
-  "startTime": "2026-05-06T14:00:00Z",
-  "endTime": "2026-05-06T14:03:45Z",
-  "duration": "PT225.0S",
-  "result": [
-    {
-      "@type": "EntryPoint",
-      "name": "bonares",
-      "identifier": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-      "schema:duration": "PT12.3S",
-      "fairagro:expectedDatasets": 100,
-      "fairagro:harvestedDatasets": 95,
-      "fairagro:failedDatasets": 5,
-      "fairagro:skippedDatasets": 2,
-      "fairagro:failedRecords": [
-        {
-          "fairagro:message": "Failed to map dataset frl:123: …",
-          "fairagro:recordId": "frl:123"
-        }
-      ]
-    }
-  ]
-}
+middleware.shared.report   ← API repo / PyPI package
+  HarvestReport, RepositoryScope, RepositoryReport, FailedRecord
+  JsonLdReportSerializer
 ```
+
+Orchestration-only helpers (ARC `@graph` study/assay parsing, source-URL
+annotation text, exit-code “all failed”) stay in the harvester. They MUST NOT
+duplicate harvested/failed/skipped/study/assay totals outside the scope.
 
 ## Key Decisions
 
-1. **`report.py` as a standalone module, not part of `main.py`**
-   — Keeping reporting logic in its own file keeps `main.py` focused on
-   orchestration control flow and makes the report shape testable in isolation
-   without having to execute the full async orchestrator.
+1. **Do not duplicate the report contract here**
+   — Shape, omit rules, namespace IRI, counting API, and serializers are owned
+   by the API repository so harvester and other clients stay compatible.
 
-2. **`schema:Action` / `schema:EntryPoint` vocabulary**
-   — A harvest run is an *action* performed by the system; schema.org's
-   `Action` type is the closest standard match.  Each per-RDI result entry is
-   an `EntryPoint` (a named interaction point in the system), which captures
-   the identifier/name pair natively.  PROV-O `Activity` was considered but
-   rejected because schema.org is already used in the linked_data plugin and
-   requires no additional namespace declaration.
+2. **Scope is the sole counter; count from the API result**
+   — While streaming, only track how many ARCs were submitted plus study/assay
+   sums from each yielded `HarvestedArc` (and source-URL hints). After
+   `harvest_arcs` returns: one `record_failed` per API error, then
+   `record_harvested` × `(submitted - len(errors))`, then `add_studies` /
+   `add_assays` for the batch totals. If upload aborts, each submitted ARC is
+   `record_failed` (or one failure if none were submitted). Composition counts
+   come from the plugin (arctrl `StudyCount` / `AssayCount`), not from
+   re-parsing RO-Crate JSON.
 
-3. **Custom `fairagro:` prefix for domain statistics and failure detail**
-   — `expectedDatasets`, `harvestedDatasets`, `failedDatasets`,
-   `skippedDatasets`, and the `failedRecords` list have no direct equivalent
-   in schema.org or PROV-O.  Rather than misusing an existing term, a
-   project-owned `https://fairagro.net/ns/` prefix is used.  Counts alone are
-   insufficient for operators: each yielded `HarvesterError` is also mirrored
-   as a `failedRecords` entry (`message`, optional `recordId` / `url`) so the
-   stdout report is the authoritative failure list, not only application logs.
-
-4. **ISO 8601 duration strings (`PT12.3S`) for per-repository timing**
-   — `schema:duration` is defined with range `schema:Duration`, which expects
-   ISO 8601.  Python's `datetime.timedelta` does not format to ISO 8601
-   natively, so a minimal helper converts seconds to `PTnS` / `PTnMnS`.
-
-5. **Omit `expectedDatasets` when `None`**
-   — Emitting `"fairagro:expectedDatasets": null` would assert the absence of
-   expected datasets as a known fact, which is misleading.  Omitting the key
-   entirely signals that the value was not available, consistent with JSON-LD
-   open-world semantics.
-
-6. **Print to stdout, not the logging subsystem**
-   — The report is a structured machine-readable artefact intended for
-   downstream consumers (CI pipelines, log aggregators).  Using `print()` /
-   `sys.stdout.write()` ensures it reaches stdout as raw text without log-level
-   prefixes or timestamps that would break JSON parsers.
-
-7. **Silent failure with a logged warning**
-   — If serialisation fails (e.g. unexpected type in a dataclass field), it
-   must not mask the real exit code.  A warning is logged and execution
-   continues; the report is simply missing, which is recoverable.
+3. **Emit after tracing shutdown**
+   — Shared library returns a document string only; the harvester prints it to
+   stdout after OTLP flush. Print/serialize errors are logged and ignored for
+   exit code.

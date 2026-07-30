@@ -9,13 +9,13 @@ middleware/harvester/errors.py
 middleware/harvester/plugin_base.py
 └── Plugin.run()                # yield type extended to include SkippedRecord
 
-middleware/harvester/main.py
-├── _ArcStreamState             # skipped_datasets: int = 0 field added
-└── _arc_stream()               # isinstance(item, SkippedRecord) branch added
+middleware/harvester/upload.py
+└── arc_stream()                # isinstance(item, SkippedRecord) → scope.record_skipped()
 
-middleware/harvester/report.py
-├── RepositoryReport            # skipped_datasets: int = 0 field added
-└── JSON-LD serialiser          # fairagro:skippedDatasets always emitted
+middleware.shared.report
+├── RepositoryScope.record_skipped()
+├── RepositoryReport.skipped_datasets  # always int, default 0
+└── JsonLdReportSerializer             # fairagro:skippedDatasets always emitted
 
 middleware/linked_data/plugin.py
 └── producer()                  # forwards SkippedRecord / RecordProcessingError from sitemap.discover()
@@ -49,7 +49,7 @@ middleware/linked_data/plugin.py
    error counters.
 
 5. **Plugin contract extended, not replaced**
-   — `Plugin.run()` now yields `tuple[str, str | None] | HarvesterError | SkippedRecord`.
+   — `Plugin.run()` now yields `HarvestedArc | HarvesterError | SkippedRecord`.
    Existing plugins that never yield `SkippedRecord` remain valid; the
    orchestrator's `isinstance` dispatch handles all three branches
    independently.

@@ -4,12 +4,16 @@ This document describes how INSPIRE-compliant geospatial metadata (ISO 19139 XML
 
 ## Concept
 
-The goal is to map geospatial metadata (INSPIRE) to the ISA model. Since INSPIRE metadata describes *datasets* (results), while ARC describes the *research process* (investigation/study/assay), we apply a mapping strategy that preserves provenance.
+The goal is to map geospatial metadata (INSPIRE) to the ISA model. Since INSPIRE metadata describes
+*datasets* (results), while ARC describes the *research process* (investigation/study/assay), we
+apply a mapping strategy that preserves provenance.
 
 ### Protocol-Based Mapping Philosophy
 
 > [!IMPORTANT]
-> **Protocols are central to ARC**: They describe exactly how data was created. Every process step—whether sample collection, chemical analysis, sensor acquisition, or data processing—can be modeled as a Protocol with Parameters.
+> **Protocols are central to ARC**: They describe exactly how data was created. Every process
+> step—whether sample collection, chemical analysis, sensor acquisition, or data processing—can be
+> modeled as a Protocol with Parameters.
 >
 > This applies equally to earth observation and laboratory experiments. **The more protocols we capture from INSPIRE metadata, the better the research provenance documentation.**
 
@@ -155,7 +159,9 @@ Spatial reference system information.
 Remote sensing specific: platform, instrument, operation metadata.
 
 > [!NOTE]
-> This is mapped via OWSLib `acquisition` attribute as an `MI_AcquisitionInformation` object. The exact structure depends on the metadata, but typically includes platform, instrument, operation, and event information.
+> This is mapped via OWSLib `acquisition` attribute as an `MI_AcquisitionInformation` object. The
+> exact structure depends on the metadata, but typically includes platform, instrument, operation,
+> and event information.
 
 **Proposed Mapping**: Create an **Assay Protocol** named "Sensor Acquisition" with parameters for:
 
@@ -190,7 +196,10 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 | **operatesOn** | `operateson` | Datasets the service operates on | **No clear mapping** |
 
 > [!IMPORTANT]
-> **Service Metadata Consideration**: If this metadata denotes hierarchical metadata harvesting (upstream CSW source), it could be relevant for provenance. However, there is no clear ARC equivalent for OGC service-specific metadata. **Recommendation**: Document in Investigation comments if present, but do not create dedicated structures.
+> **Service Metadata Consideration**: If this metadata denotes hierarchical metadata harvesting
+> (upstream CSW source), it could be relevant for provenance. However, there is no clear ARC
+> equivalent for OGC service-specific metadata. **Recommendation**: Document in Investigation
+> comments if present, but do not create dedicated structures.
 
 ## Mapping Strategy Summary
 
@@ -343,7 +352,9 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 ### 2. Dataset URI and Lineage URL
 
-**dataSetURI**: Mapped to `Output [URI]` column in the Assay Annotation Table (single row). If absent, the first `online_resources` URL is used as fallback; if that is also absent, a slug fallback (`<id>_dataset`) is used.
+**dataSetURI**: Mapped to `Output [URI]` column in the Assay Annotation Table (single row). If
+absent, the first `online_resources` URL is used as fallback; if that is also absent, a slug
+fallback (`<id>_dataset`) is used.
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 
@@ -353,8 +364,12 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 ### 4. Service Metadata
 
-**SV_ServiceIdentification**: Primarily relevant for OGC web services. If present in a dataset record, it may indicate hierarchical metadata or linked services. We document this in Investigation comments but do not create dedicated ARC structures.
+**SV_ServiceIdentification**: Primarily relevant for OGC web services. If present in a dataset
+record, it may indicate hierarchical metadata or linked services. We document this in Investigation
+comments but do not create dedicated ARC structures.
 
 ### 5. Complex Nested Structures
 
-**acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on the metadata content.
+**acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay
+Protocols with parameters extracted from the nested structure (platform name, sensor type, band
+information, etc.). The exact parameters depend on the metadata content.

@@ -85,12 +85,16 @@ The system SHALL ensure that `otel.log_console_spans` controls whether spans are
 - **WHEN** the conditions described by this requirement apply
 - **THEN** `otel.log_console_spans` controls whether spans are additionally written to
 
-### Requirement: All tracing code is confined to middleware/harvester/src/middleware/harvester/main.py
-The system SHALL ensure that all tracing code is confined to `middleware/harvester/src/middleware/harvester/main.py`.
+### Requirement: Tracing stays in the harvester orchestrator, not in plugins
+The system SHALL confine tracing initialisation and span creation to the
+harvester entrypoint (`main.py`) and orchestrator/upload modules. Plugins
+MUST NOT depend on OpenTelemetry.
 
-#### Scenario: Satisfies — All tracing code is confined to middleware/harvester/src/middleware/harvester/main.py
-- **WHEN** the conditions described by this requirement apply
-- **THEN** All tracing code is confined to `middleware/harvester/src/middleware/harvester/main.py`
+#### Scenario: Plugins remain tracing-free
+
+- **WHEN** a harvesting plugin runs
+- **THEN** it does not import or call OpenTelemetry APIs; spans are created by
+  the orchestrator/upload layer around plugin invocation
 
 ### Requirement: Edge case — Otel.endpoint is set but the collector is unreachable at startup
 The system SHALL handle this edge case: when `otel.endpoint` is set but the collector is unreachable at startup, then `initialize_tracing` logs a warning and continues; the harvest run proceeds without OTLP export.

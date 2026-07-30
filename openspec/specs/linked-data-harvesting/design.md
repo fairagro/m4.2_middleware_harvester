@@ -29,7 +29,7 @@ The current implementation supports only one concrete type per enum, but the plu
 5. **Implement `XmlSitemap` as the XML sitemap parser for the `xml` sitemap type**
    — The XML sitemap protocol is a distinct source format, so it is isolated in its own implementation file and can evolve separately from dataset parsing and mapping. This also keeps the plugin factory focused on type selection, not parsing details.
 
-6. **Keep `LinkedDataPlugin.run()` as an async generator yielding `tuple[str, str | None] | HarvesterError | SkippedRecord`**
+6. **Keep `LinkedDataPlugin.run()` as an async generator yielding `HarvestedArc | HarvesterError | SkippedRecord`**
    — This matches the harvester orchestrator contract. Successes, record-level
    failures, and deliberate skips share one stream so
    [`harvest-report`](../../../harvest-report/) statistics and

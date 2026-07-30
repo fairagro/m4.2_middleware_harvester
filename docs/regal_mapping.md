@@ -251,7 +251,9 @@ JSON-LD parsing must use the record `@context` (URL or embedded). Mapping operat
 
 ### 8. Relationship to schema.org mapper
 
-`GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper implements this document. Field *coverage* may mirror the old Publisso→schema.org jq crosswalk, but the ARC targets above are authoritative.
+`GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper
+implements this document. Field *coverage* may mirror the old Publisso→schema.org jq crosswalk, but
+the ARC targets above are authoritative.
 
 ## Traceability to basic middleware
 

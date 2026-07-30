@@ -9,8 +9,8 @@ Concurrency is introduced at four independent layers:
 2. **Task-level parallelism** (`linked_data/plugin.py`) — `asyncio.Semaphore` +
    `asyncio.TaskGroup` for concurrent dataset fetches within a single plugin
    invocation.
-3. **Repository-level parallelism** (`harvester/main.py`) — `asyncio.gather()`
-   over all `RepositoryConfig` entries.
+3. **Repository-level parallelism** (`harvester/orchestrator.py`) —
+   `asyncio.gather()` over all `RepositoryConfig` entries.
 4. **Upload parallelism** — delegated entirely to `ApiClient.harvest_arcs`,
    which runs bounded parallel submissions internally via `asyncio.wait`.
 
@@ -43,7 +43,7 @@ Concurrency is introduced at four independent layers:
 5. **`harvest_arcs` replaces per-record `create_or_update_arc`**
    — `harvest_arcs` creates a server-side harvest context, submits all ARCs with
    bounded internal parallelism (`ApiClient.max_concurrency`), and completes or
-   cancels atomically. A thin filter generator (`_arc_stream`) adapts the plugin's
+   cancels atomically. A thin filter generator (`arc_stream` in `upload.py`) adapts the plugin's
    `AsyncGenerator[str | HarvesterError, None]` output to the
    `AsyncIterator[str]` interface expected by `harvest_arcs`.
 

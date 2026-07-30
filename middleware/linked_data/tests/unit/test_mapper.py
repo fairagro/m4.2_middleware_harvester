@@ -17,7 +17,7 @@ def test_general_mapper_returns_jsonld() -> None:
     graph.add((dataset, schema.name, Literal("Example Dataset")))
 
     mapper = GeneralSchemaOrgMapper()
-    result = mapper.map_graph(graph)
+    result = mapper.map_graph(graph).arc_json
 
     assert result.startswith("{") and "@context" in result
 
@@ -58,7 +58,7 @@ def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> No
     graph.add((dist, schema.contentUrl, Literal("https://example.org/data.csv")))
 
     mapper = GeneralSchemaOrgMapper()
-    result = mapper.map_graph(graph)
+    result = mapper.map_graph(graph).arc_json
     payload = json.loads(result)
 
     assert "@graph" in payload

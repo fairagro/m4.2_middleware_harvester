@@ -7,7 +7,6 @@ no intermediate model layer is created between the graph and the ARC output.
 """
 
 import re
-from typing import cast
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -27,6 +26,8 @@ from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 from rdflib import Graph, Literal, Namespace  # type: ignore[import-untyped]
 from rdflib.namespace import RDF
 from rdflib.term import Node
+
+from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper
@@ -55,8 +56,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Public API
     # ------------------------------------------------------------------
 
-    def map_graph(self, graph: Graph) -> str:
-        """Map an RDF graph to a serialized RO-Crate JSON-LD string."""
+    def map_graph(self, graph: Graph) -> HarvestedArc:
+        """Map an RDF graph to a harvested ARC with composition counts."""
         schema, subject = self._find_dataset_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
@@ -67,7 +68,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         finally:
             self._active_schema = None
 
-        return cast(str, arc.ToROCrateJsonString())
+        return HarvestedArc.from_arctrl(arc)
 
     # ------------------------------------------------------------------
     # Graph traversal helpers

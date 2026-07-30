@@ -9,7 +9,7 @@ Two independent components cooperate to implement the liveness signal:
 │ harvester process                            │
 │                                              │
 │  run_orchestrator()                          │
-│    └─ asyncio.create_task(_heartbeat_loop()) │
+│    └─ asyncio.create_task(heartbeat_loop())  │
 │         touches  ──────────────────────────────────► /tmp/harvester-live
 └──────────────────────────────────────────────┘
 

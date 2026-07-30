@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import cast
 from urllib.parse import quote, urlparse
 
 from arctrl import (  # type: ignore[import-untyped]
@@ -24,6 +23,8 @@ from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
+
+from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper
@@ -83,8 +84,8 @@ class RegalMapper(LinkedDataMapper):
         """Construct a mapper using ``config.effective_resource_base_url``."""
         return cls(config.effective_resource_base_url)
 
-    def map_graph(self, graph: Graph) -> str:
-        """Map an RDF graph to a serialized RO-Crate JSON-LD string."""
+    def map_graph(self, graph: Graph) -> HarvestedArc:
+        """Map an RDF graph to a harvested ARC with composition counts."""
         subject = self._find_research_data_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")
@@ -95,7 +96,7 @@ class RegalMapper(LinkedDataMapper):
             raise ValueError("Regal record is missing both @id and doi")
 
         arc = self._map_arc(graph, subject, regal_id=regal_id, doi=doi)
-        return cast(str, arc.ToROCrateJsonString())
+        return HarvestedArc.from_arctrl(arc)
 
     def _find_research_data_subject(self, graph: Graph) -> Node | None:
         subjects = list(graph.subjects(RDF.type, RESEARCH_DATA_TYPE))

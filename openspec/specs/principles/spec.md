@@ -79,9 +79,11 @@ closed, apply least privilege.
 - `os.environ` must never be accessed directly; use `Config` / `ConfigWrapper`.
 - Each plugin owns its source-format access exclusively. The orchestrator and
   other plugins must not reach into another plugin's internals.
-- The plugin `AsyncGenerator` contract is `AsyncGenerator[str | HarvesterError, None]`.
-  Plugins yield serialized ARC JSON strings on success and `HarvesterError`
-  subclasses on record-level failures — never raise for expected failures.
+- The plugin `AsyncGenerator` contract is
+  `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`.
+  Plugins yield `HarvestedArc` (serialized ARC JSON plus study/assay counts and
+  optional source URL) on success and `HarvesterError` / `SkippedRecord` for
+  record-level outcomes — never raise for expected failures.
 - All plugin-specific exceptions inherit from `HarvesterError`
   (defined in `middleware.harvester.errors`).
 - Code quality gates: Ruff (lint + format), mypy, pylint, bandit, pytest —
@@ -111,10 +113,15 @@ closed, apply least privilege.
 
 ```text
 # Orchestrator
-harvester/main.py  →  harvester/config.py
-harvester/main.py  →  harvester/errors.py
-harvester/main.py  →  <plugin>/plugin.py  (dynamic dispatch by plugin key)
-harvester/main.py  →  api_client (shared lib)
+harvester/main.py          →  harvester/orchestrator.py
+harvester/main.py          →  harvester/reporting.py
+harvester/orchestrator.py  →  harvester/config.py
+harvester/orchestrator.py  →  harvester/errors.py
+harvester/orchestrator.py  →  harvester/upload.py
+harvester/orchestrator.py  →  <plugin>/plugin.py  (dynamic dispatch by plugin key)
+harvester/upload.py        →  harvester/reporting.py
+harvester/upload.py        →  harvester/plugin_base.py
+harvester/upload.py        →  api_client (shared lib)
 
 # INSPIRE plugin (example; all plugins follow this pattern)
 inspire/plugin.py  →  inspire/csw_client.py  →  inspire/models.py

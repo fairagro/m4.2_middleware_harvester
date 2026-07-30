@@ -9,6 +9,7 @@ from rdflib import Graph
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.config import (
     Config,
     DatasetType,
@@ -78,7 +79,7 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     )
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.return_value = "mapped:graph"
+    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:graph")
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
@@ -97,12 +98,10 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
 
     results = [item async for item in LinkedDataPlugin(config).run()]
 
-    assert results == [("mapped:graph", "https://example.org/dataset/1")]
+    assert results == [HarvestedArc(arc_json="mapped:graph", source_url="https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
     (graph_arg,) = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
-    assert isinstance(results[0], tuple)
-    assert isinstance(results[0][0], str)
 
 
 @pytest.mark.asyncio
@@ -176,7 +175,9 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: MagicMock(map_graph=MagicMock(return_value="mapped:graph"))),
+        staticmethod(
+            lambda _config: MagicMock(map_graph=MagicMock(return_value=HarvestedArc(arc_json="mapped:graph")))
+        ),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.wait_for_host", AsyncMock(return_value=None))
@@ -201,8 +202,8 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     try:
         agen = LinkedDataPlugin(config).run()
         first_result = await agen.__anext__()
-        assert isinstance(first_result, tuple)
-        assert first_result[0] == "mapped:graph"
+        assert isinstance(first_result, HarvestedArc)
+        assert first_result.arc_json == "mapped:graph"
         await agen.aclose()
         await asyncio.sleep(0)
     finally:
