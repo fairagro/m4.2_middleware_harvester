@@ -35,11 +35,11 @@ The system SHALL instantiate and invoke the appropriate `xxx_to_arc` plugin by l
 - **THEN** Instantiate and invoke the appropriate `xxx_to_arc` plugin by looking up the plugin type key in `PLUGIN_FACTORIES`, instantiating the corresponding `Plugin` subclass with the plugin-specific config, and calling `.run()` and `.get_expected_datasets()` via the `Plugin` interface
 
 ### Requirement: Plugin.run() is an async generator method (declared with async def)…
-The system SHALL ensure that `Plugin.run()` is an `async` generator method (declared with `async def`) returning `AsyncGenerator[str | HarvesterError, None]`.
+The system SHALL ensure that `Plugin.run()` is an `async` generator method (declared with `async def`) returning `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`.
 
 #### Scenario: Satisfies — Plugin.run() is an async generator method (declared with async def)…
 - **WHEN** the conditions described by this requirement apply
-- **THEN** `Plugin.run()` is an `async` generator method (declared with `async def`) returning `AsyncGenerator[str | HarvesterError, None]`
+- **THEN** `Plugin.run()` is an `async` generator method (declared with `async def`) returning `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`
 
 ### Requirement: Plugin.get_expected_datasets() is an async method returning int | None
 The system SHALL ensure that `Plugin.get_expected_datasets()` is an `async` method returning `int | None`.

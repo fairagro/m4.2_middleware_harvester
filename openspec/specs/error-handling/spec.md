@@ -27,12 +27,12 @@ Each plugin MUST define its own plugin-specific base exception (e.g., `InspireEr
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `LinkedDataError`) that inherits directly from `HarvesterError`. All further plugin-internal exception classes MUST inherit from that plugin-specific base — never directly from `HarvesterError`
 
-### Requirement: The AsyncGenerator contract of every plugin MUST be AsyncGenerator[str |…
-The `AsyncGenerator` contract of every plugin MUST be `AsyncGenerator[str | HarvesterError, None]`.
+### Requirement: The AsyncGenerator contract of every plugin MUST be AsyncGenerator[HarvestedArc |…
+The `AsyncGenerator` contract of every plugin MUST be `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`.
 
-#### Scenario: Satisfies — The AsyncGenerator contract of every plugin MUST be AsyncGenerator[str |…
+#### Scenario: Satisfies — The AsyncGenerator contract of every plugin MUST be AsyncGenerator[HarvestedArc |…
 - **WHEN** the conditions described by this requirement apply
-- **THEN** The `AsyncGenerator` contract of every plugin MUST be `AsyncGenerator[str | HarvesterError, None]`
+- **THEN** The `AsyncGenerator` contract of every plugin MUST be `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`
 
 ### Requirement: Plugins MUST NOT swallow or locally log expected record-level parsing…
 Plugins MUST NOT swallow or locally log expected record-level parsing or mapping failures. Instead, they must `yield` a `HarvesterError` instance to the orchestrator.

@@ -22,8 +22,8 @@ context: |
   Do not restate what is there in change proposals.
 
   Plugin architecture: each input format is an AsyncGenerator plugin yielding
-  `str | HarvesterError`. The orchestrator (middleware/harvester) never parses
-  source-format records directly.
+  `HarvestedArc | HarvesterError | SkippedRecord`. The orchestrator
+  (middleware/harvester) never parses source-format records directly.
 
   Quality gates (all via `uv run`, config from pyproject.toml / .bandit):
   ruff format + check, mypy, pylint, bandit, pytest.

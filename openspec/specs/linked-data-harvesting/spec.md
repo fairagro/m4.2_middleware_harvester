@@ -43,12 +43,12 @@ The system SHALL ensure that validate config at startup and fail fast on unsuppo
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Validate config at startup and fail fast on unsupported enum values
 
-### Requirement: Yield serialized RO-Crate JSON-LD strings, HarvesterError objects, or SkippedRecord objects…
-The system SHALL ensure that yield serialized RO-Crate JSON-LD strings, `HarvesterError` objects, or `SkippedRecord` objects for every dataset outcome (success, failure, or deliberate skip).
+### Requirement: Yield HarvestedArc, HarvesterError, or SkippedRecord for every dataset outcome
+The system SHALL yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for every dataset outcome (success, failure, or deliberate skip).
 
-#### Scenario: Satisfies — Yield serialized RO-Crate JSON-LD strings, HarvesterError objects, or SkippedRecord objects…
+#### Scenario: Satisfies — Yield HarvestedArc, HarvesterError, or SkippedRecord for every dataset outcome
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Yield serialized RO-Crate JSON-LD strings, `HarvesterError` objects, or `SkippedRecord` objects for every dataset outcome (success, failure, or deliberate skip)
+- **THEN** Yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for every dataset outcome (success, failure, or deliberate skip)
 
 ### Requirement: Continue harvesting remaining datasets when a dataset-level failure occurs
 The system SHALL ensure that continue harvesting remaining datasets when a dataset-level failure occurs.

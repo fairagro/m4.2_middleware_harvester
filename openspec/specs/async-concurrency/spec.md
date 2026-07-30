@@ -107,11 +107,11 @@ The system SHALL ensure that per-record `arc_upload` OTLP spans are not emitted;
 - **THEN** Per-record `arc_upload` OTLP spans are not emitted; the `harvest_arcs`
 
 ### Requirement: Edge case — Plugin yields only HarvesterError items
-The system SHALL handle this edge case: when Plugin yields only `HarvesterError` items, then `arc_stream` drains with zero `str` items → `harvest_arcs` creates and immediately completes a harvest with zero ARCs; no error is raised.
+The system SHALL handle this edge case: when Plugin yields only `HarvesterError` items, then `arc_stream` drains with zero ARC JSON payloads → `harvest_arcs` creates and immediately completes a harvest with zero ARCs; no error is raised.
 
 #### Scenario: Edge case — Plugin yields only HarvesterError items
 - **WHEN** Plugin yields only `HarvesterError` items
-- **THEN** `arc_stream` drains with zero `str` items → `harvest_arcs` creates and immediately completes a harvest with zero ARCs; no error is raised
+- **THEN** `arc_stream` drains with zero ARC JSON payloads → `harvest_arcs` creates and immediately completes a harvest with zero ARCs; no error is raised
 
 ### Requirement: Edge case — All repositories fail
 The system SHALL handle this edge case: when All repositories fail, then `asyncio.gather(return_exceptions=True)` collects all exceptions; orchestrator logs each; process exits non-zero.

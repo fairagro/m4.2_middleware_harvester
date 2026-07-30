@@ -44,7 +44,7 @@ Concurrency is introduced at four independent layers:
    — `harvest_arcs` creates a server-side harvest context, submits all ARCs with
    bounded internal parallelism (`ApiClient.max_concurrency`), and completes or
    cancels atomically. A thin filter generator (`arc_stream` in `upload.py`) adapts the plugin's
-   `AsyncGenerator[str | HarvesterError, None]` output to the
+   `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]` output to the
    `AsyncIterator[str]` interface expected by `harvest_arcs`.
 
 6. **Per-record `arc_upload` OTLP spans are not emitted**
