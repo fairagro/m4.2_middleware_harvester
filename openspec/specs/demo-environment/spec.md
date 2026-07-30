@@ -2,94 +2,125 @@
 
 ## Purpose
 
-Provide a one-command, self-contained local environment that demonstrates
-the full INSPIRE-to-ARC pipeline end-to-end without requiring production
+Provide a one-command, self-contained local environment that demonstrates the
+full INSPIRE-to-ARC pipeline end-to-end without requiring production
 credentials or mTLS certificates.
 
 ## Requirements
 
-### Requirement: Start with a single command:
-The system SHALL start with a single command:.
+### Requirement: Start with a single compose command
 
-#### Scenario: Satisfies — Start with a single command:
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Start with a single command:
+The system SHALL start the demo with:
 
-### Requirement: Run a mock Middleware API (middleware-api) that accepts ARC RO-Crate
-The system SHALL run a mock Middleware API (`middleware-api`) that accepts ARC RO-Crate.
+`docker compose -f dev_environment/compose.demo.yaml up --build`
 
-#### Scenario: Satisfies — Run a mock Middleware API (middleware-api) that accepts ARC RO-Crate
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Run a mock Middleware API (`middleware-api`) that accepts ARC RO-Crate
+#### Scenario: Operator starts the demo
 
-### Requirement: Run the harvester against the public GeoNode demo CSW endpoint
-The system SHALL run the `harvester` against the public GeoNode demo CSW endpoint.
+- **WHEN** an operator runs the compose command above from the repository root
+- **THEN** the mock API and harvester services start without additional setup
+  steps
 
-#### Scenario: Satisfies — Run the harvester against the public GeoNode demo CSW endpoint
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Run the `harvester` against the public GeoNode demo CSW endpoint
+### Requirement: Mock Middleware API
 
-### Requirement: Limit the harvest to 5 records via max_records so the…
-The system SHALL limit the harvest to 5 records via `max_records` so the demo completes quickly.
+The system SHALL run a mock Middleware API (`middleware-api`) that accepts ARC
+RO-Crate uploads and writes them under the host-visible
+`dev_environment/demo_output/` directory (bind-mounted to `/data/arcs` in the
+container).
 
-#### Scenario: Satisfies — Limit the harvest to 5 records via max_records so the…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Limit the harvest to 5 records via `max_records` so the demo completes quickly
+#### Scenario: Successful upload is written locally
 
-### Requirement: Harvester exits 0 when all records are processed; compose exits…
-The system SHALL exit 0 when all records are processed; compose exits with.
+- **WHEN** the harvester uploads an ARC to the mock API
+- **THEN** the ARC files appear under `dev_environment/demo_output/`
 
-#### Scenario: Satisfies — Harvester exits 0 when all records are processed; compose exits…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Harvester exits 0 when all records are processed; compose exits with
+### Requirement: Public GeoNode demo CSW
 
-### Requirement: Written ARC files are accessible on the host via a…
-The system SHALL make written ARC files accessible on the host via a bind-mounted.
+The system SHALL run the harvester against the public GeoNode demo CSW endpoint
+`https://stable.demo.geonode.org/catalogue/csw`.
 
-#### Scenario: Satisfies — Written ARC files are accessible on the host via a…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Written ARC files are accessible on the host via a bind-mounted
+#### Scenario: Configured CSW URL
 
-### Requirement: File ownership of output files matches the host user (via
-The system SHALL ensure file ownership of output files matches the host user (via.
+- **WHEN** `dev_environment/config.demo.yaml` is used
+- **THEN** `inspire.csw_url` points at the public GeoNode demo catalogue
 
-#### Scenario: Satisfies — File ownership of output files matches the host user (via
-- **WHEN** the conditions described by this requirement apply
-- **THEN** File ownership of output files matches the host user (via
+### Requirement: Limit harvest size
 
-### Requirement: No credentials, encrypted files, or mTLS certificates required
-The system SHALL ensure that no credentials, encrypted files, or mTLS certificates required.
+The system SHALL limit the harvest to 5 records via `max_records` so the demo
+completes quickly.
 
-#### Scenario: Satisfies — No credentials, encrypted files, or mTLS certificates required
-- **WHEN** the conditions described by this requirement apply
-- **THEN** No credentials, encrypted files, or mTLS certificates required
+#### Scenario: Five-record cap
 
-### Requirement: Edge case — ARC identifier in payload is unsafe (path traversal attempt)
-The system SHALL handle this edge case: when ARC identifier in payload is unsafe (path traversal attempt), then mock API falls back to a random ID, logs to console, does not write outside `demo_output/`.
+- **WHEN** the demo config is loaded
+- **THEN** `max_records` is `5`
 
-#### Scenario: Edge case — ARC identifier in payload is unsafe (path traversal attempt)
-- **WHEN** ARC identifier in payload is unsafe (path traversal attempt)
-- **THEN** mock API falls back to a random ID, logs to console, does not write outside `demo_output/`
+### Requirement: Exit codes
 
-### Requirement: Edge case — Demo_output/ doesn't exist
-The system SHALL handle this edge case: when `demo_output/` doesn't exist, then mock API creates it on first request.
+The harvester SHALL exit `0` when all configured records are processed
+successfully. Compose SHALL propagate the harvester exit code when run with
+`--exit-code-from harvester`.
 
-#### Scenario: Edge case — Demo_output/ doesn't exist
-- **WHEN** `demo_output/` doesn't exist
-- **THEN** mock API creates it on first request
+#### Scenario: Successful demo run
 
-### Requirement: Edge case — CSW endpoint is unavailable
-The system SHALL handle this edge case: when CSW endpoint is unavailable, then harvester exits non-zero with a clear log message from the `ConnectionError` raised by `CSWClient.connect()`.
+- **WHEN** the harvester finishes without repository-level failure
+- **THEN** the harvester process exit code is `0`
 
-#### Scenario: Edge case — CSW endpoint is unavailable
-- **WHEN** CSW endpoint is unavailable
-- **THEN** harvester exits non-zero with a clear log message from the `ConnectionError` raised by `CSWClient.connect()`
+### Requirement: Host-visible output ownership
+
+Written ARC files MUST be accessible on the host via the bind-mounted
+`dev_environment/demo_output/` volume. File ownership SHOULD match the host
+user via `LOCAL_UID` / `LOCAL_GID` environment variables.
+
+#### Scenario: LOCAL_UID/LOCAL_GID applied
+
+- **WHEN** `LOCAL_UID` and `LOCAL_GID` are set for the mock API container
+- **THEN** written output under `demo_output/` is chowned to that uid/gid
+
+### Requirement: No production secrets
+
+The demo MUST NOT require credentials, sops-encrypted files, or mTLS client
+certificates.
+
+#### Scenario: Plain compose demo
+
+- **WHEN** an operator starts `compose.demo.yaml`
+- **THEN** no `client.key` / sops / mTLS material is required
+
+### Requirement: Edge case — unsafe ARC identifier
+
+When an ARC identifier in the upload payload is unsafe (path traversal or
+disallowed characters), the mock API MUST fall back to a random ID, log to the
+console, and MUST NOT write outside `demo_output/`.
+
+#### Scenario: Path traversal attempt
+
+- **WHEN** the payload identifier contains `../` or other unsafe path content
+- **THEN** the mock API stores under a safe random id inside `demo_output/`
+
+### Requirement: Edge case — missing demo_output directory
+
+When `demo_output/` does not exist, the mock API MUST create it on first
+request.
+
+#### Scenario: First write creates directory
+
+- **WHEN** the output directory is absent at startup
+- **THEN** the first successful upload creates it
+
+### Requirement: Edge case — CSW unavailable
+
+When the CSW endpoint is unavailable, the harvester MUST exit non-zero with a
+clear log message stemming from the connection failure raised by
+`CSWClient.connect()`.
+
+#### Scenario: Unreachable CSW
+
+- **WHEN** the configured CSW host cannot be reached
+- **THEN** the harvester exits non-zero and logs the connection failure
 
 ## Out of Scope
 
 Production credentials, sops-encrypted secrets, mTLS, and full-size CSW
-harvesting are the responsibility of the dev environment (`compose.yaml`),
-not this demo.
+harvesting belong to the broader `dev_environment/compose.yaml` setup, not this
+demo.
 
 The demo requires outbound network access to the public GeoNode demo CSW
 endpoint. No local CSW mock is provided.

@@ -2,90 +2,99 @@
 
 ## Purpose
 
-Parse standard XML sitemap documents and yield discovery results for Schema.org harvesting.
+Parse standard XML sitemap documents and yield discovery results for Linked
+Data harvesting. The parser does not fetch dataset payloads or perform ARC
+mapping.
 
 ## Requirements
 
-### Requirement: Support SitemapType.xml in plugin configuration
-The system SHALL support `SitemapType.xml` in plugin configuration.
+### Requirement: SitemapType.xml configuration
 
-#### Scenario: Satisfies — Support SitemapType.xml in plugin configuration
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Support `SitemapType.xml` in plugin configuration
+The system SHALL support `SitemapType.xml` in linked-data plugin configuration
+and accept a single sitemap entry-point URL.
 
-### Requirement: Accept a single sitemap entry point URL in plugin configuration
-The system SHALL accept a single sitemap entry point URL in plugin configuration.
+#### Scenario: XML sitemap type is selectable
 
-#### Scenario: Satisfies — Accept a single sitemap entry point URL in plugin configuration
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Accept a single sitemap entry point URL in plugin configuration
+- **WHEN** plugin config sets `sitemap_type: xml` with a `sitemap_url`
+- **THEN** the plugin uses the XML sitemap implementation for discovery
 
-### Requirement: Parse XML sitemap documents according to the sitemap protocol
-The system SHALL parse XML sitemap documents according to the sitemap protocol.
+### Requirement: Sitemap protocol parsing
 
-#### Scenario: Satisfies — Parse XML sitemap documents according to the sitemap protocol
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Parse XML sitemap documents according to the sitemap protocol
+The system SHALL parse XML sitemap documents according to the sitemap protocol
+and support both `urlset` and `sitemapindex` document roots.
 
-### Requirement: Support both urlset and sitemapindex document roots
-The system SHALL support both `urlset` and `sitemapindex` document roots.
+#### Scenario: urlset and sitemapindex
 
-#### Scenario: Satisfies — Support both urlset and sitemapindex document roots
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Support both `urlset` and `sitemapindex` document roots
+- **WHEN** the entry document is a `urlset` or a `sitemapindex`
+- **THEN** the parser processes that root type without requiring a different
+  config switch
 
-### Requirement: Recursively follow nested sitemap indexes
-The system SHALL recursively follow nested sitemap indexes.
+### Requirement: Nested indexes and loop prevention
 
-#### Scenario: Satisfies — Recursively follow nested sitemap indexes
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Recursively follow nested sitemap indexes
+The system SHALL recursively follow nested `sitemapindex` entries and MUST
+track already-visited sitemap URLs so cycles are skipped silently.
 
-### Requirement: Prevent sitemap loops by tracking already visited sitemap URLs
-The system SHALL prevent sitemap loops by tracking already visited sitemap URLs.
+#### Scenario: Already-visited sitemap URL
 
-#### Scenario: Satisfies — Prevent sitemap loops by tracking already visited sitemap URLs
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Prevent sitemap loops by tracking already visited sitemap URLs
+- **WHEN** a nested index points at a sitemap URL already visited in this run
+- **THEN** that sitemap is skipped and discovery continues
 
-### Requirement: Deduplicate discovered dataset URLs before yielding results (as SkippedRecord)
-The system SHALL deduplicate discovered dataset URLs before yielding results (as `SkippedRecord`).
+### Requirement: Dataset URL discovery and deduplication
 
-#### Scenario: Satisfies — Deduplicate discovered dataset URLs before yielding results (as SkippedRecord)
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Deduplicate discovered dataset URLs before yielding results (as `SkippedRecord`)
+The system SHALL yield one `UrlDiscoveryResult` per unique dataset URL found in
+a `urlset`. Duplicate dataset URLs already yielded in the current run MUST be
+signalled as `SkippedRecord` (not as failures).
 
-### Requirement: Yield RecordProcessingError for empty <loc> elements (do not silently skip)
-The system SHALL yield `RecordProcessingError` for empty `<loc>` elements (do not silently skip).
+#### Scenario: Duplicate dataset URL
 
-#### Scenario: Satisfies — Yield RecordProcessingError for empty <loc> elements (do not silently skip)
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Yield `RecordProcessingError` for empty `<loc>` elements (do not silently skip)
+- **WHEN** the same dataset URL appears again in this harvest run
+- **THEN** the duplicate is yielded/counted as `SkippedRecord`
 
-### Requirement: Yield one UrlDiscoveryResult per unique dataset URL found in a…
-The system SHALL yield one `UrlDiscoveryResult` per unique dataset URL found in a `urlset`.
+### Requirement: Empty loc elements
 
-#### Scenario: Satisfies — Yield one UrlDiscoveryResult per unique dataset URL found in a…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Yield one `UrlDiscoveryResult` per unique dataset URL found in a `urlset`
+The system SHALL yield `RecordProcessingError` for missing or empty `<loc>`
+elements in both `urlset` and `sitemapindex` documents and MUST NOT silently
+skip them. Discovery of remaining entries continues.
 
-### Requirement: Use safe XML parsing (defusedxml) for untrusted content
-The system SHALL use safe XML parsing (`defusedxml`) for untrusted content.
+#### Scenario: Blank loc in urlset
 
-#### Scenario: Satisfies — Use safe XML parsing (defusedxml) for untrusted content
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Use safe XML parsing (`defusedxml`) for untrusted content
+- **WHEN** a `<url>` entry has an empty `<loc>`
+- **THEN** a `RecordProcessingError` is yielded and remaining URLs are still
+  processed
 
-### Requirement: Fail fast with LinkedDataSitemapError when XML parsing fails (malformed
-The system SHALL fail fast with `LinkedDataSitemapError` when XML parsing fails (malformed.
+### Requirement: Safe XML parsing
 
-#### Scenario: Satisfies — Fail fast with LinkedDataSitemapError when XML parsing fails (malformed
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Fail fast with `LinkedDataSitemapError` when XML parsing fails (malformed
+The system SHALL parse untrusted sitemap XML with `defusedxml`.
 
-### Requirement: Edge case — - Duplicate dataset URLs across nested sitemaps
-The system SHALL handle this edge case: when - Duplicate dataset URLs across nested sitemaps, then yield only the first occurrence. - A sitemap URL already visited in the current traversal → skip silently. - Missing or empty `<loc>` elements → yield `RecordProcessingError` without stopping discovery. - Duplicate dataset URL already yielded in this run → `SkippedRecord`. - Empty `urlset` → yield zero results and exit cleanly. - Malformed / non-XML body → raise `LinkedDataSitemapError` (fatal discovery failure; plugin producer yields it into the harvest report). - Unsupported root element → raise `LinkedDataSitemapError` the same way.
+#### Scenario: External sitemap body
 
-#### Scenario: Edge case — - Duplicate dataset URLs across nested sitemaps
-- **WHEN** - Duplicate dataset URLs across nested sitemaps
-- **THEN** yield only the first occurrence. - A sitemap URL already visited in the current traversal → skip silently. - Missing or empty `<loc>` elements → yield `RecordProcessingError` without stopping discovery. - Duplicate dataset URL already yielded in this run → `SkippedRecord`. - Empty `urlset` → yield zero results and exit cleanly. - Malformed / non-XML body → raise `LinkedDataSitemapError` (fatal discovery failure; plugin producer yields it into the harvest report). - Unsupported root element → raise `LinkedDataSitemapError` the same way
+- **WHEN** sitemap content is fetched from a remote URL
+- **THEN** parsing uses `defusedxml` rather than the stdlib XML parser alone
+
+### Requirement: Fatal parse failures
+
+The system SHALL fail fast with `LinkedDataSitemapError` when XML parsing fails
+(malformed or non-XML body) or when the document root is unsupported. That
+fatal discovery error is surfaced into the harvest report by the plugin
+producer.
+
+#### Scenario: Malformed XML body
+
+- **WHEN** the sitemap response body cannot be parsed as XML
+- **THEN** `LinkedDataSitemapError` is raised for that discovery failure
+
+#### Scenario: Unsupported root element
+
+- **WHEN** the root element is neither `urlset` nor `sitemapindex`
+- **THEN** `LinkedDataSitemapError` is raised
+
+### Requirement: Edge case — empty urlset
+
+When a `urlset` contains no usable dataset URLs, discovery MUST yield zero
+`UrlDiscoveryResult` values and exit cleanly.
+
+#### Scenario: Empty urlset
+
+- **WHEN** the sitemap is a valid empty `urlset`
+- **THEN** no dataset discovery results are yielded and discovery completes
+  without error
