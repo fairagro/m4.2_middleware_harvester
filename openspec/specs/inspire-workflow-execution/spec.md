@@ -2,48 +2,87 @@
 
 ## Purpose
 
-Exposes an asynchronous generator that iterates over CSW records and yields serialized ARCs. As a plugin, it must not execute standalone (no `main()` function) and relies on the global Harvester for API interactions.
+Exposes an asynchronous generator that iterates over CSW records and yields
+`HarvestedArc`, `HarvesterError`, or `SkippedRecord` values. As a plugin it
+must not run standalone (no `main()`) and relies on the central harvester for
+API uploads.
 
 ## Requirements
 
-### Requirement: Implement InspirePlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-The system SHALL implement `InspirePlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
+### Requirement: Implement InspirePlugin
 
-#### Scenario: Satisfies — Implement InspirePlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Implement `InspirePlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface
+The system SHALL implement `InspirePlugin(Plugin)` in `plugin.py`. The central
+harvester instantiates it with the plugin config and invokes `run()` and
+`get_expected_datasets()` via the `Plugin` interface.
 
-### Requirement: Use the CSWClient class to communicate with the CSW endpoint…
-The system SHALL use the `CSWClient` class to communicate with the CSW endpoint and fetch all available metadata records iteratively.
+#### Scenario: Plugin interface wiring
 
-#### Scenario: Satisfies — Use the CSWClient class to communicate with the CSW endpoint…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Use the `CSWClient` class to communicate with the CSW endpoint and fetch all available metadata records iteratively
+- **WHEN** a repository is configured with the inspire plugin type
+- **THEN** the orchestrator constructs `InspirePlugin` with the plugin config
+  and calls `run()` / `get_expected_datasets()`
 
-### Requirement: Skip any record whose hierarchy is not a valid data…
-The system SHALL skip any record whose `hierarchy` is not a valid data type (i.e., not within `["dataset", "series", "nongeographicdataset"]`).
+### Requirement: Fetch records via CSWClient
 
-#### Scenario: Satisfies — Skip any record whose hierarchy is not a valid data…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Skip any record whose `hierarchy` is not a valid data type (i.e., not within `["dataset", "series", "nongeographicdataset"]`)
+The system SHALL use `CSWClient` to communicate with the CSW endpoint and
+fetch metadata records iteratively.
 
-### Requirement: Use the InspireMapper class to transform each valid parsed record…
-The system SHALL use the `InspireMapper` class to transform each valid parsed record into an ARC object.
+#### Scenario: Iterative CSW fetch
 
-#### Scenario: Satisfies — Use the InspireMapper class to transform each valid parsed record…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Use the `InspireMapper` class to transform each valid parsed record into an ARC object
+- **WHEN** `InspirePlugin.run()` executes
+- **THEN** records are obtained through `CSWClient.get_records_async()`
 
-### Requirement: Serialize each ARC via arc.ToROCrateJsonString() and yield the resulting JSON…
-The system SHALL serialize each ARC via `arc.ToROCrateJsonString()` and `yield` the resulting JSON string to the calling Harvester.
+### Requirement: Skip non-harvestable hierarchy levels
 
-#### Scenario: Satisfies — Serialize each ARC via arc.ToROCrateJsonString() and yield the resulting JSON…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Serialize each ARC via `arc.ToROCrateJsonString()` and `yield` the resulting JSON string to the calling Harvester
+When a record’s `hierarchy` is set and is not one of
+`dataset`, `series`, or `nongeographicdataset`, the plugin MUST yield a
+`SkippedRecord` (with the record URL when available) and MUST NOT map or upload
+that record.
 
-### Requirement: Do not include a main() function, argument parsing, or ApiClient…
-The system SHALL do not include a `main()` function, argument parsing, or `ApiClient` upload logic.
+#### Scenario: Non-dataset hierarchy
 
-#### Scenario: Satisfies — Do not include a main() function, argument parsing, or ApiClient…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Do not include a `main()` function, argument parsing, or `ApiClient` upload logic
+- **WHEN** a record has hierarchy `service` (or another non-harvestable value)
+- **THEN** the plugin yields `SkippedRecord` and continues with the next record
+
+### Requirement: Map valid records with InspireMapper
+
+The system SHALL use `InspireMapper` to transform each harvestable parsed
+record into an arctrl ARC object.
+
+#### Scenario: Successful map
+
+- **WHEN** a harvestable record is processed
+- **THEN** `InspireMapper.map_record` produces an ARC for that record
+
+### Requirement: Yield HarvestedArc for successful maps
+
+For each successfully mapped ARC the plugin MUST yield a `HarvestedArc` built
+via `HarvestedArc.from_arctrl(arc, source_url=…)`, which serializes through
+`arc.ToROCrateJsonString()` and carries study/assay counts plus the optional
+source URL. The plugin MUST NOT yield a bare JSON string.
+
+#### Scenario: Successful harvest item
+
+- **WHEN** mapping succeeds for a record
+- **THEN** the generator yields a `HarvestedArc` (not a raw `str`) to the
+  orchestrator
+
+### Requirement: Yield RecordProcessingError on map failure
+
+When mapping fails for a specific record, the plugin MUST yield
+`RecordProcessingError` for that record and continue with remaining records.
+
+#### Scenario: Map failure does not abort the run
+
+- **WHEN** `map_record` raises for one record
+- **THEN** the plugin yields `RecordProcessingError` and continues iteration
+
+### Requirement: Plugin has no standalone entrypoint
+
+The inspire plugin MUST NOT include a `main()` function, CLI argument parsing,
+or `ApiClient` upload logic.
+
+#### Scenario: Upload remains orchestrator-owned
+
+- **WHEN** inspecting the inspire package entrypoints and plugin module
+- **THEN** API upload is performed only by the harvester orchestrator, not by
+  the plugin
