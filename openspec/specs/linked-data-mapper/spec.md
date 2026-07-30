@@ -2,51 +2,68 @@
 
 ## Purpose
 
-Define the mapping contract from a parsed Linked Data RDF graph to ARC RO-Crate JSON-LD.
+Define the mapping contract from a parsed Linked Data RDF graph to a
+`HarvestedArc` (RO-Crate JSON-LD plus study/assay composition counts).
 
-Vocabulary-specific implementations (e.g. `GeneralSchemaOrgMapper` for schema.org,
-or a future Regal mapper) register against `payload_type` and implement this interface.
+Vocabulary-specific implementations (e.g. `GeneralSchemaOrgMapper` for
+schema.org, `RegalMapper` for Regal) register against `payload_type` and
+implement this interface.
 
 ## Requirements
 
-### Requirement: Provide a LinkedDataMapper interface that accepts an rdflib.Graph and returns…
-The system SHALL provide a `LinkedDataMapper` interface that accepts an `rdflib.Graph` and returns a serialized RO-Crate JSON-LD string.
+### Requirement: LinkedDataMapper.map_graph returns HarvestedArc
 
-#### Scenario: Satisfies — Provide a LinkedDataMapper interface that accepts an rdflib.Graph and returns…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The system SHALL provide a `LinkedDataMapper` interface that accepts an `rdflib.Graph` and returns a serialized RO-Crate JSON-LD string
+The system SHALL provide a `LinkedDataMapper` ABC whose `map_graph` method
+accepts an `rdflib.Graph` and returns a `HarvestedArc`. Implementations MUST
+build the value via `HarvestedArc.from_arctrl` (or equivalent) so the
+orchestrator receives serialized ARC JSON plus composition counts without
+re-parsing RO-Crate JSON. The mapper MUST NOT return a bare JSON string.
 
-### Requirement: Select mapper implementations using payload_type configuration values
-The system SHALL select mapper implementations using `payload_type` configuration values.
+#### Scenario: Successful map produces HarvestedArc
 
-#### Scenario: Satisfies — Select mapper implementations using payload_type configuration values
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Select mapper implementations using `payload_type` configuration values
+- **WHEN** `map_graph` is called with a mappable graph
+- **THEN** the return type is `HarvestedArc`, not `str`
 
-### Requirement: Keep mapping logic separate from sitemap discovery and dataset payload…
-The system SHALL keep mapping logic separate from sitemap discovery and dataset payload extraction.
+### Requirement: Select mapper by payload_type
 
-#### Scenario: Satisfies — Keep mapping logic separate from sitemap discovery and dataset payload…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Keep mapping logic separate from sitemap discovery and dataset payload extraction
+The system SHALL select mapper implementations using configured `payload_type`
+values via the mapper registry (explicit, non-guessing selection).
 
-### Requirement: Produce errors as HarvesterError objects when mapping fails
-The system SHALL produce errors as `HarvesterError` objects when mapping fails.
+#### Scenario: Configured payload selects the registered mapper
 
-#### Scenario: Satisfies — Produce errors as HarvesterError objects when mapping fails
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Produce errors as `HarvesterError` objects when mapping fails
+- **WHEN** plugin config sets a supported `payload_type`
+- **THEN** `LinkedDataMapper.from_config` / registry resolution returns the
+  matching concrete mapper
 
-### Requirement: Support explicit, non-guessing mapper selection based on the configured payload…
-The system SHALL support explicit, non-guessing mapper selection based on the configured payload type.
+### Requirement: Keep mapping separate from discovery
 
-#### Scenario: Satisfies — Support explicit, non-guessing mapper selection based on the configured payload…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Support explicit, non-guessing mapper selection based on the configured payload type
+The system SHALL keep mapping logic separate from sitemap discovery and dataset
+payload extraction.
 
-### Requirement: Edge case — - A graph without valid dataset metadata must yield a…
-The system SHALL handle this edge case: when - A graph without valid dataset metadata must yield a mapping error and not crash the plugin. - Mapping implementations must not depend on runtime config outside the selected `payload_type`., then behaviour matches the documented outcome.
+#### Scenario: Mapper does not fetch sitemaps
 
-#### Scenario: Edge case — - A graph without valid dataset metadata must yield a…
-- **WHEN** - A graph without valid dataset metadata must yield a mapping error and not crash the plugin. - Mapping implementations must not depend on runtime config outside the selected `payload_type`.
-- **THEN** behaviour matches the documented outcome
+- **WHEN** a mapper implementation runs
+- **THEN** it operates only on an already-built `rdflib.Graph` and does not
+  perform sitemap discovery or HTTP dataset fetch
+
+### Requirement: Mapping failures surface as HarvesterError
+
+Mapping failures MUST be surfaced to the orchestrator as `HarvesterError`
+(typically `RecordProcessingError`) and MUST NOT crash the whole harvest run.
+
+#### Scenario: Unmappable graph
+
+- **WHEN** a graph lacks valid dataset metadata for the selected mapper
+- **THEN** the plugin yields a `HarvesterError` for that record and continues
+
+### Requirement: Edge case — no runtime config outside payload selection
+
+Mapper implementations MUST NOT depend on ad-hoc runtime config outside the
+fields needed for the selected `payload_type` (e.g. Regal resource base URL via
+`from_config`).
+
+#### Scenario: Payload-scoped config only
+
+- **WHEN** a mapper is constructed from plugin config
+- **THEN** only configuration relevant to that `payload_type` influences
+  mapping behaviour
