@@ -12,6 +12,9 @@ middleware/harvester/plugin_base.py
 middleware/harvester/upload.py
 └── arc_stream()                # isinstance(item, SkippedRecord) → scope.record_skipped()
 
+middleware/harvester/reporting.py
+└── handle_skipped_record()     # INFO log for skip reason / URL
+
 middleware.shared.report
 ├── RepositoryScope.record_skipped()
 ├── RepositoryReport.skipped_datasets  # always int, default 0
