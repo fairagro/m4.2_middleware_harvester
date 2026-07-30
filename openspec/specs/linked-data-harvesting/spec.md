@@ -16,28 +16,28 @@ The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel`
 - **THEN** The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the main `middleware.harvester.config.Config` plugin config schema
 
 ### Requirement: Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
-The system SHALL ensure that require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically.
+The system SHALL require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically.
 
 #### Scenario: Satisfies — Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically
 
 ### Requirement: Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-The system SHALL ensure that implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
+The system SHALL implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
 
 #### Scenario: Satisfies — Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface
 
 ### Requirement: Select implementations using registries for sitemap, dataset, and mapper types
-The system SHALL ensure that select implementations using registries for sitemap, dataset, and mapper types.
+The system SHALL select implementations using registries for sitemap, dataset, and mapper types.
 
 #### Scenario: Satisfies — Select implementations using registries for sitemap, dataset, and mapper types
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Select implementations using registries for sitemap, dataset, and mapper types
 
 ### Requirement: Validate config at startup and fail fast on unsupported enum…
-The system SHALL ensure that validate config at startup and fail fast on unsupported enum values.
+The system SHALL validate config at startup and fail fast on unsupported enum values.
 
 #### Scenario: Satisfies — Validate config at startup and fail fast on unsupported enum…
 - **WHEN** the conditions described by this requirement apply
@@ -51,14 +51,14 @@ The system SHALL yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for 
 - **THEN** Yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for every dataset outcome (success, failure, or deliberate skip)
 
 ### Requirement: Continue harvesting remaining datasets when a dataset-level failure occurs
-The system SHALL ensure that continue harvesting remaining datasets when a dataset-level failure occurs.
+The system SHALL continue harvesting remaining datasets when a dataset-level failure occurs.
 
 #### Scenario: Satisfies — Continue harvesting remaining datasets when a dataset-level failure occurs
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Continue harvesting remaining datasets when a dataset-level failure occurs
 
 ### Requirement: Ensure every yielded HarvesterError and SkippedRecord reaches the orchestrator so…
-The system SHALL ensure that ensure every yielded `HarvesterError` and `SkippedRecord` reaches the orchestrator so harvest-report counters and `fairagro:failedRecords` stay complete; do not treat local logging as a substitute for yielding.
+The system SHALL ensure that every yielded `HarvesterError` and `SkippedRecord` reaches the orchestrator so harvest-report counters and `fairagro:failedRecords` stay complete; do not treat local logging as a substitute for yielding.
 
 #### Scenario: Satisfies — Ensure every yielded HarvesterError and SkippedRecord reaches the orchestrator so…
 - **WHEN** the conditions described by this requirement apply

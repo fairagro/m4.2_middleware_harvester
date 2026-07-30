@@ -9,49 +9,49 @@ credentials or mTLS certificates.
 ## Requirements
 
 ### Requirement: Start with a single command:
-The system SHALL ensure that start with a single command:.
+The system SHALL start with a single command:.
 
 #### Scenario: Satisfies — Start with a single command:
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Start with a single command:
 
 ### Requirement: Run a mock Middleware API (middleware-api) that accepts ARC RO-Crate
-The system SHALL ensure that run a mock Middleware API (`middleware-api`) that accepts ARC RO-Crate.
+The system SHALL run a mock Middleware API (`middleware-api`) that accepts ARC RO-Crate.
 
 #### Scenario: Satisfies — Run a mock Middleware API (middleware-api) that accepts ARC RO-Crate
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Run a mock Middleware API (`middleware-api`) that accepts ARC RO-Crate
 
 ### Requirement: Run the harvester against the public GeoNode demo CSW endpoint
-The system SHALL ensure that run the `harvester` against the public GeoNode demo CSW endpoint.
+The system SHALL run the `harvester` against the public GeoNode demo CSW endpoint.
 
 #### Scenario: Satisfies — Run the harvester against the public GeoNode demo CSW endpoint
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Run the `harvester` against the public GeoNode demo CSW endpoint
 
 ### Requirement: Limit the harvest to 5 records via max_records so the…
-The system SHALL ensure that limit the harvest to 5 records via `max_records` so the demo completes quickly.
+The system SHALL limit the harvest to 5 records via `max_records` so the demo completes quickly.
 
 #### Scenario: Satisfies — Limit the harvest to 5 records via max_records so the…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Limit the harvest to 5 records via `max_records` so the demo completes quickly
 
 ### Requirement: Harvester exits 0 when all records are processed; compose exits…
-The system SHALL ensure that harvester exits 0 when all records are processed; compose exits with.
+The system SHALL exit 0 when all records are processed; compose exits with.
 
 #### Scenario: Satisfies — Harvester exits 0 when all records are processed; compose exits…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Harvester exits 0 when all records are processed; compose exits with
 
 ### Requirement: Written ARC files are accessible on the host via a…
-The system SHALL ensure that written ARC files are accessible on the host via a bind-mounted.
+The system SHALL make written ARC files accessible on the host via a bind-mounted.
 
 #### Scenario: Satisfies — Written ARC files are accessible on the host via a…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Written ARC files are accessible on the host via a bind-mounted
 
 ### Requirement: File ownership of output files matches the host user (via
-The system SHALL ensure that file ownership of output files matches the host user (via.
+The system SHALL ensure file ownership of output files matches the host user (via.
 
 #### Scenario: Satisfies — File ownership of output files matches the host user (via
 - **WHEN** the conditions described by this requirement apply

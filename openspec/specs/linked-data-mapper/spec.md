@@ -17,28 +17,28 @@ The system SHALL provide a `LinkedDataMapper` interface that accepts an `rdflib.
 - **THEN** The system SHALL provide a `LinkedDataMapper` interface that accepts an `rdflib.Graph` and returns a serialized RO-Crate JSON-LD string
 
 ### Requirement: Select mapper implementations using payload_type configuration values
-The system SHALL ensure that select mapper implementations using `payload_type` configuration values.
+The system SHALL select mapper implementations using `payload_type` configuration values.
 
 #### Scenario: Satisfies — Select mapper implementations using payload_type configuration values
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Select mapper implementations using `payload_type` configuration values
 
 ### Requirement: Keep mapping logic separate from sitemap discovery and dataset payload…
-The system SHALL ensure that keep mapping logic separate from sitemap discovery and dataset payload extraction.
+The system SHALL keep mapping logic separate from sitemap discovery and dataset payload extraction.
 
 #### Scenario: Satisfies — Keep mapping logic separate from sitemap discovery and dataset payload…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Keep mapping logic separate from sitemap discovery and dataset payload extraction
 
 ### Requirement: Produce errors as HarvesterError objects when mapping fails
-The system SHALL ensure that produce errors as `HarvesterError` objects when mapping fails.
+The system SHALL produce errors as `HarvesterError` objects when mapping fails.
 
 #### Scenario: Satisfies — Produce errors as HarvesterError objects when mapping fails
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Produce errors as `HarvesterError` objects when mapping fails
 
 ### Requirement: Support explicit, non-guessing mapper selection based on the configured payload…
-The system SHALL ensure that support explicit, non-guessing mapper selection based on the configured payload type.
+The system SHALL support explicit, non-guessing mapper selection based on the configured payload type.
 
 #### Scenario: Satisfies — Support explicit, non-guessing mapper selection based on the configured payload…
 - **WHEN** the conditions described by this requirement apply

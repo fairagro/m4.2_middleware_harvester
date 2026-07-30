@@ -24,28 +24,28 @@ The system SHALL ensure that `NiceHttpClient` is an async context manager; enter
 - **THEN** `NiceHttpClient` is an async context manager; entering creates and
 
 ### Requirement: Apply the configured user_agent as the User-Agent header on every
-The system SHALL ensure that apply the configured `user_agent` as the `User-Agent` header on every.
+The system SHALL apply the configured `user_agent` as the `User-Agent` header on every.
 
 #### Scenario: Satisfies — Apply the configured user_agent as the User-Agent header on every
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Apply the configured `user_agent` as the `User-Agent` header on every
 
 ### Requirement: Apply connect_timeout and read_timeout to every outgoing request
-The system SHALL ensure that apply `connect_timeout` and `read_timeout` to every outgoing request.
+The system SHALL apply `connect_timeout` and `read_timeout` to every outgoing request.
 
 #### Scenario: Satisfies — Apply connect_timeout and read_timeout to every outgoing request
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Apply `connect_timeout` and `read_timeout` to every outgoing request
 
 ### Requirement: Limit the total number of concurrent connections to max_connections
-The system SHALL ensure that limit the total number of concurrent connections to `max_connections`.
+The system SHALL limit the total number of concurrent connections to `max_connections`.
 
 #### Scenario: Satisfies — Limit the total number of concurrent connections to max_connections
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Limit the total number of concurrent connections to `max_connections`
 
 ### Requirement: Retry failed requests on HTTP 429, HTTP 5xx responses, and…
-The system SHALL ensure that retry failed requests on HTTP 429, HTTP 5xx responses, and transient.
+The system SHALL retry failed requests on HTTP 429, HTTP 5xx responses, and transient.
 
 #### Scenario: Satisfies — Retry failed requests on HTTP 429, HTTP 5xx responses, and…
 - **WHEN** the conditions described by this requirement apply
@@ -59,7 +59,7 @@ The system SHALL ensure that when a `Retry-After` response header is present, wa
 - **THEN** When a `Retry-After` response header is present, wait the indicated
 
 ### Requirement: Cap locally calculated exponential backoff delays at max_retry_delay
-The system SHALL ensure that cap locally calculated exponential backoff delays at `max_retry_delay`.
+The system SHALL cap locally calculated exponential backoff delays at `max_retry_delay`.
 
 #### Scenario: Satisfies — Cap locally calculated exponential backoff delays at max_retry_delay
 - **WHEN** the conditions described by this requirement apply
@@ -101,7 +101,7 @@ The system SHALL ensure that when `respect_robots_txt = False`: perform no `robo
 - **THEN** When `respect_robots_txt = False`: perform no `robots.txt` fetch and no
 
 ### Requirement: Plugin configs that use NiceHttpClient embed NiceHttpClientConfig as
-The system SHALL ensure that plugin configs that use `NiceHttpClient` embed `NiceHttpClientConfig` as.
+The system SHALL embed `NiceHttpClientConfig` in plugin configs that use `NiceHttpClient` as.
 
 #### Scenario: Satisfies — Plugin configs that use NiceHttpClient embed NiceHttpClientConfig as
 - **WHEN** the conditions described by this requirement apply

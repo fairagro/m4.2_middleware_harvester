@@ -7,42 +7,42 @@ Query the Catalogue Service for Web (CSW) endpoints and parse ISO 19139 XML into
 ## Requirements
 
 ### Requirement: Connect securely to the configured csw_url and retrieve all available…
-The system SHALL ensure that connect securely to the configured `csw_url` and retrieve all available metadata records.
+The system SHALL connect securely to the configured `csw_url` and retrieve all available metadata records.
 
 #### Scenario: Satisfies — Connect securely to the configured csw_url and retrieve all available…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Connect securely to the configured `csw_url` and retrieve all available metadata records
 
 ### Requirement: Support four mutually exclusive query modes per call:
-The system SHALL ensure that support four mutually exclusive query modes per call:.
+The system SHALL support four mutually exclusive query modes per call:.
 
 #### Scenario: Satisfies — Support four mutually exclusive query modes per call:
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Support four mutually exclusive query modes per call:
 
 ### Requirement: For xml_query pagination, use config chunk_size as the page size…
-The system SHALL ensure that for `xml_query` pagination, use config `chunk_size` as the page size unless the XML root specifies a valid `maxRecords` (> 0), which overrides `chunk_size` for the page size only.
+The system SHALL use config `chunk_size` as the page size for `xml_query` pagination unless the XML root specifies a valid `maxRecords` (> 0), which overrides `chunk_size` for the page size only.
 
 #### Scenario: Satisfies — For xml_query pagination, use config chunk_size as the page size…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** For `xml_query` pagination, use config `chunk_size` as the page size unless the XML root specifies a valid `maxRecords` (> 0), which overrides `chunk_size` for the page size only
 
 ### Requirement: For xml_query pagination, start at position 1 unless the XML…
-The system SHALL ensure that for `xml_query` pagination, start at position 1 unless the XML root specifies a valid `startPosition` (≥ 1), which is the initial page offset.
+The system SHALL start `xml_query` pagination at position 1 unless the XML root specifies a valid `startPosition` (≥ 1), which is the initial page offset.
 
 #### Scenario: Satisfies — For xml_query pagination, start at position 1 unless the XML…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** For `xml_query` pagination, start at position 1 unless the XML root specifies a valid `startPosition` (≥ 1), which is the initial page offset
 
 ### Requirement: Cap the total number of harvested records with config max_records…
-The system SHALL ensure that cap the total number of harvested records with config `max_records` when set (all query modes); do not treat XML `maxRecords` as a harvest-wide limit.
+The system SHALL cap the total number of harvested records with config `max_records` when set (all query modes); do not treat XML `maxRecords` as a harvest-wide limit.
 
 #### Scenario: Satisfies — Cap the total number of harvested records with config max_records…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Cap the total number of harvested records with config `max_records` when set (all query modes); do not treat XML `maxRecords` as a harvest-wide limit
 
 ### Requirement: Enforce mutual exclusion: activating more than one query mode (combining…
-The system SHALL ensure that enforce mutual exclusion: activating more than one query mode (combining call-site arguments with Config defaults) must raise `ValueError` immediately, before any network call.
+The system SHALL enforce mutual exclusion: activating more than one query mode (combining call-site arguments with Config defaults) must raise `ValueError` immediately, before any network call.
 
 #### Scenario: Satisfies — Enforce mutual exclusion: activating more than one query mode (combining…
 - **WHEN** the conditions described by this requirement apply
@@ -63,14 +63,14 @@ The system SHALL ensure that if and only if a batch contains ISO records without
 - **THEN** If and only if a batch contains ISO records without a usable identifier (absent or `owslib_random_*`), fetch the corresponding Dublin Core batch to obtain stable identifiers for those records
 
 ### Requirement: Match DC identifiers to identifier-less ISO parse errors by associating…
-The system SHALL ensure that match DC identifiers to identifier-less ISO parse errors by associating the remaining (unmatched) DC identifiers with failed ISO records in positional order.
+The system SHALL match DC identifiers to identifier-less ISO parse errors by associating the remaining (unmatched) DC identifiers with failed ISO records in positional order.
 
 #### Scenario: Satisfies — Match DC identifiers to identifier-less ISO parse errors by associating…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Match DC identifiers to identifier-less ISO parse errors by associating the remaining (unmatched) DC identifiers with failed ISO records in positional order
 
 ### Requirement: Yield a RecordProcessingError for each unmatched DC identifier so that…
-The system SHALL ensure that yield a `RecordProcessingError` for each unmatched DC identifier so that the harvest report can attribute errors to a specific source record.
+The system SHALL yield a `RecordProcessingError` for each unmatched DC identifier so that the harvest report can attribute errors to a specific source record.
 
 #### Scenario: Satisfies — Yield a RecordProcessingError for each unmatched DC identifier so that…
 - **WHEN** the conditions described by this requirement apply

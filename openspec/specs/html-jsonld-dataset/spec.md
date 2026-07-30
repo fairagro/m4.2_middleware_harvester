@@ -7,21 +7,21 @@ Fetch an HTML page and extract embedded JSON-LD markup into an `rdflib.Graph` fo
 ## Requirements
 
 ### Requirement: Accept a URL pointing to an HTML page as the…
-The system SHALL ensure that accept a URL pointing to an HTML page as the dataset source.
+The system SHALL accept a URL pointing to an HTML page as the dataset source.
 
 #### Scenario: Satisfies — Accept a URL pointing to an HTML page as the…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Accept a URL pointing to an HTML page as the dataset source
 
 ### Requirement: Fetch the HTML page over HTTP using the plugin's shared…
-The system SHALL ensure that fetch the HTML page over HTTP using the plugin's shared `NiceHttpClient`.
+The system SHALL fetch the HTML page over HTTP using the plugin's shared `NiceHttpClient`.
 
 #### Scenario: Satisfies — Fetch the HTML page over HTTP using the plugin's shared…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Fetch the HTML page over HTTP using the plugin's shared `NiceHttpClient`
 
 ### Requirement: Extract all <script type="application/ld+json"> blocks from the fetched HTML
-The system SHALL ensure that extract all `<script type="application/ld+json">` blocks from the fetched HTML.
+The system SHALL extract all `<script type="application/ld+json">` blocks from the fetched HTML.
 
 #### Scenario: Satisfies — Extract all <script type="application/ld+json"> blocks from the fetched HTML
 - **WHEN** the conditions described by this requirement apply
@@ -42,28 +42,28 @@ The system SHALL parse each JSON-LD block into an `rdflib.Graph` using `rdflib`'
 - **THEN** Parse each JSON-LD block into an `rdflib.Graph` using `rdflib`'s JSON-LD parser
 
 ### Requirement: Return the union of all parsed graphs from to_graph()
-The system SHALL ensure that return the union of all parsed graphs from `to_graph()`.
+The system SHALL return the union of all parsed graphs from `to_graph()`.
 
 #### Scenario: Satisfies — Return the union of all parsed graphs from to_graph()
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Return the union of all parsed graphs from `to_graph()`
 
 ### Requirement: Use the page URL as the stable dataset identifier
-The system SHALL ensure that use the page URL as the stable dataset identifier.
+The system SHALL use the page URL as the stable dataset identifier.
 
 #### Scenario: Satisfies — Use the page URL as the stable dataset identifier
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Use the page URL as the stable dataset identifier
 
 ### Requirement: Raise a LinkedDataDatasetError when the HTTP request fails
-The system SHALL ensure that raise a `LinkedDataDatasetError` when the HTTP request fails.
+The system SHALL raise a `LinkedDataDatasetError` when the HTTP request fails.
 
 #### Scenario: Satisfies — Raise a LinkedDataDatasetError when the HTTP request fails
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Raise a `LinkedDataDatasetError` when the HTTP request fails
 
 ### Requirement: Raise a LinkedDataDatasetError when the HTML contains no <script type="application/ld+json">…
-The system SHALL ensure that raise a `LinkedDataDatasetError` when the HTML contains no `<script type="application/ld+json">` blocks.
+The system SHALL raise a `LinkedDataDatasetError` when the HTML contains no `<script type="application/ld+json">` blocks.
 
 #### Scenario: Satisfies — Raise a LinkedDataDatasetError when the HTML contains no <script type="application/ld+json">…
 - **WHEN** the conditions described by this requirement apply

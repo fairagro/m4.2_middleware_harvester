@@ -51,7 +51,7 @@ The system SHALL ensure that a dataset fetch failure is caught per task and conv
 - **THEN** A dataset fetch failure is caught per task and converted to a
 
 ### Requirement: Results are yielded in arrival order (first completed, first yielded),
-The system SHALL ensure that results are yielded in arrival order (first completed, first yielded),.
+The system SHALL yield results in arrival order (first completed, first yielded),.
 
 #### Scenario: Satisfies — Results are yielded in arrival order (first completed, first yielded),
 - **WHEN** the conditions described by this requirement apply
@@ -79,7 +79,7 @@ The system SHALL ensure that for each repository, the orchestrator calls.
 - **THEN** For each repository, the orchestrator calls
 
 ### Requirement: Arc_stream is a thin filter async generator that passes through…
-The system SHALL ensure that `arc_stream` is a thin filter async generator that passes through `str`.
+The system SHALL ensure that `arc_stream` is a thin filter async generator that yields ARC JSON `str` payloads from `HarvestedArc` items (and records errors/skips on the report scope).
 
 #### Scenario: Satisfies — Arc_stream is a thin filter async generator that passes through…
 - **WHEN** the conditions described by this requirement apply
@@ -100,7 +100,7 @@ The system SHALL ensure that when the total count is not known upfront (XML site
 - **THEN** When the total count is not known upfront (XML sitemap, general
 
 ### Requirement: Per-record arc_upload OTLP spans are not emitted; the harvest_arcs
-The system SHALL ensure that per-record `arc_upload` OTLP spans are not emitted; the `harvest_arcs`.
+The system SHALL NOT emit per-record `arc_upload` OTLP spans; the `harvest_arcs`.
 
 #### Scenario: Satisfies — Per-record arc_upload OTLP spans are not emitted; the harvest_arcs
 - **WHEN** the conditions described by this requirement apply

@@ -63,7 +63,7 @@ The system SHALL ensure that each retry attempt is logged at WARNING level, incl
 - **THEN** Each retry attempt is logged at WARNING level, including: method name, attempt number out of total, and the exception message
 
 ### Requirement: Retry logic applies only to the async path (get_records_async, get_expected_datasets).…
-The system SHALL ensure that retry logic applies only to the async path (`get_records_async`, `get_expected_datasets`). The synchronous `get_records()` path is not modified.
+The system SHALL retry logic applies only to the async path (`get_records_async`, `get_expected_datasets`). The synchronous `get_records()` path is not modified.
 
 #### Scenario: Satisfies — Retry logic applies only to the async path (get_records_async, get_expected_datasets).…
 - **WHEN** the conditions described by this requirement apply
@@ -77,14 +77,14 @@ The system SHALL ensure that `ValueError` is never retried; it propagates immedi
 - **THEN** `ValueError` is never retried; it propagates immediately regardless of `retry_attempts`
 
 ### Requirement: HTTP 4xx errors (e.g. 404 Not Found on GetCapabilities) are…
-The system SHALL ensure that hTTP 4xx errors (e.g. 404 Not Found on `GetCapabilities`) are never retried; they propagate immediately. An error is treated as an HTTP 4xx error when it carries a `response.status_code` in the range 400–499.
+The system SHALL NOT retry HTTP 4xx errors (e.g. 404 Not Found on `GetCapabilities`); they propagate immediately. An error is treated as an HTTP 4xx error when it carries a `response.status_code` in the range 400–499.
 
 #### Scenario: Satisfies — HTTP 4xx errors (e.g. 404 Not Found on GetCapabilities) are…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** HTTP 4xx errors (e.g. 404 Not Found on `GetCapabilities`) are never retried; they propagate immediately. An error is treated as an HTTP 4xx error when it carries a `response.status_code` in the range 400–499
 
 ### Requirement: Inter-attempt sleep is performed with asyncio.sleep() so the event loop…
-The system SHALL ensure that inter-attempt sleep is performed with `asyncio.sleep()` so the event loop is not blocked.
+The system SHALL perform inter-attempt sleep with `asyncio.sleep()` so the event loop is not blocked.
 
 #### Scenario: Satisfies — Inter-attempt sleep is performed with asyncio.sleep() so the event loop…
 - **WHEN** the conditions described by this requirement apply

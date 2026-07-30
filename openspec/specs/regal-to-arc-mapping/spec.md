@@ -14,49 +14,49 @@ modifying code that constructs `ArcInvestigation`, `ArcStudy`, or `ArcAssay` obj
 ## Requirements
 
 ### Requirement: Map each Regal ResearchData graph to exactly one ArcInvestigation with…
-The system SHALL ensure that map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description, contacts, publications, and comments as defined in the authoritative mapping source.
+The system SHALL map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description, contacts, publications, and comments as defined in the authoritative mapping source.
 
 #### Scenario: Satisfies — Map each Regal ResearchData graph to exactly one ArcInvestigation with…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description, contacts, publications, and comments as defined in the authoritative mapping source
 
 ### Requirement: Create one ArcStudy per record containing a Data Collection protocol…
-The system SHALL ensure that create one `ArcStudy` per record containing a Data Collection protocol (when applicable) and a Data Processing protocol.
+The system SHALL create one `ArcStudy` per record containing a Data Collection protocol (when applicable) and a Data Processing protocol.
 
 #### Scenario: Satisfies — Create one ArcStudy per record containing a Data Collection protocol…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Create one `ArcStudy` per record containing a Data Collection protocol (when applicable) and a Data Processing protocol
 
 ### Requirement: Create a Spatial Sampling protocol on the Study only when…
-The system SHALL ensure that create a Spatial Sampling protocol on the Study only when `recordingCoordinates` and/or `recordingLocation` are present.
+The system SHALL create a Spatial Sampling protocol on the Study only when `recordingCoordinates` and/or `recordingLocation` are present.
 
 #### Scenario: Satisfies — Create a Spatial Sampling protocol on the Study only when…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Create a Spatial Sampling protocol on the Study only when `recordingCoordinates` and/or `recordingLocation` are present
 
 ### Requirement: Create one ArcAssay per record with a single-row annotation table…
-The system SHALL ensure that create one `ArcAssay` per record with a single-row annotation table (`Output [URI]`, license/language/`hasPart` comments as specified).
+The system SHALL create one `ArcAssay` per record with a single-row annotation table (`Output [URI]`, license/language/`hasPart` comments as specified).
 
 #### Scenario: Satisfies — Create one ArcAssay per record with a single-row annotation table…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Create one `ArcAssay` per record with a single-row annotation table (`Output [URI]`, license/language/`hasPart` comments as specified)
 
 ### Requirement: Serialize the resulting ARC via arc.ToROCrateJsonString() and return the JSON…
-The system SHALL ensure that serialize the resulting ARC via `arc.ToROCrateJsonString()` and return the JSON string.
+The system SHALL serialize the resulting ARC via `arc.ToROCrateJsonString()` and return the JSON string.
 
 #### Scenario: Satisfies — Serialize the resulting ARC via arc.ToROCrateJsonString() and return the JSON…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Serialize the resulting ARC via `arc.ToROCrateJsonString()` and return the JSON string
 
 ### Requirement: Reject (mapping error) graphs that are not Regal ResearchData or…
-The system SHALL ensure that reject (mapping error) graphs that are not Regal ResearchData or that lack both `@id` and `doi`.
+The system SHALL reject (mapping error) graphs that are not Regal ResearchData or that lack both `@id` and `doi`.
 
 #### Scenario: Satisfies — Reject (mapping error) graphs that are not Regal ResearchData or…
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Reject (mapping error) graphs that are not Regal ResearchData or that lack both `@id` and `doi`
 
 ### Requirement: Implement mapping in a dedicated Regal mapper registered under the…
-The system SHALL ensure that implement mapping in a dedicated Regal mapper registered under the Regal `payload_type`; do not reuse `GeneralSchemaOrgMapper`.
+The system SHALL implement mapping in a dedicated Regal mapper registered under the Regal `payload_type`; do not reuse `GeneralSchemaOrgMapper`.
 
 #### Scenario: Satisfies — Implement mapping in a dedicated Regal mapper registered under the…
 - **WHEN** the conditions described by this requirement apply
