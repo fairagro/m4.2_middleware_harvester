@@ -7,7 +7,7 @@ dependencies = [
     "arctrl>=3.1.1",
     "pydantic>=2.0.0",
     "fairagro-middleware-api-client>=8.8.1.dev12",
-    "fairagro-middleware-shared>=8.8.1.dev12",
+    "fairagro-middleware-shared>=11.0.1.dev30",
     "inspire",
     "linked_data",
 ]
