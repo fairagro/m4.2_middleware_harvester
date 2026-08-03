@@ -483,7 +483,7 @@ wheels = [
 
 [[package]]
 name = "ggshield"
-version = "1.52.2"
+version = "1.53.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "charset-normalizer" },
@@ -508,11 +508,12 @@ dependencies = [
     { name = "tomli" },
     { name = "truststore" },
     { name = "typing-extensions" },
+    { name = "unearth" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9d/f9/3f2b594156cda7ed2afba978daec90fc0fad5023a1896aacf120f259f9a1/ggshield-1.52.2.tar.gz", hash = "sha256:bcb3f485e0ac12adbca44b4e7135bb522e29b2a774842eaf942ffca972f2219a", size = 839118, upload-time = "2026-06-17T13:38:10.541Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/85/dda71184a6e4f3195216b6d5d2671101a5f199da437adeb033b44bbdd5e3/ggshield-1.53.0.tar.gz", hash = "sha256:207ec241d42d318fd54ae60b3ef349c59289fc66455cfd65d8b87f346d984c7a", size = 946569, upload-time = "2026-07-28T16:02:08.163Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/57/87d9192d07f34f586e229b033d50c3d91a29ec2423a83777b9116bddb06c/ggshield-1.52.2-py3-none-any.whl", hash = "sha256:c5a60a97148f1bd5cca53a5c0f031cf6adba24a0e7eac07257840645cb567ea7", size = 308163, upload-time = "2026-06-17T13:38:08.899Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/fd/230afdc71eaac260ec611990b3b3ab8e387cfa60527c2a91c0fcc9a62b34/ggshield-1.53.0-py3-none-any.whl", hash = "sha256:a9720a64e28864cd86d21f0200b12575187fc9ead896e58ba4d4068f4e8433e0", size = 349918, upload-time = "2026-07-28T16:02:06.546Z" },
 ]
 
 [[package]]
@@ -975,7 +976,7 @@ requires-dist = [
 dev = [
     { name = "bandit", specifier = ">=1.7.0" },
     { name = "cryptography", specifier = ">=49.0.0" },
-    { name = "ggshield", specifier = ">=1.52.2" },
+    { name = "ggshield", specifier = ">=1.53.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", specifier = ">=1.20.1" },
     { name = "pre-commit", specifier = ">=4.0.0" },
@@ -1498,7 +1499,7 @@ wheels = [
 
 [[package]]
 name = "pygitguardian"
-version = "1.32.0"
+version = "1.33.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "marshmallow" },
@@ -1507,9 +1508,9 @@ dependencies = [
     { name = "setuptools" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/58/17a8fb8459871f0a7a758a64f492a282a1251b629789a6f72d80a6831fc4/pygitguardian-1.32.0.tar.gz", hash = "sha256:2bc9880c139dee3692bff369a10d42e99f58e4122358ce0d632b51e250e90252", size = 57374, upload-time = "2026-06-16T13:27:06.488Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/9c/aded3498a510e3886d42c8882ae7e281daf8fa4d811f068f038135bc8746/pygitguardian-1.33.1.tar.gz", hash = "sha256:e93bdd6d45b2bbe8dca50840f5aaacb7d7af113b749c3b8838302a72936675ce", size = 59190, upload-time = "2026-07-28T12:29:41.202Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/4a/b26702ad735fa24b0b93bfbb64cbe6a4a761304a767e8b3ce4b890dd8f6d/pygitguardian-1.32.0-py3-none-any.whl", hash = "sha256:7f0549565a4a7ef13be2ced9b2fd787cfe402bdd169c3e40e8057a63e0c06bf6", size = 23910, upload-time = "2026-06-16T13:27:05.556Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/83/c882abce7474364543fc6a65765c74d9eb89ab3b30045d192932d2bb5cc8/pygitguardian-1.33.1-py3-none-any.whl", hash = "sha256:ec241824b09af8a42264d55548f75db92278d3fcc38e08a320c82512bd0a7af9", size = 24530, upload-time = "2026-07-28T12:29:40.149Z" },
 ]
 
 [[package]]
@@ -2055,6 +2056,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
+]
+
+[[package]]
+name = "unearth"
+version = "0.18.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/1f/cdad555c0e8643232cce619e8d88d5bec81b4d41e4cc1c65bee8a51a4750/unearth-0.18.2.tar.gz", hash = "sha256:1e53d7f52f46dd5f875e77ff1c55b12477e215a092e4b66c9764a77df4a9b520", size = 285169, upload-time = "2025-12-23T06:40:32.714Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/a8/13d4e8bbfa076493f56b5c8f3a850078ee05ebfb84b808e146eec781199b/unearth-0.18.2-py3-none-any.whl", hash = "sha256:31fd55d67c0e46a1ebb78993a2010568e6c4231334a3207d18d5d4a549d8d692", size = 48039, upload-time = "2025-12-23T06:40:31.006Z" },
 ]
 
 [[package]]
