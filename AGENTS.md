@@ -66,7 +66,7 @@ uv run pytest middleware/ -v
 # Quality checks (all read config from pyproject.toml — see openspec/specs/principles/)
 uv run ruff format --check middleware/
 uv run ruff check middleware/
-uv run mypy --config-file pyproject.toml middleware/
+uv run mypy --config-file pyproject.toml
 uv run pylint middleware/
 uv run bandit -r middleware/ -c .bandit -ll
 

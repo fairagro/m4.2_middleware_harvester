@@ -98,9 +98,12 @@ closed, apply least privilege.
   expressed in a config file. The tool version used in every context must be the one
   locked in `uv.lock` — use `uv run <tool>` everywhere.
   For type checking specifically: the merge gate is **mypy**
-  (`uv run mypy --config-file pyproject.toml middleware/`). The IDE must run the
-  same via `ms-python.mypy-type-checker` (see `.vscode/settings.json`: same binary,
-  same config file, same `middleware/` target, `reportingScope=workspace`).
+  (`uv run mypy --config-file pyproject.toml`). The checked tree and all
+  overrides live only in `[tool.mypy]` / `[[tool.mypy.overrides]]`
+  (`files = ["middleware"]`, `mypy_path`, third-party `ignore_missing_imports`).
+  The IDE must run the same via `ms-python.mypy-type-checker`
+  (see `.vscode/settings.json`: `uv run mypy`, same `--config-file`,
+  `reportingScope=custom` so Problems use the same `files` list as CI).
   cursorpyright / Pylance diagnostics are not a substitute and must not be treated
   as “type check passed”.
 - No `noqa` / `type: ignore` suppressions unless technically unavoidable.

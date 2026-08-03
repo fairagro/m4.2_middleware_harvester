@@ -27,7 +27,7 @@ comments needed, covers all submodules):
 
 ```toml
 [[tool.mypy.overrides]]
-module = ["arctrl", "arctrl.*"]
+module = ["arctrl", "arctrl.*", "fable_library", "fable_library.*"]
 ignore_missing_imports = true
 ```
 

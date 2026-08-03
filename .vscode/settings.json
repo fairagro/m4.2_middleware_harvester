@@ -22,19 +22,20 @@
   },
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 
-  // Mypy — project type gate (identical to pre-commit / CI):
-  //   uv run mypy --config-file pyproject.toml middleware/
-  // reportingScope=workspace: Problems must list the same diagnostics as CI, not
-  // only the active editor. cursorpyright/Pylance are NOT the merge gate.
+  // Mypy — identical to pre-commit / CI:
+  //   uv run mypy --config-file pyproject.toml
+  // Target tree, overrides, mypy_path: only in [tool.mypy] (pyproject.toml).
+  // reportingScope=custom: Problems use the same `files = ["middleware"]` as CI.
+  // cursorpyright / Pylance are NOT the merge gate.
   "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
+  "mypy-type-checker.path": ["uv", "run", "mypy"],
   "mypy-type-checker.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "mypy-type-checker.cwd": "${workspaceFolder}",
-  "mypy-type-checker.reportingScope": "workspace",
+  "mypy-type-checker.reportingScope": "custom",
   "mypy-type-checker.preferDaemon": false,
   "mypy-type-checker.args": [
-    "--config-file=${workspaceFolder}/pyproject.toml",
-    "${workspaceFolder}/middleware"
+    "--config-file",
+    "pyproject.toml"
   ],
 
   // Ruff: same binary as `uv run ruff` / pre-commit (project .venv).
