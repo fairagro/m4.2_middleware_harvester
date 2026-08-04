@@ -185,11 +185,8 @@ class LinkedDataPlugin(Plugin):
                 except GeneratorExit:
                     return
 
-    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the plugin and yield harvested ARCs, errors, or skips."""
-        return self._run()
-
-    async def _run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         async with NiceHttpClient(self._config.http) as nice_http:
             sitemap = self.create_sitemap(self._config, client=nice_http)
             worker_tasks = self._config.effective_worker_tasks

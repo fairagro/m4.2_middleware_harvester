@@ -39,7 +39,11 @@ class Plugin(Protocol):
     """Protocol defining the harvester plugin interface."""
 
     def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
-        """Run the plugin and yield harvested ARCs, errors, or skips."""
+        """Run the plugin and yield harvested ARCs, errors, or skips.
+
+        Implementations declare this as ``async def`` with ``yield`` (async generator).
+        The Protocol stub stays a plain ``def`` returning ``AsyncGenerator`` for typing.
+        """
         raise NotImplementedError
 
     async def get_expected_datasets(self) -> int | None:

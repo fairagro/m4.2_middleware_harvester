@@ -22,11 +22,8 @@ class InspirePlugin(Plugin):
         """Initialize the plugin with its parsed configuration."""
         self._config: Config = config
 
-    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the harvest process and yield harvested ARCs, errors, or skips."""
-        return self._run()
-
-    async def _run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
         mapper = InspireMapper()
         count = 0
