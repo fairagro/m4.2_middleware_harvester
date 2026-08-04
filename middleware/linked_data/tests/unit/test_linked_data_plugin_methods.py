@@ -11,6 +11,7 @@ from rdflib import Graph
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
 
@@ -49,12 +50,6 @@ def test_create_dataset_class_rejects_unknown_dataset_type() -> None:
 
     with pytest.raises(ValueError, match="Unsupported dataset type"):
         LinkedDataPlugin.create_dataset_class(config)
-
-
-def test_extract_arc_identifier_handles_list_identifiers() -> None:
-    arc_json = '{"@graph":[{"@id":"./","identifier":["10.1234/abc"]}]}'
-    result = LinkedDataPlugin._extract_arc_identifier(arc_json)  # noqa: SLF001
-    assert result == "10.1234/abc"
 
 
 @pytest.mark.asyncio
@@ -132,7 +127,7 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         return FakeSitemap(["https://example.org/dataset/fast"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.side_effect = lambda graph: f"mapped:{graph}"
+    mock_mapper.map_graph.side_effect = lambda graph: HarvestedArc(arc_json=f"mapped:{graph}")
 
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
@@ -300,7 +295,7 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
         return FakeSitemap(["https://example.org/dataset/slow"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.return_value = "mapped:arc"
+    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:arc")
 
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
@@ -314,7 +309,7 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
 
     results = [item async for item in LinkedDataPlugin(config).run()]
 
-    assert results == [("mapped:arc", "https://example.org/dataset/slow")]
+    assert results == [HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/dataset/slow")]
     mock_mapper.map_graph.assert_called_once()
     (graph_arg,) = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)

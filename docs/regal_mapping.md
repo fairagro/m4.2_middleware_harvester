@@ -6,8 +6,8 @@ model used by ARC.
 
 **Related specs:**
 
-- Harvesting / discovery: [`middleware/linked_data/spec/regal-jsonld/`](../middleware/linked_data/spec/regal-jsonld/)
-- Implementation contract: [`middleware/linked_data/spec/regal-to-arc-mapping/`](../middleware/linked_data/spec/regal-to-arc-mapping/)
+- Harvesting / discovery: [`openspec/specs/regal-jsonld/`](../openspec/specs/regal-jsonld/)
+- Implementation contract: [`openspec/specs/regal-to-arc-mapping/`](../openspec/specs/regal-to-arc-mapping/)
 
 > [!NOTE]
 > Regal records are **not** schema.org. The JSON-LD `@context` is typically
@@ -251,7 +251,9 @@ JSON-LD parsing must use the record `@context` (URL or embedded). Mapping operat
 
 ### 8. Relationship to schema.org mapper
 
-`GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper implements this document. Field *coverage* may mirror the old Publisso→schema.org jq crosswalk, but the ARC targets above are authoritative.
+`GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper
+implements this document. Field *coverage* may mirror the old Publisso→schema.org jq crosswalk, but
+the ARC targets above are authoritative.
 
 ## Traceability to basic middleware
 

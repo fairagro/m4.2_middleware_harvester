@@ -1,1 +1,0 @@
-../../.github/agents/spec-to-code.agent.md

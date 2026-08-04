@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.models import InspireRecord
 from middleware.inspire.plugin import InspirePlugin
@@ -168,8 +169,12 @@ async def test_run_plugin_skips_non_dataset_hierarchy() -> None:
         mock_csw.get_record_url.side_effect = lambda ident: f"http://csw/{ident}"
 
         mock_mapper = mock_mapper_class.return_value
-        mock_mapper.map_record.return_value = MagicMock()
-        mock_mapper.map_record.return_value.ToROCrateJsonString.return_value = "{}"
+        mock_arc = MagicMock()
+        mock_arc.ToROCrateJsonString.return_value = "{}"
+        mock_arc.Identifier = "ds-1"
+        mock_arc.StudyCount = 1
+        mock_arc.AssayCount = 1
+        mock_mapper.map_record.return_value = mock_arc
 
         results = [item async for item in InspirePlugin(mock_config).run()]
 
@@ -177,7 +182,13 @@ async def test_run_plugin_skips_non_dataset_hierarchy() -> None:
     assert isinstance(results[0], SkippedRecord)
     assert "hierarchy level: service" in results[0].reason
     assert results[0].url == "http://csw/svc-1"
-    assert results[1] == ("{}", "http://csw/ds-1")
+    assert results[1] == HarvestedArc(
+        arc_json="{}",
+        source_url="http://csw/ds-1",
+        identifier="ds-1",
+        studies=1,
+        assays=1,
+    )
 
 
 @pytest.mark.asyncio

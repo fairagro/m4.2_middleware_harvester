@@ -1,6 +1,8 @@
 # INSPIRE-to-ARC Harvester Plugin
 
-The INSPIRE plugin connects to standard-compliant Metadata Catalogues (CSW - Catalogue Service for the Web) and transforms ISO 19139 (Dublin Core and GMD) records into FAIRagro-compliant Annotated Research Context (ARC) objects.
+The INSPIRE plugin connects to standard-compliant Metadata Catalogues (CSW - Catalogue Service for
+the Web) and transforms ISO 19139 (Dublin Core and GMD) records into FAIRagro-compliant Annotated
+Research Context (ARC) objects.
 
 ## Overview
 

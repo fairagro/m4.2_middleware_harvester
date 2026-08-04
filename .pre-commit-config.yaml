@@ -46,7 +46,7 @@ repos:
         language: system
         types: [python]
 
-      # mypy - Type checking (full middleware/ tree; only when Python under middleware/ changes)
+      # mypy - Type checking (target = [tool.mypy] files in pyproject.toml)
       - id: mypy
         name: mypy type check
         entry: uv run mypy
@@ -54,7 +54,7 @@ repos:
         pass_filenames: false
         types: [python]
         files: ^middleware/
-        args: [--config-file, pyproject.toml, middleware/]
+        args: [--config-file, pyproject.toml]
 
       # bandit - Security linting (same as CI: uv run bandit -r middleware/ -c .bandit -ll)
       - id: bandit

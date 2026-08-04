@@ -1,6 +1,10 @@
 # FAIRagro Middleware Harvester
 
-This repository contains the Middleware Harvester, a core component of the FAIRagro advanced middleware architecture. It acts as an orchestrator that runs specialized harvesting plugins (like the INSPIRE-to-ARC converter). It enables Research Data Infrastructure (RDI) providers to harvest metadata from standardized sources (like CSW), transform them into standardized Annotated Research Context (ARC) objects, and transmit them to the central FAIRagro Middleware API.
+This repository contains the Middleware Harvester, a core component of the FAIRagro advanced
+middleware architecture. It acts as an orchestrator that runs specialized harvesting plugins
+(like the INSPIRE-to-ARC converter). It enables Research Data Infrastructure (RDI) providers to
+harvest metadata from standardized sources (like CSW), transform them into standardized Annotated
+Research Context (ARC) objects, and transmit them to the central FAIRagro Middleware API.
 
 ## 📁 Repository Structure
 
@@ -9,7 +13,7 @@ This repository contains the Middleware Harvester, a core component of the FAIRa
 | [`middleware/harvester/`](middleware/harvester/README.md) | Source code of the central orchestrator and plugin contract. |
 | [`middleware/inspire/`](middleware/inspire/README.md) | Source code of the INSPIRE-to-ARC harvester plugin. |
 | `docs/` | Architectural design, mapping specifications, and AI workflow. |
-| `spec/` | Project-level architecture and design (cross-cutting concerns). |
+| `openspec/` | OpenSpec specs (current behaviour) and in-flight changes. |
 | `dev_environment/` | Docker-based local development setup (Mock API, Harvester). |
 | `scripts/` | Tooling for quality checks, environment setup, and Git LFS. |
 | `docker/` | Dockerfiles and container structure tests. |
@@ -29,8 +33,7 @@ Note: Generated ARCs will be saved to `dev_environment/demo_output/`.
 
 The preferred method for working with this repository is using a **Dev Container** (VS Code or Cursor).
 
-- **VS Code**: `.devcontainer/vscode/devcontainer.json`
-- **Cursor**: `.devcontainer/cursor/devcontainer.json` — see [`.devcontainer/cursor/README.md`](.devcontainer/cursor/README.md) for setup notes
+- Config: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) — see [`.devcontainer/README.md`](.devcontainer/README.md) for setup notes
 
 ### 1. Prerequisites (for manual setups only)
 
@@ -57,14 +60,16 @@ Detailed information on how to use, configure, and deploy the specific component
 
 - **[Harvester Orchestrator README](middleware/harvester/README.md)**: Configuration (YAML/Env), CLI options, and orchestration loop.
 - **[INSPIRE Plugin README](middleware/inspire/README.md)**: Metadata mapping rules and CSW connection settings.
-- **[Architectural Design](middleware/harvester/spec/harvester-orchestration/design.md)**: Deep dive into the concurrency model and data flow.
+- **[Architectural Design](openspec/specs/harvester-orchestration/design.md)**: Deep dive into the concurrency model and data flow.
 - **[INSPIRE Mapping Spec](docs/inspire_mapping.md)**: The rules for transforming INSPIRE/ISO19139 metadata into ARC objects.
 
 ## 🤖 AI-Native Development
 
-This project uses **Spec-Driven Development (SDD)**. Every feature and architectural decision is documented in `spec/` (project-level) or `middleware/*/spec/` (component-level) before or during implementation.
+This project uses **[OpenSpec](https://github.com/Fission-AI/OpenSpec)** for spec-driven
+development. Current behaviour lives in `openspec/specs/`; in-flight work uses
+`openspec/changes/` via `/opsx-propose` → `/opsx-apply` → `/opsx-archive`.
 
-AI agents (like GitHub Copilot) use these specs along with `AGENTS.md` and `.agents/skills/` to provide high-context assistance.
+AI agents use these specs along with `AGENTS.md` and `.agents/skills/` for high-context assistance.
 
 - See **[AI Agent Workflow](docs/ai_workflow.md)** for details on how to use agents effectively in this project.
 

@@ -39,7 +39,7 @@ def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
     graph.add((SUBJECT, DCTERMS.creator, orcid))
     graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert "https://orcid.org/0000-0003-2547-933X" in text
 
 
@@ -49,7 +49,7 @@ def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
     graph.add((SUBJECT, DCTERMS.creator, fake))
     graph.add((fake, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert "Fuerst" in text
     assert "evil-orcid.org" not in text
 
@@ -71,7 +71,7 @@ def test_regal_mapper_maps_core_fields() -> None:
     graph.add((SUBJECT, DCTERMS.hasPart, part))
     graph.add((part, SKOS.prefLabel, Literal("readme.txt")))
 
-    result = json.loads(_mapper().map_graph(graph))
+    result = json.loads(_mapper().map_graph(graph).arc_json)
     assert "@graph" in result
     text = json.dumps(result)
     assert "Research Data Management Plan" in text
@@ -89,7 +89,7 @@ def test_regal_mapper_expands_compact_has_part_id() -> None:
     graph.add((SUBJECT, DCTERMS.hasPart, part))
     graph.add((part, SKOS.prefLabel, Literal("data.csv")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert f"{RESOURCE_BASE}frl:file-compact" in text
     assert "data.csv" in text
 
@@ -116,7 +116,7 @@ def test_regal_mapper_creates_spatial_sampling_when_location_present() -> None:
     graph.add((SUBJECT, REGAL.recordingLocation, place))
     graph.add((place, SKOS.prefLabel, Literal("Cologne")))
 
-    result = json.loads(_mapper().map_graph(graph))
+    result = json.loads(_mapper().map_graph(graph).arc_json)
     text = json.dumps(result)
     assert "Spatial Sampling" in text
     assert "Cologne" in text
@@ -134,7 +134,7 @@ def test_regal_mapper_prefers_joined_funding() -> None:
     # Flat duplicates should be ignored when joinedFunding exists.
     graph.add((SUBJECT, REGAL.fundingProgram, Literal("ignored-flat-program")))
 
-    result = json.loads(_mapper().map_graph(graph))
+    result = json.loads(_mapper().map_graph(graph).arc_json)
     text = json.dumps(result)
     assert "NFDI4Health Consortium" in text
     assert "442326535" in text
@@ -150,7 +150,7 @@ def test_regal_mapper_skips_opaque_duplicates_for_dedicated_predicates() -> None
     graph.add((item, SKOS.prefLabel, Literal("oai:frl.publisso.de:frl:123")))
     graph.add((SUBJECT, REGAL.associatedPublication, URIRef("https://doi.org/10.1000/xyz")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert "Catalog ID" in text
     assert "cat-42" in text
     assert "OAI Identifier" in text
@@ -169,6 +169,6 @@ def test_regal_mapper_license_blank_node_uses_pref_label() -> None:
     graph.add((SUBJECT, REGAL.license, license_node))
     graph.add((license_node, SKOS.prefLabel, Literal("CC BY 4.0")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph)))
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert "CC BY 4.0" in text
     assert "_:" not in text

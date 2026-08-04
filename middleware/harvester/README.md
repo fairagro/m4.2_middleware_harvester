@@ -4,7 +4,9 @@ The Middleware Harvester is a high-performance, modular orchestrator designed to
 
 ## Overview
 
-The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles the orchestration loop, configuration management, and reliable transmission of Annotated Research Context (ARC) objects to the FAIRagro Middleware API.
+The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles
+the orchestration loop, configuration management, and reliable transmission of Annotated Research
+Context (ARC) objects to the FAIRagro Middleware API.
 
 ### Key Features
 
@@ -125,6 +127,6 @@ docker run --rm \
 
 ## Documentation Links
 
-- **[Architectural Design](spec/harvester-orchestration/design.md)**: Details on the orchestration loop and plugin contract.
+- **[Architectural Design](../../openspec/specs/harvester-orchestration/design.md)**: Details on the orchestration loop and plugin contract.
 - **[INSPIRE Plugin](../inspire/README.md)**: Metadata mapping and CSW settings.
-- **[Specifica Workflow](../../docs/ai_workflow.md)**: Our spec-driven development approach.
+- **[OpenSpec / AI Workflow](../../docs/ai_workflow.md)**: Our spec-driven development approach.

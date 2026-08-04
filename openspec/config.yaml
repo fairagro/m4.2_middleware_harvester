@@ -1,0 +1,59 @@
+schema: spec-driven
+
+context: |
+  Project: FAIRagro Middleware Harvester — harvests metadata from heterogeneous
+  sources, maps it to Annotated Research Context (ARC), and uploads to the
+  Middleware API.
+
+  Tech stack: Python 3.12+, uv, Docker, arctrl, owslib (CSW 2.0.2)
+  Package layout: middleware/{harvester,inspire,linked_data}/ (uv workspace)
+  Shared libs: fairagro-middleware-shared, fairagro-middleware-api-client
+    (external git workspace sources)
+
+  Spec-driven workflow: OpenSpec (https://github.com/Fission-AI/OpenSpec)
+  - Source of truth: openspec/specs/<domain>/spec.md
+  - Optional design notes: openspec/specs/<domain>/design.md (Key Decisions)
+  - In-flight work: openspec/changes/<change>/ (proposal, delta specs, design, tasks)
+  - Slash commands (Cursor): /opsx-propose, /opsx-apply, /opsx-archive, /opsx-explore
+  - Slash commands (GitHub Copilot): /opsx-propose etc. via .github/prompts/
+
+  Read openspec/specs/principles/spec.md first. It defines the plugin contract,
+  module dependency rules, values, constraints, and code quality requirements.
+  Do not restate what is there in change proposals.
+
+  Plugin architecture: each input format is an AsyncGenerator plugin yielding
+  `HarvestedArc | HarvesterError | SkippedRecord`. The orchestrator
+  (middleware/harvester) never parses source-format records directly.
+
+  Quality gates (all via `uv run`, config from pyproject.toml / .bandit):
+  ruff format + check, mypy, pylint, bandit, pytest.
+  No direct `os.environ` — use Config / ConfigWrapper.
+  No `noqa` / `type: ignore` unless technically unavoidable.
+
+rules:
+  proposal:
+    - State which openspec/specs/<domain>/ domains are affected
+    - Call out non-goals explicitly
+    - Prefer small, reviewable changes over broad rewrites
+  specs:
+    - Use SHALL/MUST in every requirement statement
+    - Every requirement needs at least one #### Scenario with WHEN/THEN
+    - Reference openspec/specs/principles/ instead of restating project constraints
+    - Do not restate ARC mapping field tables — link inspire-to-arc-mapping or
+      docs/regal_mapping.md / docs/inspire_mapping.md as appropriate
+  design:
+    - Document non-obvious Key Decisions with a mandatory reasoning clause
+    - Describe the current intended design, not a history of past approaches
+  tasks:
+    - Include matching unit/integration tests as explicit tasks
+    - End with a validation task: uv run ruff format + pytest for affected packages
+
+operations:
+  apply:
+    guidance:
+      - Run `uv run ruff format middleware/` and focused `uv run pytest` before claiming done
+      - Update openspec/specs/<domain>/design.md Key Decisions when architecture choices change
+  archive:
+    guidance:
+      - Confirm delta specs merged cleanly into openspec/specs/
+      - Keep the archive summary concise
