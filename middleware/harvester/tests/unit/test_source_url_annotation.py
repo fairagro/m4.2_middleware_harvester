@@ -57,3 +57,33 @@ def test_record_upload_outcomes_counts_from_api_result() -> None:
     assert len(snap.failed_records) == 1
     assert snap.failed_records[0].record_id == "arc-1"
     assert "source URL: https://csw.example/record/1 (×2)" in snap.failed_records[0].message
+
+
+def test_record_upload_outcomes_missing_arc_id_skips_url_lookup() -> None:
+    """Absent/blank ARC ids stay None and do not annotate from empty-key counts."""
+    errors = [
+        SimpleNamespace(
+            error_type=HarvestErrorType.SUBMISSION_FAILED,
+            arc_id=None,
+            message="upload failed",
+        ),
+        SimpleNamespace(
+            error_type=HarvestErrorType.SUBMISSION_FAILED,
+            arc_id="",
+            message="upload failed blank id",
+        ),
+    ]
+    state = ArcStreamState(
+        arc_id_to_url_counts={"": {"https://example.org/orphan": 1}},
+        submitted=2,
+    )
+    report = HarvestReport()
+    scope = report.open_repository("bonares")
+
+    record_upload_outcomes(errors, state, scope)
+
+    snap = scope.snapshot()
+    assert snap.failed_datasets == 2
+    assert snap.harvested_datasets == 0
+    assert all(fr.record_id is None for fr in snap.failed_records)
+    assert all("source URL" not in fr.message for fr in snap.failed_records)

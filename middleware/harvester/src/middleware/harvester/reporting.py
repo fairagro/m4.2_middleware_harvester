@@ -55,8 +55,10 @@ def record_upload_outcomes(
     were sent for upload in this completed batch.
     """
     for err in errors:
-        record_id = err.arc_id or ""
-        annotation = format_source_url_annotation(state.arc_id_to_url_counts.get(record_id, {}))
+        raw_id = err.arc_id
+        record_id = raw_id if isinstance(raw_id, str) and raw_id else None
+        url_counts = state.arc_id_to_url_counts.get(record_id, {}) if record_id is not None else {}
+        annotation = format_source_url_annotation(url_counts)
         msg = f"{err.message} — {annotation}" if annotation else err.message
         scope.record_failed(msg, record_id=record_id)
 
