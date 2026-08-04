@@ -55,10 +55,10 @@ def record_upload_outcomes(
     were sent for upload in this completed batch.
     """
     for err in errors:
-        arc_id = err.arc_id or ""
-        annotation = format_source_url_annotation(state.arc_id_to_url_counts.get(arc_id, {}))
+        record_id = err.arc_id or ""
+        annotation = format_source_url_annotation(state.arc_id_to_url_counts.get(record_id, {}))
         msg = f"{err.message} — {annotation}" if annotation else err.message
-        scope.record_failed(msg, record_id=err.arc_id)
+        scope.record_failed(msg, record_id=record_id)
 
     for _ in range(max(state.submitted - len(errors), 0)):
         scope.record_harvested()

@@ -24,16 +24,19 @@
 
   // Mypy — identical to pre-commit / CI:
   //   uv run mypy --config-file pyproject.toml
+  // path is the executable only; "run mypy" belongs in args (not path).
   // Target tree, overrides, mypy_path: only in [tool.mypy] (pyproject.toml).
   // reportingScope=custom: Problems use the same `files = ["middleware"]` as CI.
   // cursorpyright / Pylance are NOT the merge gate.
   "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.path": ["uv", "run", "mypy"],
+  "mypy-type-checker.path": ["uv"],
   "mypy-type-checker.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "mypy-type-checker.cwd": "${workspaceFolder}",
   "mypy-type-checker.reportingScope": "custom",
   "mypy-type-checker.preferDaemon": false,
   "mypy-type-checker.args": [
+    "run",
+    "mypy",
     "--config-file",
     "pyproject.toml"
   ],

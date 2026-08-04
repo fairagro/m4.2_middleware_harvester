@@ -6,6 +6,7 @@ import logging
 from collections.abc import AsyncGenerator
 
 from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 from middleware.api_client import ApiClient
 from middleware.harvester.config import RepositoryConfig
@@ -101,7 +102,7 @@ async def execute_harvest_upload(
                         harvest_id,
                     )
                 except Exception as e:
-                    upload_span.set_status(trace.StatusCode.ERROR)
+                    upload_span.set_status(Status(StatusCode.ERROR))
                     upload_span.record_exception(e)
                     # harvest_arcs creates the harvest before uploading; recover the
                     # id from the error when the call raises instead of returning.
@@ -131,7 +132,7 @@ async def execute_harvest_upload(
                 scope.snapshot().harvested_datasets,
             )
         except Exception as e:  # noqa: BLE001
-            plugin_span.set_status(trace.StatusCode.ERROR)
+            plugin_span.set_status(Status(StatusCode.ERROR))
             plugin_span.record_exception(e)
             if harvest_id is None:
                 harvest_id = harvest_id_from_exception(e)
