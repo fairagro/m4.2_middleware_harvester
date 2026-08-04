@@ -107,5 +107,5 @@ def emit_report(report: HarvestReport) -> None:
     """Serialize and print the finished harvest report to stdout."""
     try:
         print(JsonLdReportSerializer().render(report), end="")
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, OverflowError, TypeError, ValueError) as exc:
         logger.warning("Failed to serialise harvest report: %s", exc)
