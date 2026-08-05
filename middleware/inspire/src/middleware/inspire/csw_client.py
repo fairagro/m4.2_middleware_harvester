@@ -79,7 +79,7 @@ class CSWClient:
                 "Failed to connect to CSW at %s with timeout=%s.",
                 self._config.csw_url,
                 self._config.timeout,
-                exc_info=True,
+                exc_info=e,
             )
             raise CswConnectionError(f"Failed to connect to CSW at {self._config.csw_url}: {e}") from e
 

@@ -100,7 +100,7 @@ def _record_repository_failure(
     """Log and record a repository-level failure on an existing scope."""
     detail = format_exception_for_report(exc)
     logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
-    logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
+    logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=exc)
     recovered_id = harvest_id_from_exception(exc)
     if recovered_id is not None:
         scope.set_harvest_id(recovered_id)

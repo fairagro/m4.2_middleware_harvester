@@ -121,7 +121,7 @@ async def execute_harvest_upload(
                         "Exception during harvest upload for repository %s (%s).",
                         repo.rdi,
                         repo.plugin_type,
-                        exc_info=True,
+                        exc_info=e,
                     )
                     raise
 
@@ -145,6 +145,12 @@ async def execute_harvest_upload(
             )
             detail = format_exception_for_report(e)
             logger.error("Repository '%s' (%s) failed and will be skipped: %s", repo.rdi, repo.plugin_type, detail)
+            logger.debug(
+                "Repository '%s' (%s) failed and will be skipped.",
+                repo.rdi,
+                repo.plugin_type,
+                exc_info=e,
+            )
             record_upload_aborted(
                 state,
                 scope,

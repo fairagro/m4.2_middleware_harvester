@@ -1,9 +1,11 @@
-"""Unit tests for the Harvester orchestrator."""
+"""Unit tests for the Harvester orchestrator and CLI entrypoint."""
 
 import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator, AsyncIterable
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -12,6 +14,7 @@ from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy
 
 from middleware.api_client.api_client import ApiClientError
 from middleware.harvester.errors import HarvesterError, SkippedRecord
+from middleware.harvester.main import main
 from middleware.harvester.orchestrator import run_orchestrator, run_repository
 from middleware.harvester.plugin_base import HarvestedArc, Plugin
 from middleware.harvester.reporting import emit_report
@@ -540,3 +543,46 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
     assert len(report.repository_reports) == 1
     assert report.repository_reports[0].failed_datasets == 1
     assert mock_client.harvest_arcs.call_count == 0
+
+
+def test_main_logs_exception_message_without_traceback_at_info(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+) -> None:
+    """Prod ERROR logs include the cause; traceback stays on DEBUG only."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("log_level: INFO\nrepositories: []\n")
+
+    with (
+        patch("middleware.harvester.main._parse_args", return_value=MagicMock(config=str(config_file))),
+        patch(
+            "middleware.harvester.main.Config.from_yaml_file",
+            side_effect=ConnectionError("CSW endpoint unreachable"),
+        ),
+        caplog.at_level(logging.INFO),
+    ):
+        assert main() == 1
+
+    assert "Harvester run failed: ConnectionError" in caplog.text
+    assert "CSW endpoint unreachable" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
+def test_main_logs_traceback_at_debug(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
+    """DEBUG includes the exception traceback for local diagnosis."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("log_level: DEBUG\nrepositories: []\n")
+
+    with (
+        patch("middleware.harvester.main._parse_args", return_value=MagicMock(config=str(config_file))),
+        patch(
+            "middleware.harvester.main.Config.from_yaml_file",
+            side_effect=ConnectionError("CSW endpoint unreachable"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        assert main() == 1
+
+    assert "Harvester run failed: ConnectionError" in caplog.text
+    assert "CSW endpoint unreachable" in caplog.text
+    assert "Traceback" in caplog.text
