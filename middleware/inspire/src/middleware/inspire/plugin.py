@@ -4,7 +4,7 @@ import logging
 from collections.abc import AsyncGenerator
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import HarvestedArc, Plugin
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.mapper import InspireMapper
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 _HARVESTABLE_HIERARCHIES = frozenset({"dataset", "series", "nongeographicdataset"})
 
 
-class InspirePlugin(Plugin):
-    """Stateful INSPIRE plugin implementation."""
+class InspirePlugin:
+    """Stateful INSPIRE plugin implementation (structurally satisfies ``Plugin``)."""
 
     def __init__(self, config: Config) -> None:
         """Initialize the plugin with its parsed configuration."""

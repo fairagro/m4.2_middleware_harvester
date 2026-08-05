@@ -625,10 +625,9 @@ class CSWClient:
         try:
             self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
             return True
-        except ValueError:
-            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
-            raise
         except (OSError, TimeoutError) as e:
+            # ValueError (e.g. malformed request) is not caught here and propagates
+            # unwrapped so the async retry layer does not treat it as transient.
             logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
             raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 
@@ -815,10 +814,9 @@ class CSWClient:
             else:
                 self._csw.getrecords2(**kwargs)
             return True
-        except ValueError:
-            # Non-retryable (e.g. malformed request); do not wrap as CswConnectionError.
-            raise
         except (OSError, TimeoutError) as e:
+            # ValueError (e.g. malformed request) is not caught here and propagates
+            # unwrapped so the async retry layer does not treat it as transient.
             logger.error("Failed to fetch ISO records from CSW at position %d: %s", start_position, e)
             raise CswConnectionError(f"Failed to fetch ISO records from CSW: {e}") from e
 

@@ -4,10 +4,10 @@ version = "0.1.0"
 description = "Core orchestrator for FAIRagro Middleware Harvester"
 requires-python = ">=3.12"
 dependencies = [
-    "arctrl>=3.2",
+    "arctrl>=3.1.1",
     "pydantic>=2.0.0",
-    "fairagro-middleware-api-client>=11.0.1.dev28",
-    "fairagro-middleware-shared>=11.0.1.dev29",
+    "fairagro-middleware-api-client>=11.1.1.dev33",
+    "fairagro-middleware-shared>=11.1.1.dev33",
     "inspire",
     "linked_data",
 ]

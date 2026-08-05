@@ -54,9 +54,9 @@ def test_record_upload_outcomes_counts_from_api_result() -> None:
     assert snap.failed_datasets == 1
     assert snap.total_studies == 2
     assert snap.total_assays == 1
-    assert len(snap.failed_records) == 1
-    assert snap.failed_records[0].record_id == "arc-1"
-    assert "source URL: https://csw.example/record/1 (×2)" in snap.failed_records[0].message
+    assert len(snap.failures) == 1
+    assert snap.failures[0].record_id == "arc-1"
+    assert "source URL: https://csw.example/record/1 (×2)" in snap.failures[0].message
 
 
 def test_record_upload_outcomes_missing_arc_id_skips_url_lookup() -> None:
@@ -85,5 +85,5 @@ def test_record_upload_outcomes_missing_arc_id_skips_url_lookup() -> None:
     snap = scope.snapshot()
     assert snap.failed_datasets == 2
     assert snap.harvested_datasets == 0
-    assert all(fr.record_id is None for fr in snap.failed_records)
-    assert all("source URL" not in fr.message for fr in snap.failed_records)
+    assert all(fr.record_id is None for fr in snap.failures)
+    assert all("source URL" not in fr.message for fr in snap.failures)

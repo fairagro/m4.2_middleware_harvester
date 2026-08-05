@@ -9,7 +9,7 @@ import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
-from middleware.harvester.plugin_base import HarvestedArc, Plugin
+from middleware.harvester.plugin_base import HarvestedArc
 
 from .config import Config
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
@@ -22,8 +22,8 @@ from .sitemap import Sitemap
 logger = logging.getLogger(__name__)
 
 
-class LinkedDataPlugin(Plugin):
-    """Stateful Linked Data plugin implementation."""
+class LinkedDataPlugin:
+    """Stateful Linked Data plugin implementation (structurally satisfies ``Plugin``)."""
 
     def __init__(self, config: Config) -> None:
         """Initialize the plugin with its parsed configuration."""

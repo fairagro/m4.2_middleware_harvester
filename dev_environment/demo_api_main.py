@@ -21,7 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from arctrl import ARC
-from fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
 from fastapi import FastAPI, Request
 
 app = FastAPI()

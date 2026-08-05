@@ -164,14 +164,6 @@ ignore_missing_imports = true
 module = "arctrl"
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = "fable_library.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "fable_library"
-ignore_missing_imports = true
-
 # Docstring-Regeln aktivieren, damit es wie pylint C0114/15/16 meckert
 [tool.ruff.lint.pydocstyle]
 convention = "pep257" # oder "numpy", oder "google"
