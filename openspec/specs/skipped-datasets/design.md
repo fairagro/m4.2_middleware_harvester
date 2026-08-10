@@ -27,11 +27,11 @@ middleware/linked_data/plugin.py
 ## Key Decisions
 
 1. **`SkippedRecord` is not a subclass of `HarvesterError`**
-   — `HarvesterError` signals that something went wrong and increments
-   `failed_datasets`.  A deliberate skip is not a failure; conflating the two
-   produces a misleading report.  A separate, non-exception class makes the
-   distinction explicit at the type level and requires callers to handle both
-   branches consciously.
+   — Dataset-level `HarvesterError` values (typically `RecordProcessingError`)
+   are recorded via `record_failed` and increment `failed_datasets`. A
+   deliberate skip is not a failure; conflating the two produces a misleading
+   report. A separate, non-exception class makes the distinction explicit at
+   the type level and requires callers to handle both branches consciously.
 
 2. **`SkippedRecord` is not an exception (not raised, only yielded)**
    — Raising and catching within the plugin would couple skip-handling to

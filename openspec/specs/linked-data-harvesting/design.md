@@ -33,7 +33,7 @@ The current implementation supports only one concrete type per enum, but the plu
    — This matches the harvester orchestrator contract. Successes, record-level
    failures, and deliberate skips share one stream so
    [`harvest-report`](../harvest-report/) statistics and
-   `fairagro:failedRecords` stay complete. Errors must be yielded, not only
+   `fairagro:failures` stay complete. Errors must be yielded, not only
    logged inside sitemap/dataset code
    ([`error-handling`](../error-handling/)).
 

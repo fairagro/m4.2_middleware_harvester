@@ -10,7 +10,7 @@ JSON-LD shape, and vocabulary** are defined and owned by
 
 This domain only specifies how the harvester **drives and emits** that shared
 report. Do not restate the shared contract here — read the API repository’s
-OpenSpec `harvest-report` capability and `ns/harvest-report/v1/`.
+OpenSpec `harvest-report` capability and `ns/harvest-report/v2/`.
 
 ## Requirements
 
@@ -64,10 +64,13 @@ For each repository the orchestrator MUST:
   post-create API failure)
 - call `record_failed` for each per-item API error, then `record_harvested`
   once per remaining submitted ARC (`submitted - len(errors)`) after
-  `harvest_arcs` returns. On catastrophic upload abort, count each submitted
-  ARC as failed instead (or one failure if none were submitted)
-- call `record_failed` for each plugin `HarvesterError` (with optional record
-  id / URL)
+  `harvest_arcs` returns. On catastrophic upload abort: call `record_failed`
+  once per submitted ARC; if none were submitted, call
+  `record_repository_issue` once instead
+- call `record_failed` for each plugin `RecordProcessingError` (with optional
+  record id / URL)
+- call `record_repository_issue` for other plugin `HarvesterError` values that
+  are not tied to a single dataset (e.g. sitemap/discovery failures)
 - call `record_skipped` for each yielded `SkippedRecord` (see also
   [`skipped-datasets`](../skipped-datasets/))
 - call `add_studies` / `add_assays` with the composition counts carried on each
@@ -87,10 +90,17 @@ For each repository the orchestrator MUST:
 - **WHEN** upload outcomes are recorded
 - **THEN** `record_harvested` is called once and `record_failed` once
 
-#### Scenario: Plugin yields a HarvesterError
+#### Scenario: Plugin yields a RecordProcessingError
 
-- **WHEN** the plugin stream yields a `HarvesterError`
+- **WHEN** the plugin stream yields a `RecordProcessingError`
 - **THEN** the orchestrator calls `record_failed` on the repository scope
+
+#### Scenario: Plugin yields a non-record HarvesterError
+
+- **WHEN** the plugin stream yields a `HarvesterError` that is not a
+  `RecordProcessingError` (e.g. sitemap discovery failure)
+- **THEN** the orchestrator calls `record_repository_issue` and
+  `failed_datasets` is unchanged
 
 ### Requirement: Print after tracing shutdown via JsonLdReportSerializer
 
@@ -108,22 +118,24 @@ failures MUST be logged and MUST NOT change the process exit code.
 
 When a repository task raises an unhandled exception, `harvest_id` MUST be the
 created harvest id when recoverable, otherwise unset; the scope MUST record at
-least one failure describing the repository-level error.
+least one repository-level issue describing the error via
+`record_repository_issue` (not `record_failed`).
 
 #### Scenario: Unhandled exception after harvest creation
 
 - **WHEN** a repository task fails after a harvest id is known
 - **THEN** the repository scope retains that `harvest_id` and records the
-  failure via `record_failed`
+  failure via `record_repository_issue`
 
 ### Requirement: Edge case — unknown plugin type
 
 When `PLUGIN_FACTORIES` has no entry for `repo.plugin_type`, the repository
-scope MUST record one failure describing the unknown type (so the report does
-not look like an empty success) and MUST NOT call the API client.
+scope MUST record one repository-level issue describing the unknown type (so
+the report does not look like an empty success) and MUST NOT call the API
+client.
 
 #### Scenario: Unknown plugin type
 
 - **WHEN** `run_repository` is called with an unrecognised `plugin_type`
-- **THEN** the scope records one `record_failed` and `harvest_arcs` is not
-  invoked
+- **THEN** the scope records one `record_repository_issue` and `harvest_arcs`
+  is not invoked

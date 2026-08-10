@@ -63,8 +63,8 @@ The system SHALL have the plugin forward `RecordProcessingError` and `SkippedRec
 - **THEN** Have the plugin forward `RecordProcessingError` and `SkippedRecord` from discovery to the orchestrator unchanged
 
 ### Requirement: Edge case — - A dataset implementation receiving an unsupported DiscoveryResult subtype
-The system SHALL handle this edge case: when - A dataset implementation receiving an unsupported `DiscoveryResult` subtype, then raise a descriptive error. - A dataset implementation must not perform top-level plugin orchestration. - Discovery failure with no stable `@id` → still yield `RecordProcessingError` with a descriptive reason and a synthetic key (e.g. page offset + array index) so `fairagro:failedRecords` can list it.
+The system SHALL handle this edge case: when - A dataset implementation receiving an unsupported `DiscoveryResult` subtype, then raise a descriptive error. - A dataset implementation must not perform top-level plugin orchestration. - Discovery failure with no stable `@id` → still yield `RecordProcessingError` with a descriptive reason and a synthetic key (e.g. page offset + array index) so `fairagro:failures` can list it.
 
 #### Scenario: Edge case — - A dataset implementation receiving an unsupported DiscoveryResult subtype
 - **WHEN** - A dataset implementation receiving an unsupported `DiscoveryResult` subtype
-- **THEN** raise a descriptive error. - A dataset implementation must not perform top-level plugin orchestration. - Discovery failure with no stable `@id` → still yield `RecordProcessingError` with a descriptive reason and a synthetic key (e.g. page offset + array index) so `fairagro:failedRecords` can list it
+- **THEN** raise a descriptive error. - A dataset implementation must not perform top-level plugin orchestration. - Discovery failure with no stable `@id` → still yield `RecordProcessingError` with a descriptive reason and a synthetic key (e.g. page offset + array index) so `fairagro:failures` can list it

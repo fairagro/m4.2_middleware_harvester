@@ -77,13 +77,25 @@ def record_upload_aborted(
     *,
     url: str | None,
 ) -> None:
-    """Fallback when upload aborts: count submitted ARCs as failed, not harvested."""
-    for _ in range(max(state.submitted, 1)):
+    """Fallback when upload aborts before a normal API outcome.
+
+    Submitted ARCs become dataset failures. If nothing was submitted, record a
+    repository-level issue so ``failed_datasets`` stays accurate.
+    """
+    if state.submitted == 0:
+        scope.record_repository_issue(detail, url=url)
+        return
+    for _ in range(state.submitted):
         scope.record_failed(detail, url=url)
 
 
 def record_plugin_error(item: HarvesterError, rdi: str, scope: RepositoryScope) -> None:
-    """Log a plugin-level error and record it on the repository scope."""
+    """Log a plugin error and record it on the repository scope.
+
+    ``RecordProcessingError`` is a per-dataset failure. Other ``HarvesterError``
+    values (e.g. sitemap/discovery failures) are repository-level issues and
+    must not increment ``failed_datasets``.
+    """
     if isinstance(item, RecordProcessingError):
         logger.error(
             "Processing error in repository '%s' for record '%s': %s",
@@ -92,9 +104,12 @@ def record_plugin_error(item: HarvesterError, rdi: str, scope: RepositoryScope) 
             item,
         )
         scope.record_failed(str(item), record_id=item.record_id, url=item.url)
-    else:
-        logger.error("Processing error in repository '%s': %s", rdi, item)
-        scope.record_failed(str(item))
+        return
+
+    logger.error("Processing error in repository '%s': %s", rdi, item)
+    raw_url = getattr(item, "url", None)
+    url = raw_url if isinstance(raw_url, str) else None
+    scope.record_repository_issue(str(item), url=url)
 
 
 def handle_skipped_record(item: SkippedRecord, rdi: str) -> None:

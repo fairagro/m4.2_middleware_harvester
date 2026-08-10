@@ -8,7 +8,7 @@ from middleware.harvester.reporting import (
     format_source_url_annotation,
     record_upload_outcomes,
 )
-from middleware.shared.report import HarvestReport
+from middleware.shared.report import HarvestReport, IssueKind
 
 
 def test_format_source_url_annotation_single_occurrence() -> None:
@@ -55,6 +55,7 @@ def test_record_upload_outcomes_counts_from_api_result() -> None:
     assert snap.total_studies == 2
     assert snap.total_assays == 1
     assert len(snap.failures) == 1
+    assert snap.failures[0].kind is IssueKind.DATASET
     assert snap.failures[0].record_id == "arc-1"
     assert "source URL: https://csw.example/record/1 (×2)" in snap.failures[0].message
 

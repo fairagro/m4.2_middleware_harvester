@@ -126,8 +126,9 @@ archived into main specs.
 - **[`openspec/specs/harvester-configuration/`](openspec/specs/harvester-configuration/)** — Configuration file structure, plugin field typing, and mutual-exclusion validation.
 - **[`openspec/specs/otlp-observability/`](openspec/specs/otlp-observability/)** — OTLP tracing via `middleware.shared.tracing`; span structure, attribute names, and shutdown contract.
 - **[`openspec/specs/harvest-report/`](openspec/specs/harvest-report/)** — How the
-  orchestrator drives `HarvestReport` / `RepositoryScope` counting methods and emits via
-  `JsonLdReportSerializer`; contract owned by
+  orchestrator drives `HarvestReport` / `RepositoryScope` counting methods
+  (`record_failed` vs `record_repository_issue`) and emits via
+  `JsonLdReportSerializer` (vocab `ns/harvest-report/v2/`); contract owned by
   [`m4.2_advanced_middleware_api`](https://github.com/fairagro/m4.2_advanced_middleware_api).
 - **[`openspec/specs/liveness-probe/`](openspec/specs/liveness-probe/)** — Kubernetes
   liveness probe: asyncio heartbeat loop (file mtime) + PyInstaller `healthcheck` binary;

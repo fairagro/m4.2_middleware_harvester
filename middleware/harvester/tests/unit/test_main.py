@@ -18,7 +18,7 @@ from middleware.harvester.main import main
 from middleware.harvester.orchestrator import run_orchestrator, run_repository
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.harvester.reporting import emit_report
-from middleware.shared.report import HarvestReport, JsonLdReportSerializer
+from middleware.shared.report import FAIRAGRO_HARVEST_REPORT_NS, HarvestReport, IssueKind, JsonLdReportSerializer
 
 
 def _make_repo(plugin_type: str = "inspire") -> MagicMock:
@@ -125,8 +125,9 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
     assert mock_client.harvest_arcs.call_count == 1
     assert len(report.repository_reports) == len(repos)
     assert report.repository_reports[0].harvested_datasets == 0
-    assert report.repository_reports[0].failed_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 0
     assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -212,6 +213,7 @@ async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url()
 
     assert report.repository_reports[0].harvest_id == "harvest-967abfe8-27a3-4776-86e6-4bbe17d98ac2"
     assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -256,7 +258,9 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     assert collected == ["arc-json"]
     assert mock_client.harvest_arcs.call_count == 1
     assert report.repository_reports[0].harvested_datasets == 1
-    assert report.repository_reports[0].failed_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 0
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -341,12 +345,16 @@ def test_emit_report_via_shared_counting_api() -> None:
     for _ in range(5):
         scope.record_harvested()
     scope.record_failed("boom")
+    scope.record_repository_issue("discovery failed", url="https://example.org/sitemap")
     scope.add_studies(2)
     scope.add_assays(2)
     scope.close()
     report.finish(end_time=datetime(2026, 1, 1, 0, 1, tzinfo=UTC))
 
-    jsonld = json.loads(JsonLdReportSerializer().render(report))["schema:result"][0]
+    document = json.loads(JsonLdReportSerializer().render(report))
+    assert document["@context"]["fairagro"] == FAIRAGRO_HARVEST_REPORT_NS
+    assert FAIRAGRO_HARVEST_REPORT_NS.endswith("/ns/harvest-report/v2/#")
+    jsonld = document["schema:result"][0]
 
     assert jsonld["@type"] == "schema:EntryPoint"
     assert jsonld["fairagro:harvestId"] == "harvest-1"
@@ -356,6 +364,15 @@ def test_emit_report_via_shared_counting_api() -> None:
     assert jsonld["fairagro:skippedDatasets"] == 0
     assert jsonld["fairagro:totalStudies"] == 2
     assert jsonld["fairagro:totalAssays"] == 2
+    assert "fairagro:failedRecords" not in jsonld
+    assert jsonld["fairagro:failures"] == [
+        {"fairagro:message": "boom", "fairagro:kind": "dataset"},
+        {
+            "fairagro:message": "discovery failed",
+            "fairagro:kind": "repository",
+            "fairagro:url": "https://example.org/sitemap",
+        },
+    ]
 
 
 def test_emit_report_logs_warning_on_serialisation_failure(
@@ -450,8 +467,9 @@ async def test_run_repository_unknown_plugin_skips_repo() -> None:
     assert len(report.repository_reports) == 1
     entry = report.repository_reports[0]
     assert entry.harvested_datasets == 0
-    assert entry.failed_datasets == 1
+    assert entry.failed_datasets == 0
     assert entry.failures[0].message == "Unknown repository type 'unknown'"
+    assert entry.failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -481,7 +499,9 @@ async def test_run_orchestrator_returns_report_when_all_tasks_fail() -> None:
 
     assert len(report.repository_reports) == len(repos)
     assert all(repo.harvest_id is None for repo in report.repository_reports)
-    assert all(repo.failed_datasets == 1 for repo in report.repository_reports)
+    assert all(repo.failed_datasets == 0 for repo in report.repository_reports)
+    assert all(len(repo.failures) == 1 for repo in report.repository_reports)
+    assert all(repo.failures[0].kind is IssueKind.REPOSITORY for repo in report.repository_reports)
 
 
 @pytest.mark.asyncio
@@ -512,7 +532,9 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
         report = await run_orchestrator(mock_config)
 
     assert len(report.repository_reports) == 1
-    assert report.repository_reports[0].failed_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 0
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
     assert mock_client.harvest_arcs.call_count == 0
 
 
