@@ -151,6 +151,30 @@ def test_author_without_given_name_fails_mapping() -> None:
         mapper.map_graph(graph)
 
 
+def test_family_name_with_display_name_recovers_given_name() -> None:
+    """Recover given name from schema:name when givenName is missing but familyName is set."""
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/display-name")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Display Name Fallback")))
+    author = URIRef("https://example.org/author/ada")
+    graph.add((dataset, schema.creator, author))
+    graph.add((author, RDF.type, schema.Person))
+    graph.add((author, schema.familyName, Literal("Lovelace")))
+    graph.add((author, schema.name, Literal("Ada Lovelace")))
+
+    payload = json.loads(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    people = [
+        item
+        for item in payload["@graph"]
+        if item.get("@type") == "Person" or (isinstance(item.get("@type"), list) and "Person" in item.get("@type", []))
+    ]
+    assert len(people) == 1
+    assert people[0].get("givenName") == "Ada"
+    assert people[0].get("familyName") == "Lovelace"
+
+
 def test_single_token_literal_creator_fails_mapping() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")

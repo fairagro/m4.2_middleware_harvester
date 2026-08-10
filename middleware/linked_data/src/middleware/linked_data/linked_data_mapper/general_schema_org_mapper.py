@@ -232,9 +232,13 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         family = (self._str(graph, node, self._schema().familyName) or "").strip()
         name = self._str(graph, node, self._schema().name)
 
-        if not given and not family and name:
-            given_opt, family = self._split_display_name(name)
-            given = given_opt or ""
+        # Common Schema.org shape: familyName set, givenName missing, full display in name.
+        if not given and name:
+            given_opt, family_from_name = self._split_display_name(name)
+            if given_opt:
+                given = given_opt
+            if not family:
+                family = family_from_name
 
         if not given:
             return None, family
