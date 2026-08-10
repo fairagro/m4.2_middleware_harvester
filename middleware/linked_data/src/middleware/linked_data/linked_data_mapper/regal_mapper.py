@@ -616,7 +616,7 @@ class RegalMapper(LinkedDataMapper):
             value = str(subject)
             if value.startswith(self._resource_base_url):
                 return value.removeprefix(self._resource_base_url)
-            if value.startswith("frl:") or value.startswith("edoweb:"):
+            if value.startswith(("frl:", "edoweb:")):
                 return value
         return None
 
