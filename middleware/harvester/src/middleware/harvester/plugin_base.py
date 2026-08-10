@@ -48,6 +48,8 @@ class Plugin(Protocol):
 
     def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Return an async generator of harvested ARCs, errors, or skips."""
+        ...
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for the configured source."""
+        ...
