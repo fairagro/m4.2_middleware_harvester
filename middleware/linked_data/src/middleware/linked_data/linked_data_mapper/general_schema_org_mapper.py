@@ -31,6 +31,7 @@ from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper
+from .person_contacts import require_nonempty_person_given_names
 
 
 @LinkedDataMapper.register(PayloadType.schema_org_general)
@@ -188,57 +189,107 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 self._append_contact(inv, graph, node, "author")
         for node in graph.objects(subject, self._schema().contributor):
             self._append_contact(inv, graph, node, "contributor")
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is not None:
-            self._append_contact(inv, graph, publisher_node, "publisher")
+        # Organization publishers are Investigation comments, not Person contacts.
+        require_nonempty_person_given_names(inv)
 
     def _append_contact(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
+        if not isinstance(node, Literal) and self._is_type(graph, node, self._schema().Organization):
+            self._append_organization_comment(inv, graph, node, role)
+            return
         person = self._node_to_person(graph, node)
         if person is None:
             return
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
 
+    def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
+        org_name = self._str(graph, node, self._schema().name)
+        if not org_name:
+            return
+        comment_name = "Publisher" if role == "publisher" else role.capitalize()
+        inv.Comments.append(Comment.create(comment_name, org_name))
+        org_url = self._str(graph, node, self._schema().url) or (
+            str(node) if not isinstance(node, Literal) and str(node).startswith("http") else None
+        )
+        if org_url:
+            inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
+
     def _contact_exists(self, inv: ArcInvestigation, graph: Graph, node: Node) -> bool:
-        given = self._str(graph, node, self._schema().givenName) or ""
-        family = self._str(graph, node, self._schema().familyName) or ""
-        if not given and not family:
-            name = self._str(graph, node, self._schema().name) or ""
-            parts = name.split(" ")
-            family = parts[-1] if parts else ""
-            given = " ".join(parts[:-1]) if len(parts) > 1 else name
+        given, family = self._person_names(graph, node)
+        if given is None:
+            return False
         return any(c.FirstName == given and c.LastName == family for c in inv.Contacts)
+
+    def _person_names(self, graph: Graph, node: Node) -> tuple[str | None, str]:
+        """Return ``(given, family)`` or ``(None, ...)`` when given name would be empty."""
+        if isinstance(node, Literal):
+            return self._split_display_name(str(node))
+
+        if self._is_type(graph, node, self._schema().Organization):
+            return None, self._str(graph, node, self._schema().name) or ""
+
+        given = (self._str(graph, node, self._schema().givenName) or "").strip()
+        family = (self._str(graph, node, self._schema().familyName) or "").strip()
+        name = self._str(graph, node, self._schema().name)
+
+        if not given and not family and name:
+            given_opt, family = self._split_display_name(name)
+            given = given_opt or ""
+
+        if not given:
+            return None, family
+        return given, family
+
+    @staticmethod
+    def _split_display_name(name: str) -> tuple[str | None, str]:
+        parts = name.strip().split()
+        if not parts:
+            return None, ""
+        if len(parts) == 1:
+            return None, parts[0]
+        return " ".join(parts[:-1]), parts[-1]
 
     def _node_to_person(self, graph: Graph, node: Node) -> Person | None:
         if isinstance(node, Literal):
-            literal_name = str(node)
-            return Person.create(last_name=literal_name, first_name="") if literal_name else None
+            given, family = self._split_display_name(str(node))
+            if given is None:
+                if family:
+                    raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
+                return None
+            return Person.create(last_name=family, first_name=given)
 
         if self._is_type(graph, node, self._schema().Organization):
-            org_name = self._str(graph, node, self._schema().name)
-            return (
-                Person.create(last_name=org_name or "", first_name="", affiliation=org_name or "") if org_name else None
-            )
+            return None
 
-        given = self._str(graph, node, self._schema().givenName) or ""
-        family = self._str(graph, node, self._schema().familyName) or ""
-        name = self._str(graph, node, self._schema().name)
+        given, family = self._person_names(graph, node)
         email = self._str(graph, node, self._schema().email)
         url = self._str(graph, node, self._schema().url)
 
-        if not given and not family and not name:
+        if given is None:
+            if family or self._str(graph, node, self._schema().name):
+                raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
             return None
 
-        if not given and not family and name:
-            parts = name.split(" ")
-            family = parts[-1] if parts else ""
-            given = " ".join(parts[:-1]) if len(parts) > 1 else name
-
+        affiliation = self._extract_affiliation(graph, node)
         address = self._extract_address(graph, node)
-        arc_person = Person.create(last_name=family, first_name=given, email=email, address=address)
+        arc_person = Person.create(
+            last_name=family,
+            first_name=given,
+            email=email,
+            address=address,
+            affiliation=affiliation or "",
+        )
         if url:
             arc_person.Comments.append(Comment.create("URL", url))
         return arc_person
+
+    def _extract_affiliation(self, graph: Graph, node: Node) -> str | None:
+        aff_node = self._obj(graph, node, self._schema().affiliation)
+        if aff_node is None:
+            return None
+        if isinstance(aff_node, Literal):
+            return str(aff_node).strip() or None
+        return self._str(graph, aff_node, self._schema().name)
 
     def _extract_address(self, graph: Graph, node: Node) -> str | None:
         addr_node = self._obj(graph, node, self._schema().address)
@@ -300,6 +351,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             if value:
                 inv.Comments.append(Comment.create(label, value))
 
+        self._add_publisher_comment(inv, graph, subject)
+
         conforms_to = self._obj(graph, subject, self._schema().conformsTo)
         if conforms_to is not None:
             inv.Comments.append(Comment.create("Conforms To", str(conforms_to)))
@@ -311,6 +364,20 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             content_url = self._str(graph, dist_node, self._schema().contentUrl) or ""
             if encoding or content_url:
                 inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
+
+    def _add_publisher_comment(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
+        publisher_node = self._obj(graph, subject, self._schema().publisher)
+        if publisher_node is None:
+            return
+        if isinstance(publisher_node, Literal):
+            inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
+            return
+        if self._is_type(graph, publisher_node, self._schema().Organization):
+            self._append_organization_comment(inv, graph, publisher_node, "publisher")
+            return
+        pub_name = self._str(graph, publisher_node, self._schema().name) or str(publisher_node)
+        if pub_name:
+            inv.Comments.append(Comment.create("Publisher", pub_name))
 
     # ------------------------------------------------------------------
     # Study

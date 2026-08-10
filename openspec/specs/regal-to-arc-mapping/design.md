@@ -32,3 +32,9 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
 4. **Prefer DOI landing URLs for Assay `Output [URI]`**
    — DOIs are the stable public identifier; the repository resource URL remains
    the fallback when no DOI is present.
+
+5. **Person contacts require non-empty FirstName; org-style labels are not empty-given Persons**
+   — `prefLabel` without `", "` must not become `Person(first_name="")`. Organizational/
+   label-only agents become Investigation comments; ORCID agents without a given name fail
+   closed. Institutions continue via Affiliation / Institution comments (see
+   `docs/regal_mapping.md` and `person-contact-given-name`).

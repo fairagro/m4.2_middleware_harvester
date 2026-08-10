@@ -87,10 +87,10 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 | Person aspect | Source | Rule |
 | --- | --- | --- |
-| **LastName / FirstName** | `prefLabel` | Split on first `", "`; leftover → FirstName; if no comma, entire label → LastName |
+| **LastName / FirstName** | `prefLabel` | Split on first `", "`; leftover → FirstName. FirstName MUST be non-empty after trim. If there is no comma (entire label would be LastName only), do **not** emit a Person with empty FirstName: treat as an organization/label agent via Investigation comment (`Creator` / `Contributor`), unless the agent `@id` is an ORCID (person identity) — then mapping MUST fail closed. |
 | **ORCID / identifier** | agent `@id` | If ORCID URI, store as Person comment `ORCID` or equivalent identifier field supported by arctrl |
 | **Roles** | field provenance | creator → author; contributor → contributor (NCIT role terms when the shared role ontology is used elsewhere in the harvester) |
-| **Affiliation** | `institution[].prefLabel` | Apply when exactly one institution, or the same institution is clearly shared |
+| **Affiliation** | `institution[].prefLabel` | Apply when exactly one institution, or the same institution is clearly shared. Institutions MUST NOT be mapped as Person contacts. |
 
 ### 4. Dates, access, and rights
 
@@ -231,7 +231,12 @@ If both `@id` and `doi` are absent → mapping error for that record (do not inv
 
 ### 3. Name splitting
 
-`prefLabel` `"Family, Given"` splitting is best-effort. Unparseable labels keep a single LastName. Do not reverse East-Asian or organisational names heuristically beyond the comma rule.
+`prefLabel` `"Family, Given"` splitting is best-effort. Labels without `", "` MUST NOT
+become Person contacts with an empty FirstName (that breaks DataHUB `arc-export`).
+Represent such agents as Investigation comments when they are organizational/label-only;
+fail closed when the agent is a person identity (e.g. ORCID) without a given name.
+Do not reverse East-Asian names heuristically beyond the comma rule, and do not invent
+placeholder given names.
 
 ### 4. Multiple titles / descriptions
 

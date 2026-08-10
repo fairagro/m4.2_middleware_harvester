@@ -172,3 +172,37 @@ def test_regal_mapper_license_blank_node_uses_pref_label() -> None:
     text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert "CC BY 4.0" in text
     assert "_:" not in text
+
+
+def test_regal_mapper_org_style_pref_label_is_comment_not_empty_given_person() -> None:
+    graph = _base_graph()
+    org = URIRef("https://example.org/org/zenodo")
+    graph.add((SUBJECT, DCTERMS.creator, org))
+    graph.add((org, SKOS.prefLabel, Literal("Zenodo")))
+
+    person = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((SUBJECT, DCTERMS.creator, person))
+    graph.add((person, SKOS.prefLabel, Literal("Fuerst, Julia")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert "Fuerst" in text
+    assert "Julia" in text
+    assert "Zenodo" in text
+    payload = json.loads(text)
+    people = [
+        item
+        for item in payload["@graph"]
+        if item.get("@type") == "Person" or (isinstance(item.get("@type"), list) and "Person" in item.get("@type", []))
+    ]
+    assert all(str(p.get("givenName", "")).strip() for p in people)
+    assert not any(p.get("familyName") == "Zenodo" for p in people)
+
+
+def test_regal_mapper_orcid_without_given_name_fails_closed() -> None:
+    graph = _base_graph()
+    orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((SUBJECT, DCTERMS.creator, orcid))
+    graph.add((orcid, SKOS.prefLabel, Literal("OnlyFamily")))
+
+    with pytest.raises(ValueError, match="non-empty given name"):
+        _mapper().map_graph(graph)
