@@ -31,6 +31,7 @@ The plugin is configured as part of a `repository` entry in the central Harveste
 | `chunk_size` | int | `50` | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`. |
 | `timeout` | int | `30` | Network timeout for CSW requests in seconds. |
 | `max_records` | int | `None` | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this. |
+| `verify_ssl` | bool \| string | `true` | TLS verification for CSW/OWSLib: `true` (system CA), `false` (disable), or path to a CA bundle (passed through to OWSLib). Independent of the harvester API client's `verify_ssl`. |
 
 ### Example Plugin Configuration
 

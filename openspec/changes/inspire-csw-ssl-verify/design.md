@@ -22,7 +22,7 @@
    — Matches the existing harvester API-client YAML key operators already know from `middleware/harvester/README.md` and Helm values. Same semantics (TLS peer verification), different config subtree (`plugin` vs top-level API client). Alternatives considered: `ssl_verify` (closer to requests kwargs) and nesting under an `auth:` object — rejected to keep flat INSPIRE fields consistent with `timeout` / `user_agent` / retry knobs.
 
 2. **Type `bool | str`, default `True` — mirror OWSLib exactly**
-   — OWSLib’s `Authentication.verify` already accepts bool or CA-bundle path. Supporting the string form gives operators a safer alternative to `False` for privately issued certs. Alternatives considered: bool-only (simpler YAML, but forces full disable when a CA path would suffice) and separate `ca_bundle` + `verify_ssl` fields (more verbose, easy to misconfigure when both are set).
+   — OWSLib’s `Authentication.verify` already accepts bool or CA-bundle path. Supporting the string form is a zero-cost passthrough and gives operators a safer alternative to `False` for privately issued certs. Alternatives considered: bool-only (simpler YAML, but forces full disable when a CA path would suffice) and separate `ca_bundle` + `verify_ssl` fields (more verbose, easy to misconfigure when both are set).
 
 3. **Pass via `Authentication(verify=...)` at `CatalogueServiceWeb` construction**
    — Same lifetime as `user_agent` headers: one injection covers GetCapabilities and all later GetRecords calls. Do not patch `requests` globals or set `PYTHONHTTPSVERIFY`. Alternatives considered: monkeypatching `openURL` — fragile across OWSLib versions.

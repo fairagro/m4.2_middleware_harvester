@@ -20,6 +20,21 @@ def test_config_loading() -> None:
     assert config.csw_url == "https://csw.example.com"
 
 
+def test_config_verify_ssl_default_true() -> None:
+    config = Config(csw_url="https://csw.example.com")
+    assert config.verify_ssl is True
+
+
+def test_config_verify_ssl_false() -> None:
+    config = Config.model_validate({"csw_url": "https://csw.example.com", "verify_ssl": False})
+    assert config.verify_ssl is False
+
+
+def test_config_verify_ssl_ca_path() -> None:
+    config = Config.model_validate({"csw_url": "https://csw.example.com", "verify_ssl": "/etc/ssl/certs/custom-ca.pem"})
+    assert config.verify_ssl == "/etc/ssl/certs/custom-ca.pem"
+
+
 def test_config_aliases_for_query() -> None:
     config = Config.model_validate(
         {

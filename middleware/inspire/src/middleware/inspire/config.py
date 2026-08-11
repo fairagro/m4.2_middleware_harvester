@@ -67,6 +67,18 @@ class Config(BaseModel):
         Field(description="User-Agent header value used for CSW requests."),
     ] = "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
 
+    verify_ssl: Annotated[
+        bool | str,
+        Field(
+            description=(
+                "TLS certificate verification for CSW/OWSLib requests. "
+                "True uses the system CA store; False disables verification; "
+                "a string is a path to a CA bundle (passed through to OWSLib). "
+                "Independent of harvester API verify_ssl."
+            ),
+        ),
+    ] = True
+
     @field_validator("user_agent")
     @classmethod
     def user_agent_must_be_single_line(cls, v: str) -> str:
