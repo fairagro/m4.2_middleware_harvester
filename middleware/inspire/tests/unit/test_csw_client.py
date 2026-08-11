@@ -3,6 +3,7 @@
 import gc
 import logging
 import warnings
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -173,6 +174,48 @@ def test_connect_forwards_user_agent_header() -> None:
         client.connect()
 
     assert mock_factory.call_args.kwargs["headers"] == {"User-Agent": "MyAgent"}
+
+
+def test_connect_forwards_default_verify_ssl() -> None:
+    config = _make_csw_config()
+    client = CSWClient(config)
+    fake_csw = MagicMock()
+
+    with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
+        client.connect()
+
+    auth = mock_factory.call_args.kwargs["auth"]
+    assert auth.verify is True
+
+
+def test_connect_forwards_verify_ssl_false(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING)
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, verify_ssl=False)
+    client = CSWClient(config)
+    fake_csw = MagicMock()
+
+    with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
+        client.connect()
+
+    auth = mock_factory.call_args.kwargs["auth"]
+    assert auth.verify is False
+    assert "TLS certificate verification is disabled" in caplog.text
+
+
+def test_connect_forwards_verify_ssl_ca_path(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
+    caplog.set_level(logging.WARNING)
+    ca_path = tmp_path / "custom-ca.pem"
+    ca_path.write_text("dummy-ca\n", encoding="utf-8")
+    config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, verify_ssl=str(ca_path))
+    client = CSWClient(config)
+    fake_csw = MagicMock()
+
+    with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
+        client.connect()
+
+    auth = mock_factory.call_args.kwargs["auth"]
+    assert auth.verify == str(ca_path)
+    assert "TLS certificate verification is disabled" not in caplog.text
 
 
 @pytest.mark.asyncio

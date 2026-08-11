@@ -67,6 +67,34 @@ class Config(BaseModel):
         Field(description="User-Agent header value used for CSW requests."),
     ] = "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
 
+    verify_ssl: Annotated[
+        bool | str,
+        Field(
+            description=(
+                "TLS certificate verification for CSW/OWSLib requests. "
+                "True uses the system CA store; False disables verification; "
+                "a string is a path to a CA bundle (passed through to OWSLib). "
+                "Independent of harvester API verify_ssl."
+            ),
+        ),
+    ] = True
+
+    @field_validator("verify_ssl", mode="before")
+    @classmethod
+    def coerce_verify_ssl_bool_strings(cls, v: object) -> object:
+        """Treat boolean-like strings as bool so quoted YAML/env values disable correctly.
+
+        Pydantic keeps ``"false"`` / ``"true"`` as ``str`` under ``bool | str``, which
+        would otherwise be forwarded to OWSLib as a CA bundle path.
+        """
+        if isinstance(v, str):
+            lowered = v.strip().lower()
+            if lowered in {"true", "1", "yes", "on"}:
+                return True
+            if lowered in {"false", "0", "no", "off"}:
+                return False
+        return v
+
     @field_validator("user_agent")
     @classmethod
     def user_agent_must_be_single_line(cls, v: str) -> str:

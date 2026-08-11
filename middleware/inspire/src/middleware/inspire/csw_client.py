@@ -15,6 +15,7 @@ import lxml.etree  # type: ignore[import-untyped]
 from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
 from owslib.fes import OgcExpression  # type: ignore[import-untyped]
 from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
+from owslib.util import Authentication  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
 
@@ -55,10 +56,16 @@ class CSWClient:
             self._config.timeout,
             self._config.user_agent,
         )
+        if self._config.verify_ssl is False:
+            logger.warning(
+                "TLS certificate verification is disabled for CSW endpoint %s",
+                self._config.csw_url,
+            )
         self._csw = CatalogueServiceWeb(
             self._config.csw_url,
             timeout=self._config.timeout,
             headers={"User-Agent": self._config.user_agent},
+            auth=Authentication(verify=self._config.verify_ssl),
         )
         csw_title = None
         if self._csw and hasattr(self._csw, "identification") and self._csw.identification:
