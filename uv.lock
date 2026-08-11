@@ -497,20 +497,20 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-api-client"
-version = "11.1.1.dev34"
+version = "12.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/db/ad/b08e2603c020285da9d92fffc6dcb32f45e01836bf48eb47812c91d4283d/fairagro_middleware_api_client-11.1.1.dev34.tar.gz", hash = "sha256:826f65622679251da4cf42c5f92c830c4a238186c197064298a84bb34807a358", size = 25895, upload-time = "2026-08-10T12:14:41.014Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/44/bfb19d016214eea31692f8010ab1d5e9c011a1560fdd9129a300dcb775d9/fairagro_middleware_api_client-12.0.0.tar.gz", hash = "sha256:c9e05a53014c4814715914aac3266fbf0c48bbc16250dcde999a4b82a73351d0", size = 25871, upload-time = "2026-08-11T11:43:14.328Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/6d/63550d9f4aea7702d11a89ea87f486f6c21ceb96b9b136204311ede79ecf/fairagro_middleware_api_client-11.1.1.dev34-py3-none-any.whl", hash = "sha256:287244153e37502626dc95ec8f26f09a1e735ed5f0347d286b7600f45c5ea5d7", size = 14758, upload-time = "2026-08-10T12:14:39.375Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/a2/21923a74c1d8c1ab633bd2f287cd9797a781435fa44a365cf6752fd41805/fairagro_middleware_api_client-12.0.0-py3-none-any.whl", hash = "sha256:d72f73e877f8f8d0560cd3ea4684a9b565f5eb955a7745cc82c1f2a643ff7007", size = 14710, upload-time = "2026-08-11T11:43:12.49Z" },
 ]
 
 [[package]]
 name = "fairagro-middleware-shared"
-version = "11.1.1.dev34"
+version = "12.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "opentelemetry-api" },
@@ -520,9 +520,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/31/dea185f8476d400292a84eaf97a52c84d8e0cf9114c6a3347774f7e2e233/fairagro_middleware_shared-11.1.1.dev34.tar.gz", hash = "sha256:283aaea3675cb3ba7d9b75a6dd68fccca993f81af07dd03c154ea2440072ca1d", size = 25442, upload-time = "2026-08-10T12:14:41.547Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/6d/f19fb3dd902efa9ea70c0c0a98cb3cf059b2e1a41c299b5bd3a0dc184dfa/fairagro_middleware_shared-12.0.0.tar.gz", hash = "sha256:a2960e5eaad493a7dab23da1fa9abd2a1f34d2cc529d3836d8b926b6b716e16d", size = 25423, upload-time = "2026-08-11T11:43:15.026Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/62/d0a4a4b3ee299ae8978d71c0ac27fbae33ff739e496f6a12177502bd5fee/fairagro_middleware_shared-11.1.1.dev34-py3-none-any.whl", hash = "sha256:9222ab833f05af1dd23baa729113720cd98b4c993d439cabc4240d8d3d791c65", size = 21694, upload-time = "2026-08-10T12:14:40.218Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/99/412840104574896ea1d787b77955704bfb6b6440dcf694450202f8b49c0e/fairagro_middleware_shared-12.0.0-py3-none-any.whl", hash = "sha256:916832dc1f3c0e88abd722bedc576eb902ed01aa82baa2cf64e450a4933c6e69", size = 21651, upload-time = "2026-08-11T11:43:13.403Z" },
 ]
 
 [[package]]
@@ -1429,11 +1429,11 @@ wheels = [
 
 [[package]]
 name = "platformdirs"
-version = "4.11.1"
+version = "4.11.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/36/0a/062135c9a98dac804265073cc3afdbec5ae1aa37980bb354f461bafe81b4/platformdirs-4.11.1.tar.gz", hash = "sha256:bb1af68078f25e2f3e111e2d43b8d536df41b73c8a684b40bb018223b66fae27", size = 32396, upload-time = "2026-08-07T23:06:48.516Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/98/0bf930c4f97d0266b58a89e36c015f56232c52b5d2f207215d48cca9e8f7/platformdirs-4.11.2.tar.gz", hash = "sha256:3a2ae5fca3520a01ab1be8b45613537f52ddf5b5f6f53d88233892dfbf0cd82d", size = 32716, upload-time = "2026-08-10T15:48:06.092Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/85/9b31b44296cfa3bb56cddb35e6a0f6578bab0b490c0806c0245e32c6110c/platformdirs-4.11.1-py3-none-any.whl", hash = "sha256:2efd27d363e8dd2e661639ffb398865a5e0a46442a11d266bf375a0e0c10e386", size = 23261, upload-time = "2026-08-07T23:06:47.219Z" },
+    { url = "https://files.pythonhosted.org/packages/49/e2/4e6eee633809c376c024821b91ade709cbfd040ec53939ffbcc292aa7eee/platformdirs-4.11.2-py3-none-any.whl", hash = "sha256:7f89089b6ea71bda7962953edcf784b2e2d9d285b40ad88be2bb75c6e9d82ab4", size = 23361, upload-time = "2026-08-10T15:48:04.855Z" },
 ]
 
 [[package]]
@@ -1447,7 +1447,7 @@ wheels = [
 
 [[package]]
 name = "pre-commit"
-version = "4.6.1"
+version = "4.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cfgv" },
@@ -1456,9 +1456,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/3a/ddb78f32a0814e66b18a099377a106a2dcdce92d86a034d69d65df9b256e/pre_commit-4.6.1.tar.gz", hash = "sha256:03e809865c7d178b9979d06c761fcbfe6808fdaded8581a745bb110e52050421", size = 198646, upload-time = "2026-07-21T20:56:58.225Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/49/bc925106abcdac498074f2cbe6137e94e09f418dd2b7775df5b577dc0313/pre_commit-4.6.1-py2.py3-none-any.whl", hash = "sha256:0e3b2942510d1fb34eec167a3ec57331bf8442122f1153a9fb8b58f5c49b2717", size = 226186, upload-time = "2026-07-21T20:56:57.064Z" },
+    { url = "https://files.pythonhosted.org/packages/45/e2/bbb7129c9e7999a6b8ee9cca3b66486c25c423ab5a75f34071798b74ce94/pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e", size = 226202, upload-time = "2026-08-10T22:07:16.942Z" },
 ]
 
 [[package]]
@@ -2173,7 +2173,7 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.7.3"
+version = "21.7.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
@@ -2181,9 +2181,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "python-discovery" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9c/10/8b7a5454efc032be50c1c5641467dbb5d31314500205212b2aa66d3c8af4/virtualenv-21.7.3.tar.gz", hash = "sha256:5e9e287f5c808070eea3b40403d3368248e64b24f1b60bd9a36e85ac841d2c3e", size = 5525482, upload-time = "2026-08-08T14:43:20.286Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/dc/a6eb1ddfa7f1e390fa599b078453c97edb3f6f846b34fb4eac3e8ea16401/virtualenv-21.7.4.tar.gz", hash = "sha256:c9d960c95fa458171e58222a5ccab7465298e4b6559977865e627c4719f1e825", size = 5345511, upload-time = "2026-08-10T22:54:33.316Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/2a/83d779d2dfb61f101d7b1c10073d18984e37262d8b4f171c99911a952430/virtualenv-21.7.3-py3-none-any.whl", hash = "sha256:26dfda3c34f29bf1a3ca167426a67658d59979b9954e705aef60a5f724ce1773", size = 5504590, upload-time = "2026-08-08T14:43:18.57Z" },
+    { url = "https://files.pythonhosted.org/packages/40/4c/eb2f52aeeaf30dbd073d315a251a63ae2b8263171ec4428c135140cb0802/virtualenv-21.7.4-py3-none-any.whl", hash = "sha256:376ec93cd6aab3044fa395d7db226db38043b7b5748948044b2a87168525e843", size = 5324444, upload-time = "2026-08-10T22:54:31.515Z" },
 ]
 
 [[package]]
