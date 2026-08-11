@@ -87,6 +87,7 @@ lint.select = [
   "BLE", # flake8-blind-except (fängt zu generische Exceptions ab)
   "PLR", # Pylint Refactor (inkl. complexity rules wie too-many-return-statements)
   "SLF", # flake8-self (Private member access)
+  "PIE", # flake8-pie (u.a. PIE790: unnötiges `...`/`pass` nach Docstring)
 ]
 
 # Maximale Zeilenlänge wie in pylint (Standard: 100)
@@ -162,14 +163,6 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "arctrl"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "fable_library.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "fable_library"
 ignore_missing_imports = true
 
 # Docstring-Regeln aktivieren, damit es wie pylint C0114/15/16 meckert

@@ -89,7 +89,7 @@ software.
    Yield the shared `middleware.harvester.errors.RecordProcessingError` from
    discovery (same as the inspire CSW client), not a plugin-local wrapper type.
    The linked_data plugin forwards these signals to the orchestrator so
-   `failed_datasets` / `fairagro:failedRecords` stay complete
+   `failed_datasets` / `fairagro:failures` stay complete
    ([`error-handling`](../error-handling/),
    [`harvest-report`](../harvest-report/)).
    Duplicates remain deliberate skips (`SkippedRecord`).

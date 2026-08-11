@@ -9,7 +9,7 @@ serializer, vocabulary) lives in
 - Package: `middleware.shared.report` (`fairagro-middleware-shared`)
 - OpenSpec: `openspec/specs/harvest-report/` (after archive of
   `shared-harvest-report`)
-- Vocabulary: `ns/harvest-report/v1/`
+- Vocabulary: `ns/harvest-report/v2/` (v1 frozen with `failedRecords`)
 
 This harvester repo only wires that library into the orchestration loop.
 
@@ -24,7 +24,7 @@ middleware/harvester/
   main.py           CLI; emit_report after tracing shutdown
 
 middleware.shared.report   ← API repo / PyPI package
-  HarvestReport, RepositoryScope, RepositoryReport, FailedRecord
+  HarvestReport, RepositoryScope, RepositoryReport, HarvestIssue, IssueKind
   JsonLdReportSerializer
 ```
 
@@ -43,12 +43,20 @@ duplicate harvested/failed/skipped/study/assay totals outside the scope.
    sums from each yielded `HarvestedArc` (and source-URL hints). After
    `harvest_arcs` returns: one `record_failed` per API error, then
    `record_harvested` × `(submitted - len(errors))`, then `add_studies` /
-   `add_assays` for the batch totals. If upload aborts, each submitted ARC is
-   `record_failed` (or one failure if none were submitted). Composition counts
-   come from the plugin (arctrl `StudyCount` / `AssayCount`), not from
-   re-parsing RO-Crate JSON.
+   `add_assays` for the batch totals. If upload aborts with submitted ARCs,
+   each is `record_failed`; if none were submitted, one
+   `record_repository_issue`. Composition counts come from the plugin
+   (arctrl `StudyCount` / `AssayCount`), not from re-parsing RO-Crate JSON.
 
-3. **Emit after tracing shutdown**
+3. **Separate dataset failures from repository issues**
+   — Per-dataset map/upload/`RecordProcessingError` outcomes call
+   `record_failed` (`IssueKind.DATASET`, bumps `failed_datasets`). RDI-global
+   problems (unknown plugin type, unhandled repository exception, gather
+   escape, sitemap/discovery `HarvesterError`) call
+   `record_repository_issue` (`IssueKind.REPOSITORY`, no counter bump). Do not
+   manually adjust `failed_datasets` to encode repo issues.
+
+4. **Emit after tracing shutdown**
    — Shared library returns a document string only; the harvester prints it to
    stdout after OTLP flush. Print/serialize errors are logged and ignored for
-   exit code.
+   exit code. Wire vocabulary is v2 (`fairagro:failures` + `fairagro:kind`).

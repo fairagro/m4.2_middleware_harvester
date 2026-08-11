@@ -55,7 +55,7 @@ async def run_repository(
         if plugin_factory is None:
             detail = f"Unknown repository type '{repo.plugin_type}'"
             logger.error("%s for repository '%s', skipping...", detail, repo.rdi)
-            scope.record_failed(detail, url=repo.source_url)
+            scope.record_repository_issue(detail, url=repo.source_url)
             return
 
         logger.debug("Initializing plugin for repository %s (%s)", repo.rdi, repo.plugin_type)
@@ -100,11 +100,11 @@ def _record_repository_failure(
     """Log and record a repository-level failure on an existing scope."""
     detail = format_exception_for_report(exc)
     logger.error("Unhandled exception in repository '%s', skipping: %s", repo.rdi, detail)
-    logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=True)
+    logger.debug("Unhandled exception in repository '%s'.", repo.rdi, exc_info=exc)
     recovered_id = harvest_id_from_exception(exc)
     if recovered_id is not None:
         scope.set_harvest_id(recovered_id)
-    scope.record_failed(
+    scope.record_repository_issue(
         detail,
         url=failure_url_for_exception(exc) or repo.source_url,
     )
@@ -136,7 +136,7 @@ def _ensure_gather_failure_recorded(
     if any(entry.rdi == repo.rdi for entry in report.repository_reports):
         return
     scope = report.open_repository(repo.rdi)
-    scope.record_failed(
+    scope.record_repository_issue(
         detail,
         url=failure_url_for_exception(exc) or repo.source_url,
     )

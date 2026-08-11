@@ -12,6 +12,9 @@ from arctrl import (  # type: ignore[import-untyped]
     ArcStudy,
     ArcTable,
     Comment,
+    CompositeCell,
+    CompositeHeader,
+    IOType,
     OntologyAnnotation,
     Person,
     Publication,
@@ -21,11 +24,11 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
-from middleware.harvester.arctrl_compat import CompositeCell, CompositeHeader, IOType
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper
+from .person_contacts import require_nonempty_person_given_names
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
@@ -142,6 +145,7 @@ class RegalMapper(LinkedDataMapper):
         institutions = self._labelled_nodes(graph, subject, DBO.institution)
         affiliation = institutions[0][0] if len(institutions) == 1 else None
         self._add_contacts(inv, graph, subject, affiliation=affiliation)
+        require_nonempty_person_given_names(inv)
         self._add_publications(inv, graph, subject, title=title, doi=doi)
         self._add_investigation_comments(inv, graph, subject, institutions=institutions)
         self._add_ontology_sources(inv)
@@ -368,7 +372,7 @@ class RegalMapper(LinkedDataMapper):
         *,
         affiliation: str | None,
     ) -> None:
-        person = self._node_to_person(graph, node, affiliation=affiliation)
+        person = self._node_to_person(graph, node, affiliation=affiliation, role=role, inv=inv)
         if person is None:
             return
         person.Roles.append(OntologyAnnotation(name=role))
@@ -380,20 +384,44 @@ class RegalMapper(LinkedDataMapper):
         node: Node,
         *,
         affiliation: str | None,
+        role: str,
+        inv: ArcInvestigation,
     ) -> Person | None:
         if isinstance(node, Literal):
             family, given = self._split_pref_label(str(node))
-            return Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
+            return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=None)
 
         pref_label = self._str(graph, node, SKOS.prefLabel) or ""
         if not pref_label:
             return None
         family, given = self._split_pref_label(pref_label)
-        person = Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
-        node_id = str(node)
-        if self._is_orcid_uri(node_id):
-            person.Comments.append(Comment.create("ORCID", node_id))
-        return person
+        return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=str(node))
+
+    def _person_from_label(
+        self,
+        inv: ArcInvestigation,
+        names: tuple[str, str],
+        *,
+        affiliation: str | None,
+        role: str,
+        node_id: str | None,
+    ) -> Person | None:
+        family, given = names[0].strip(), names[1].strip()
+        if given:
+            person = Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
+            if node_id and self._is_orcid_uri(node_id):
+                person.Comments.append(Comment.create("ORCID", node_id))
+            return person
+
+        # Empty given name: Organization/label agent → Comment; person identity → fail closed.
+        if node_id and self._is_orcid_uri(node_id):
+            raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
+        if not family:
+            return None
+        comment_name = "Creator" if role == "author" else role.capitalize()
+        value = family if not node_id else f"{family} ({node_id})"
+        inv.Comments.append(Comment.create(comment_name, value))
+        return None
 
     @staticmethod
     def _is_orcid_uri(uri: str) -> bool:
@@ -588,7 +616,7 @@ class RegalMapper(LinkedDataMapper):
             value = str(subject)
             if value.startswith(self._resource_base_url):
                 return value.removeprefix(self._resource_base_url)
-            if value.startswith("frl:") or value.startswith("edoweb:"):
+            if value.startswith(("frl:", "edoweb:")):
                 return value
         return None
 

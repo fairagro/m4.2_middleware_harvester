@@ -1,9 +1,11 @@
-"""Unit tests for the Harvester orchestrator."""
+"""Unit tests for the Harvester orchestrator and CLI entrypoint."""
 
 import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator, AsyncIterable
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -12,10 +14,11 @@ from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy
 
 from middleware.api_client.api_client import ApiClientError
 from middleware.harvester.errors import HarvesterError, SkippedRecord
+from middleware.harvester.main import main
 from middleware.harvester.orchestrator import run_orchestrator, run_repository
-from middleware.harvester.plugin_base import HarvestedArc, Plugin
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.harvester.reporting import emit_report
-from middleware.shared.report import HarvestReport, JsonLdReportSerializer
+from middleware.shared.report import FAIRAGRO_HARVEST_REPORT_NS, HarvestReport, IssueKind, JsonLdReportSerializer
 
 
 def _make_repo(plugin_type: str = "inspire") -> MagicMock:
@@ -37,41 +40,33 @@ def _make_mock_client() -> AsyncMock:
     return client
 
 
-class SuccessPlugin(Plugin):
+class SuccessPlugin:
     """A plugin that yields one ARC payload successfully."""
 
     def __init__(self, config: object) -> None:
         """Initialize the success plugin with its configuration."""
         self._config = config
 
-    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
         """Yield one valid ARC payload."""
-
-        async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            yield HarvestedArc(arc_json="arc-json")
-
-        return generator()
+        yield HarvestedArc(arc_json="arc-json")
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for this plugin."""
         return None
 
 
-class FailingPlugin(Plugin):
+class FailingPlugin:
     """A plugin that fails during iteration."""
 
     def __init__(self, config: object) -> None:
         """Initialize the failing plugin with its configuration."""
         self._config = config
 
-    def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
         """Yield a generator that immediately raises during iteration."""
-
-        async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            raise RuntimeError("harvest failure")
-            yield  # pragma: no cover
-
-        return generator()
+        raise RuntimeError("harvest failure")
+        yield  # pragma: no cover
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count for this plugin."""
@@ -105,7 +100,7 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
 
     call_count = 0
 
-    class FailingInitPlugin(Plugin):
+    class FailingInitPlugin:
         def __init__(self, config: object) -> None:
             nonlocal call_count
             call_count += 1
@@ -113,11 +108,8 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
                 raise ConnectionError("CSW endpoint unreachable")
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                yield HarvestedArc(arc_json="arc-json")
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            yield HarvestedArc(arc_json="arc-json")
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -133,8 +125,9 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
     assert mock_client.harvest_arcs.call_count == 1
     assert len(report.repository_reports) == len(repos)
     assert report.repository_reports[0].harvested_datasets == 0
-    assert report.repository_reports[0].failed_datasets == 1
-    assert len(report.repository_reports[0].failed_records) == 1
+    assert report.repository_reports[0].failed_datasets == 0
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -145,15 +138,12 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    class RunnerPlugin(Plugin):
+    class RunnerPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                yield HarvestedArc(arc_json="arc-json")
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            yield HarvestedArc(arc_json="arc-json")
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -194,15 +184,12 @@ async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url()
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    class RunnerPlugin(Plugin):
+    class RunnerPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                yield HarvestedArc(arc_json="arc-json")
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            yield HarvestedArc(arc_json="arc-json")
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -225,7 +212,8 @@ async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url()
         report = await run_orchestrator(mock_config)
 
     assert report.repository_reports[0].harvest_id == "harvest-967abfe8-27a3-4776-86e6-4bbe17d98ac2"
-    assert len(report.repository_reports[0].failed_records) == 1
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -236,16 +224,13 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    class HarvesterErrorPlugin(Plugin):
+    class HarvesterErrorPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                yield HarvesterError("record failed")
-                yield HarvestedArc(arc_json="arc-json")
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            yield HarvesterError("record failed")
+            yield HarvestedArc(arc_json="arc-json")
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -273,7 +258,9 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     assert collected == ["arc-json"]
     assert mock_client.harvest_arcs.call_count == 1
     assert report.repository_reports[0].harvested_datasets == 1
-    assert report.repository_reports[0].failed_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 0
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -283,16 +270,13 @@ async def test_skipped_record_items_are_counted_and_not_uploaded() -> None:
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    class SkippedPlugin(Plugin):
+    class SkippedPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
-                yield SkippedRecord("Duplicate sitemap entry skipped", "https://example.org/dup")
-                yield HarvestedArc(arc_json="arc-json")
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+            yield SkippedRecord("Duplicate sitemap entry skipped", "https://example.org/dup")
+            yield HarvestedArc(arc_json="arc-json")
 
         async def get_expected_datasets(self) -> int | None:
             return None
@@ -361,12 +345,16 @@ def test_emit_report_via_shared_counting_api() -> None:
     for _ in range(5):
         scope.record_harvested()
     scope.record_failed("boom")
+    scope.record_repository_issue("discovery failed", url="https://example.org/sitemap")
     scope.add_studies(2)
     scope.add_assays(2)
     scope.close()
     report.finish(end_time=datetime(2026, 1, 1, 0, 1, tzinfo=UTC))
 
-    jsonld = json.loads(JsonLdReportSerializer().render(report))["schema:result"][0]
+    document = json.loads(JsonLdReportSerializer().render(report))
+    assert document["@context"]["fairagro"] == FAIRAGRO_HARVEST_REPORT_NS
+    assert FAIRAGRO_HARVEST_REPORT_NS.endswith("/ns/harvest-report/v2/#")
+    jsonld = document["schema:result"][0]
 
     assert jsonld["@type"] == "schema:EntryPoint"
     assert jsonld["fairagro:harvestId"] == "harvest-1"
@@ -376,6 +364,15 @@ def test_emit_report_via_shared_counting_api() -> None:
     assert jsonld["fairagro:skippedDatasets"] == 0
     assert jsonld["fairagro:totalStudies"] == 2
     assert jsonld["fairagro:totalAssays"] == 2
+    assert "fairagro:failedRecords" not in jsonld
+    assert jsonld["fairagro:failures"] == [
+        {"fairagro:message": "boom", "fairagro:kind": "dataset"},
+        {
+            "fairagro:message": "discovery failed",
+            "fairagro:kind": "repository",
+            "fairagro:url": "https://example.org/sitemap",
+        },
+    ]
 
 
 def test_emit_report_logs_warning_on_serialisation_failure(
@@ -421,16 +418,13 @@ async def test_run_repository_sums_studies_and_assays_from_harvested_arcs() -> N
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()
 
-    class TwoArcPlugin(Plugin):
+    class TwoArcPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                yield HarvestedArc(arc_json="{}", studies=1, assays=1)
-                yield HarvestedArc(arc_json="{}", studies=1, assays=1)
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            yield HarvestedArc(arc_json="{}", studies=1, assays=1)
+            yield HarvestedArc(arc_json="{}", studies=1, assays=1)
 
         async def get_expected_datasets(self) -> int | None:
             return 2
@@ -473,8 +467,9 @@ async def test_run_repository_unknown_plugin_skips_repo() -> None:
     assert len(report.repository_reports) == 1
     entry = report.repository_reports[0]
     assert entry.harvested_datasets == 0
-    assert entry.failed_datasets == 1
-    assert entry.failed_records[0].message == "Unknown repository type 'unknown'"
+    assert entry.failed_datasets == 0
+    assert entry.failures[0].message == "Unknown repository type 'unknown'"
+    assert entry.failures[0].kind is IssueKind.REPOSITORY
 
 
 @pytest.mark.asyncio
@@ -504,7 +499,9 @@ async def test_run_orchestrator_returns_report_when_all_tasks_fail() -> None:
 
     assert len(report.repository_reports) == len(repos)
     assert all(repo.harvest_id is None for repo in report.repository_reports)
-    assert all(repo.failed_datasets == 1 for repo in report.repository_reports)
+    assert all(repo.failed_datasets == 0 for repo in report.repository_reports)
+    assert all(len(repo.failures) == 1 for repo in report.repository_reports)
+    assert all(repo.failures[0].kind is IssueKind.REPOSITORY for repo in report.repository_reports)
 
 
 @pytest.mark.asyncio
@@ -516,17 +513,14 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
     mock_config.api_client = MagicMock()
     mock_client = _make_mock_client()
 
-    class CancellingPlugin(Plugin):
+    class CancellingPlugin:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-            async def generator() -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
-                if False:  # pragma: no cover - required for AsyncGenerator typing
-                    yield HarvestedArc(arc_json="{}")
-                raise asyncio.CancelledError
-
-            return generator()
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+            if False:  # pragma: no cover - required for AsyncGenerator typing
+                yield HarvestedArc(arc_json="{}")
+            raise asyncio.CancelledError
 
         async def get_expected_datasets(self) -> int | None:
             raise asyncio.CancelledError
@@ -538,5 +532,50 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
         report = await run_orchestrator(mock_config)
 
     assert len(report.repository_reports) == 1
-    assert report.repository_reports[0].failed_datasets == 1
+    assert report.repository_reports[0].failed_datasets == 0
+    assert len(report.repository_reports[0].failures) == 1
+    assert report.repository_reports[0].failures[0].kind is IssueKind.REPOSITORY
     assert mock_client.harvest_arcs.call_count == 0
+
+
+def test_main_logs_exception_message_without_traceback_at_info(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+) -> None:
+    """Prod ERROR logs include the cause; traceback stays on DEBUG only."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("log_level: INFO\nrepositories: []\n")
+
+    with (
+        patch("middleware.harvester.main._parse_args", return_value=MagicMock(config=str(config_file))),
+        patch(
+            "middleware.harvester.main.Config.from_yaml_file",
+            side_effect=ConnectionError("CSW endpoint unreachable"),
+        ),
+        caplog.at_level(logging.INFO),
+    ):
+        assert main() == 1
+
+    assert "Harvester run failed: ConnectionError" in caplog.text
+    assert "CSW endpoint unreachable" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
+def test_main_logs_traceback_at_debug(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
+    """DEBUG includes the exception traceback for local diagnosis."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("log_level: DEBUG\nrepositories: []\n")
+
+    with (
+        patch("middleware.harvester.main._parse_args", return_value=MagicMock(config=str(config_file))),
+        patch(
+            "middleware.harvester.main.Config.from_yaml_file",
+            side_effect=ConnectionError("CSW endpoint unreachable"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        assert main() == 1
+
+    assert "Harvester run failed: ConnectionError" in caplog.text
+    assert "CSW endpoint unreachable" in caplog.text
+    assert "Traceback" in caplog.text

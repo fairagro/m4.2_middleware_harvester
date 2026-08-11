@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person  # type: ignore[import]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
-from fable_library.async_ import run_synchronously  # type: ignore[import]
+from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import]
 
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (
@@ -260,12 +260,12 @@ def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: Inspire
     assert table.Name == "Spatial Sampling"
 
     # Check Bounding Box column
-    headers = [col.header.ToTerm().Name for col in table.Columns]
+    headers = [col.Header.ToTerm().Name for col in table.Columns]
     assert "Bounding Box" in headers
 
     # Check value
-    bbox_col = next(col for col in table.Columns if col.header.ToTerm().Name == "Bounding Box")
-    assert bbox_col.cells[0].AsTerm.Name == "[10.0, 48.0, 11.0, 49.0]"
+    bbox_col = next(col for col in table.Columns if col.Header.ToTerm().Name == "Bounding Box")
+    assert bbox_col.Cells[0].AsTerm.Name == "[10.0, 48.0, 11.0, 49.0]"
 
 
 def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -276,12 +276,12 @@ def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: Inspire
     assert table.Name == "Data Acquisition"
 
     # Check Temporal Extent
-    headers = [col.header.ToTerm().Name for col in table.Columns]
+    headers = [col.Header.ToTerm().Name for col in table.Columns]
     assert "Temporal Extent" in headers
 
     # Check value
-    temp_col = next(col for col in table.Columns if col.header.ToTerm().Name == "Temporal Extent")
-    assert temp_col.cells[0].AsTerm.Name == "2020-01-01 to 2020-12-31"
+    temp_col = next(col for col in table.Columns if col.Header.ToTerm().Name == "Temporal Extent")
+    assert temp_col.Cells[0].AsTerm.Name == "2020-01-01 to 2020-12-31"
 
 
 def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -302,17 +302,17 @@ def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecor
 
     # Output[URI] = dataSetURI (preferred over online resource)
     output_col = table.Columns[1]
-    assert output_col.cells[0].AsFreeText == "https://data.example.com/api"
+    assert output_col.Cells[0].AsFreeText == "https://data.example.com/api"
 
     # Comment[Online Resource] = URL
-    online_url_col = next(col for col in table.Columns if str(col.header) == "Comment [Online Resource]")
-    assert online_url_col.cells[0].AsFreeText == "https://data.example.com/download"
+    online_url_col = next(col for col in table.Columns if str(col.Header) == "Comment [Online Resource]")
+    assert online_url_col.Cells[0].AsFreeText == "https://data.example.com/download"
 
-    online_name_col = next(col for col in table.Columns if str(col.header) == "Comment [Online Resource Name]")
-    assert online_name_col.cells[0].AsFreeText == "Download"
+    online_name_col = next(col for col in table.Columns if str(col.Header) == "Comment [Online Resource Name]")
+    assert online_name_col.Cells[0].AsFreeText == "Download"
 
-    graphic_col = next(col for col in table.Columns if str(col.header) == "Comment [Graphic Overview]")
-    assert graphic_col.cells[0].AsFreeText == "https://data.example.com/preview.png"
+    graphic_col = next(col for col in table.Columns if str(col.Header) == "Comment [Graphic Overview]")
+    assert graphic_col.Cells[0].AsFreeText == "https://data.example.com/preview.png"
 
     # Assay-level Comments must NOT contain resource URLs (they live in the table)
     assert len(assay.Comments) == 0
@@ -491,7 +491,7 @@ def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_recor
     assert assay_table.ColumnCount == 2
 
     output_col = assay_table.Columns[1]  # Output [URI]
-    assert output_col.cells[0].AsFreeText == "https://example.com/dataset"
+    assert output_col.Cells[0].AsFreeText == "https://example.com/dataset"
 
     # Test lineage URL in data processing protocol
     sample_record.lineage_url = "https://example.com/lineage"
@@ -501,10 +501,10 @@ def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_recor
     assert len(processing_protocols) == 1
 
     protocol = processing_protocols[0]
-    lineage_url_params = [col for col in protocol.Columns if col.header.ToTerm().Name == "Lineage Documentation URL"]
+    lineage_url_params = [col for col in protocol.Columns if col.Header.ToTerm().Name == "Lineage Documentation URL"]
 
     assert len(lineage_url_params) == 1
-    assert lineage_url_params[0].cells[0].AsTerm.Name == "https://example.com/lineage"
+    assert lineage_url_params[0].Cells[0].AsTerm.Name == "https://example.com/lineage"
 
 
 def test_to_identifier_slug(mapper: InspireMapper) -> None:

@@ -28,5 +28,12 @@ The project consists of a core orchestrator module (`middleware/harvester`) and 
    new plugin requires one import and one dict entry in `PLUGIN_FACTORIES`;
    the orchestrator loop itself needs no changes.
 
-5. **`Plugin` base class defines no `__init__`; abstract methods are `async`**
-   — Each concrete plugin defines its own `__init__(self, config: <PluginConfig>)` with a precise type for its own config. A shared base `__init__` would require the parameter to be typed as the `PluginConfig` union, losing type safety inside the subclass. `run()` and `get_expected_datasets()` are declared `async` so that mypy correctly infers them as coroutines; omitting `async` causes mypy to infer a `Coroutine[Any, Any, AsyncGenerator]` return type for the override in concrete subclasses, producing a type mismatch at the call site.
+5. **`Plugin` is a structural Protocol (do not inherit); `run` is an async generator**
+   — Each concrete plugin defines its own `__init__(self, config: <PluginConfig>)`
+   with a precise type for its own config. `PLUGIN_FACTORIES` is typed as
+   `Callable[..., Plugin]` and relies on structural typing. Implementations
+   declare `async def run` with `yield` (OpenSpec). The Protocol stub must use
+   a plain `def run(...) -> AsyncGenerator[...]`: under mypy, marking the Protocol
+   method `async def` would type `plugin.run()` as a coroutine returning an
+   async generator, breaking `async for` at the call site. Do not subclass
+   `Plugin` to avoid a false sync/async override conflict in pylint.

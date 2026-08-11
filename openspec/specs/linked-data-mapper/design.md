@@ -24,3 +24,10 @@ schema.org, `RegalMapper` for Regal).
 
 4. **Emit mapping errors as `HarvesterError` objects**
    — Mapping failures are part of the pipeline and must not crash the whole harvest process.
+
+5. **Person contacts require a non-empty given name; Organizations are Comment/Affiliation**
+   — ISA contacts are Persons only. Mapping Organization publishers (e.g. Zenodo) as
+   `Person(first_name="")` survives initial `ToROCrateJsonString` upload but fails DataHUB
+   `arc-export` after ISA Write/load. Mappers therefore emit `Comment("Publisher", …)` (and
+   keep creator affiliations on `Person.Affiliation`), refuse placeholder given names, and
+   fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.

@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from middleware.harvester.config import Config
+from middleware.harvester.errors import format_exception_for_report
 from middleware.harvester.orchestrator import run_orchestrator
 from middleware.harvester.reporting import all_repositories_failed, emit_report
 from middleware.shared.tracing import initialize_logging, initialize_tracing
@@ -60,9 +61,11 @@ def main() -> int:
         report = asyncio.run(run_orchestrator(config))
         if all_repositories_failed(report):
             exit_code = 1
-    except Exception:  # noqa: BLE001
-        logger.error("Harvester run failed.")
-        logger.debug("Harvester run failed.", exc_info=True)
+    except Exception as exc:  # noqa: BLE001
+        # ERROR: short cause for prod logs; DEBUG: full traceback on demand.
+        detail = format_exception_for_report(exc)
+        logger.error("Harvester run failed: %s", detail)
+        logger.debug("Harvester run failed.", exc_info=exc)
         exit_code = 1
     finally:
         if shutdown_tracing is not None:

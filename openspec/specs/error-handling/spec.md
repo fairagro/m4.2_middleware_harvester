@@ -70,11 +70,11 @@ The central orchestrator SHALL be solely responsible for consuming, interpreting
 - **THEN** The central orchestrator is solely responsible for consuming, interpreting, and logging all yielded `HarvesterError`s and any raised exceptions from plugins, ensuring centralized telemetry output
 
 ### Requirement: Edge case — A plugin yields a HarvesterError subclass that is not a…
-The system SHALL handle this edge case: when A plugin yields a `HarvesterError` subclass that is not a `RecordProcessingError` (record identifier unavailable at failure time), then orchestrator logs it as a record-level failure without structured `record_id` context.
+The system SHALL handle this edge case: when A plugin yields a `HarvesterError` subclass that is not a `RecordProcessingError` (record identifier unavailable at failure time), then the orchestrator logs it and records a repository-level harvest issue via `record_repository_issue` (no `failed_datasets` bump; no structured `record_id`).
 
 #### Scenario: Edge case — A plugin yields a HarvesterError subclass that is not a…
 - **WHEN** A plugin yields a `HarvesterError` subclass that is not a `RecordProcessingError` (record identifier unavailable at failure time)
-- **THEN** orchestrator logs it as a record-level failure without structured `record_id` context
+- **THEN** the orchestrator logs it and records a repository-level harvest issue via `record_repository_issue` (no `failed_datasets` bump; no structured `record_id`)
 
 ### Requirement: Edge case — A plugin raises an uncaught exception during iteration
 The system SHALL handle this edge case: when A plugin raises an uncaught exception during iteration, then orchestrator catches it, marks the plugin as failed, logs the exception; other plugins continue unaffected.
