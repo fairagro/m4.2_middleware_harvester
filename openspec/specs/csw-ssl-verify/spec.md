@@ -21,6 +21,10 @@ The system SHALL expose `inspire.Config.verify_ssl` typed as `bool | str` with d
 - **WHEN** configuration sets `verify_ssl` to a string path
 - **THEN** `inspire.Config.verify_ssl` holds that path string
 
+#### Scenario: Boolean-like strings coerce to bool
+- **WHEN** configuration sets `verify_ssl` to a boolean-like string such as `"false"` or `"true"` (quoted YAML or environment variable)
+- **THEN** `inspire.Config.verify_ssl` is the corresponding `bool` (`False` / `True`), not a CA-bundle path string
+
 ### Requirement: CSWClient.connect forwards verify_ssl to CatalogueServiceWeb via Authentication
 The system SHALL ensure that `CSWClient.connect()` (and its underlying connection setup) constructs `CatalogueServiceWeb` with `auth=Authentication(verify=config.verify_ssl)` so the configured verification setting applies to all subsequent OWSLib CSW HTTP requests for that client.
 

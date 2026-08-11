@@ -43,3 +43,9 @@ CSWClient._connect()
 5. **No eager filesystem validation of CA path in pydantic**
    — OWSLib already `os.stat`s the path when `Authentication.verify` is set and
    fails at connect time. Invalid paths surface as `CswConnectionError`.
+
+6. **Coerce boolean-like strings before accepting a CA path**
+   — Under `bool | str`, Pydantic keeps quoted `"false"` / `"true"` as `str`.
+   A `mode="before"` validator maps common truthy/falsy strings to `bool` so
+   YAML quotes and env-var overrides disable verification instead of becoming
+   bogus CA paths.
