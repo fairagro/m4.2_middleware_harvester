@@ -7,11 +7,13 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from csw_client_helpers import _expected_record_count, _make_csw_config, _minimal_get_records_xml
+from csw_client_helpers import _make_csw_config, _minimal_get_records_xml
 
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
+
+_expected_record_count = 42
 
 
 def test_get_record_url_appends_query_parameters() -> None:

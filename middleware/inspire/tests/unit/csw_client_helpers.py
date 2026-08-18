@@ -3,8 +3,6 @@
 from middleware.inspire.config import Config
 from middleware.inspire.models import InspireRecord
 
-_expected_record_count = 42
-
 
 def _make_csw_config(csw_url: str = "https://example.com/csw") -> Config:
     return Config(csw_url=csw_url, timeout=5, chunk_size=10)
