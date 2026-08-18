@@ -497,20 +497,20 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-api-client"
-version = "12.1.0"
+version = "12.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/6a/1a2ae23c57088bce0b0389d76967a56d8e085c14f7b2653f983acc05f531/fairagro_middleware_api_client-12.1.0.tar.gz", hash = "sha256:59fb590549ebc00651b6bd5fdf6ef9de30c3f002a9666fb70eb4b4d40fa17a40", size = 26993, upload-time = "2026-08-17T12:08:26.469Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/1d/0f8ec3cc4feed390938d75ab45db90109baa9c7d429e77c4b26aab154e62/fairagro_middleware_api_client-12.1.1.tar.gz", hash = "sha256:2b0ea977d2d4f3d85a426839017e7ae997e8667d2e9bbc99f5259a1bca7b16aa", size = 27189, upload-time = "2026-08-18T11:13:54.239Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/4b/9e5114681bc996f23184a2f65e443a5dc89e9054723cf04d7eeb2213f65f/fairagro_middleware_api_client-12.1.0-py3-none-any.whl", hash = "sha256:81d7873b38ba1236ae893d01253789667660c1489f50ea38bf17d5a567e68a5e", size = 15148, upload-time = "2026-08-17T12:08:24.626Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/49/a57312669bd1ee46a78d03854d58e8b8e02d0064871b7f83467bd9d4d820/fairagro_middleware_api_client-12.1.1-py3-none-any.whl", hash = "sha256:159e8b031b128aa58073b1890fec196fdbd3c1cbeff9e77c044aabc289176c59", size = 15282, upload-time = "2026-08-18T11:13:52.58Z" },
 ]
 
 [[package]]
 name = "fairagro-middleware-shared"
-version = "12.1.0"
+version = "12.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "opentelemetry-api" },
@@ -520,9 +520,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/5b/cdde1f2d095d0a1c564508528bca443ba516fc5ec1189b3c6a288d2bb101/fairagro_middleware_shared-12.1.0.tar.gz", hash = "sha256:4544474d6d1e237ff663685364e75347beb517d39b43c6a3a32e5903a0d45918", size = 25424, upload-time = "2026-08-17T12:08:27.064Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/ab/fb2fb32de994ff8bb21ba3d41de125c73dc5193f7efc541fd866ee0b087a/fairagro_middleware_shared-12.1.1.tar.gz", hash = "sha256:a121ec7fd2e173da3b14d488e913dcd51022401744aa08bdc511d4d2418db1cf", size = 25420, upload-time = "2026-08-18T11:13:54.828Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/0d/ab9d9c74d6d5e7e91313cdbe6a5df2e17f0e3eb78ce5b2116de6864c089e/fairagro_middleware_shared-12.1.0-py3-none-any.whl", hash = "sha256:9651836752eb3b9cd6dbfe568829cf58aa7d5f2e6b19f8b87697202ac9564af0", size = 21649, upload-time = "2026-08-17T12:08:25.61Z" },
+    { url = "https://files.pythonhosted.org/packages/50/4e/c08f6508375c3fe82b3348dadc632ce6b62003df90d2d95d3fffd2705c47/fairagro_middleware_shared-12.1.1-py3-none-any.whl", hash = "sha256:87c57ed7391d17be4acf61eb24ea079a5738bd56fdc09586e48b5408159e9e03", size = 21649, upload-time = "2026-08-18T11:13:53.426Z" },
 ]
 
 [[package]]
@@ -705,11 +705,11 @@ wheels = [
 
 [[package]]
 name = "idna"
-version = "3.18"
+version = "3.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cd/63/9496c57188a2ee585e0f1db071d75089a11e98aa86eb99d9d7618fc1edce/idna-3.18.tar.gz", hash = "sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848", size = 196711, upload-time = "2026-06-02T14:34:07.794Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/f7/abb373e5757eaec4b922b92f97ec8d6d7e057cf06778247604fbc4e7c3f3/idna-3.19.tar.gz", hash = "sha256:5e0811a4383b21dc5838069f801c4fb62113b7447663d2530d2bd6e77b49bf15", size = 215237, upload-time = "2026-08-18T05:14:24.27Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/5e/d4e9f1a599fb8e573b7b87160658329fbf28d19eac2718f51fc3def3aa5a/idna-3.18-py3-none-any.whl", hash = "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2", size = 65455, upload-time = "2026-06-02T14:34:06.319Z" },
+    { url = "https://files.pythonhosted.org/packages/57/b0/0e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5/idna-3.19-py3-none-any.whl", hash = "sha256:815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4", size = 68550, upload-time = "2026-08-18T05:14:22.343Z" },
 ]
 
 [[package]]
