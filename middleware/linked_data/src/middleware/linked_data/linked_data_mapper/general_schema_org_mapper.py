@@ -176,8 +176,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return self._catalog_identifier_from_url(iri)
         return None
 
-    def _resolve_investigation_identifier(self, graph: Graph, subject: Node, source_url: str | None) -> str:
-        doi = self._extract_doi(graph, subject)
+    def _resolve_investigation_identifier(
+        self, graph: Graph, subject: Node, source_url: str | None, doi: str | None
+    ) -> str:
         if doi:
             return doi
 
@@ -216,7 +217,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     def _map_investigation(self, graph: Graph, subject: Node, source_url: str | None = None) -> ArcInvestigation:
         doi = self._extract_doi(graph, subject)
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
-        identifier = self._resolve_investigation_identifier(graph, subject, source_url)
+        identifier = self._resolve_investigation_identifier(graph, subject, source_url, doi)
 
         description = self._str(graph, subject, self._schema().description) or ""
         submission_date = (
