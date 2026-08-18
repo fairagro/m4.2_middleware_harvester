@@ -312,3 +312,31 @@ def test_http_dataset_id_is_kept_as_identifier() -> None:
 
     identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
     assert identifier == "https://example.org/dataset/1"
+
+
+def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    graph.add((dataset, schema.identifier, Literal("https://example.org/other-id")))
+    graph.add((dataset, schema.url, Literal("https://example.org/canonical")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "https://example.org/canonical"
+
+
+def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    property_value = BNode()
+    graph.add((dataset, schema.identifier, property_value))
+    graph.add((property_value, RDF.type, schema.PropertyValue))
+    graph.add((property_value, schema.value, Literal("10.3220/not-marked-as-doi")))
+
+    with pytest.raises(ValueError, match="no stable identifier"):
+        GeneralSchemaOrgMapper().map_graph(graph)

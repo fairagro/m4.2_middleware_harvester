@@ -137,7 +137,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         values = [str(obj) for obj in self._schema_objects(graph, node, "value") if obj is not None]
         if not values:
             return None
-        if property_ids and not any("doi" in pid.lower() for pid in property_ids):
+        if not property_ids or not any("doi" in pid.lower() for pid in property_ids):
             return None
         for value in values:
             doi = self._normalize_doi(value)
@@ -180,10 +180,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         doi = self._extract_doi(graph, subject)
         if doi:
             return doi
-
-        identifier = self._first_http_identifier(graph, subject, "identifier")
-        if identifier:
-            return identifier
 
         for term in ("url", "sameAs"):
             identifier = self._first_http_identifier(graph, subject, term)
