@@ -47,3 +47,8 @@ The current implementation supports only one concrete type per enum, but the plu
    — Discovery (XML nesting, MyCoRe/Regal pagination) and dataset fetches share one
    polite client so robots.txt, per-host rate limiting, and retry/backoff apply to
    every outbound request—not only landing-page fetches.
+
+10. **Pass the discovered dataset URL into `map_graph` as `source_url`**
+    — Schema.org JSON-LD often has no Dataset `@id`/`url` (OpenAgrar). The MyCoRe
+    Receive-URL is known at discovery and is the fallback catalog id when no DOI is
+    present. Mapping errors for missing identity become `RecordProcessingError`.

@@ -41,6 +41,10 @@ class LinkedDataMapper(ABC):
         return cls()
 
     @abstractmethod
-    def map_graph(self, graph: Graph) -> HarvestedArc:
-        """Return a harvested ARC (JSON + composition counts) for the given graph."""
+    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
+        """Return a harvested ARC (JSON + composition counts) for the given graph.
+
+        ``source_url`` is the discovered page URL (e.g. MyCoRe Receive-URL) used as a
+        stable identifier fallback when the graph has no DOI or http(s) identifier.
+        """
         raise NotImplementedError

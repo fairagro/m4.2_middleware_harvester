@@ -85,8 +85,9 @@ class RegalMapper(LinkedDataMapper):
         """Construct a mapper using ``config.effective_resource_base_url``."""
         return cls(config.effective_resource_base_url)
 
-    def map_graph(self, graph: Graph) -> HarvestedArc:
+    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
+        _ = source_url
         subject = self._find_research_data_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")

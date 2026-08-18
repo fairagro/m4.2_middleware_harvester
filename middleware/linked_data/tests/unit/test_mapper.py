@@ -1,6 +1,7 @@
 """Schema.org mapper unit tests."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -214,3 +215,100 @@ def test_creator_affiliation_preserved_on_person() -> None:
     ]
     assert len(people) == 1
     assert people[0].get("givenName") == "Jonas"
+
+
+_BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
+
+_OPENAGRAR_PROPERTYVALUE_DOI = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "name": "Flower visitors in legume-intercrops",
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+
+def _parse_jsonld(payload: str) -> Graph:
+    graph = Graph()
+    graph.parse(data=payload, format="json-ld")
+    return graph
+
+
+def _root_identifier(arc_json: str) -> str:
+    payload = json.loads(arc_json)
+    root = next(item for item in payload["@graph"] if item.get("@id") == "./")
+    identifier = root["identifier"]
+    assert isinstance(identifier, str)
+    return identifier
+
+
+def test_openagrar_propertyvalue_doi_is_investigation_identifier() -> None:
+    graph = _parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)
+    subject = None
+    for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
+        subjects = list(graph.subjects(RDF.type, schema.Dataset))
+        if subjects:
+            subject = subjects[0]
+            break
+    assert isinstance(subject, BNode)
+
+    harvested = GeneralSchemaOrgMapper().map_graph(graph)
+    identifier = _root_identifier(harvested.arc_json)
+
+    assert identifier == "10.3220/253-2025-42"
+    assert not _BLANK_NODE_ID.fullmatch(identifier)
+    assert harvested.identifier == "10.3220/253-2025-42"
+
+
+def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
+    first = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
+    second = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
+    assert first == second == "10.3220/253-2025-42"
+
+
+def test_openagrar_without_doi_uses_mycore_id_from_receive_url() -> None:
+    graph = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "C-Module"
+        }
+        """
+    )
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
+    harvested = GeneralSchemaOrgMapper().map_graph(graph, source_url=source_url)
+    identifier = _root_identifier(harvested.arc_json)
+    assert identifier == "openagrar_mods_00107322"
+    assert not _BLANK_NODE_ID.fullmatch(identifier)
+
+
+def test_schema_org_without_stable_identifier_raises_and_does_not_use_blank_node() -> None:
+    graph = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "C-Module"
+        }
+        """
+    )
+    mapper = GeneralSchemaOrgMapper()
+    with pytest.raises(ValueError, match="no stable identifier"):
+        mapper.map_graph(graph)
+
+
+def test_http_dataset_id_is_kept_as_identifier() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "https://example.org/dataset/1"

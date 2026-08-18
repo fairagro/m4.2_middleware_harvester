@@ -102,6 +102,7 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     mock_mapper.map_graph.assert_called_once()
     (graph_arg,) = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
+    assert mock_mapper.map_graph.call_args.kwargs["source_url"] == "https://example.org/dataset/1"
 
 
 @pytest.mark.asyncio

@@ -137,6 +137,7 @@ mypy_path = [
   "middleware/harvester/src",
   "middleware/linked_data/src",
   "middleware/linked_data/tests/unit",
+  "middleware/inspire/tests/unit",
 ]
 
 # Exclude directories from type checking
@@ -180,7 +181,8 @@ pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
     "middleware/linked_data/src",
-    "middleware/linked_data/tests/unit"
+    "middleware/linked_data/tests/unit",
+    "middleware/inspire/tests/unit",
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -260,8 +262,8 @@ extension-pkg-allow-list = ["lxml"]
 ignore-patterns = ["^\\..*", ".*\\.egg-info"]
 # Fail if the score is below 8.0
 fail-under = 8.0
-# Same-directory helpers for linked_data unit tests (`from fakes import …`)
-source-roots = ["middleware/linked_data/tests/unit"]
+# Same-directory helpers for unit tests (`from fakes import …`, `from csw_client_helpers import …`)
+source-roots = ["middleware/linked_data/tests/unit", "middleware/inspire/tests/unit"]
 
 [tool.pylint.messages_control]
 # Disable checks that are already covered by ruff
