@@ -71,6 +71,15 @@ The system SHALL handle this edge case: when - An empty sitemap must yield zero 
 - **WHEN** - An empty sitemap must yield zero outputs and exit cleanly. - Duplicate dataset URLs in a sitemap must be deduplicated before parsing. - Unsupported sitemap, dataset, or payload types must fail fast during validation. - Dataset-level parse or map failures must be emitted as errors and should not stop the overall harvest. - Malformed discovery entries that cannot be turned into a dataset must be yielded as `RecordProcessingError` (shared harvester type), not only logged inside the sitemap. - Duplicate discovery identifiers must be yielded as `SkippedRecord`, not as failures.
 - **THEN** behaviour matches the documented outcome
 
+### Requirement: Linked-data plugin MUST pass the discovered dataset URL into Schema.org mapping
+
+When mapping a Schema.org graph, the linked-data plugin MUST supply the dataset's discovery identifier (the fetched page URL for HTML JSON-LD / MyCoRe Receive-URL) as mapping context so the mapper can use it as a stable identifier fallback when the graph has no DOI and no `http(s)` `url`/`sameAs`/`@id`.
+
+#### Scenario: Receive-URL is available to the Schema.org mapper
+
+- **WHEN** the plugin maps an HTML JSON-LD dataset discovered at a Receive-URL
+- **THEN** `map_graph` MUST receive that page URL as source context in addition to the RDF graph
+
 ## Feature split
 
 - `openspec/specs/xml-sitemap-parser/spec.md` — XML sitemap discovery from a single sitemap URL and dataset URL extraction.
