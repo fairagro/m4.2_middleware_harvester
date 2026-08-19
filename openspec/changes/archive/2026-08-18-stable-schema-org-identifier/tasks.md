@@ -6,7 +6,7 @@
 ## 2. Schema.org identifier resolution
 
 - [x] 2.1 Extract DOI from literal `schema:identifier` and from `PropertyValue` (`propertyID` doi / identifiers.org, `schema:value`)
-- [x] 2.2 Fall back to `schema:url`, `sameAs`, `http(s)` `@id`, then `source_url`; compact MyCoRe `/receive/{id}` to `{id}`
+- [x] 2.2 Fall back to `schema:url`, `sameAs`, `http(s)` `@id`, then `source_url`; sanitize Receive-URLs into an `arctrl`-compatible identifier
 - [x] 2.3 Raise a mapping error when no stable identifier exists; never use blank-node `str(subject)` or title slug for `Investigation.identifier`
 
 ## 3. Tests

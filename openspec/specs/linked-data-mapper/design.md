@@ -36,6 +36,7 @@ schema.org, `RegalMapper` for Regal).
    — rdflib blank-node labels are parser-internal and change every parse; the API hashes
    `identifier + rdi` into a GitLab path, so a blank node creates a new repo per harvest.
    `GeneralSchemaOrgMapper` therefore uses DOI (including Schema.org `PropertyValue`), then
-   `http(s)` URL / MyCoRe Receive-id (`/receive/{id}` → `{id}`), then raises a mapping
-   error. Title slugs and `str(subject)` on blank nodes are not identifiers. The plugin
-   passes the discovered page URL as `map_graph(..., source_url=...)`.
+   `http(s)` URL (including a MyCoRe Receive-URL), then raises a mapping error. Title
+   slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes the
+   discovered page URL as `map_graph(..., source_url=...)` and the mapper sanitizes it
+   into an `arctrl`-compatible identifier.

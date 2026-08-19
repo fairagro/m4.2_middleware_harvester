@@ -31,8 +31,8 @@ OpenAgrar HTML JSON-LD typically has no Dataset `@id`/`url`/`sameAs`. The stable
 3. **Pass `source_url` into `map_graph`, do not inject triples**
    — Reasoning: the page URL is discovery context, not a statement in the JSON-LD. Optional `source_url: str | None = None` on `LinkedDataMapper.map_graph` keeps the ABC compatible; `RegalMapper` ignores it. The plugin passes `dataset.identifier` (Receive-URL for HTML JSON-LD).
 
-4. **Compact `/receive/{id}` to `{id}`**
-   — Reasoning: Solr `id` (`openagrar_mods_*`) is the catalog key; the host is the RDI web origin. The API already namespaces by RDI when hashing. Generic `http(s)` landing URLs without `/receive/` are kept as-is (no title slug).
+4. **Keep the discovered Receive-URL and sanitize it**
+   — Reasoning: The harvester passes the discovered page URL into Schema.org mapping as a stable context. The mapper produces an `arctrl`-compatible identifier by stripping the scheme and replacing forbidden characters. Generic `http(s)` landing URLs are kept as-is (aside from the same sanitization).
 
 5. **Raise `ValueError` (mapping error), not `SkippedRecord`**
    — Reasoning: `SkippedRecord` is for deliberate omissions (duplicate discovery). Missing identity is a data-quality failure: no upload, and the orchestrator records a failed dataset / report issue via existing `RecordProcessingError` wrapping in `LinkedDataPlugin._process_result`.

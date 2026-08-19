@@ -20,10 +20,10 @@ Resolution MUST follow this order:
 - **WHEN** the same Schema.org JSON-LD payload is parsed into a graph twice and mapped twice
 - **THEN** both mappings MUST produce the same `Investigation.identifier`
 
-#### Scenario: OpenAgrar record without DOI uses MyCoRe id
+#### Scenario: OpenAgrar record without DOI uses sanitized Receive-URL
 
 - **WHEN** a Schema.org Dataset graph has no DOI and no `url`/`sameAs`/`http(s)` `@id`, and the discovered page URL is `https://www.openagrar.de/receive/openagrar_mods_00107322`
-- **THEN** `Investigation.identifier` MUST be `openagrar_mods_00107322`
+- **THEN** `Investigation.identifier` MUST be `www_openagrar_de_receive_openagrar_mods_00107322`
 
 #### Scenario: Missing DOI and missing source URL fails mapping
 
