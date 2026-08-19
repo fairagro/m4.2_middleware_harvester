@@ -562,6 +562,30 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         assay.AddTable(self._create_assay_table(graph, subject, source_url=source_url, doi=doi))
         return assay
 
+    def _resolve_assay_url(self, graph: Graph, subject: Node, source_url: str | None, doi: str | None) -> str:
+        """Resolve the landing-page URL for the Measurement output URI cell.
+
+        Unlike ``_resolve_investigation_identifier``, this keeps full URLs
+        without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
+        """
+        for term in ("url", "sameAs"):
+            for obj in self._schema_objects(graph, subject, term):
+                iri = self._http_iri(obj)
+                if iri:
+                    return iri
+
+        subject_iri = self._http_iri(subject)
+        if subject_iri:
+            return subject_iri
+
+        if doi:
+            return f"https://doi.org/{doi}"
+
+        if source_url and source_url.startswith(("http://", "https://")):
+            return source_url
+
+        return ""
+
     def _create_assay_table(
         self,
         graph: Graph,
@@ -569,22 +593,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         source_url: str | None = None,
         doi: str | None = None,
     ) -> ArcTable:
-        url: str | None = None
-        for obj in self._schema_objects(graph, subject, "url"):
-            url = self._http_iri(obj)
-            if url:
-                break
-        # Prefer canonical URL properties when present; otherwise fall back to
-        # subject/sameAs if the dataset subject is a real HTTP(S) IRI.
-        if url is None:
-            url = self._first_http_identifier(graph, subject, "sameAs") or self._http_iri(subject)
-
-        if url is None:
-            # If we have a DOI but no URL/@id in the graph, use DOI landing URL.
-            doi_url = f"https://doi.org/{doi}" if doi else None
-            source = source_url if source_url and source_url.startswith(("http://", "https://")) else None
-            url = doi_url or source
-        url = url or ""
+        url = self._resolve_assay_url(graph, subject, source_url, doi)
 
         table = ArcTable.init("Measurement")
         table.AddColumn(
