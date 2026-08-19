@@ -314,6 +314,21 @@ def test_http_dataset_id_is_kept_as_identifier() -> None:
     assert identifier == "https://example.org/dataset/1"
 
 
+def test_assay_table_falls_back_to_dataset_iri_when_schema_url_missing() -> None:
+    """When schema:url is absent, Measurement["URI"] MUST not be empty for URIRef datasets."""
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+
+    # arctrl encodes the output IOType("URI") as an @id that starts with `URI=`.
+    assert '"@id":"URI=https://example.org/dataset/1"' in arc_json
+    assert '"@id":"URI="' not in arc_json
+
+
 def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")

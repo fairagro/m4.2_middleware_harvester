@@ -554,6 +554,12 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             url = self._http_iri(obj)
             if url:
                 break
+        # Prefer canonical URL properties when present; otherwise fall back to
+        # subject/sameAs if the dataset subject is a real HTTP(S) IRI.
+        if url is None:
+            url = self._first_http_identifier(graph, subject, "sameAs")
+        if url is None:
+            url = self._http_iri(subject)
         if url is None and source_url and source_url.startswith(("http://", "https://")):
             url = source_url
         url = url or ""
