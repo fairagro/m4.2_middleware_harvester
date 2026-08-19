@@ -127,7 +127,9 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         return FakeSitemap(["https://example.org/dataset/fast"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.side_effect = lambda graph: HarvestedArc(arc_json=f"mapped:{graph}")
+    mock_mapper.map_graph.side_effect = lambda graph, source_url=None: HarvestedArc(
+        arc_json=f"mapped:{graph}:{source_url}"
+    )
 
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
@@ -313,6 +315,7 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
     mock_mapper.map_graph.assert_called_once()
     (graph_arg,) = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
+    assert mock_mapper.map_graph.call_args.kwargs["source_url"] == "https://example.org/dataset/slow"
 
 
 @pytest.mark.asyncio

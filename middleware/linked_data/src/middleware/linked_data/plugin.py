@@ -100,7 +100,7 @@ class LinkedDataPlugin:
 
         try:
             graph = await dataset.to_graph()
-            harvested = await asyncio.to_thread(self._mapper.map_graph, graph)
+            harvested = await asyncio.to_thread(self._mapper.map_graph, graph, source_url=dataset.identifier)
             return replace(harvested, source_url=source_url)
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(

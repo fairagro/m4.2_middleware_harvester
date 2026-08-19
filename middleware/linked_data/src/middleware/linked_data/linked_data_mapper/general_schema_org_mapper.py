@@ -23,9 +23,9 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import Graph, Literal, Namespace  # type: ignore[import-untyped]
+from rdflib import Graph, Literal, Namespace, URIRef  # type: ignore[import-untyped]
 from rdflib.namespace import RDF
-from rdflib.term import Node
+from rdflib.term import BNode, Node
 
 from middleware.harvester.plugin_base import HarvestedArc
 
@@ -46,6 +46,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         Namespace("http://schema.org/"),
     ]
 
+    _DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
+    _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
+
     def __init__(self) -> None:
         """Initialize mapper state for the active Schema.org namespace."""
         self._active_schema: Namespace | None = None
@@ -57,7 +60,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Public API
     # ------------------------------------------------------------------
 
-    def map_graph(self, graph: Graph) -> HarvestedArc:
+    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
         schema, subject = self._find_dataset_subject(graph)
         if subject is None:
@@ -65,7 +68,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
         self._active_schema = schema
         try:
-            arc = self._map_arc(graph, subject)
+            arc = self._map_arc(graph, subject, source_url=source_url)
         finally:
             self._active_schema = None
 
@@ -105,40 +108,139 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
         return slug[:80]
 
-    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
-        identifier = self._str(graph, subject, self._schema().identifier)
-        if identifier and identifier.startswith("10."):
-            return identifier
-        subject_str = str(subject)
-        doi_match = re.search(r"doi\.org/(?P<doi>10\.[^/?#]+)", subject_str, re.IGNORECASE)
-        if doi_match:
-            return doi_match.group("doi")
-        if subject_str.startswith("10."):
-            return subject_str
+    def _schema_objects(self, graph: Graph, subject: Node, term: str) -> list[Node]:
+        """Return objects for a Schema.org term under both http and https namespaces."""
+        seen: set[Node] = set()
+        objects: list[Node] = []
+        for schema in self.SCHEMA_URIS:
+            for obj in graph.objects(subject, getattr(schema, term)):
+                if obj not in seen:
+                    seen.add(obj)
+                    objects.append(obj)
+        return objects
+
+    def _normalize_doi(self, raw: str) -> str | None:
+        text = self._DOI_PREFIX_RE.sub("", raw.strip()).strip()
+        if text.startswith("10.") and "/" in text:
+            return text
         return None
+
+    def _doi_from_identifier_node(self, graph: Graph, node: Node) -> str | None:
+        if isinstance(node, Literal):
+            return self._normalize_doi(str(node))
+        if isinstance(node, URIRef):
+            doi = self._normalize_doi(str(node))
+            if doi:
+                return doi
+            # URIRef may be the @id of a PropertyValue node; check nested fields.
+            return self._doi_from_property_value(graph, node)
+        return self._doi_from_property_value(graph, node)
+
+    def _doi_from_property_value(self, graph: Graph, node: Node) -> str | None:
+        property_ids = [str(obj) for obj in self._schema_objects(graph, node, "propertyID") if obj is not None]
+        values = [str(obj) for obj in self._schema_objects(graph, node, "value") if obj is not None]
+        if not values:
+            return None
+        if not property_ids or not any("doi" in pid.lower() for pid in property_ids):
+            return None
+        for value in values:
+            doi = self._normalize_doi(value)
+            if doi:
+                return doi
+        return None
+
+    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+        for obj in self._schema_objects(graph, subject, "identifier"):
+            doi = self._doi_from_identifier_node(graph, obj)
+            if doi:
+                return doi
+        if isinstance(subject, URIRef):
+            return self._normalize_doi(str(subject))
+        return None
+
+    def _http_iri(self, node: Node) -> str | None:
+        if isinstance(node, BNode):
+            return None
+        if isinstance(node, (Literal, URIRef)):
+            text = str(node).strip()
+            if text.startswith(("http://", "https://")):
+                return text
+        return None
+
+    def _first_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
+        for obj in self._schema_objects(graph, subject, term):
+            iri = self._http_iri(obj)
+            if iri:
+                return iri
+        return None
+
+    @classmethod
+    def _sanitize_identifier(cls, raw: str) -> str:
+        """Make *raw* safe for arctrl ``Investigation.identifier``.
+
+        Allowed characters: letters, digits, underscore, dash, space.
+        Everything else (scheme separators ``://``, slashes, dots, …) is
+        replaced with ``_``, then consecutive underscores are collapsed.
+        """
+        stripped = re.sub(r"^https?://", "", raw)
+        sanitized = cls._FORBIDDEN_ID_CHARS.sub("_", stripped)
+        sanitized = re.sub(r"_{2,}", "_", sanitized).strip("_")
+        return sanitized
+
+    def _resolve_investigation_identifier(
+        self, graph: Graph, subject: Node, source_url: str | None, doi: str | None
+    ) -> str:
+        if doi:
+            return doi
+
+        for term in ("url", "sameAs"):
+            identifier = self._first_http_identifier(graph, subject, term)
+            if identifier:
+                return self._sanitize_identifier(identifier)
+
+        subject_iri = self._http_iri(subject)
+        if subject_iri:
+            return self._sanitize_identifier(subject_iri)
+
+        if source_url:
+            text = source_url.strip()
+            if text.startswith(("http://", "https://")):
+                return self._sanitize_identifier(text)
+
+        raise ValueError(
+            "Schema.org Dataset has no stable identifier "
+            "(DOI, http(s) URL, or source URL); refusing blank-node identifier"
+        )
 
     # ------------------------------------------------------------------
     # ARC assembly
     # ------------------------------------------------------------------
 
-    def _map_arc(self, graph: Graph, subject: Node) -> ARC:
-        investigation = self._map_investigation(graph, subject)
+    def _map_arc(self, graph: Graph, subject: Node, source_url: str | None = None) -> ARC:
+        # Extract DOI once and reuse it for:
+        # - Investigation.identifier
+        # - Publications (DOI-based)
+        # - Assay output URI fallback when the graph has no URL/@id
+        doi = self._extract_doi(graph, subject)
+
+        investigation = self._map_investigation(graph, subject, source_url=source_url, doi=doi)
         study = self._map_study(graph, subject)
         investigation.AddStudy(study)
-        assay = self._map_assay(graph, subject)
+        assay = self._map_assay(graph, subject, source_url=source_url, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
 
-    def _map_investigation(self, graph: Graph, subject: Node) -> ArcInvestigation:
-        doi = self._extract_doi(graph, subject)
+    def _map_investigation(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        doi: str | None = None,
+    ) -> ArcInvestigation:
+        doi = doi or self._extract_doi(graph, subject)
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
-        identifier = doi or str(subject) or self._to_identifier_slug(title)
-        # DOIs always contain "/" but are stable unique identifiers — keep them as-is.
-        # Only normalise HTTP/S URLs and other slash-containing non-DOI strings.
-        is_doi = bool(doi and identifier == doi)
-        if not is_doi and identifier and ("://" in identifier or "/" in identifier):
-            identifier = self._to_identifier_slug(title) or identifier.split("/")[-1]
+        identifier = self._resolve_investigation_identifier(graph, subject, source_url, doi)
 
         description = self._str(graph, subject, self._schema().description) or ""
         submission_date = (
@@ -455,7 +557,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Assay
     # ------------------------------------------------------------------
 
-    def _map_assay(self, graph: Graph, subject: Node) -> ArcAssay:
+    def _map_assay(
+        self, graph: Graph, subject: Node, source_url: str | None = None, doi: str | None = None
+    ) -> ArcAssay:
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
         identifier = self._to_identifier_slug(title) or "dataset"
 
@@ -466,11 +570,41 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-        assay.AddTable(self._create_assay_table(graph, subject))
+        assay.AddTable(self._create_assay_table(graph, subject, source_url=source_url, doi=doi))
         return assay
 
-    def _create_assay_table(self, graph: Graph, subject: Node) -> ArcTable:
-        url = self._str(graph, subject, self._schema().url) or str(subject)
+    def _resolve_assay_url(self, graph: Graph, subject: Node, source_url: str | None, doi: str | None) -> str:
+        """Resolve the landing-page URL for the Measurement output URI cell.
+
+        Unlike ``_resolve_investigation_identifier``, this keeps full URLs
+        without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
+        """
+        for term in ("url", "sameAs"):
+            for obj in self._schema_objects(graph, subject, term):
+                iri = self._http_iri(obj)
+                if iri:
+                    return iri
+
+        subject_iri = self._http_iri(subject)
+        if subject_iri:
+            return subject_iri
+
+        if doi:
+            return f"https://doi.org/{doi}"
+
+        if source_url and source_url.startswith(("http://", "https://")):
+            return source_url
+
+        return ""
+
+    def _create_assay_table(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        doi: str | None = None,
+    ) -> ArcTable:
+        url = self._resolve_assay_url(graph, subject, source_url, doi)
 
         table = ArcTable.init("Measurement")
         table.AddColumn(

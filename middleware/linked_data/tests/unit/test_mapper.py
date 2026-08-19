@@ -1,6 +1,7 @@
 """Schema.org mapper unit tests."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -214,3 +215,164 @@ def test_creator_affiliation_preserved_on_person() -> None:
     ]
     assert len(people) == 1
     assert people[0].get("givenName") == "Jonas"
+
+
+_BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
+
+_OPENAGRAR_PROPERTYVALUE_DOI = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "name": "Flower visitors in legume-intercrops",
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+
+def _parse_jsonld(payload: str) -> Graph:
+    graph = Graph()
+    graph.parse(data=payload, format="json-ld")
+    return graph
+
+
+def _root_identifier(arc_json: str) -> str:
+    payload = json.loads(arc_json)
+    root = next(item for item in payload["@graph"] if item.get("@id") == "./")
+    identifier = root["identifier"]
+    assert isinstance(identifier, str)
+    return identifier
+
+
+def test_openagrar_propertyvalue_doi_is_investigation_identifier() -> None:
+    graph = _parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)
+    subject = None
+    for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
+        subjects = list(graph.subjects(RDF.type, schema.Dataset))
+        if subjects:
+            subject = subjects[0]
+            break
+    assert isinstance(subject, BNode)
+
+    harvested = GeneralSchemaOrgMapper().map_graph(graph)
+    identifier = _root_identifier(harvested.arc_json)
+
+    assert identifier == "10.3220/253-2025-42"
+    assert not _BLANK_NODE_ID.fullmatch(identifier)
+    assert harvested.identifier == "10.3220/253-2025-42"
+    # With only DOI (no @id/url/sameAs on the Dataset blank node), the Measurement
+    # table output URI must still be meaningful (no empty `URI=` cell).
+    assert '"@id":"URI=https://doi.org/10.3220/253-2025-42"' in harvested.arc_json
+    assert '"@id":"URI="' not in harvested.arc_json
+
+
+def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
+    first = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
+    second = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
+    assert first == second == "10.3220/253-2025-42"
+
+
+def test_openagrar_without_doi_uses_full_receive_url() -> None:
+    graph = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "C-Module"
+        }
+        """
+    )
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
+    harvested = GeneralSchemaOrgMapper().map_graph(graph, source_url=source_url)
+    identifier = _root_identifier(harvested.arc_json)
+    assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
+    assert not _BLANK_NODE_ID.fullmatch(identifier)
+
+
+def test_schema_org_without_stable_identifier_raises_and_does_not_use_blank_node() -> None:
+    graph = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "C-Module"
+        }
+        """
+    )
+    mapper = GeneralSchemaOrgMapper()
+    with pytest.raises(ValueError, match="no stable identifier"):
+        mapper.map_graph(graph)
+
+
+def test_http_dataset_id_is_kept_as_identifier() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "example_org_dataset_1"
+
+
+def test_assay_table_falls_back_to_dataset_iri_when_schema_url_missing() -> None:
+    """When schema:url is absent, Measurement["URI"] MUST not be empty for URIRef datasets."""
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+
+    # arctrl encodes the output IOType("URI") as an @id that starts with `URI=`.
+    assert '"@id":"URI=https://example.org/dataset/1"' in arc_json
+    assert '"@id":"URI="' not in arc_json
+
+
+def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    graph.add((dataset, schema.identifier, Literal("https://example.org/other-id")))
+    graph.add((dataset, schema.url, Literal("https://example.org/canonical")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "example_org_canonical"
+
+
+def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    property_value = BNode()
+    graph.add((dataset, schema.identifier, property_value))
+    graph.add((property_value, RDF.type, schema.PropertyValue))
+    graph.add((property_value, schema.value, Literal("10.3220/not-marked-as-doi")))
+
+    with pytest.raises(ValueError, match="no stable identifier"):
+        GeneralSchemaOrgMapper().map_graph(graph)
+
+
+def test_named_property_value_with_doi_is_extracted() -> None:
+    """A PropertyValue with a URIRef @id and propertyID=DOI must still yield its DOI."""
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Named PV Dataset")))
+    pv = URIRef("https://example.org/property-values/1")
+    graph.add((dataset, schema.identifier, pv))
+    graph.add((pv, RDF.type, schema.PropertyValue))
+    graph.add((pv, schema.propertyID, Literal("DOI")))
+    graph.add((pv, schema.value, Literal("10.1234/named-pv")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "10.1234/named-pv"

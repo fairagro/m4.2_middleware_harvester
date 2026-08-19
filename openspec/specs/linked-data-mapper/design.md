@@ -31,3 +31,12 @@ schema.org, `RegalMapper` for Regal).
    `arc-export` after ISA Write/load. Mappers therefore emit `Comment("Publisher", …)` (and
    keep creator affiliations on `Person.Affiliation`), refuse placeholder given names, and
    fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.
+
+6. **Schema.org Investigation.identifier is catalog-stable or the record is refused**
+   — rdflib blank-node labels are parser-internal and change every parse; the API hashes
+   `identifier + rdi` into a GitLab path, so a blank node creates a new repo per harvest.
+   `GeneralSchemaOrgMapper` therefore uses DOI (including Schema.org `PropertyValue`), then
+   `http(s)` URL (including a MyCoRe Receive-URL), then raises a mapping error. Title
+   slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes the
+   discovered page URL as `map_graph(..., source_url=...)` and the mapper sanitizes it
+   into an `arctrl`-compatible identifier.
