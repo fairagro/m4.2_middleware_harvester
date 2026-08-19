@@ -114,8 +114,8 @@ record-level failure and does not upload.
 Resolution MUST follow this order:
 
 1. DOI from `schema:identifier`: a literal whose value starts with `10.`, or a `PropertyValue` whose `propertyID` is an identifiers.org DOI URI or contains `doi` (case-insensitive) and whose `schema:value` starts with `10.` (optional `https://doi.org/` / `http://doi.org/` / `doi:` prefix MAY be stripped).
-2. Otherwise a canonical `http(s)` source URL from `schema:url`, then `schema:sameAs`, then the Dataset `@id` when it is an `http(s)` IRI. When that URL (or the discovered page URL) is a MyCoRe Receive-URL (`…/receive/{id}`), the mapper MUST use `{id}` (e.g. `openagrar_mods_*`).
-3. Otherwise the discovered dataset page URL supplied by the plugin (Receive-URL / Solr `id` as above).
+2. Otherwise a canonical `http(s)` source URL from `schema:url`, then `schema:sameAs`, then the Dataset `@id` when it is an `http(s)` IRI. The URL MUST be sanitized for arctrl identifier constraints (letters, digits, underscore, dash, space): the scheme is stripped, forbidden characters are replaced with `_`, and consecutive underscores are collapsed.
+3. Otherwise the discovered dataset page URL supplied by the plugin (sanitized as above).
 
 #### Scenario: OpenAgrar PropertyValue DOI without Dataset @id
 
@@ -127,10 +127,10 @@ Resolution MUST follow this order:
 - **WHEN** the same Schema.org JSON-LD payload is parsed into a graph twice and mapped twice
 - **THEN** both mappings MUST produce the same `Investigation.identifier`
 
-#### Scenario: OpenAgrar record without DOI uses MyCoRe id
+#### Scenario: OpenAgrar record without DOI uses sanitized source URL
 
 - **WHEN** a Schema.org Dataset graph has no DOI and no `url`/`sameAs`/`http(s)` `@id`, and the discovered page URL is `https://www.openagrar.de/receive/openagrar_mods_00107322`
-- **THEN** `Investigation.identifier` MUST be `openagrar_mods_00107322`
+- **THEN** `Investigation.identifier` MUST be `www_openagrar_de_receive_openagrar_mods_00107322`
 
 #### Scenario: Missing DOI and missing source URL fails mapping
 
@@ -143,5 +143,5 @@ When Schema.org mapping refuses a record for lack of a stable identifier, the li
 
 #### Scenario: Unidentifiable Dataset is reported, not uploaded
 
-- **WHEN** Schema.org mapping raises because no DOI, URL, or MyCoRe id is available
+- **WHEN** Schema.org mapping raises because no DOI, URL, or source URL is available
 - **THEN** the plugin MUST yield `RecordProcessingError` for that dataset and MUST NOT yield a `HarvestedArc` for it
