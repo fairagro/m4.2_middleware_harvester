@@ -130,7 +130,11 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         if isinstance(node, Literal):
             return self._normalize_doi(str(node))
         if isinstance(node, URIRef):
-            return self._normalize_doi(str(node))
+            doi = self._normalize_doi(str(node))
+            if doi:
+                return doi
+            # URIRef may be the @id of a PropertyValue node; check nested fields.
+            return self._doi_from_property_value(graph, node)
         return self._doi_from_property_value(graph, node)
 
     def _doi_from_property_value(self, graph: Graph, node: Node) -> str | None:

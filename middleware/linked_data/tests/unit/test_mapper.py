@@ -359,3 +359,20 @@ def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
 
     with pytest.raises(ValueError, match="no stable identifier"):
         GeneralSchemaOrgMapper().map_graph(graph)
+
+
+def test_named_property_value_with_doi_is_extracted() -> None:
+    """A PropertyValue with a URIRef @id and propertyID=DOI must still yield its DOI."""
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Named PV Dataset")))
+    pv = URIRef("https://example.org/property-values/1")
+    graph.add((dataset, schema.identifier, pv))
+    graph.add((pv, RDF.type, schema.PropertyValue))
+    graph.add((pv, schema.propertyID, Literal("DOI")))
+    graph.add((pv, schema.value, Literal("10.1234/named-pv")))
+
+    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    assert identifier == "10.1234/named-pv"
