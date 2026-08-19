@@ -275,7 +275,7 @@ def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
     assert first == second == "10.3220/253-2025-42"
 
 
-def test_openagrar_without_doi_uses_mycore_id_from_receive_url() -> None:
+def test_openagrar_without_doi_uses_full_receive_url() -> None:
     graph = _parse_jsonld(
         """
         {
@@ -288,7 +288,7 @@ def test_openagrar_without_doi_uses_mycore_id_from_receive_url() -> None:
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
     harvested = GeneralSchemaOrgMapper().map_graph(graph, source_url=source_url)
     identifier = _root_identifier(harvested.arc_json)
-    assert identifier == "openagrar_mods_00107322"
+    assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
     assert not _BLANK_NODE_ID.fullmatch(identifier)
 
 
@@ -315,7 +315,7 @@ def test_http_dataset_id_is_kept_as_identifier() -> None:
     graph.add((dataset, schema.name, Literal("Example Dataset")))
 
     identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
-    assert identifier == "https://example.org/dataset/1"
+    assert identifier == "example_org_dataset_1"
 
 
 def test_assay_table_falls_back_to_dataset_iri_when_schema_url_missing() -> None:
@@ -343,7 +343,7 @@ def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
     graph.add((dataset, schema.url, Literal("https://example.org/canonical")))
 
     identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
-    assert identifier == "https://example.org/canonical"
+    assert identifier == "example_org_canonical"
 
 
 def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:

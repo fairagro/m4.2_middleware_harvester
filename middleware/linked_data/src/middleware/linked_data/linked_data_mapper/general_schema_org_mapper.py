@@ -47,7 +47,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     ]
 
     _DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
-    _RECEIVE_ID_RE = re.compile(r"/receive/([^/?#]+)", re.IGNORECASE)
+    _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
+
 
     def __init__(self) -> None:
         """Initialize mapper state for the active Schema.org namespace."""
@@ -163,18 +164,25 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return text
         return None
 
-    def _catalog_identifier_from_url(self, url: str) -> str:
-        match = self._RECEIVE_ID_RE.search(url)
-        if match:
-            return match.group(1)
-        return url
-
     def _first_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
         for obj in self._schema_objects(graph, subject, term):
             iri = self._http_iri(obj)
             if iri:
-                return self._catalog_identifier_from_url(iri)
+                return iri
         return None
+
+    @classmethod
+    def _sanitize_identifier(cls, raw: str) -> str:
+        """Make *raw* safe for arctrl ``Investigation.identifier``.
+
+        Allowed characters: letters, digits, underscore, dash, space.
+        Everything else (scheme separators ``://``, slashes, dots, …) is
+        replaced with ``_``, then consecutive underscores are collapsed.
+        """
+        stripped = re.sub(r"^https?://", "", raw)
+        sanitized = cls._FORBIDDEN_ID_CHARS.sub("_", stripped)
+        sanitized = re.sub(r"_{2,}", "_", sanitized).strip("_")
+        return sanitized
 
     def _resolve_investigation_identifier(
         self, graph: Graph, subject: Node, source_url: str | None, doi: str | None
@@ -185,20 +193,20 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         for term in ("url", "sameAs"):
             identifier = self._first_http_identifier(graph, subject, term)
             if identifier:
-                return identifier
+                return self._sanitize_identifier(identifier)
 
         subject_iri = self._http_iri(subject)
         if subject_iri:
-            return self._catalog_identifier_from_url(subject_iri)
+            return self._sanitize_identifier(subject_iri)
 
         if source_url:
             text = source_url.strip()
             if text.startswith(("http://", "https://")):
-                return self._catalog_identifier_from_url(text)
+                return self._sanitize_identifier(text)
 
         raise ValueError(
             "Schema.org Dataset has no stable identifier "
-            "(DOI, http(s) URL, or MyCoRe catalog id); refusing blank-node identifier"
+            "(DOI, http(s) URL, or source URL); refusing blank-node identifier"
         )
 
     # ------------------------------------------------------------------
