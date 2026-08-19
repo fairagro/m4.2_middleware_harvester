@@ -49,7 +49,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     _DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
-
     def __init__(self) -> None:
         """Initialize mapper state for the active Schema.org namespace."""
         self._active_schema: Namespace | None = None
