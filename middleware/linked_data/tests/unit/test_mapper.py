@@ -263,6 +263,10 @@ def test_openagrar_propertyvalue_doi_is_investigation_identifier() -> None:
     assert identifier == "10.3220/253-2025-42"
     assert not _BLANK_NODE_ID.fullmatch(identifier)
     assert harvested.identifier == "10.3220/253-2025-42"
+    # With only DOI (no @id/url/sameAs on the Dataset blank node), the Measurement
+    # table output URI must still be meaningful (no empty `URI=` cell).
+    assert '"@id":"URI=https://doi.org/10.3220/253-2025-42"' in harvested.arc_json
+    assert '"@id":"URI="' not in harvested.arc_json
 
 
 def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:

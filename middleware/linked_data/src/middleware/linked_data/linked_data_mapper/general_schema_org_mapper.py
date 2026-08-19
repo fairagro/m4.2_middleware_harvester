@@ -206,16 +206,28 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # ------------------------------------------------------------------
 
     def _map_arc(self, graph: Graph, subject: Node, source_url: str | None = None) -> ARC:
-        investigation = self._map_investigation(graph, subject, source_url=source_url)
+        # Extract DOI once and reuse it for:
+        # - Investigation.identifier
+        # - Publications (DOI-based)
+        # - Assay output URI fallback when the graph has no URL/@id
+        doi = self._extract_doi(graph, subject)
+
+        investigation = self._map_investigation(graph, subject, source_url=source_url, doi=doi)
         study = self._map_study(graph, subject)
         investigation.AddStudy(study)
-        assay = self._map_assay(graph, subject, source_url=source_url)
+        assay = self._map_assay(graph, subject, source_url=source_url, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
 
-    def _map_investigation(self, graph: Graph, subject: Node, source_url: str | None = None) -> ArcInvestigation:
-        doi = self._extract_doi(graph, subject)
+    def _map_investigation(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        doi: str | None = None,
+    ) -> ArcInvestigation:
+        doi = doi or self._extract_doi(graph, subject)
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
         identifier = self._resolve_investigation_identifier(graph, subject, source_url, doi)
 
@@ -534,7 +546,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Assay
     # ------------------------------------------------------------------
 
-    def _map_assay(self, graph: Graph, subject: Node, source_url: str | None = None) -> ArcAssay:
+    def _map_assay(
+        self, graph: Graph, subject: Node, source_url: str | None = None, doi: str | None = None
+    ) -> ArcAssay:
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
         identifier = self._to_identifier_slug(title) or "dataset"
 
@@ -545,10 +559,16 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-        assay.AddTable(self._create_assay_table(graph, subject, source_url=source_url))
+        assay.AddTable(self._create_assay_table(graph, subject, source_url=source_url, doi=doi))
         return assay
 
-    def _create_assay_table(self, graph: Graph, subject: Node, source_url: str | None = None) -> ArcTable:
+    def _create_assay_table(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        doi: str | None = None,
+    ) -> ArcTable:
         url: str | None = None
         for obj in self._schema_objects(graph, subject, "url"):
             url = self._http_iri(obj)
@@ -557,11 +577,13 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         # Prefer canonical URL properties when present; otherwise fall back to
         # subject/sameAs if the dataset subject is a real HTTP(S) IRI.
         if url is None:
-            url = self._first_http_identifier(graph, subject, "sameAs")
+            url = self._first_http_identifier(graph, subject, "sameAs") or self._http_iri(subject)
+
         if url is None:
-            url = self._http_iri(subject)
-        if url is None and source_url and source_url.startswith(("http://", "https://")):
-            url = source_url
+            # If we have a DOI but no URL/@id in the graph, use DOI landing URL.
+            doi_url = f"https://doi.org/{doi}" if doi else None
+            source = source_url if source_url and source_url.startswith(("http://", "https://")) else None
+            url = doi_url or source
         url = url or ""
 
         table = ArcTable.init("Measurement")
