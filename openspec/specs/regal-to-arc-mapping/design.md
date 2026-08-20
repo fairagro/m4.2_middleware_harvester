@@ -38,3 +38,8 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
    label-only agents become Investigation comments; ORCID agents without a given name fail
    closed. Institutions continue via Affiliation / Institution comments (see
    `docs/regal_mapping.md` and `person-contact-given-name`).
+
+6. **Opaque Comments never embed rdflib blank-node labels**
+   — Unlabelled blank nodes are skipped; Literals, URIRefs, and `skos:prefLabel` remain.
+   `regal:contributorOrder` is known metadata (not an opaque Comment); Contact ordering
+   via that predicate is deferred until stable order keys are available.

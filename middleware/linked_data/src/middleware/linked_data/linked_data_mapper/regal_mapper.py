@@ -20,7 +20,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
@@ -69,6 +69,9 @@ _KNOWN_PREDICATES = {
     REGAL.catalogId,
     REGAL.itemID,
     REGAL.associatedPublication,
+    # Structural contact-order metadata (docs/regal_mapping.md); not an opaque Comment.
+    # TODO: when order keys are stable Literals/URIRefs, use them to sort Contacts.
+    REGAL.contributorOrder,
 }
 
 
@@ -519,9 +522,13 @@ class RegalMapper(LinkedDataMapper):
         for item in graph.objects(subject, URIRef("http://hbz-nrw.de/regal#itemID")):
             if isinstance(item, Literal):
                 inv.Comments.append(Comment.create("OAI Identifier", str(item)))
-            else:
-                pref = self._str(graph, item, SKOS.prefLabel) or str(item)
+                continue
+            pref = self._str(graph, item, SKOS.prefLabel)
+            if pref:
                 inv.Comments.append(Comment.create("OAI Identifier", pref))
+            elif isinstance(item, URIRef):
+                inv.Comments.append(Comment.create("OAI Identifier", str(item)))
+            # Blank node without prefLabel: skip (never persist parser ids).
 
     def _add_opaque_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
         for predicate, obj in graph.predicate_objects(subject):
@@ -530,9 +537,13 @@ class RegalMapper(LinkedDataMapper):
             pred_name = str(predicate).rsplit("/", maxsplit=1)[-1].rsplit("#", maxsplit=1)[-1]
             if isinstance(obj, Literal):
                 inv.Comments.append(Comment.create(pred_name, str(obj)))
-            else:
-                pref = self._str(graph, obj, SKOS.prefLabel)
-                inv.Comments.append(Comment.create(pred_name, pref or str(obj)))
+                continue
+            pref = self._str(graph, obj, SKOS.prefLabel)
+            if pref:
+                inv.Comments.append(Comment.create(pred_name, pref))
+            elif isinstance(obj, URIRef):
+                inv.Comments.append(Comment.create(pred_name, str(obj)))
+            # Blank node without prefLabel: skip (never persist str(BNode)).
 
     def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
@@ -574,8 +585,11 @@ class RegalMapper(LinkedDataMapper):
                     project_ids.append(project_id)
                 funding_joined = graph.value(node, REGAL.fundingJoined)
                 if funding_joined is not None and not isinstance(funding_joined, Literal):
-                    label = self._str(graph, funding_joined, SKOS.prefLabel) or str(funding_joined)
-                    funders.append(label)
+                    label = self._str(graph, funding_joined, SKOS.prefLabel)
+                    if label:
+                        funders.append(label)
+                    elif isinstance(funding_joined, URIRef):
+                        funders.append(str(funding_joined))
             return funders, programs, project_ids
 
         for label, _ in self._labelled_nodes(graph, subject, REGAL.fundingId):
@@ -659,8 +673,14 @@ class RegalMapper(LinkedDataMapper):
             if isinstance(obj, Literal):
                 results.append((str(obj), None))
                 continue
-            label = self._str(graph, obj, SKOS.prefLabel) or str(obj)
-            results.append((label, str(obj)))
+            label = self._str(graph, obj, SKOS.prefLabel)
+            if isinstance(obj, URIRef):
+                results.append((label or str(obj), str(obj)))
+                continue
+            # Blank / non-URI nodes: keep only when a stable prefLabel exists.
+            # Never use str(BNode) as label or node id (parser-local, harvest-unstable).
+            if label and isinstance(obj, BNode):
+                results.append((label, None))
         return results
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:

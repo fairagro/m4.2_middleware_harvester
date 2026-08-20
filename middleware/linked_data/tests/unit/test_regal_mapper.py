@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 from rdflib import BNode, Graph, Literal, URIRef
@@ -206,3 +207,76 @@ def test_regal_mapper_orcid_without_given_name_fails_closed() -> None:
 
     with pytest.raises(ValueError, match="non-empty given name"):
         _mapper().map_graph(graph)
+
+
+_BLANK_NODE_LABEL = re.compile(r"(?:N[0-9a-f]{32}|_:[A-Za-z0-9]+)", re.IGNORECASE)
+
+
+def _comment_entries(arc_json: str) -> list[tuple[str, str]]:
+    """Return (name, text) pairs for Investigation-style Comment nodes in RO-Crate JSON."""
+    payload = json.loads(arc_json)
+    entries: list[tuple[str, str]] = []
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        name = str(item.get("name") or item.get("http://schema.org/name") or "")
+        text = str(item.get("text") or item.get("http://schema.org/text") or "")
+        entries.append((name, text))
+        # Also catch blank-node labels that land in @id.
+        comment_id = str(item.get("@id") or "")
+        if comment_id:
+            entries.append(("@id", comment_id))
+    return entries
+
+
+def test_contributor_order_blank_node_does_not_create_comment() -> None:
+    graph = _base_graph()
+    order_node = BNode()
+    graph.add((SUBJECT, REGAL.contributorOrder, order_node))
+
+    harvested = _mapper().map_graph(graph)
+    entries = _comment_entries(harvested.arc_json)
+    assert not any(name == "contributorOrder" for name, _ in entries)
+    blob = json.dumps(json.loads(harvested.arc_json))
+    assert _BLANK_NODE_LABEL.search(blob) is None
+    assert "contributorOrder" not in blob
+
+
+def test_contributor_order_blank_nodes_stable_across_two_maps() -> None:
+    def build() -> Graph:
+        graph = _base_graph()
+        graph.add((SUBJECT, REGAL.contributorOrder, BNode()))
+        return graph
+
+    first = _comment_entries(_mapper().map_graph(build()).arc_json)
+    second = _comment_entries(_mapper().map_graph(build()).arc_json)
+    first_set = {(n, t) for n, t in first if n != "@id"}
+    second_set = {(n, t) for n, t in second if n != "@id"}
+    assert first_set == second_set
+    assert not any(n == "contributorOrder" for n, _ in first_set)
+
+
+def test_opaque_unknown_predicate_unlabelled_blank_node_is_skipped() -> None:
+    graph = _base_graph()
+    unknown = URIRef("http://hbz-nrw.de/regal#emi_measurement_techniques")
+    graph.add((SUBJECT, unknown, BNode()))
+
+    entries = _comment_entries(_mapper().map_graph(graph).arc_json)
+    assert not any(name == "emi_measurement_techniques" for name, _ in entries)
+    blob = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert _BLANK_NODE_LABEL.search(blob) is None
+
+
+def test_opaque_blank_node_with_pref_label_is_kept() -> None:
+    graph = _base_graph()
+    unknown = URIRef("http://hbz-nrw.de/regal#emi_measurement_techniques")
+    node = BNode()
+    graph.add((SUBJECT, unknown, node))
+    graph.add((node, SKOS.prefLabel, Literal("Stable Label")))
+
+    entries = _comment_entries(_mapper().map_graph(graph).arc_json)
+    assert ("emi_measurement_techniques", "Stable Label") in {(n, t) for n, t in entries if n != "@id"}
+    blob = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert _BLANK_NODE_LABEL.search(blob) is None

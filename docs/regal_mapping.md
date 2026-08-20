@@ -79,7 +79,7 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 | --- | --- | --- | --- |
 | **`creator`** | `dcterms:creator` (`@list`) | Authors | `Investigation.Contacts` (`Person`, role **author**) |
 | **`contributor`** | `dcterms:contributor` (`@list`) | Contributors | `Investigation.Contacts` (`Person`, role **contributor**) |
-| **`contributorOrder`** | — | Ordered ORCID / agent id pipe-string | Prefer to order Contacts when present; else keep creator/contributor list order |
+| **`contributorOrder`** | `regal:contributorOrder` | Ordered ORCID / agent id pipe-string (or related nodes) | Prefer to order Contacts when stable Literal/URI keys are present; else keep creator/contributor list order. **MUST NOT** be emitted as an Investigation Comment (never stringify blank-node labels). |
 | **`institution`** | `dbo:institution` | Issuing / collecting organisation (FRL Sammlung) | `Person.Affiliation` on contacts when a single institution applies; else `Investigation` comment `Institution` (`prefLabel` + `@id`) |
 | **`lastModifiedBy`** | — | Last editor | `Investigation` comment `Last Modified By` (optional) |
 
@@ -153,9 +153,11 @@ Fields that appear on some FRL templates (e.g. `emi_measurement_techniques`,
 `test_design`, `project_title`, `other`, …) are **not** part of the core mapping.
 
 **Rule:** If present, store each as an Investigation comment
-`Comment.create(<fieldName>, <stringified value>)` so information is not lost, without
-inventing ARC protocol semantics. Promote a facet into a first-class protocol parameter
-only after an explicit mapping update to this document.
+`Comment.create(<fieldName>, <value>)` so information is not lost, without inventing ARC
+protocol semantics. `<value>` MUST be a Literal, a URIRef string, or a `skos:prefLabel`.
+Unlabelled blank nodes MUST be omitted — never persist rdflib blank-node labels
+(`N`+32 hex / `_:…`). Promote a facet into a first-class protocol parameter only after an
+explicit mapping update to this document.
 
 ## Mapping Strategy Summary
 
