@@ -355,6 +355,40 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
     ]
 
 
+def test_mycore_solr_sitemap_sets_harvest_source_id_from_solr_id() -> None:
+    config = Config(
+        sitemap_url="https://www.openagrar.de/servlets/solr/select",
+        sitemap_type=SitemapType.mycore_solr,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=_TEST_HTTP,
+    )
+
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "response": {
+                    "numFound": 1,
+                    "start": 0,
+                    "docs": [{"id": "openagrar_mods_0001"}],
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async def collect() -> list[UrlDiscoveryResult]:
+        async with NiceHttpClient(config.http, transport=transport) as client:
+            sitemap = MycoreSolrSitemap(config, client)
+            return [result async for result in sitemap.discover() if isinstance(result, UrlDiscoveryResult)]
+
+    results = asyncio.run(collect())
+    assert len(results) == 1
+    assert results[0].url == "https://www.openagrar.de/receive/openagrar_mods_0001"
+    assert results[0].harvest_source_id == "openagrar_mods_0001"
+
+
 def test_mycore_solr_sitemap_fills_defaults_for_query_free_url() -> None:
     config = Config(
         sitemap_url="https://www.openagrar.de/servlets/solr/select",

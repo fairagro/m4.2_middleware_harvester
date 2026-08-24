@@ -7,7 +7,16 @@ from pathlib import Path
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
-from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from mapper_test_helpers import (
+    assert_stable_author_node_id,
+    contact_name_pairs,
+    investigation_description,
+    keywords_comment_text,
+    keywords_derived_ids,
+    publication_author_node_id,
+    publisher_comment_text,
+)
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
@@ -73,7 +82,7 @@ def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> No
 
     assert "@graph" in payload
     root = next(item for item in payload["@graph"] if item.get("@id") == "./")
-    assert root["identifier"] == "10.1234/abc"
+    assert root["identifier"] == "example_org_dataset_1"
     assert "CC-BY" in result
     assert "Publisher Co" in result
     people = [
@@ -217,162 +226,352 @@ def test_creator_affiliation_preserved_on_person() -> None:
     assert people[0].get("givenName") == "Jonas"
 
 
-_BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
+def test_keywords_order_invariant() -> None:
+    schema = Namespace("https://schema.org/")
 
-_OPENAGRAR_PROPERTYVALUE_DOI = """
-{
-  "@context": "https://schema.org/",
-  "@type": "Dataset",
-  "name": "Flower visitors in legume-intercrops",
-  "identifier": [{
-    "@type": "PropertyValue",
-    "propertyID": "https://registry.identifiers.org/registry/doi",
-    "value": "10.3220/253-2025-42"
-  }]
-}
-"""
+    def build(order: list[str]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/kw")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("KW Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/kw")))
+        for keyword in order:
+            graph.add((dataset, schema.keywords, Literal(keyword)))
+        return graph
+
+    first = GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"])).arc_json
+    assert keywords_comment_text(first) == keywords_comment_text(second) == "alpha, Beta, zeta"
+    assert keywords_derived_ids(first) == keywords_derived_ids(second)
+    assert keywords_derived_ids(first), "expected Keywords Comment and/or ParameterValue @ids"
 
 
-def _parse_jsonld(payload: str) -> Graph:
+def test_description_prefers_en_over_de_and_skips_empty() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(desc_order: list[Literal]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/desc")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Desc Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/desc")))
+        for literal in desc_order:
+            graph.add((dataset, schema.description, literal))
+        return graph
+
+    literals_a = [
+        Literal(""),
+        Literal("Deutsche Beschreibung", lang="de"),
+        Literal("English description", lang="en"),
+    ]
+    literals_b = list(reversed(literals_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(literals_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(literals_b)).arc_json
+    assert investigation_description(first) == investigation_description(second) == "English description"
+    assert "Deutsche" not in investigation_description(first)
+
+
+def test_contacts_and_publication_authors_order_invariant() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(creator_order: list[tuple[str, str, str]]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/people")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("People Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/people")))
+        for uri, given, family in creator_order:
+            person = URIRef(uri)
+            graph.add((dataset, schema.creator, person))
+            graph.add((person, RDF.type, schema.Person))
+            graph.add((person, schema.givenName, Literal(given)))
+            graph.add((person, schema.familyName, Literal(family)))
+        return graph
+
+    order_a = [
+        ("https://example.org/p/2", "Zed", "Zebra"),
+        ("https://example.org/p/1", "Ada", "Lovelace"),
+    ]
+    order_b = list(reversed(order_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(order_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(order_b)).arc_json
+    assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
+    assert publication_author_node_id(first) == publication_author_node_id(second)
+    assert_stable_author_node_id(publication_author_node_id(first), "A. Lovelace; Z. Zebra")
+
+
+def test_double_map_openagrar_like_fixture_is_stable() -> None:
+    schema = Namespace("https://schema.org/")
     graph = Graph()
-    graph.parse(data=payload, format="json-ld")
-    return graph
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Flower visitors")))
+    graph.add((dataset, schema.identifier, Literal("10.3220/253-2025-42")))
+    graph.add((dataset, schema.description, Literal("", lang="en")))
+    graph.add((dataset, schema.description, Literal("Kurztext", lang="de")))
+    graph.add((dataset, schema.description, Literal("Full English abstract", lang="en")))
+    for keyword in ("pollinators", "legume", "intercrop"):
+        graph.add((dataset, schema.keywords, Literal(keyword)))
+    for uri, given, family in (
+        ("https://example.org/a", "Jonas", "Niklewski"),
+        ("https://example.org/b", "Anna", "Meier"),
+    ):
+        person = URIRef(uri)
+        graph.add((dataset, schema.creator, person))
+        graph.add((person, RDF.type, schema.Person))
+        graph.add((person, schema.givenName, Literal(given)))
+        graph.add((person, schema.familyName, Literal(family)))
+
+    first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert keywords_comment_text(first) == keywords_comment_text(second) == "intercrop, legume, pollinators"
+    assert keywords_derived_ids(first) == keywords_derived_ids(second)
+    assert investigation_description(first) == investigation_description(second) == "Full English abstract"
+    assert contact_name_pairs(first) == contact_name_pairs(second)
+    assert publication_author_node_id(first) == publication_author_node_id(second)
 
 
-def _root_identifier(arc_json: str) -> str:
-    payload = json.loads(arc_json)
-    root = next(item for item in payload["@graph"] if item.get("@id") == "./")
-    identifier = root["identifier"]
-    assert isinstance(identifier, str)
-    return identifier
+def test_obj_prefers_uriref_publisher_over_blank_node() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-mix")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Mix Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-mix")))
+
+    blank = BNode()
+    graph.add((dataset, schema.publisher, blank))
+    graph.add((blank, RDF.type, schema.Organization))
+    graph.add((blank, schema.name, Literal("Blank Org")))
+
+    named = URIRef("https://example.org/org/named")
+    graph.add((dataset, schema.publisher, named))
+    graph.add((named, RDF.type, schema.Organization))
+    graph.add((named, schema.name, Literal("Named Org")))
+
+    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == "Named Org"
 
 
-def test_openagrar_propertyvalue_doi_is_investigation_identifier() -> None:
-    graph = _parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)
-    subject = None
-    for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
-        subjects = list(graph.subjects(RDF.type, schema.Dataset))
-        if subjects:
-            subject = subjects[0]
-            break
-    assert isinstance(subject, BNode)
+def test_obj_blank_publisher_choice_stable_across_fresh_bnode_labels() -> None:
+    schema = Namespace("https://schema.org/")
 
-    harvested = GeneralSchemaOrgMapper().map_graph(graph)
-    identifier = _root_identifier(harvested.arc_json)
+    def build(name_order: list[str]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/pub-bnodes")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("BNode Publisher Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/pub-bnodes")))
+        for name in name_order:
+            publisher = BNode()
+            graph.add((dataset, schema.publisher, publisher))
+            graph.add((publisher, RDF.type, schema.Organization))
+            graph.add((publisher, schema.name, Literal(name)))
+        return graph
 
-    assert identifier == "10.3220/253-2025-42"
-    assert not _BLANK_NODE_ID.fullmatch(identifier)
-    assert harvested.identifier == "10.3220/253-2025-42"
-    # With only DOI (no @id/url/sameAs on the Dataset blank node), the Measurement
-    # table output URI must still be meaningful (no empty `URI=` cell).
-    assert '"@id":"URI=https://doi.org/10.3220/253-2025-42"' in harvested.arc_json
-    assert '"@id":"URI="' not in harvested.arc_json
-
-
-def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
-    first = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
-    second = _root_identifier(GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)).arc_json)
-    assert first == second == "10.3220/253-2025-42"
+    first = GeneralSchemaOrgMapper().map_graph(build(["Zeta Org", "Alpha Org"])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Alpha Org", "Zeta Org"])).arc_json
+    assert publisher_comment_text(first) == publisher_comment_text(second) == "Alpha Org"
 
 
-def test_openagrar_without_doi_uses_full_receive_url() -> None:
-    graph = _parse_jsonld(
-        """
-        {
-          "@context": "https://schema.org/",
-          "@type": "Dataset",
-          "name": "C-Module"
-        }
-        """
-    )
-    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
-    harvested = GeneralSchemaOrgMapper().map_graph(graph, source_url=source_url)
-    identifier = _root_identifier(harvested.arc_json)
-    assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
-    assert not _BLANK_NODE_ID.fullmatch(identifier)
+def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
+    """BNode→BNode edges must affect selection when direct literals would rank opposite."""
+    schema = Namespace("https://schema.org/")
+
+    def build(entries: list[tuple[str, str]]) -> Graph:
+        # entries: (addressLocality, org name)
+        graph = Graph()
+        dataset = URIRef("https://example.org/pub-nested")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Nested BNode Publisher Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/pub-nested")))
+        for city, org_name in entries:
+            publisher = BNode()
+            address = BNode()
+            graph.add((dataset, schema.publisher, publisher))
+            graph.add((publisher, RDF.type, schema.Organization))
+            graph.add((publisher, schema.name, Literal(org_name)))
+            graph.add((publisher, schema.address, address))
+            graph.add((address, schema.addressLocality, Literal(city)))
+        return graph
+
+    # Direct name alone would prefer "Aaa Org"; nested locality prefers Amsterdam → "Zzz Org".
+    entries_a = [("Zurich", "Aaa Org"), ("Amsterdam", "Zzz Org")]
+    entries_b = list(reversed(entries_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(entries_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(entries_b)).arc_json
+    assert publisher_comment_text(first) == publisher_comment_text(second) == "Zzz Org"
 
 
-def test_schema_org_without_stable_identifier_raises_and_does_not_use_blank_node() -> None:
-    graph = _parse_jsonld(
-        """
-        {
-          "@context": "https://schema.org/",
-          "@type": "Dataset",
-          "name": "C-Module"
-        }
-        """
-    )
+def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
+    """Same lexical value, different language tags must not collide in signatures."""
+    schema = Namespace("https://schema.org/")
     mapper = GeneralSchemaOrgMapper()
-    with pytest.raises(ValueError, match="no stable identifier"):
-        mapper.map_graph(graph)
-
-
-def test_http_dataset_id_is_kept_as_identifier() -> None:
     graph = Graph()
-    schema = Namespace("https://schema.org/")
-    dataset = URIRef("https://example.org/dataset/1")
-    graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    left = BNode()
+    right = BNode()
+    graph.add((left, schema.name, Literal("Same", lang="en")))
+    graph.add((right, schema.name, Literal("Same", lang="de")))
+    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
+    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    assert left_key != right_key
+    assert "'en'" in left_key[1]
+    assert "'de'" in right_key[1]
 
-    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
-    assert identifier == "example_org_dataset_1"
 
-
-def test_assay_table_falls_back_to_dataset_iri_when_schema_url_missing() -> None:
-    """When schema:url is absent, Measurement["URI"] MUST not be empty for URIRef datasets."""
+def test_stable_node_sort_key_no_delimiter_collision() -> None:
+    """Predicate/literal structures must not collapse to the same signature string."""
+    mapper = GeneralSchemaOrgMapper()
     graph = Graph()
+    left = BNode()
+    right = BNode()
+    graph.add((left, URIRef("http://ex/a"), Literal("b=c")))
+    graph.add((right, URIRef("http://ex/a=b"), Literal("c")))
+    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
+    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    assert left_key != right_key
+
+
+def test_stable_term_token_no_literal_encoding_collision() -> None:
+    """Crafted literal text must not mimic structured lang/datatype encoding."""
+    mapper = GeneralSchemaOrgMapper()
+    crafted = Literal("a|lang=|dt=x", datatype=URIRef("y"))
+    structured = Literal("a", datatype=URIRef("x|lang=|dt=y"))
+    crafted_token = mapper._stable_term_token(crafted)  # noqa: SLF001
+    structured_token = mapper._stable_term_token(structured)  # noqa: SLF001
+    assert crafted_token is not None
+    assert structured_token is not None
+    assert crafted_token != structured_token
+
+
+def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
     schema = Namespace("https://schema.org/")
-    dataset = URIRef("https://example.org/dataset/1")
+    graph = Graph()
+    dataset = URIRef("https://example.org/kw-bnodes")
     graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    graph.add((dataset, schema.name, Literal("Keyword BNode Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/kw-bnodes")))
+
+    labelled = BNode()
+    graph.add((dataset, schema.keywords, labelled))
+    graph.add((labelled, schema.name, Literal("DefinedTerm Keyword")))
+
+    unlabelled = BNode()
+    graph.add((dataset, schema.keywords, unlabelled))
+
+    nested_name = BNode()
+    nested_term = BNode()
+    graph.add((dataset, schema.keywords, nested_term))
+    graph.add((nested_term, schema.name, nested_name))  # name is itself a BNode → skip
+
+    graph.add((dataset, schema.keywords, Literal("literal-kw")))
 
     arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert keywords_comment_text(arc_json) == "DefinedTerm Keyword, literal-kw"
+    assert not re.search(r"\bN[0-9a-fA-F]{32}\b", keywords_comment_text(arc_json) or "")
+    assert "_:" not in (keywords_comment_text(arc_json) or "")
 
-    # arctrl encodes the output IOType("URI") as an @id that starts with `URI=`.
-    assert '"@id":"URI=https://example.org/dataset/1"' in arc_json
-    assert '"@id":"URI="' not in arc_json
 
-
-def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
-    graph = Graph()
+def test_publisher_uriref_without_name_is_kept() -> None:
     schema = Namespace("https://schema.org/")
-    dataset = BNode()
-    graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Example Dataset")))
-    graph.add((dataset, schema.identifier, Literal("https://example.org/other-id")))
-    graph.add((dataset, schema.url, Literal("https://example.org/canonical")))
-
-    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
-    assert identifier == "example_org_canonical"
-
-
-def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
     graph = Graph()
-    schema = Namespace("https://schema.org/")
-    dataset = BNode()
+    dataset = URIRef("https://example.org/pub-iri")
     graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Example Dataset")))
-    property_value = BNode()
-    graph.add((dataset, schema.identifier, property_value))
-    graph.add((property_value, RDF.type, schema.PropertyValue))
-    graph.add((property_value, schema.value, Literal("10.3220/not-marked-as-doi")))
+    graph.add((dataset, schema.name, Literal("Publisher IRI Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-iri")))
+    publisher = URIRef("https://example.org/org/nameless")
+    graph.add((dataset, schema.publisher, publisher))
+    graph.add((publisher, RDF.type, schema.Organization))
 
-    with pytest.raises(ValueError, match="no stable identifier"):
-        GeneralSchemaOrgMapper().map_graph(graph)
+    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == (
+        "https://example.org/org/nameless"
+    )
 
 
-def test_named_property_value_with_doi_is_extracted() -> None:
-    """A PropertyValue with a URIRef @id and propertyID=DOI must still yield its DOI."""
+def test_publisher_unlabelled_bnode_without_name_is_skipped() -> None:
+    schema = Namespace("https://schema.org/")
     graph = Graph()
-    schema = Namespace("https://schema.org/")
-    dataset = BNode()
+    dataset = URIRef("https://example.org/pub-blank")
     graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Named PV Dataset")))
-    pv = URIRef("https://example.org/property-values/1")
-    graph.add((dataset, schema.identifier, pv))
-    graph.add((pv, RDF.type, schema.PropertyValue))
-    graph.add((pv, schema.propertyID, Literal("DOI")))
-    graph.add((pv, schema.value, Literal("10.1234/named-pv")))
+    graph.add((dataset, schema.name, Literal("Publisher Blank Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-blank")))
+    publisher = BNode()
+    graph.add((dataset, schema.publisher, publisher))
+    graph.add((publisher, RDF.type, schema.Organization))
 
-    identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
-    assert identifier == "10.1234/named-pv"
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert publisher_comment_text(arc_json) is None
+    assert not re.search(r"#LDComment_Publisher_N[0-9a-fA-F]{32}", arc_json)
+
+
+def test_publisher_prefers_organization_name_over_literal_for_processing_note() -> None:
+    """Literal + Organization: tables/notes must use the Organization name, not skip via _obj."""
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-both")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Dual Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-both")))
+    graph.add((dataset, schema.publisher, Literal("string-publisher")))
+    org = URIRef("https://example.org/org/zenodo")
+    graph.add((dataset, schema.publisher, org))
+    graph.add((org, RDF.type, schema.Organization))
+    graph.add((org, schema.name, Literal("Zenodo")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert publisher_comment_text(arc_json) == "Zenodo"
+    assert "Publisher: Zenodo" in arc_json
+    assert "Publisher: string-publisher" not in arc_json
+    assert "Unknown Publisher" not in arc_json
+
+
+def test_literal_only_publisher_enriches_processing_note() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-lit")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Literal Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-lit")))
+    graph.add((dataset, schema.publisher, Literal("Literal Press")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert publisher_comment_text(arc_json) == "Literal Press"
+    assert "Publisher: Literal Press" in arc_json
+
+
+def test_publisher_falls_back_to_literal_when_organization_bnode_has_no_name() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-org-blank-lit")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Org Blank Plus Literal Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-org-blank-lit")))
+    blank_org = BNode()
+    graph.add((dataset, schema.publisher, blank_org))
+    graph.add((blank_org, RDF.type, schema.Organization))
+    graph.add((dataset, schema.publisher, Literal("Fallback Press")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert publisher_comment_text(arc_json) == "Fallback Press"
+    assert "Publisher: Fallback Press" in arc_json
+
+
+def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(creator_order: list[tuple[str, str]]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/people-bnodes")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("BNode People Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/people-bnodes")))
+        for given, family in creator_order:
+            person = BNode()
+            graph.add((dataset, schema.creator, person))
+            graph.add((person, RDF.type, schema.Person))
+            graph.add((person, schema.givenName, Literal(given)))
+            graph.add((person, schema.familyName, Literal(family)))
+        return graph
+
+    first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")])).arc_json
+    assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]

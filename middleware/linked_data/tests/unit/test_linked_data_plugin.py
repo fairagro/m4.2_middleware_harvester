@@ -106,6 +106,51 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
 
 
 @pytest.mark.asyncio
+async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(),
+    )
+
+    class FakeSitemapWithCatalogId:
+        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:
+            yield UrlDiscoveryResult(
+                "https://www.openagrar.de/receive/openagrar_mods_00107322",
+                harvest_source_id="openagrar_mods_00107322",
+            )
+
+        async def get_expected_count(self) -> int | None:
+            return 1
+
+    mock_mapper = MagicMock()
+    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:graph")
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemapWithCatalogId:
+        del client
+        return FakeSitemapWithCatalogId()
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: FakeDataset})
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
+        staticmethod(lambda _config: mock_mapper),
+    )
+    monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
+
+    results = [item async for item in LinkedDataPlugin(config).run()]
+
+    assert len(results) == 1
+    mock_mapper.map_graph.assert_called_once()
+    assert mock_mapper.map_graph.call_args.kwargs["harvest_source_id"] == "openagrar_mods_00107322"
+
+
+@pytest.mark.asyncio
 async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

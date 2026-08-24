@@ -32,11 +32,30 @@ schema.org, `RegalMapper` for Regal).
    keep creator affiliations on `Person.Affiliation`), refuse placeholder given names, and
    fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.
 
-6. **Schema.org Investigation.identifier is catalog-stable or the record is refused**
+6. **Schema.org Investigation.identifier is harvest-stable or the record is refused**
    — rdflib blank-node labels are parser-internal and change every parse; the API hashes
    `identifier + rdi` into a GitLab path, so a blank node creates a new repo per harvest.
-   `GeneralSchemaOrgMapper` therefore uses DOI (including Schema.org `PropertyValue`), then
-   `http(s)` URL (including a MyCoRe Receive-URL), then raises a mapping error. Title
-   slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes the
-   discovered page URL as `map_graph(..., source_url=...)` and the mapper sanitizes it
-   into an `arctrl`-compatible identifier.
+   `GeneralSchemaOrgMapper` therefore keys `Investigation.identifier` to the **harvest unit**
+   (discovered page), not to a DOI that may be shared across pages or duplicated on one page.
+   Resolution order: `harvest_source_id` from discovery when supplied (e.g. MyCoRe Solr `id` on
+   `UrlDiscoveryResult`), else sanitized discovered page URL, else canonical `http(s)` URL from
+   `schema:url` / `sameAs` / Dataset `@id`, else a single extracted DOI as last resort, else
+   mapping error. DOIs (including Schema.org `PropertyValue`) always appear in Publication and/or
+   Investigation Comments; they are not the primary identifier when harvest context exists. Title
+   slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes
+   `map_graph(..., source_url=..., harvest_source_id=...)`.
+
+7. **Schema.org multi-value fields and contacts are harvest-deterministic**
+   — Keywords are trimmed/deduped/sorted (`casefold`). Multi-literal `_str` prefers
+   `en` > `de` > untagged > other (empty dropped; longer then lex tie-break). Creator/
+   author/contributor nodes are sorted before Contacts; Publication authors use
+   `F. Last` (no comma) so ARCtrl `#Author_*` nodes stop oscillating with RDF order.
+   Non-literal `_obj` selection prefers URIRefs over blank nodes and ranks blank nodes
+   by outgoing content signatures (including a bounded nested BNode signature), never by
+   parser-local BNode labels.
+
+8. **Schema.org multi-DOI pages preserve all DOIs in metadata**
+   — When one harvested page lists multiple DOIs, the lexicographic minimum (`casefold`) is
+   the canonical Publication DOI; non-canonical DOIs become `Alternate Identifier` Comments.
+   `Investigation.identifier` remains the harvest source key (`harvest_source_id` or page URL)
+   when discovery context is supplied, so multi-DOI order in JSON-LD cannot flip `arc_id` between runs.

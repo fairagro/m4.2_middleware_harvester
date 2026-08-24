@@ -1,19 +1,25 @@
 ---
 name: arctrl
 description: >
-  Reference for using the arctrl Python library (v3.x) to build ARC (Annotated
+  Reference for using the arctrl Python library (v3.2+) to build ARC (Annotated
   Research Context) objects and serialize them to RO-Crate JSON-LD. Use when
   working with ArcInvestigation, ArcStudy, ArcAssay, ArcTable, CompositeHeader,
   CompositeCell, OntologyAnnotation, OntologySourceReference, Person, or
   Publication objects, or when calling ToROCrateJsonString / WriteAsync,
   GetWriteContracts, GetAdditionalPayload, or supplementary ARC files.
-compatibility: Python 3.12+, arctrl (Fable-transpiled F# library)
+compatibility: Python 3.12+, arctrl >= 3.2.1 (Fable-transpiled F# library)
 ---
 
 # ARCtrl — Usage Reference
 
 ARCtrl is a Fable-transpiled F# library — the Python surface is idiomatic
 but some internals are Fable runtime types.
+
+**Casing rule (arctrl 3.2+):** constructor / factory kwargs are usually
+`snake_case` (`first_name=…`, `name=…`); **instance properties** on ARC /
+Person / Investigation stay mostly **PascalCase** (`FirstName`, `Identifier`,
+`Contacts`). Exception: each entry in `ArcTable.Columns` exposes **lowercase**
+`header` and `cells` (not `Header` / `Cells`).
 
 ---
 
@@ -27,7 +33,7 @@ comments needed, covers all submodules):
 
 ```toml
 [[tool.mypy.overrides]]
-module = ["arctrl", "arctrl.*"]
+module = ["arctrl", "arctrl.*", "fable_library", "fable_library.*"]
 ignore_missing_imports = true
 ```
 
@@ -40,7 +46,7 @@ from the bare `arctrl` package.
 override is not in place):
 
 ```python
-from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+from fable_library.async_ import start_as_task  # type: ignore[import-untyped]
 from arctrl.py.Core.Table.composite_cell import Data  # type: ignore[import-untyped]
 ```
 
@@ -61,8 +67,11 @@ from arctrl import (
     Publication,
 )
 
-# Async write helper lives in the Fable internals:
-from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: ignore[import-untyped]
+# Not re-exported from top-level arctrl (3.2+):
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference
+
+# Async helpers live in the standalone fable_library package (not under arctrl.py):
+from fable_library.async_ import start_as_task  # type: ignore[import-untyped]
 ```
 
 ---
@@ -75,12 +84,13 @@ from arctrl.py.fable_modules.fable_library.async_ import start_as_task  # type: 
 # Empty / unknown
 oa = OntologyAnnotation()
 
-# With values — all parameters optional:
+# With values — constructor kwargs are snake_case; read-back uses .Name:
 oa = OntologyAnnotation(
     name="soil texture",  # human-readable term
     tan="http://purl.obolibrary.org/obo/ENVO_00002001",  # TermAccessionNumber (URI)
     tsr="ENVO",  # TermSourceREF: short name of the ontology source
 )
+assert oa.Name == "soil texture"
 # tsr is a back-reference to an OntologySourceReference registered on the
 # investigation (by its .Name). If no OntologySourceReference is registered,
 # tsr can be left empty or omitted.
@@ -92,20 +102,22 @@ Registered on `ArcInvestigation.OntologySourceReferences`. Describes an
 ontology source and holds its version.
 
 ```python
-from arctrl import OntologySourceReference
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 
 osr = OntologySourceReference(
-    name="ENVO",  # short name — must match OntologyAnnotation.tsr
+    name="ENVO",  # short name — must match OntologyAnnotation tsr kwarg
     description="Environment Ontology",
     file="http://purl.obolibrary.org/obo/envo.owl",
     version="2024-01-01",  # ontology version / access date
 )
+# or: OntologySourceReference.create(name=..., file=..., version=..., description=...)
 investigation.OntologySourceReferences.append(osr)
+assert osr.Name == "ENVO"
 ```
 
-**Relationship:** `OntologyAnnotation.tsr` is a string key that references
-`OntologySourceReference.name`. ARCtrl does not enforce referential integrity
-at runtime, but the RO-Crate serialization will include both objects.
+**Relationship:** the `tsr=` constructor argument is a string key that
+references `OntologySourceReference.Name`. ARCtrl does not enforce referential
+integrity at runtime, but the RO-Crate serialization will include both objects.
 
 ### ArcInvestigation
 
@@ -145,6 +157,8 @@ assay = ArcAssay.create(
 
 ### Person
 
+Constructor kwargs are `snake_case`; properties are PascalCase:
+
 ```python
 person = Person(
     last_name="Doe",
@@ -157,7 +171,15 @@ person = Person(
     affiliation="UFZ",
     roles=[OntologyAnnotation("author", "http://...", "")],
 )
+# Read-back:
+assert person.FirstName == "John"
+assert person.LastName == "Doe"
+person.Roles.append(OntologyAnnotation(name="author"))
+person.Comments.append(...)  # if needed
 ```
+
+Do **not** pass `FirstName=` / `LastName=` to the constructor — those kwargs
+are rejected (`unexpected keyword argument`).
 
 ### Publication
 
@@ -169,6 +191,17 @@ pub = Publication(
     title="Paper title",
     status=OntologyAnnotation("published", "http://...", ""),
 )
+# Properties: pub.DOI, pub.Title, pub.Authors, …
+```
+
+### Comment
+
+```python
+from arctrl import Comment
+
+c = Comment.create("Keywords", "alpha, beta")
+assert c.Name == "Keywords"
+assert c.Value == "alpha, beta"  # not .Text / .text
 ```
 
 ---
@@ -252,6 +285,18 @@ else:
 # Attach table to study or assay
 study.AddTable(table)
 assay.AddTable(table)
+
+# Read columns back (arctrl 3.2+): use Columns with lowercase header/cells
+for col in table.Columns:
+    header = col.header  # NOT col.Header
+    cells = col.cells  # NOT col.Cells
+    if header.IsTermColumn:
+        term_name = cells[0].AsTerm.Name
+    else:
+        text = cells[0].AsFreeText
+
+# table.Headers still exists (PascalCase list of CompositeHeader), but
+# cell values live on Columns[i].cells.
 ```
 
 ---
@@ -293,7 +338,7 @@ create a contract manually and fulfill it (after or alongside ISA contracts):
 ```python
 from arctrl.py.Contract.contract import Contract, DTO, DTOType  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
-from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
 manual = Contract.create_create(
     "iso19115.xml",
@@ -380,8 +425,22 @@ arbitrary supplementary files (serializes as `CreativeWork`, not `File`).
 
 ## Known Pitfalls
 
+**`start_as_task` / `run_synchronously` import path (3.2+)** — use
+`from fable_library.async_ import …`. The old path
+`arctrl.py.fable_modules.fable_library.async_` no longer exists.
+
+**`OntologySourceReference` is not on `from arctrl import …`** — import from
+`arctrl.py.Core.ontology_source_reference`.
+
+**Ctor kwargs ≠ property names** — `Person(first_name=…)` then
+`person.FirstName`; never `Person(FirstName=…)`.
+
+**`ArcTable` column fields are lowercase** — `col.header` / `col.cells`.
+`col.Header` / `col.Cells` raise `AttributeError` on 3.2+. `table.Headers`
+and `table.Columns` remain PascalCase.
+
 **`start_as_task` is untyped** — always add `# type: ignore[import-untyped]`
-on the import.
+on the import (or cover `fable_library.*` in mypy overrides).
 
 **`CompositeHeader.performer` and `.date` are properties, not constructors**
 — call them without `()`:

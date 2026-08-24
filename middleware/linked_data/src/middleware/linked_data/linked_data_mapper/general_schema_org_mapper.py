@@ -6,7 +6,10 @@ GeneralSchemaOrgMapper works directly on rdflib.Graph throughout —
 no intermediate model layer is created between the graph and the ARC output.
 """
 
+from __future__ import annotations
+
 import re
+from dataclasses import dataclass
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -34,6 +37,15 @@ from .linked_data_mapper import LinkedDataMapper
 from .person_contacts import require_nonempty_person_given_names
 
 
+@dataclass(frozen=True)
+class _IdentifierPlan:
+    """Resolved investigation identifier and DOI metadata for one Dataset."""
+
+    investigation_id: str
+    publication_doi: str | None
+    alternate_dois: tuple[str, ...]
+
+
 @LinkedDataMapper.register(PayloadType.schema_org_general)
 class GeneralSchemaOrgMapper(LinkedDataMapper):
     """Maps a Schema.org RDF graph to ARC objects.
@@ -48,6 +60,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
     _DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
+    # Bound nested BNode walks in sort keys (cycle-safe; never uses BNode labels).
+    _STABLE_BNODE_MAX_DEPTH = 2
 
     def __init__(self) -> None:
         """Initialize mapper state for the active Schema.org namespace."""
@@ -60,7 +74,13 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Public API
     # ------------------------------------------------------------------
 
-    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
+    def map_graph(
+        self,
+        graph: Graph,
+        source_url: str | None = None,
+        *,
+        harvest_source_id: str | None = None,
+    ) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
         schema, subject = self._find_dataset_subject(graph)
         if subject is None:
@@ -68,7 +88,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
         self._active_schema = schema
         try:
-            arc = self._map_arc(graph, subject, source_url=source_url)
+            arc = self._map_arc(graph, subject, source_url=source_url, harvest_source_id=harvest_source_id)
         finally:
             self._active_schema = None
 
@@ -86,14 +106,173 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         return self.SCHEMA_URIS[0], next(iter(graph.subjects()), None)
 
     def _obj(self, graph: Graph, subject: Node, predicate: Node) -> Node | None:
-        return graph.value(subject, predicate)
+        """Return one object for ``predicate`` with deterministic multi-value selection.
+
+        Prefer a non-empty Literal chosen by language policy (``en`` > ``de`` >
+        untagged > other; longer then lexicographic ``casefold`` ties). If no
+        Literal qualifies, prefer URIRefs over blank nodes, ranking blank nodes
+        by a content signature (not the parser-local BNode label).
+        """
+        objects = list(graph.objects(subject, predicate))
+        if not objects:
+            return None
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is not None:
+            return chosen_literal
+        non_literals = [obj for obj in objects if not isinstance(obj, Literal)]
+        if not non_literals:
+            return None
+        return sorted(non_literals, key=lambda node: self._stable_node_sort_key(graph, node))[0]
+
+    def _stable_node_sort_key(
+        self,
+        graph: Graph,
+        node: Node,
+        *,
+        _depth: int = 0,
+        _visiting: frozenset[Node] | None = None,
+    ) -> tuple[int, str]:
+        """Deterministic sort key for URIRef / BNode / other non-Literals.
+
+        Blank-node labels from rdflib are parser-local and MUST NOT be used for
+        ranking. Nested blank nodes contribute a bounded content signature so
+        BNode→BNode-only structures do not all collapse to ``""``. Predicates
+        and literal objects are normalized without BNode labels and with
+        language/datatype for uniqueness.
+        """
+        if isinstance(node, URIRef):
+            return (0, str(node))
+        if isinstance(node, BNode):
+            visiting = _visiting or frozenset()
+            if node in visiting or _depth > self._STABLE_BNODE_MAX_DEPTH:
+                return (1, "")
+            next_visiting = visiting | {node}
+            parts: list[tuple[str, str]] = []
+            for predicate, obj in graph.predicate_objects(node):
+                pred_token = self._stable_term_token(predicate)
+                if pred_token is None:
+                    continue
+                if isinstance(obj, BNode):
+                    nested_sig = self._stable_node_sort_key(
+                        graph,
+                        obj,
+                        _depth=_depth + 1,
+                        _visiting=next_visiting,
+                    )[1]
+                    parts.append((pred_token, f"bnode:{nested_sig}"))
+                else:
+                    obj_token = self._stable_term_token(obj)
+                    if obj_token is not None:
+                        parts.append((pred_token, obj_token))
+            return (1, repr(tuple(sorted(parts))))
+        return (2, str(node))
+
+    @staticmethod
+    def _stable_term_token(term: Node) -> str | None:
+        """Serialize a term for signatures without parser-local BNode labels."""
+        if isinstance(term, BNode):
+            return None
+        if isinstance(term, URIRef):
+            text = str(term).strip()
+            return repr(("uri", text)) if text else None
+        if isinstance(term, Literal):
+            text = str(term).strip()
+            if not text:
+                return None
+            lang = (term.language or "").casefold()
+            datatype = str(term.datatype) if term.datatype is not None else ""
+            return repr(("lit", text, lang, datatype))
+        text = str(term).strip()
+        return text or None
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
+        """Return ``str`` of :meth:`_obj`, stripped when the chosen node is a Literal."""
         value = self._obj(graph, subject, predicate)
-        return str(value) if value is not None else None
+        if value is None:
+            return None
+        text = str(value)
+        return text.strip() if isinstance(value, Literal) else text
 
     def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
-        return [str(obj) for obj in graph.objects(subject, predicate) if obj is not None]
+        """Return trimmed strings for ``predicate``, deduped and stably sorted.
+
+        Literals and URIRefs are stringified directly. Blank nodes contribute
+        ``schema:name`` when present and are skipped when unlabelled — never
+        persist parser-local BNode labels. Dedup key is ``casefold``; among
+        casing variants the lexicographically smallest original spelling is
+        kept. Sort key is ``(casefold, original)``.
+        """
+        by_fold: dict[str, str] = {}
+        for obj in graph.objects(subject, predicate):
+            if obj is None:
+                continue
+            text = self._stable_object_text(graph, obj)
+            if not text:
+                continue
+            fold = text.casefold()
+            previous = by_fold.get(fold)
+            if previous is None or text < previous:
+                by_fold[fold] = text
+        return sorted(by_fold.values(), key=lambda value: (value.casefold(), value))
+
+    def _stable_object_text(self, graph: Graph, obj: Node) -> str | None:
+        """Stable display text for a graph object; never return a BNode label."""
+        if isinstance(obj, Literal):
+            text = str(obj).strip()
+            return text or None
+        if isinstance(obj, URIRef):
+            text = str(obj).strip()
+            return text or None
+        if isinstance(obj, BNode):
+            name_node = self._obj(graph, obj, self._schema().name)
+            if isinstance(name_node, Literal):
+                text = str(name_node).strip()
+                return text or None
+            if isinstance(name_node, URIRef):
+                text = str(name_node).strip()
+                return text or None
+            return None
+        return None
+
+    @staticmethod
+    def _lang_rank(literal: Literal) -> int:
+        lang = (literal.language or "").casefold()
+        if lang == "en" or lang.startswith("en-"):
+            return 0
+        if lang == "de" or lang.startswith("de-"):
+            return 1
+        if lang == "":
+            return 2
+        return 3
+
+    @classmethod
+    def _choose_literal(cls, literals: list[Literal]) -> Literal | None:
+        """Pick one Literal using only primitive, comparable key fields.
+
+        Policy: non-empty; language rank ``en`` > ``de`` > untagged > other; then
+        longer text; then lexicographic ``casefold`` / original text; then language
+        tag and datatype strings. Never compares ``Literal`` objects directly.
+        """
+        best: Literal | None = None
+        best_key: tuple[int, int, str, str, str, str] | None = None
+        for literal in literals:
+            text = str(literal).strip()
+            if not text:
+                continue
+            lang = (literal.language or "").casefold()
+            datatype = str(literal.datatype) if literal.datatype is not None else ""
+            key = (
+                cls._lang_rank(literal),
+                -len(text),
+                text.casefold(),
+                text,
+                lang,
+                datatype,
+            )
+            if best_key is None or key < best_key:
+                best_key = key
+                best = literal
+        return best
 
     def _is_type(self, graph: Graph, node: Node, rdf_type: Node) -> bool:
         return (node, RDF.type, rdf_type) in graph
@@ -149,14 +328,59 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return doi
         return None
 
-    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+    def _extract_all_dois(self, graph: Graph, subject: Node) -> list[str]:
+        """Collect every valid DOI from ``schema:identifier`` (deduped, sorted)."""
+        by_fold: dict[str, str] = {}
         for obj in self._schema_objects(graph, subject, "identifier"):
             doi = self._doi_from_identifier_node(graph, obj)
-            if doi:
-                return doi
+            if not doi:
+                continue
+            fold = doi.casefold()
+            previous = by_fold.get(fold)
+            if previous is None or doi < previous:
+                by_fold[fold] = doi
         if isinstance(subject, URIRef):
-            return self._normalize_doi(str(subject))
+            subject_doi = self._normalize_doi(str(subject))
+            if subject_doi:
+                fold = subject_doi.casefold()
+                previous = by_fold.get(fold)
+                if previous is None or subject_doi < previous:
+                    by_fold[fold] = subject_doi
+        return sorted(by_fold.values(), key=str.casefold)
+
+    @staticmethod
+    def _pick_canonical_doi(dois: list[str]) -> str | None:
+        if not dois:
+            return None
+        return min(dois, key=str.casefold)
+
+    def _resolve_harvest_source_identifier(
+        self,
+        source_url: str | None,
+        harvest_source_id: str | None = None,
+    ) -> str | None:
+        """Stable harvest-unit identifier from discovery (catalog id or page URL)."""
+        if harvest_source_id and harvest_source_id.strip():
+            return harvest_source_id.strip()
+        if source_url:
+            text = source_url.strip()
+            if text.startswith(("http://", "https://")):
+                return self._sanitize_identifier(text)
         return None
+
+    def _resolve_graph_url_identifier(self, graph: Graph, subject: Node) -> str | None:
+        for term in ("url", "sameAs"):
+            identifier = self._canonical_http_identifier(graph, subject, term)
+            if identifier:
+                return self._sanitize_identifier(identifier)
+
+        subject_iri = self._http_iri(subject)
+        if subject_iri:
+            return self._sanitize_identifier(subject_iri)
+        return None
+
+    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+        return self._pick_canonical_doi(self._extract_all_dois(graph, subject))
 
     def _http_iri(self, node: Node) -> str | None:
         if isinstance(node, BNode):
@@ -167,12 +391,11 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return text
         return None
 
-    def _first_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
-        for obj in self._schema_objects(graph, subject, term):
-            iri = self._http_iri(obj)
-            if iri:
-                return iri
-        return None
+    def _canonical_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
+        iris = [iri for obj in self._schema_objects(graph, subject, term) if (iri := self._http_iri(obj))]
+        if not iris:
+            return None
+        return min(iris, key=lambda iri: (iri.casefold(), iri))
 
     @classmethod
     def _sanitize_identifier(cls, raw: str) -> str:
@@ -187,25 +410,44 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         sanitized = re.sub(r"_{2,}", "_", sanitized).strip("_")
         return sanitized
 
-    def _resolve_investigation_identifier(
-        self, graph: Graph, subject: Node, source_url: str | None, doi: str | None
-    ) -> str:
-        if doi:
-            return doi
+    def _identifier_plan_from_dois(self, all_dois: list[str]) -> tuple[str | None, tuple[str, ...]]:
+        canonical_doi = self._pick_canonical_doi(all_dois)
+        if not canonical_doi:
+            return None, ()
+        return canonical_doi, tuple(doi for doi in all_dois if doi != canonical_doi)
 
-        for term in ("url", "sameAs"):
-            identifier = self._first_http_identifier(graph, subject, term)
-            if identifier:
-                return self._sanitize_identifier(identifier)
+    def _plan_investigation_identifier(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None,
+        harvest_source_id: str | None = None,
+    ) -> _IdentifierPlan:
+        all_dois = self._extract_all_dois(graph, subject)
+        publication_doi, alternate_dois = self._identifier_plan_from_dois(all_dois)
 
-        subject_iri = self._http_iri(subject)
-        if subject_iri:
-            return self._sanitize_identifier(subject_iri)
+        harvest_id = self._resolve_harvest_source_identifier(source_url, harvest_source_id)
+        if harvest_id:
+            return _IdentifierPlan(
+                investigation_id=harvest_id,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
 
-        if source_url:
-            text = source_url.strip()
-            if text.startswith(("http://", "https://")):
-                return self._sanitize_identifier(text)
+        graph_id = self._resolve_graph_url_identifier(graph, subject)
+        if graph_id:
+            return _IdentifierPlan(
+                investigation_id=graph_id,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
+
+        if publication_doi:
+            return _IdentifierPlan(
+                investigation_id=publication_doi,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
 
         raise ValueError(
             "Schema.org Dataset has no stable identifier "
@@ -216,17 +458,29 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # ARC assembly
     # ------------------------------------------------------------------
 
-    def _map_arc(self, graph: Graph, subject: Node, source_url: str | None = None) -> ARC:
-        # Extract DOI once and reuse it for:
-        # - Investigation.identifier
-        # - Publications (DOI-based)
-        # - Assay output URI fallback when the graph has no URL/@id
-        doi = self._extract_doi(graph, subject)
+    def _map_arc(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        harvest_source_id: str | None = None,
+    ) -> ARC:
+        identifier_plan = self._plan_investigation_identifier(
+            graph,
+            subject,
+            source_url,
+            harvest_source_id,
+        )
+        publication_doi = identifier_plan.publication_doi
 
-        investigation = self._map_investigation(graph, subject, source_url=source_url, doi=doi)
+        investigation = self._map_investigation(
+            graph,
+            subject,
+            identifier_plan=identifier_plan,
+        )
         study = self._map_study(graph, subject)
         investigation.AddStudy(study)
-        assay = self._map_assay(graph, subject, source_url=source_url, doi=doi)
+        assay = self._map_assay(graph, subject, source_url=source_url, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
@@ -235,12 +489,12 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         self,
         graph: Graph,
         subject: Node,
-        source_url: str | None = None,
-        doi: str | None = None,
+        *,
+        identifier_plan: _IdentifierPlan,
     ) -> ArcInvestigation:
-        doi = doi or self._extract_doi(graph, subject)
+        plan = identifier_plan
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
-        identifier = self._resolve_investigation_identifier(graph, subject, source_url, doi)
+        identifier = plan.investigation_id
 
         description = self._str(graph, subject, self._schema().description) or ""
         submission_date = (
@@ -257,10 +511,16 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
         self._add_contacts(inv, graph, subject)
-        self._add_publications(inv, graph, subject, doi)
+        self._add_publications(inv, graph, subject, plan.publication_doi)
+        self._add_alternate_identifier_comments(inv, plan.alternate_dois)
         self._add_investigation_comments(inv, graph, subject)
         self._add_ontology_sources(inv)
         return inv
+
+    @staticmethod
+    def _add_alternate_identifier_comments(inv: ArcInvestigation, alternate_dois: tuple[str, ...]) -> None:
+        for doi in alternate_dois:
+            inv.Comments.append(Comment.create("Alternate Identifier", doi))
 
     def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
@@ -284,15 +544,43 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # ------------------------------------------------------------------
 
     def _add_contacts(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        for node in graph.objects(subject, self._schema().creator):
+        creators = sorted(
+            graph.objects(subject, self._schema().creator),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in creators:
             self._append_contact(inv, graph, node, "author")
-        for node in graph.objects(subject, self._schema().author):
+
+        authors = sorted(
+            graph.objects(subject, self._schema().author),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in authors:
             if not self._contact_exists(inv, graph, node):
                 self._append_contact(inv, graph, node, "author")
-        for node in graph.objects(subject, self._schema().contributor):
+
+        contributors = sorted(
+            graph.objects(subject, self._schema().contributor),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in contributors:
             self._append_contact(inv, graph, node, "contributor")
         # Organization publishers are Investigation comments, not Person contacts.
         require_nonempty_person_given_names(inv)
+
+    def _contact_sort_key(self, graph: Graph, node: Node) -> tuple[str, str, str, tuple[int, str]]:
+        """Stable sort key: family, given, display name, then node identity without BNode labels."""
+        given, family = self._person_names(graph, node)
+        if isinstance(node, Literal):
+            display = str(node).strip()
+        else:
+            display = (self._str(graph, node, self._schema().name) or "").strip()
+        return (
+            (family or "").casefold(),
+            (given or "").casefold(),
+            display.casefold(),
+            self._stable_node_sort_key(graph, node),
+        )
 
     def _append_contact(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
         if not isinstance(node, Literal) and self._is_type(graph, node, self._schema().Organization):
@@ -304,17 +592,20 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
 
-    def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
+    def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> bool:
+        """Append Organization comment(s). Return True if a comment was emitted."""
         org_name = self._str(graph, node, self._schema().name)
         if not org_name:
-            return
+            if isinstance(node, URIRef):
+                org_name = str(node)
+            else:
+                return False
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
-        org_url = self._str(graph, node, self._schema().url) or (
-            str(node) if not isinstance(node, Literal) and str(node).startswith("http") else None
-        )
-        if org_url:
+        org_url = self._str(graph, node, self._schema().url) or (str(node) if isinstance(node, URIRef) else None)
+        if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
+        return True
 
     def _contact_exists(self, inv: ArcInvestigation, graph: Graph, node: Node) -> bool:
         given, family = self._person_names(graph, node)
@@ -420,7 +711,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             author_strs: list[str] = []
             for p in authors:
                 if p.FirstName and p.LastName:
-                    author_strs.append(f"{p.LastName}, {p.FirstName[0]}.")
+                    # Avoid "Last, F." — ARCtrl splits on commas into broken Author nodes.
+                    author_strs.append(f"{p.FirstName[0]}. {p.LastName}")
                 elif p.LastName:
                     author_strs.append(p.LastName)
                 elif p.FirstName:
@@ -460,8 +752,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         self._add_publisher_comment(inv, graph, subject)
 
         conforms_to = self._obj(graph, subject, self._schema().conformsTo)
-        if conforms_to is not None:
-            inv.Comments.append(Comment.create("Conforms To", str(conforms_to)))
+        conforms_text = self._stable_object_text(graph, conforms_to) if conforms_to is not None else None
+        if conforms_text:
+            inv.Comments.append(Comment.create("Conforms To", conforms_text))
 
         for dist_node in graph.objects(subject, self._schema().distribution):
             if isinstance(dist_node, Literal):
@@ -472,18 +765,57 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
 
     def _add_publisher_comment(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is None:
+        objects = list(graph.objects(subject, self._schema().publisher))
+        if not objects:
             return
-        if isinstance(publisher_node, Literal):
-            inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
-            return
-        if self._is_type(graph, publisher_node, self._schema().Organization):
-            self._append_organization_comment(inv, graph, publisher_node, "publisher")
-            return
-        pub_name = self._str(graph, publisher_node, self._schema().name) or str(publisher_node)
-        if pub_name:
-            inv.Comments.append(Comment.create("Publisher", pub_name))
+        # Prefer Organization / named resources over bare string literals when both exist.
+        non_literals = sorted(
+            (obj for obj in objects if not isinstance(obj, Literal)),
+            key=lambda node: self._stable_node_sort_key(graph, node),
+        )
+        for publisher_node in non_literals:
+            if self._is_type(graph, publisher_node, self._schema().Organization):
+                if self._append_organization_comment(inv, graph, publisher_node, "publisher"):
+                    return
+                continue
+            pub_name = self._str(graph, publisher_node, self._schema().name)
+            if pub_name:
+                inv.Comments.append(Comment.create("Publisher", pub_name))
+                return
+            if isinstance(publisher_node, URIRef):
+                inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
+                return
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is not None:
+            text = str(chosen_literal).strip()
+            if text:
+                inv.Comments.append(Comment.create("Publisher", text))
+
+    def _resolve_publisher_label(self, graph: Graph, subject: Node) -> str | None:
+        """Stable publisher display label for protocol/assay notes.
+
+        Prefers a named Organization/resource (or URIRef IRI) over string
+        literals when both are present — unlike :meth:`_obj`, which prefers
+        Literals and would leave ``schema:name`` lookups empty.
+        """
+        objects = list(graph.objects(subject, self._schema().publisher))
+        if not objects:
+            return None
+        non_literals = sorted(
+            (obj for obj in objects if not isinstance(obj, Literal)),
+            key=lambda node: self._stable_node_sort_key(graph, node),
+        )
+        for node in non_literals:
+            name = self._str(graph, node, self._schema().name)
+            if name:
+                return name
+            if isinstance(node, URIRef):
+                return str(node)
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is None:
+            return None
+        text = str(chosen_literal).strip()
+        return text or None
 
     # ------------------------------------------------------------------
     # Study
@@ -537,11 +869,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
         note = "Data processing and publication according to Schema.org metadata standard"
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is not None:
-            publisher_name = self._str(graph, publisher_node, self._schema().name)
-            if publisher_name:
-                note += f" | Publisher: {publisher_name}"
+        publisher_name = self._resolve_publisher_label(graph, subject)
+        if publisher_name:
+            note += f" | Publisher: {publisher_name}"
 
         table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
@@ -576,14 +906,13 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     def _resolve_assay_url(self, graph: Graph, subject: Node, source_url: str | None, doi: str | None) -> str:
         """Resolve the landing-page URL for the Measurement output URI cell.
 
-        Unlike ``_resolve_investigation_identifier``, this keeps full URLs
+        Unlike ``Investigation.identifier`` resolution, this keeps full URLs
         without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
         """
         for term in ("url", "sameAs"):
-            for obj in self._schema_objects(graph, subject, term):
-                iri = self._http_iri(obj)
-                if iri:
-                    return iri
+            iri = self._canonical_http_identifier(graph, subject, term)
+            if iri:
+                return iri
 
         subject_iri = self._http_iri(subject)
         if subject_iri:
@@ -623,9 +952,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 [CompositeCell.free_text(license_val)],
             )
 
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is not None:
-            publisher_name = self._str(graph, publisher_node, self._schema().name) or "Unknown Publisher"
+        publisher_name = self._resolve_publisher_label(graph, subject)
+        if publisher_name:
             table.AddColumn(
                 CompositeHeader.comment("Publisher"),
                 [CompositeCell.free_text(publisher_name)],

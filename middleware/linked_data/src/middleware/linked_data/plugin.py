@@ -80,7 +80,11 @@ class LinkedDataPlugin:
     ) -> HarvestedArc | RecordProcessingError | SkippedRecord:
         # Only UrlDiscoveryResult carries a real fetched/landing URL; inline
         # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
-        source_url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
+        source_url: str | None = None
+        harvest_source_id: str | None = None
+        if isinstance(discovery_result, UrlDiscoveryResult):
+            source_url = discovery_result.url
+            harvest_source_id = discovery_result.harvest_source_id
         try:
             dataset = self._dataset_cls.from_discovery_result(
                 discovery_result,
@@ -100,7 +104,12 @@ class LinkedDataPlugin:
 
         try:
             graph = await dataset.to_graph()
-            harvested = await asyncio.to_thread(self._mapper.map_graph, graph, source_url=dataset.identifier)
+            harvested = await asyncio.to_thread(
+                self._mapper.map_graph,
+                graph,
+                source_url=source_url,
+                harvest_source_id=harvest_source_id,
+            )
             return replace(harvested, source_url=source_url)
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(
