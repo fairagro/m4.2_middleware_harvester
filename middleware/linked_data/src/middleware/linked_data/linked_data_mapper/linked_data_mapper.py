@@ -50,9 +50,14 @@ class LinkedDataMapper(ABC):
     ) -> HarvestedArc:
         """Return a harvested ARC (JSON + composition counts) for the given graph.
 
-        ``source_url`` is the discovered page URL used for fetch context and as a
-        stable identifier fallback when the graph has no DOI or http(s) identifier.
-        ``harvest_source_id`` is an optional RDI-native catalog id supplied by the
-        sitemap/discovery layer (e.g. MyCoRe Solr ``id``).
+        ``harvest_source_id`` is an optional RDI-native catalog id from the
+        sitemap/discovery layer (e.g. MyCoRe Solr ``id``). When supplied, Schema.org
+        mappers use it as the primary harvest-stable ``Investigation.identifier``,
+        even when the graph contains DOIs.
+
+        ``source_url`` is the discovered landing/page URL. When no
+        ``harvest_source_id`` is supplied, Schema.org mappers may use a sanitized
+        ``source_url`` as the primary harvest-stable identifier before graph URL or
+        DOI fallbacks.
         """
         raise NotImplementedError
