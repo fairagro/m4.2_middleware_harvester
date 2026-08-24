@@ -11,7 +11,7 @@ Publication author strings built from those Contacts MUST use the form `F. Last`
 #### Scenario: Same keywords, different RDF object order
 
 - **WHEN** a Schema.org Dataset has the same keyword literal set presented in two different object orders
-- **THEN** both mappings MUST produce the same Keywords comment text (and the same joined keyword protocol value)
+- **THEN** both mappings MUST produce the same Keywords comment text, the same joined keyword protocol value, and the same derived Keywords Comment / ParameterValue `@id`s
 
 #### Scenario: Multi-language description with empty literal
 

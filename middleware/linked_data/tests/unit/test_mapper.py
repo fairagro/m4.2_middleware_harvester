@@ -391,6 +391,17 @@ def _keywords_comment_text(arc_json: str) -> str | None:
     return None
 
 
+def _keywords_derived_ids(arc_json: str) -> list[str]:
+    """Return sorted @ids of Keywords Comment / ParameterValue nodes (hash-relevant)."""
+    payload = json.loads(arc_json)
+    ids: list[str] = []
+    for item in payload.get("@graph", []):
+        node_id = str(item.get("@id") or "")
+        if "Keywords" in node_id and node_id.startswith(("#LDComment_Keywords", "#ParameterValue_Keywords")):
+            ids.append(node_id)
+    return sorted(ids)
+
+
 def _investigation_description(arc_json: str) -> str:
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
@@ -447,27 +458,35 @@ def test_keywords_order_invariant() -> None:
             graph.add((dataset, schema.keywords, Literal(keyword)))
         return graph
 
-    first = _keywords_comment_text(GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"])).arc_json)
-    second = _keywords_comment_text(GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"])).arc_json)
-    assert first == second == "alpha, Beta, zeta"
+    first = GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"])).arc_json
+    assert _keywords_comment_text(first) == _keywords_comment_text(second) == "alpha, Beta, zeta"
+    assert _keywords_derived_ids(first) == _keywords_derived_ids(second)
+    assert _keywords_derived_ids(first), "expected Keywords Comment and/or ParameterValue @ids"
 
 
 def test_description_prefers_en_over_de_and_skips_empty() -> None:
     schema = Namespace("https://schema.org/")
-    graph = Graph()
-    dataset = URIRef("https://example.org/desc")
-    graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Desc Dataset")))
-    graph.add((dataset, schema.identifier, Literal("10.9/desc")))
-    graph.add((dataset, schema.description, Literal("")))
-    graph.add((dataset, schema.description, Literal("Deutsche Beschreibung", lang="de")))
-    graph.add((dataset, schema.description, Literal("English description", lang="en")))
 
-    first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
-    assert "English description" in first
-    assert _investigation_description(first) == _investigation_description(second)
-    assert "English description" in _investigation_description(first)
+    def build(desc_order: list[Literal]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/desc")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Desc Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/desc")))
+        for literal in desc_order:
+            graph.add((dataset, schema.description, literal))
+        return graph
+
+    literals_a = [
+        Literal(""),
+        Literal("Deutsche Beschreibung", lang="de"),
+        Literal("English description", lang="en"),
+    ]
+    literals_b = list(reversed(literals_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(literals_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(literals_b)).arc_json
+    assert _investigation_description(first) == _investigation_description(second) == "English description"
     assert "Deutsche" not in _investigation_description(first)
 
 
@@ -526,6 +545,7 @@ def test_double_map_openagrar_like_fixture_is_stable() -> None:
     first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
     second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
     assert _keywords_comment_text(first) == _keywords_comment_text(second) == "intercrop, legume, pollinators"
+    assert _keywords_derived_ids(first) == _keywords_derived_ids(second)
     assert _investigation_description(first) == _investigation_description(second) == "Full English abstract"
     assert _contact_name_pairs(first) == _contact_name_pairs(second)
     assert _publication_author_node_id(first) == _publication_author_node_id(second)
