@@ -647,6 +647,22 @@ def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
     assert _publisher_comment_text(first) == _publisher_comment_text(second) == "Zzz Org"
 
 
+def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
+    """Same lexical value, different language tags must not collide in signatures."""
+    schema = Namespace("https://schema.org/")
+    mapper = GeneralSchemaOrgMapper()
+    graph = Graph()
+    left = BNode()
+    right = BNode()
+    graph.add((left, schema.name, Literal("Same", lang="en")))
+    graph.add((right, schema.name, Literal("Same", lang="de")))
+    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
+    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    assert left_key != right_key
+    assert "lang=en" in left_key[1]
+    assert "lang=de" in right_key[1]
+
+
 def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
     schema = Namespace("https://schema.org/")
     graph = Graph()

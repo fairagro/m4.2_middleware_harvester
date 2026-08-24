@@ -117,8 +117,10 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         """Deterministic sort key for URIRef / BNode / other non-Literals.
 
         Blank-node labels from rdflib are parser-local and MUST NOT be used for
-        ranking. Nested blank nodes contribute a bounded one-hop content
-        signature so BNode→BNode-only structures do not all collapse to ``""``.
+        ranking. Nested blank nodes contribute a bounded content signature so
+        BNode→BNode-only structures do not all collapse to ``""``. Predicates
+        and literal objects are normalized without BNode labels and with
+        language/datatype for uniqueness.
         """
         if isinstance(node, URIRef):
             return (0, str(node))
@@ -129,6 +131,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             next_visiting = visiting | {node}
             parts: list[str] = []
             for predicate, obj in graph.predicate_objects(node):
+                pred_token = self._stable_term_token(predicate)
+                if pred_token is None:
+                    continue
                 if isinstance(obj, BNode):
                     nested_sig = self._stable_node_sort_key(
                         graph,
@@ -136,13 +141,31 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                         _depth=_depth + 1,
                         _visiting=next_visiting,
                     )[1]
-                    parts.append(f"{predicate!s}->[{nested_sig}]")
+                    parts.append(f"{pred_token}->[{nested_sig}]")
                 else:
-                    text = str(obj).strip()
-                    if text:
-                        parts.append(f"{predicate!s}={text}")
+                    obj_token = self._stable_term_token(obj)
+                    if obj_token is not None:
+                        parts.append(f"{pred_token}={obj_token}")
             return (1, "|".join(sorted(parts)))
         return (2, str(node))
+
+    @staticmethod
+    def _stable_term_token(term: Node) -> str | None:
+        """Serialize a term for signatures without parser-local BNode labels."""
+        if isinstance(term, BNode):
+            return None
+        if isinstance(term, URIRef):
+            text = str(term).strip()
+            return text or None
+        if isinstance(term, Literal):
+            text = str(term).strip()
+            if not text:
+                return None
+            lang = (term.language or "").casefold()
+            datatype = str(term.datatype) if term.datatype is not None else ""
+            return f"{text}|lang={lang}|dt={datatype}"
+        text = str(term).strip()
+        return text or None
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
         """Return ``str`` of :meth:`_obj`, stripped when the chosen node is a Literal."""
