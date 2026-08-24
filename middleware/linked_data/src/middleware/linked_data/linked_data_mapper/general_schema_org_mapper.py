@@ -664,20 +664,56 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
 
     def _add_publisher_comment(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is None:
+        objects = list(graph.objects(subject, self._schema().publisher))
+        if not objects:
             return
-        if isinstance(publisher_node, Literal):
-            inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
-            return
-        if self._is_type(graph, publisher_node, self._schema().Organization):
-            self._append_organization_comment(inv, graph, publisher_node, "publisher")
-            return
-        pub_name = self._str(graph, publisher_node, self._schema().name)
-        if pub_name:
-            inv.Comments.append(Comment.create("Publisher", pub_name))
-        elif isinstance(publisher_node, URIRef):
-            inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
+        # Prefer Organization / named resources over bare string literals when both exist.
+        non_literals = sorted(
+            (obj for obj in objects if not isinstance(obj, Literal)),
+            key=lambda node: self._stable_node_sort_key(graph, node),
+        )
+        for publisher_node in non_literals:
+            if self._is_type(graph, publisher_node, self._schema().Organization):
+                self._append_organization_comment(inv, graph, publisher_node, "publisher")
+                return
+            pub_name = self._str(graph, publisher_node, self._schema().name)
+            if pub_name:
+                inv.Comments.append(Comment.create("Publisher", pub_name))
+                return
+            if isinstance(publisher_node, URIRef):
+                inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
+                return
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is not None:
+            text = str(chosen_literal).strip()
+            if text:
+                inv.Comments.append(Comment.create("Publisher", text))
+
+    def _resolve_publisher_label(self, graph: Graph, subject: Node) -> str | None:
+        """Stable publisher display label for protocol/assay notes.
+
+        Prefers a named Organization/resource (or URIRef IRI) over string
+        literals when both are present — unlike :meth:`_obj`, which prefers
+        Literals and would leave ``schema:name`` lookups empty.
+        """
+        objects = list(graph.objects(subject, self._schema().publisher))
+        if not objects:
+            return None
+        non_literals = sorted(
+            (obj for obj in objects if not isinstance(obj, Literal)),
+            key=lambda node: self._stable_node_sort_key(graph, node),
+        )
+        for node in non_literals:
+            name = self._str(graph, node, self._schema().name)
+            if name:
+                return name
+            if isinstance(node, URIRef):
+                return str(node)
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is None:
+            return None
+        text = str(chosen_literal).strip()
+        return text or None
 
     # ------------------------------------------------------------------
     # Study
@@ -731,11 +767,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
         note = "Data processing and publication according to Schema.org metadata standard"
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is not None:
-            publisher_name = self._str(graph, publisher_node, self._schema().name)
-            if publisher_name:
-                note += f" | Publisher: {publisher_name}"
+        publisher_name = self._resolve_publisher_label(graph, subject)
+        if publisher_name:
+            note += f" | Publisher: {publisher_name}"
 
         table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
@@ -817,9 +851,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 [CompositeCell.free_text(license_val)],
             )
 
-        publisher_node = self._obj(graph, subject, self._schema().publisher)
-        if publisher_node is not None:
-            publisher_name = self._str(graph, publisher_node, self._schema().name) or "Unknown Publisher"
+        publisher_name = self._resolve_publisher_label(graph, subject)
+        if publisher_name:
             table.AddColumn(
                 CompositeHeader.comment("Publisher"),
                 [CompositeCell.free_text(publisher_name)],

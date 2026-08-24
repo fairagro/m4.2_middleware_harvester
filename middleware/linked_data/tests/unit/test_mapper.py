@@ -725,6 +725,41 @@ def test_publisher_unlabelled_bnode_without_name_is_skipped() -> None:
     assert not re.search(r"#LDComment_Publisher_N[0-9a-fA-F]{32}", arc_json)
 
 
+def test_publisher_prefers_organization_name_over_literal_for_processing_note() -> None:
+    """Literal + Organization: tables/notes must use the Organization name, not skip via _obj."""
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-both")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Dual Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-both")))
+    graph.add((dataset, schema.publisher, Literal("string-publisher")))
+    org = URIRef("https://example.org/org/zenodo")
+    graph.add((dataset, schema.publisher, org))
+    graph.add((org, RDF.type, schema.Organization))
+    graph.add((org, schema.name, Literal("Zenodo")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _publisher_comment_text(arc_json) == "Zenodo"
+    assert "Publisher: Zenodo" in arc_json
+    assert "Publisher: string-publisher" not in arc_json
+    assert "Unknown Publisher" not in arc_json
+
+
+def test_literal_only_publisher_enriches_processing_note() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-lit")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Literal Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-lit")))
+    graph.add((dataset, schema.publisher, Literal("Literal Press")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _publisher_comment_text(arc_json) == "Literal Press"
+    assert "Publisher: Literal Press" in arc_json
+
+
 def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     schema = Namespace("https://schema.org/")
 
