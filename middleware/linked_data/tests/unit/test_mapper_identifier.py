@@ -183,6 +183,25 @@ def test_multiple_schema_urls_with_casefold_ties_are_stable() -> None:
     assert first == second == "Example_org_Page"
 
 
+def test_assay_measurement_uri_stable_with_multiple_schema_urls() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(urls: list[str]) -> Graph:
+        graph = Graph()
+        dataset = BNode()
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Multi URL Assay Dataset")))
+        for url in urls:
+            graph.add((dataset, schema.url, Literal(url)))
+        return graph
+
+    first = GeneralSchemaOrgMapper().map_graph(build(["https://example.org/zeta", "https://example.org/alpha"])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["https://example.org/alpha", "https://example.org/zeta"])).arc_json
+    assert '"@id":"URI=https://example.org/alpha"' in first
+    assert '"@id":"URI=https://example.org/alpha"' in second
+    assert root_identifier(first) == root_identifier(second) == "example_org_alpha"
+
+
 def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")

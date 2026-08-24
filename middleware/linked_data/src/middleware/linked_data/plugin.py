@@ -107,7 +107,7 @@ class LinkedDataPlugin:
             harvested = await asyncio.to_thread(
                 self._mapper.map_graph,
                 graph,
-                source_url=dataset.identifier,
+                source_url=source_url,
                 harvest_source_id=harvest_source_id,
             )
             return replace(harvested, source_url=source_url)

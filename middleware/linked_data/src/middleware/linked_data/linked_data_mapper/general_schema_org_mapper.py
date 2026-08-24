@@ -910,10 +910,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
         """
         for term in ("url", "sameAs"):
-            for obj in self._schema_objects(graph, subject, term):
-                iri = self._http_iri(obj)
-                if iri:
-                    return iri
+            iri = self._canonical_http_identifier(graph, subject, term)
+            if iri:
+                return iri
 
         subject_iri = self._http_iri(subject)
         if subject_iri:
