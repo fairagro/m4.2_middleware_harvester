@@ -128,9 +128,13 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
     mock_mapper = MagicMock()
     mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:graph")
 
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemapWithCatalogId:
+        del client
+        return FakeSitemapWithCatalogId()
+
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
-        staticmethod(lambda _config, client=None: FakeSitemapWithCatalogId()),
+        staticmethod(fake_create_sitemap),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: FakeDataset})
     monkeypatch.setattr(
