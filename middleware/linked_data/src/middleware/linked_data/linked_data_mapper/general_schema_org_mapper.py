@@ -493,18 +493,20 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
 
-    def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
+    def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> bool:
+        """Append Organization comment(s). Return True if a comment was emitted."""
         org_name = self._str(graph, node, self._schema().name)
         if not org_name:
             if isinstance(node, URIRef):
                 org_name = str(node)
             else:
-                return
+                return False
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
         org_url = self._str(graph, node, self._schema().url) or (str(node) if isinstance(node, URIRef) else None)
         if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
+        return True
 
     def _contact_exists(self, inv: ArcInvestigation, graph: Graph, node: Node) -> bool:
         given, family = self._person_names(graph, node)
@@ -674,8 +676,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
         for publisher_node in non_literals:
             if self._is_type(graph, publisher_node, self._schema().Organization):
-                self._append_organization_comment(inv, graph, publisher_node, "publisher")
-                return
+                if self._append_organization_comment(inv, graph, publisher_node, "publisher"):
+                    return
+                continue
             pub_name = self._str(graph, publisher_node, self._schema().name)
             if pub_name:
                 inv.Comments.append(Comment.create("Publisher", pub_name))

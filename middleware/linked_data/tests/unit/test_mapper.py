@@ -760,6 +760,23 @@ def test_literal_only_publisher_enriches_processing_note() -> None:
     assert "Publisher: Literal Press" in arc_json
 
 
+def test_publisher_falls_back_to_literal_when_organization_bnode_has_no_name() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-org-blank-lit")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Org Blank Plus Literal Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-org-blank-lit")))
+    blank_org = BNode()
+    graph.add((dataset, schema.publisher, blank_org))
+    graph.add((blank_org, RDF.type, schema.Organization))
+    graph.add((dataset, schema.publisher, Literal("Fallback Press")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _publisher_comment_text(arc_json) == "Fallback Press"
+    assert "Publisher: Fallback Press" in arc_json
+
+
 def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     schema = Namespace("https://schema.org/")
 
