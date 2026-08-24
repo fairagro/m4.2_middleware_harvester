@@ -443,12 +443,14 @@ def _contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
 
 
 def _publication_author_node_id(arc_json: str) -> str | None:
+    """Return a stable #Author_* @id (lexicographically smallest; @graph order is undefined)."""
     payload = json.loads(arc_json)
-    for item in payload.get("@graph", []):
-        person_id = str(item.get("@id") or "")
-        if person_id.startswith("#Author_"):
-            return person_id
-    return None
+    author_ids = [
+        person_id
+        for item in payload.get("@graph", [])
+        if (person_id := str(item.get("@id") or "")).startswith("#Author_")
+    ]
+    return min(author_ids) if author_ids else None
 
 
 def _assert_stable_author_node_id(author_id: str | None, expected_authors: str) -> None:
