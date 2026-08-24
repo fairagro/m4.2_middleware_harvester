@@ -48,6 +48,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
     _DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
+    # Bound nested BNode walks in sort keys (cycle-safe; never uses BNode labels).
+    _STABLE_BNODE_MAX_DEPTH = 2
 
     def __init__(self) -> None:
         """Initialize mapper state for the active Schema.org namespace."""
@@ -104,23 +106,42 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             return None
         return sorted(non_literals, key=lambda node: self._stable_node_sort_key(graph, node))[0]
 
-    def _stable_node_sort_key(self, graph: Graph, node: Node) -> tuple[int, str]:
+    def _stable_node_sort_key(
+        self,
+        graph: Graph,
+        node: Node,
+        *,
+        _depth: int = 0,
+        _visiting: frozenset[Node] | None = None,
+    ) -> tuple[int, str]:
         """Deterministic sort key for URIRef / BNode / other non-Literals.
 
         Blank-node labels from rdflib are parser-local and MUST NOT be used for
-        ranking when multiple blank nodes compete.
+        ranking. Nested blank nodes contribute a bounded one-hop content
+        signature so BNode→BNode-only structures do not all collapse to ``""``.
         """
         if isinstance(node, URIRef):
             return (0, str(node))
         if isinstance(node, BNode):
-            signature = "|".join(
-                sorted(
-                    f"{predicate!s}={str(obj).strip()}"
-                    for predicate, obj in graph.predicate_objects(node)
-                    if not isinstance(obj, BNode) and str(obj).strip()
-                )
-            )
-            return (1, signature)
+            visiting = _visiting or frozenset()
+            if node in visiting or _depth > self._STABLE_BNODE_MAX_DEPTH:
+                return (1, "")
+            next_visiting = visiting | {node}
+            parts: list[str] = []
+            for predicate, obj in graph.predicate_objects(node):
+                if isinstance(obj, BNode):
+                    nested_sig = self._stable_node_sort_key(
+                        graph,
+                        obj,
+                        _depth=_depth + 1,
+                        _visiting=next_visiting,
+                    )[1]
+                    parts.append(f"{predicate!s}->[{nested_sig}]")
+                else:
+                    text = str(obj).strip()
+                    if text:
+                        parts.append(f"{predicate!s}={text}")
+            return (1, "|".join(sorted(parts)))
         return (2, str(node))
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:

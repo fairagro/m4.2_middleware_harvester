@@ -612,6 +612,35 @@ def test_obj_blank_publisher_choice_stable_across_fresh_bnode_labels() -> None:
     assert _publisher_comment_text(first) == _publisher_comment_text(second) == "Alpha Org"
 
 
+def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
+    """BNode→BNode edges must affect selection when direct literals would rank opposite."""
+    schema = Namespace("https://schema.org/")
+
+    def build(entries: list[tuple[str, str]]) -> Graph:
+        # entries: (addressLocality, org name)
+        graph = Graph()
+        dataset = URIRef("https://example.org/pub-nested")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Nested BNode Publisher Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/pub-nested")))
+        for city, org_name in entries:
+            publisher = BNode()
+            address = BNode()
+            graph.add((dataset, schema.publisher, publisher))
+            graph.add((publisher, RDF.type, schema.Organization))
+            graph.add((publisher, schema.name, Literal(org_name)))
+            graph.add((publisher, schema.address, address))
+            graph.add((address, schema.addressLocality, Literal(city)))
+        return graph
+
+    # Direct name alone would prefer "Aaa Org"; nested locality prefers Amsterdam → "Zzz Org".
+    entries_a = [("Zurich", "Aaa Org"), ("Amsterdam", "Zzz Org")]
+    entries_b = list(reversed(entries_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(entries_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(entries_b)).arc_json
+    assert _publisher_comment_text(first) == _publisher_comment_text(second) == "Zzz Org"
+
+
 def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     schema = Namespace("https://schema.org/")
 
