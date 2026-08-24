@@ -195,8 +195,12 @@ def test_assay_measurement_uri_stable_with_multiple_schema_urls() -> None:
             graph.add((dataset, schema.url, Literal(url)))
         return graph
 
-    first = GeneralSchemaOrgMapper().map_graph(build(["https://example.org/zeta", "https://example.org/alpha"])).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(["https://example.org/alpha", "https://example.org/zeta"])).arc_json
+    first = (
+        GeneralSchemaOrgMapper().map_graph(build(["https://example.org/zeta", "https://example.org/alpha"])).arc_json
+    )
+    second = (
+        GeneralSchemaOrgMapper().map_graph(build(["https://example.org/alpha", "https://example.org/zeta"])).arc_json
+    )
     assert '"@id":"URI=https://example.org/alpha"' in first
     assert '"@id":"URI=https://example.org/alpha"' in second
     assert root_identifier(first) == root_identifier(second) == "example_org_alpha"
