@@ -661,6 +661,12 @@ def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
 
     unlabelled = BNode()
     graph.add((dataset, schema.keywords, unlabelled))
+
+    nested_name = BNode()
+    nested_term = BNode()
+    graph.add((dataset, schema.keywords, nested_term))
+    graph.add((nested_term, schema.name, nested_name))  # name is itself a BNode → skip
+
     graph.add((dataset, schema.keywords, Literal("literal-kw")))
 
     arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json

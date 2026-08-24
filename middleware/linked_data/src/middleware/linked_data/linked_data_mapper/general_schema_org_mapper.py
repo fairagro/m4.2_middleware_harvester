@@ -183,7 +183,14 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             text = str(obj).strip()
             return text or None
         if isinstance(obj, BNode):
-            return self._str(graph, obj, self._schema().name)
+            name_node = self._obj(graph, obj, self._schema().name)
+            if isinstance(name_node, Literal):
+                text = str(name_node).strip()
+                return text or None
+            if isinstance(name_node, URIRef):
+                text = str(name_node).strip()
+                return text or None
+            return None
         return None
 
     @staticmethod
