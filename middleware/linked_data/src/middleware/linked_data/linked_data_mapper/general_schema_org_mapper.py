@@ -101,7 +101,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         non_literals = [obj for obj in objects if not isinstance(obj, Literal)]
         if not non_literals:
             return None
-        return sorted(non_literals, key=lambda node: str(node))[0]
+        return sorted(non_literals, key=str)[0]
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
         """Return ``str`` of :meth:`_obj`, stripped when the chosen node is a Literal."""
