@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
-from arctrl.py.fable_modules.fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
