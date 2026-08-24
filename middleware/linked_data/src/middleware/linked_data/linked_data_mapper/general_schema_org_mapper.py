@@ -86,14 +86,73 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         return self.SCHEMA_URIS[0], next(iter(graph.subjects()), None)
 
     def _obj(self, graph: Graph, subject: Node, predicate: Node) -> Node | None:
-        return graph.value(subject, predicate)
+        """Return one object for ``predicate`` with deterministic multi-value selection.
+
+        Prefer a non-empty Literal chosen by language policy (``en`` > ``de`` >
+        untagged > other; longer then lexicographic ``casefold`` ties). If no
+        Literal qualifies, return the lexicographically smallest non-Literal node.
+        """
+        objects = list(graph.objects(subject, predicate))
+        if not objects:
+            return None
+        chosen_literal = self._choose_literal([obj for obj in objects if isinstance(obj, Literal)])
+        if chosen_literal is not None:
+            return chosen_literal
+        non_literals = [obj for obj in objects if not isinstance(obj, Literal)]
+        if not non_literals:
+            return None
+        return sorted(non_literals, key=lambda node: str(node))[0]
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
+        """Return ``str`` of :meth:`_obj`, stripped when the chosen node is a Literal."""
         value = self._obj(graph, subject, predicate)
-        return str(value) if value is not None else None
+        if value is None:
+            return None
+        text = str(value)
+        return text.strip() if isinstance(value, Literal) else text
 
     def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
-        return [str(obj) for obj in graph.objects(subject, predicate) if obj is not None]
+        """Return trimmed strings for ``predicate``, deduped and stably sorted.
+
+        Dedup key is ``casefold``; among casing variants the lexicographically
+        smallest original spelling is kept. Sort key is ``(casefold, original)``.
+        """
+        by_fold: dict[str, str] = {}
+        for obj in graph.objects(subject, predicate):
+            if obj is None:
+                continue
+            text = str(obj).strip()
+            if not text:
+                continue
+            fold = text.casefold()
+            previous = by_fold.get(fold)
+            if previous is None or text < previous:
+                by_fold[fold] = text
+        return sorted(by_fold.values(), key=lambda value: (value.casefold(), value))
+
+    @staticmethod
+    def _lang_rank(literal: Literal) -> int:
+        lang = (literal.language or "").casefold()
+        if lang == "en" or lang.startswith("en-"):
+            return 0
+        if lang == "de" or lang.startswith("de-"):
+            return 1
+        if lang == "":
+            return 2
+        return 3
+
+    @classmethod
+    def _choose_literal(cls, literals: list[Literal]) -> Literal | None:
+        ranked: list[tuple[int, int, str, str, Literal]] = []
+        for literal in literals:
+            text = str(literal).strip()
+            if not text:
+                continue
+            ranked.append((cls._lang_rank(literal), -len(text), text.casefold(), text, literal))
+        if not ranked:
+            return None
+        ranked.sort()
+        return ranked[0][-1]
 
     def _is_type(self, graph: Graph, node: Node, rdf_type: Node) -> bool:
         return (node, RDF.type, rdf_type) in graph
@@ -284,15 +343,43 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # ------------------------------------------------------------------
 
     def _add_contacts(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        for node in graph.objects(subject, self._schema().creator):
+        creators = sorted(
+            graph.objects(subject, self._schema().creator),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in creators:
             self._append_contact(inv, graph, node, "author")
-        for node in graph.objects(subject, self._schema().author):
+
+        authors = sorted(
+            graph.objects(subject, self._schema().author),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in authors:
             if not self._contact_exists(inv, graph, node):
                 self._append_contact(inv, graph, node, "author")
-        for node in graph.objects(subject, self._schema().contributor):
+
+        contributors = sorted(
+            graph.objects(subject, self._schema().contributor),
+            key=lambda node: self._contact_sort_key(graph, node),
+        )
+        for node in contributors:
             self._append_contact(inv, graph, node, "contributor")
         # Organization publishers are Investigation comments, not Person contacts.
         require_nonempty_person_given_names(inv)
+
+    def _contact_sort_key(self, graph: Graph, node: Node) -> tuple[str, str, str, str]:
+        """Stable sort key: family, given, display name, node identity."""
+        given, family = self._person_names(graph, node)
+        if isinstance(node, Literal):
+            display = str(node).strip()
+        else:
+            display = (self._str(graph, node, self._schema().name) or "").strip()
+        return (
+            (family or "").casefold(),
+            (given or "").casefold(),
+            display.casefold(),
+            str(node),
+        )
 
     def _append_contact(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
         if not isinstance(node, Literal) and self._is_type(graph, node, self._schema().Organization):
@@ -420,7 +507,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             author_strs: list[str] = []
             for p in authors:
                 if p.FirstName and p.LastName:
-                    author_strs.append(f"{p.LastName}, {p.FirstName[0]}.")
+                    # Avoid "Last, F." — ARCtrl splits on commas into broken Author nodes.
+                    author_strs.append(f"{p.FirstName[0]}. {p.LastName}")
                 elif p.LastName:
                     author_strs.append(p.LastName)
                 elif p.FirstName:

@@ -40,3 +40,9 @@ schema.org, `RegalMapper` for Regal).
    slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes the
    discovered page URL as `map_graph(..., source_url=...)` and the mapper sanitizes it
    into an `arctrl`-compatible identifier.
+
+7. **Schema.org multi-value fields and contacts are harvest-deterministic**
+   — Keywords are trimmed/deduped/sorted (`casefold`). Multi-literal `_str` prefers
+   `en` > `de` > untagged > other (empty dropped; longer then lex tie-break). Creator/
+   author/contributor nodes are sorted before Contacts; Publication authors use
+   `F. Last` (no comma) so ARCtrl `#Author_*` nodes stop oscillating with RDF order.

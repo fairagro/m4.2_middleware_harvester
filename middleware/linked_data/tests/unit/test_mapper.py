@@ -376,3 +376,156 @@ def test_named_property_value_with_doi_is_extracted() -> None:
 
     identifier = _root_identifier(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
     assert identifier == "10.1234/named-pv"
+
+
+def _keywords_comment_text(arc_json: str) -> str | None:
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        name = str(item.get("name") or "")
+        if name == "Keywords":
+            return str(item.get("text") or "")
+    return None
+
+
+def _investigation_description(arc_json: str) -> str:
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Investigation" in type_list or "Dataset" in type_list:
+            desc = item.get("description")
+            if desc is not None:
+                return str(desc)
+    # Fallback: search description fields
+    for item in payload.get("@graph", []):
+        if "description" in item and item.get("@type") not in (None, "Comment"):
+            return str(item["description"])
+    return ""
+
+
+def _contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
+    payload = json.loads(arc_json)
+    pairs: list[tuple[str, str]] = []
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Person" not in type_list:
+            continue
+        person_id = str(item.get("@id") or "")
+        if person_id.startswith("#Author_"):
+            continue
+        given = str(item.get("givenName") or "")
+        family = str(item.get("familyName") or "")
+        if given or family:
+            pairs.append((given, family))
+    return pairs
+
+
+def _publication_author_node_id(arc_json: str) -> str | None:
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        person_id = str(item.get("@id") or "")
+        if person_id.startswith("#Author_"):
+            return person_id
+    return None
+
+
+def test_keywords_order_invariant() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(order: list[str]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/kw")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("KW Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/kw")))
+        for keyword in order:
+            graph.add((dataset, schema.keywords, Literal(keyword)))
+        return graph
+
+    first = _keywords_comment_text(GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"])).arc_json)
+    second = _keywords_comment_text(GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"])).arc_json)
+    assert first == second == "alpha, Beta, zeta"
+
+
+def test_description_prefers_en_over_de_and_skips_empty() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/desc")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Desc Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/desc")))
+    graph.add((dataset, schema.description, Literal("")))
+    graph.add((dataset, schema.description, Literal("Deutsche Beschreibung", lang="de")))
+    graph.add((dataset, schema.description, Literal("English description", lang="en")))
+
+    first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert "English description" in first
+    assert _investigation_description(first) == _investigation_description(second)
+    assert "English description" in _investigation_description(first)
+    assert "Deutsche" not in _investigation_description(first)
+
+
+def test_contacts_and_publication_authors_order_invariant() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(creator_order: list[tuple[str, str, str]]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/people")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("People Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/people")))
+        for uri, given, family in creator_order:
+            person = URIRef(uri)
+            graph.add((dataset, schema.creator, person))
+            graph.add((person, RDF.type, schema.Person))
+            graph.add((person, schema.givenName, Literal(given)))
+            graph.add((person, schema.familyName, Literal(family)))
+        return graph
+
+    order_a = [
+        ("https://example.org/p/2", "Zed", "Zebra"),
+        ("https://example.org/p/1", "Ada", "Lovelace"),
+    ]
+    order_b = list(reversed(order_a))
+    first = GeneralSchemaOrgMapper().map_graph(build(order_a)).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(order_b)).arc_json
+    assert _contact_name_pairs(first) == _contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
+    assert _publication_author_node_id(first) == _publication_author_node_id(second)
+    assert _publication_author_node_id(first) == "#Author_A. Lovelace; Z. Zebra"
+    assert "," not in (_publication_author_node_id(first) or "")
+
+
+def test_double_map_openagrar_like_fixture_is_stable() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Flower visitors")))
+    graph.add((dataset, schema.identifier, Literal("10.3220/253-2025-42")))
+    graph.add((dataset, schema.description, Literal("", lang="en")))
+    graph.add((dataset, schema.description, Literal("Kurztext", lang="de")))
+    graph.add((dataset, schema.description, Literal("Full English abstract", lang="en")))
+    for keyword in ("pollinators", "legume", "intercrop"):
+        graph.add((dataset, schema.keywords, Literal(keyword)))
+    for uri, given, family in (
+        ("https://example.org/a", "Jonas", "Niklewski"),
+        ("https://example.org/b", "Anna", "Meier"),
+    ):
+        person = URIRef(uri)
+        graph.add((dataset, schema.creator, person))
+        graph.add((person, RDF.type, schema.Person))
+        graph.add((person, schema.givenName, Literal(given)))
+        graph.add((person, schema.familyName, Literal(family)))
+
+    first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _keywords_comment_text(first) == _keywords_comment_text(second) == "intercrop, legume, pollinators"
+    assert _investigation_description(first) == _investigation_description(second) == "Full English abstract"
+    assert _contact_name_pairs(first) == _contact_name_pairs(second)
+    assert _publication_author_node_id(first) == _publication_author_node_id(second)
