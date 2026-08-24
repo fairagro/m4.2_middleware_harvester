@@ -155,14 +155,17 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
         """Return trimmed strings for ``predicate``, deduped and stably sorted.
 
-        Dedup key is ``casefold``; among casing variants the lexicographically
-        smallest original spelling is kept. Sort key is ``(casefold, original)``.
+        Literals and URIRefs are stringified directly. Blank nodes contribute
+        ``schema:name`` when present and are skipped when unlabelled — never
+        persist parser-local BNode labels. Dedup key is ``casefold``; among
+        casing variants the lexicographically smallest original spelling is
+        kept. Sort key is ``(casefold, original)``.
         """
         by_fold: dict[str, str] = {}
         for obj in graph.objects(subject, predicate):
             if obj is None:
                 continue
-            text = str(obj).strip()
+            text = self._stable_object_text(graph, obj)
             if not text:
                 continue
             fold = text.casefold()
@@ -170,6 +173,18 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             if previous is None or text < previous:
                 by_fold[fold] = text
         return sorted(by_fold.values(), key=lambda value: (value.casefold(), value))
+
+    def _stable_object_text(self, graph: Graph, obj: Node) -> str | None:
+        """Stable display text for a graph object; never return a BNode label."""
+        if isinstance(obj, Literal):
+            text = str(obj).strip()
+            return text or None
+        if isinstance(obj, URIRef):
+            text = str(obj).strip()
+            return text or None
+        if isinstance(obj, BNode):
+            return self._str(graph, obj, self._schema().name)
+        return None
 
     @staticmethod
     def _lang_rank(literal: Literal) -> int:
@@ -451,11 +466,14 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     def _append_organization_comment(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
         org_name = self._str(graph, node, self._schema().name)
         if not org_name:
-            return
+            if isinstance(node, URIRef):
+                org_name = str(node)
+            else:
+                return
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
         org_url = self._str(graph, node, self._schema().url) or (str(node) if isinstance(node, URIRef) else None)
-        if org_url:
+        if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
 
     def _contact_exists(self, inv: ArcInvestigation, graph: Graph, node: Node) -> bool:
@@ -603,8 +621,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         self._add_publisher_comment(inv, graph, subject)
 
         conforms_to = self._obj(graph, subject, self._schema().conformsTo)
-        if conforms_to is not None:
-            inv.Comments.append(Comment.create("Conforms To", str(conforms_to)))
+        conforms_text = self._stable_object_text(graph, conforms_to) if conforms_to is not None else None
+        if conforms_text:
+            inv.Comments.append(Comment.create("Conforms To", conforms_text))
 
         for dist_node in graph.objects(subject, self._schema().distribution):
             if isinstance(dist_node, Literal):
@@ -625,9 +644,10 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             self._append_organization_comment(inv, graph, publisher_node, "publisher")
             return
         pub_name = self._str(graph, publisher_node, self._schema().name)
-        if not pub_name:
-            return
-        inv.Comments.append(Comment.create("Publisher", pub_name))
+        if pub_name:
+            inv.Comments.append(Comment.create("Publisher", pub_name))
+        elif isinstance(publisher_node, URIRef):
+            inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
 
     # ------------------------------------------------------------------
     # Study

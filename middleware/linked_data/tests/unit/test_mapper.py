@@ -647,6 +647,60 @@ def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
     assert _publisher_comment_text(first) == _publisher_comment_text(second) == "Zzz Org"
 
 
+def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/kw-bnodes")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Keyword BNode Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/kw-bnodes")))
+
+    labelled = BNode()
+    graph.add((dataset, schema.keywords, labelled))
+    graph.add((labelled, schema.name, Literal("DefinedTerm Keyword")))
+
+    unlabelled = BNode()
+    graph.add((dataset, schema.keywords, unlabelled))
+    graph.add((dataset, schema.keywords, Literal("literal-kw")))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _keywords_comment_text(arc_json) == "DefinedTerm Keyword, literal-kw"
+    assert not re.search(r"\bN[0-9a-fA-F]{32}\b", _keywords_comment_text(arc_json) or "")
+    assert "_:" not in (_keywords_comment_text(arc_json) or "")
+
+
+def test_publisher_uriref_without_name_is_kept() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-iri")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Publisher IRI Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-iri")))
+    publisher = URIRef("https://example.org/org/nameless")
+    graph.add((dataset, schema.publisher, publisher))
+    graph.add((publisher, RDF.type, schema.Organization))
+
+    assert _publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == (
+        "https://example.org/org/nameless"
+    )
+
+
+def test_publisher_unlabelled_bnode_without_name_is_skipped() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-blank")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Publisher Blank Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-blank")))
+    publisher = BNode()
+    graph.add((dataset, schema.publisher, publisher))
+    graph.add((publisher, RDF.type, schema.Organization))
+
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    assert _publisher_comment_text(arc_json) is None
+    assert not re.search(r"#LDComment_Publisher_N[0-9a-fA-F]{32}", arc_json)
+
+
 def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     schema = Namespace("https://schema.org/")
 
