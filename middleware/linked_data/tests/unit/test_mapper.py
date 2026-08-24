@@ -431,18 +431,12 @@ def _investigation_description(arc_json: str) -> str:
 
 
 def _contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
-    payload = json.loads(arc_json)
+    """Return Investigation contact order from ARCtrl, not JSON-LD @graph order."""
+    arc = ARC.from_rocrate_json_string(arc_json)
     pairs: list[tuple[str, str]] = []
-    for item in payload.get("@graph", []):
-        types = item.get("@type")
-        type_list = types if isinstance(types, list) else [types]
-        if "Person" not in type_list:
-            continue
-        person_id = str(item.get("@id") or "")
-        if person_id.startswith("#Author_"):
-            continue
-        given = _rocrate_prop(item, "givenName")
-        family = _rocrate_prop(item, "familyName")
+    for person in arc.Contacts:
+        given = str(person.FirstName or "").strip()
+        family = str(person.LastName or "").strip()
         if given or family:
             pairs.append((given, family))
     return pairs
