@@ -379,6 +379,27 @@ def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
     assert identifier == "example_org_canonical"
 
 
+def test_multiple_schema_urls_pick_lexicographic_minimum_regardless_of_graph_order() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(urls: list[str]) -> Graph:
+        graph = Graph()
+        dataset = BNode()
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Multi URL Dataset")))
+        for url in urls:
+            graph.add((dataset, schema.url, Literal(url)))
+        return graph
+
+    first = _root_identifier(
+        GeneralSchemaOrgMapper().map_graph(build(["https://example.org/zeta", "https://example.org/alpha"])).arc_json
+    )
+    second = _root_identifier(
+        GeneralSchemaOrgMapper().map_graph(build(["https://example.org/alpha", "https://example.org/zeta"])).arc_json
+    )
+    assert first == second == "example_org_alpha"
+
+
 def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")

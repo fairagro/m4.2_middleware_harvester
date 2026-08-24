@@ -370,7 +370,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
     def _resolve_graph_url_identifier(self, graph: Graph, subject: Node) -> str | None:
         for term in ("url", "sameAs"):
-            identifier = self._first_http_identifier(graph, subject, term)
+            identifier = self._canonical_http_identifier(graph, subject, term)
             if identifier:
                 return self._sanitize_identifier(identifier)
 
@@ -391,12 +391,11 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return text
         return None
 
-    def _first_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
-        for obj in self._schema_objects(graph, subject, term):
-            iri = self._http_iri(obj)
-            if iri:
-                return iri
-        return None
+    def _canonical_http_identifier(self, graph: Graph, subject: Node, term: str) -> str | None:
+        iris = [iri for obj in self._schema_objects(graph, subject, term) if (iri := self._http_iri(obj))]
+        if not iris:
+            return None
+        return min(iris, key=str.casefold)
 
     @classmethod
     def _sanitize_identifier(cls, raw: str) -> str:
