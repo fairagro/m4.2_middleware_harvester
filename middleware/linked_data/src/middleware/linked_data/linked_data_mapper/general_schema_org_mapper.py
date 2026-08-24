@@ -147,7 +147,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             if node in visiting or _depth > self._STABLE_BNODE_MAX_DEPTH:
                 return (1, "")
             next_visiting = visiting | {node}
-            parts: list[str] = []
+            parts: list[tuple[str, str]] = []
             for predicate, obj in graph.predicate_objects(node):
                 pred_token = self._stable_term_token(predicate)
                 if pred_token is None:
@@ -159,12 +159,12 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                         _depth=_depth + 1,
                         _visiting=next_visiting,
                     )[1]
-                    parts.append(f"{pred_token}->[{nested_sig}]")
+                    parts.append((pred_token, f"bnode:{nested_sig}"))
                 else:
                     obj_token = self._stable_term_token(obj)
                     if obj_token is not None:
-                        parts.append(f"{pred_token}={obj_token}")
-            return (1, "|".join(sorted(parts)))
+                        parts.append((pred_token, obj_token))
+            return (1, repr(tuple(sorted(parts))))
         return (2, str(node))
 
     @staticmethod
@@ -174,14 +174,14 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             return None
         if isinstance(term, URIRef):
             text = str(term).strip()
-            return text or None
+            return repr(("uri", text)) if text else None
         if isinstance(term, Literal):
             text = str(term).strip()
             if not text:
                 return None
             lang = (term.language or "").casefold()
             datatype = str(term.datatype) if term.datatype is not None else ""
-            return f"{text}|lang={lang}|dt={datatype}"
+            return repr(("lit", text, lang, datatype))
         text = str(term).strip()
         return text or None
 

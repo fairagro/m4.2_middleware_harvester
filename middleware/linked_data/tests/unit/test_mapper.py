@@ -414,8 +414,33 @@ def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
     left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
     right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
     assert left_key != right_key
-    assert "lang=en" in left_key[1]
-    assert "lang=de" in right_key[1]
+    assert "'en'" in left_key[1]
+    assert "'de'" in right_key[1]
+
+
+def test_stable_node_sort_key_no_delimiter_collision() -> None:
+    """Predicate/literal structures must not collapse to the same signature string."""
+    mapper = GeneralSchemaOrgMapper()
+    graph = Graph()
+    left = BNode()
+    right = BNode()
+    graph.add((left, URIRef("http://ex/a"), Literal("b=c")))
+    graph.add((right, URIRef("http://ex/a=b"), Literal("c")))
+    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
+    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    assert left_key != right_key
+
+
+def test_stable_term_token_no_literal_encoding_collision() -> None:
+    """Crafted literal text must not mimic structured lang/datatype encoding."""
+    mapper = GeneralSchemaOrgMapper()
+    crafted = Literal("a|lang=|dt=x", datatype=URIRef("y"))
+    structured = Literal("a", datatype=URIRef("x|lang=|dt=y"))
+    crafted_token = mapper._stable_term_token(crafted)  # noqa: SLF001
+    structured_token = mapper._stable_term_token(structured)  # noqa: SLF001
+    assert crafted_token is not None
+    assert structured_token is not None
+    assert crafted_token != structured_token
 
 
 def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
