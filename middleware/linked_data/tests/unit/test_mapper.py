@@ -378,6 +378,16 @@ def test_named_property_value_with_doi_is_extracted() -> None:
     assert identifier == "10.1234/named-pv"
 
 
+def _rocrate_prop(item: dict, short_name: str) -> str:
+    """Read a compact or schema.org-expanded RO-Crate property from a @graph node."""
+    value = item.get(short_name)
+    if value is None:
+        value = item.get(f"http://schema.org/{short_name}")
+    if value is None:
+        value = item.get(f"https://schema.org/{short_name}")
+    return str(value) if value is not None else ""
+
+
 def _keywords_comment_text(arc_json: str) -> str | None:
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
@@ -385,9 +395,8 @@ def _keywords_comment_text(arc_json: str) -> str | None:
         type_list = types if isinstance(types, list) else [types]
         if "Comment" not in type_list:
             continue
-        name = str(item.get("name") or "")
-        if name == "Keywords":
-            return str(item.get("text") or "")
+        if _rocrate_prop(item, "name") == "Keywords":
+            return _rocrate_prop(item, "text")
     return None
 
 
@@ -408,13 +417,16 @@ def _investigation_description(arc_json: str) -> str:
         types = item.get("@type")
         type_list = types if isinstance(types, list) else [types]
         if "Investigation" in type_list or "Dataset" in type_list:
-            desc = item.get("description")
-            if desc is not None:
-                return str(desc)
+            desc = _rocrate_prop(item, "description")
+            if desc:
+                return desc
     # Fallback: search description fields
     for item in payload.get("@graph", []):
-        if "description" in item and item.get("@type") not in (None, "Comment"):
-            return str(item["description"])
+        if item.get("@type") in (None, "Comment"):
+            continue
+        desc = _rocrate_prop(item, "description")
+        if desc:
+            return desc
     return ""
 
 
@@ -429,8 +441,8 @@ def _contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
         person_id = str(item.get("@id") or "")
         if person_id.startswith("#Author_"):
             continue
-        given = str(item.get("givenName") or "")
-        family = str(item.get("familyName") or "")
+        given = _rocrate_prop(item, "givenName")
+        family = _rocrate_prop(item, "familyName")
         if given or family:
             pairs.append((given, family))
     return pairs
@@ -460,8 +472,8 @@ def _publisher_comment_text(arc_json: str) -> str | None:
         type_list = types if isinstance(types, list) else [types]
         if "Comment" not in type_list:
             continue
-        if str(item.get("name") or "") == "Publisher":
-            return str(item.get("text") or "")
+        if _rocrate_prop(item, "name") == "Publisher":
+            return _rocrate_prop(item, "text")
     return None
 
 
