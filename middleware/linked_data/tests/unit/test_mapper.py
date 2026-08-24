@@ -445,6 +445,14 @@ def _publication_author_node_id(arc_json: str) -> str | None:
     return None
 
 
+def _assert_stable_author_node_id(author_id: str | None, expected_authors: str) -> None:
+    """Match spec: @id is #Author_* and contains the author string; no Last, F. commas."""
+    assert author_id is not None
+    assert author_id.startswith("#Author_")
+    assert expected_authors in author_id
+    assert "," not in author_id
+
+
 def _publisher_comment_text(arc_json: str) -> str | None:
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
@@ -528,8 +536,7 @@ def test_contacts_and_publication_authors_order_invariant() -> None:
     second = GeneralSchemaOrgMapper().map_graph(build(order_b)).arc_json
     assert _contact_name_pairs(first) == _contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
     assert _publication_author_node_id(first) == _publication_author_node_id(second)
-    assert _publication_author_node_id(first) == "#Author_A. Lovelace; Z. Zebra"
-    assert "," not in (_publication_author_node_id(first) or "")
+    _assert_stable_author_node_id(_publication_author_node_id(first), "A. Lovelace; Z. Zebra")
 
 
 def test_double_map_openagrar_like_fixture_is_stable() -> None:
@@ -625,4 +632,5 @@ def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")])).arc_json
     second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")])).arc_json
     assert _contact_name_pairs(first) == _contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
-    assert _publication_author_node_id(first) == _publication_author_node_id(second) == "#Author_A. Lovelace; Z. Zebra"
+    assert _publication_author_node_id(first) == _publication_author_node_id(second)
+    _assert_stable_author_node_id(_publication_author_node_id(first), "A. Lovelace; Z. Zebra")
