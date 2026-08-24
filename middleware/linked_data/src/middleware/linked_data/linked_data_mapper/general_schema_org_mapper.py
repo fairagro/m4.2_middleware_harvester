@@ -90,7 +90,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
         Prefer a non-empty Literal chosen by language policy (``en`` > ``de`` >
         untagged > other; longer then lexicographic ``casefold`` ties). If no
-        Literal qualifies, return the lexicographically smallest non-Literal node.
+        Literal qualifies, prefer URIRefs over blank nodes, ranking blank nodes
+        by a content signature (not the parser-local BNode label).
         """
         objects = list(graph.objects(subject, predicate))
         if not objects:
@@ -101,7 +102,26 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         non_literals = [obj for obj in objects if not isinstance(obj, Literal)]
         if not non_literals:
             return None
-        return sorted(non_literals, key=str)[0]
+        return sorted(non_literals, key=lambda node: self._stable_node_sort_key(graph, node))[0]
+
+    def _stable_node_sort_key(self, graph: Graph, node: Node) -> tuple[int, str]:
+        """Deterministic sort key for URIRef / BNode / other non-Literals.
+
+        Blank-node labels from rdflib are parser-local and MUST NOT be used for
+        ranking when multiple blank nodes compete.
+        """
+        if isinstance(node, URIRef):
+            return (0, str(node))
+        if isinstance(node, BNode):
+            signature = "|".join(
+                sorted(
+                    f"{predicate!s}={str(obj).strip()}"
+                    for predicate, obj in graph.predicate_objects(node)
+                    if not isinstance(obj, BNode) and str(obj).strip()
+                )
+            )
+            return (1, signature)
+        return (2, str(node))
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
         """Return ``str`` of :meth:`_obj`, stripped when the chosen node is a Literal."""
@@ -367,8 +387,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         # Organization publishers are Investigation comments, not Person contacts.
         require_nonempty_person_given_names(inv)
 
-    def _contact_sort_key(self, graph: Graph, node: Node) -> tuple[str, str, str, str]:
-        """Stable sort key: family, given, display name, node identity."""
+    def _contact_sort_key(self, graph: Graph, node: Node) -> tuple[str, str, str, tuple[int, str]]:
+        """Stable sort key: family, given, display name, then node identity without BNode labels."""
         given, family = self._person_names(graph, node)
         if isinstance(node, Literal):
             display = str(node).strip()
@@ -378,7 +398,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             (family or "").casefold(),
             (given or "").casefold(),
             display.casefold(),
-            str(node),
+            self._stable_node_sort_key(graph, node),
         )
 
     def _append_contact(self, inv: ArcInvestigation, graph: Graph, node: Node, role: str) -> None:
@@ -397,9 +417,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             return
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
-        org_url = self._str(graph, node, self._schema().url) or (
-            str(node) if not isinstance(node, Literal) and str(node).startswith("http") else None
-        )
+        org_url = self._str(graph, node, self._schema().url) or (str(node) if isinstance(node, URIRef) else None)
         if org_url:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
 
@@ -569,9 +587,10 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         if self._is_type(graph, publisher_node, self._schema().Organization):
             self._append_organization_comment(inv, graph, publisher_node, "publisher")
             return
-        pub_name = self._str(graph, publisher_node, self._schema().name) or str(publisher_node)
-        if pub_name:
-            inv.Comments.append(Comment.create("Publisher", pub_name))
+        pub_name = self._str(graph, publisher_node, self._schema().name)
+        if not pub_name:
+            return
+        inv.Comments.append(Comment.create("Publisher", pub_name))
 
     # ------------------------------------------------------------------
     # Study

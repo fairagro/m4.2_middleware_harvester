@@ -46,3 +46,5 @@ schema.org, `RegalMapper` for Regal).
    `en` > `de` > untagged > other (empty dropped; longer then lex tie-break). Creator/
    author/contributor nodes are sorted before Contacts; Publication authors use
    `F. Last` (no comma) so ARCtrl `#Author_*` nodes stop oscillating with RDF order.
+   Non-literal `_obj` selection prefers URIRefs over blank nodes and ranks blank nodes
+   by outgoing content signatures, never by parser-local BNode labels.

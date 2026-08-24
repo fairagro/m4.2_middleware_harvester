@@ -445,6 +445,18 @@ def _publication_author_node_id(arc_json: str) -> str | None:
     return None
 
 
+def _publisher_comment_text(arc_json: str) -> str | None:
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        if str(item.get("name") or "") == "Publisher":
+            return str(item.get("text") or "")
+    return None
+
+
 def test_keywords_order_invariant() -> None:
     schema = Namespace("https://schema.org/")
 
@@ -549,3 +561,68 @@ def test_double_map_openagrar_like_fixture_is_stable() -> None:
     assert _investigation_description(first) == _investigation_description(second) == "Full English abstract"
     assert _contact_name_pairs(first) == _contact_name_pairs(second)
     assert _publication_author_node_id(first) == _publication_author_node_id(second)
+
+
+def test_obj_prefers_uriref_publisher_over_blank_node() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/pub-mix")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Mix Publisher Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/pub-mix")))
+
+    blank = BNode()
+    graph.add((dataset, schema.publisher, blank))
+    graph.add((blank, RDF.type, schema.Organization))
+    graph.add((blank, schema.name, Literal("Blank Org")))
+
+    named = URIRef("https://example.org/org/named")
+    graph.add((dataset, schema.publisher, named))
+    graph.add((named, RDF.type, schema.Organization))
+    graph.add((named, schema.name, Literal("Named Org")))
+
+    assert _publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == "Named Org"
+
+
+def test_obj_blank_publisher_choice_stable_across_fresh_bnode_labels() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(name_order: list[str]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/pub-bnodes")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("BNode Publisher Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/pub-bnodes")))
+        for name in name_order:
+            publisher = BNode()
+            graph.add((dataset, schema.publisher, publisher))
+            graph.add((publisher, RDF.type, schema.Organization))
+            graph.add((publisher, schema.name, Literal(name)))
+        return graph
+
+    first = GeneralSchemaOrgMapper().map_graph(build(["Zeta Org", "Alpha Org"])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Alpha Org", "Zeta Org"])).arc_json
+    assert _publisher_comment_text(first) == _publisher_comment_text(second) == "Alpha Org"
+
+
+def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(creator_order: list[tuple[str, str]]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/people-bnodes")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("BNode People Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/people-bnodes")))
+        for given, family in creator_order:
+            person = BNode()
+            graph.add((dataset, schema.creator, person))
+            graph.add((person, RDF.type, schema.Person))
+            graph.add((person, schema.givenName, Literal(given)))
+            graph.add((person, schema.familyName, Literal(family)))
+        return graph
+
+    first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")])).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")])).arc_json
+    assert _contact_name_pairs(first) == _contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
+    assert _publication_author_node_id(first) == _publication_author_node_id(second) == "#Author_A. Lovelace; Z. Zebra"
