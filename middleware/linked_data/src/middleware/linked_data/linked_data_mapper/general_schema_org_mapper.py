@@ -184,16 +184,32 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
     @classmethod
     def _choose_literal(cls, literals: list[Literal]) -> Literal | None:
-        ranked: list[tuple[int, int, str, str, Literal]] = []
+        """Pick one Literal using only primitive, comparable key fields.
+
+        Policy: non-empty; language rank ``en`` > ``de`` > untagged > other; then
+        longer text; then lexicographic ``casefold`` / original text; then language
+        tag and datatype strings. Never compares ``Literal`` objects directly.
+        """
+        best: Literal | None = None
+        best_key: tuple[int, int, str, str, str, str] | None = None
         for literal in literals:
             text = str(literal).strip()
             if not text:
                 continue
-            ranked.append((cls._lang_rank(literal), -len(text), text.casefold(), text, literal))
-        if not ranked:
-            return None
-        ranked.sort()
-        return ranked[0][-1]
+            lang = (literal.language or "").casefold()
+            datatype = str(literal.datatype) if literal.datatype is not None else ""
+            key = (
+                cls._lang_rank(literal),
+                -len(text),
+                text.casefold(),
+                text,
+                lang,
+                datatype,
+            )
+            if best_key is None or key < best_key:
+                best_key = key
+                best = literal
+        return best
 
     def _is_type(self, graph: Graph, node: Node, rdf_type: Node) -> bool:
         return (node, RDF.type, rdf_type) in graph
