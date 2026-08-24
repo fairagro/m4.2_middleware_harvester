@@ -395,7 +395,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         iris = [iri for obj in self._schema_objects(graph, subject, term) if (iri := self._http_iri(obj))]
         if not iris:
             return None
-        return min(iris, key=str.casefold)
+        return min(iris, key=lambda iri: (iri.casefold(), iri))
 
     @classmethod
     def _sanitize_identifier(cls, raw: str) -> str:

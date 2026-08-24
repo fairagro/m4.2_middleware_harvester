@@ -400,6 +400,25 @@ def test_multiple_schema_urls_pick_lexicographic_minimum_regardless_of_graph_ord
     assert first == second == "example_org_alpha"
 
 
+def test_multiple_schema_urls_with_casefold_ties_are_stable() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(urls: list[str]) -> Graph:
+        graph = Graph()
+        dataset = BNode()
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Casefold tie URL Dataset")))
+        for url in urls:
+            graph.add((dataset, schema.url, Literal(url)))
+        return graph
+
+    urls_a = ["https://Example.org/Page", "https://example.org/page"]
+    urls_b = list(reversed(urls_a))
+    first = _root_identifier(GeneralSchemaOrgMapper().map_graph(build(urls_a)).arc_json)
+    second = _root_identifier(GeneralSchemaOrgMapper().map_graph(build(urls_b)).arc_json)
+    assert first == second == GeneralSchemaOrgMapper._sanitize_identifier("https://Example.org/Page")
+
+
 def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")
