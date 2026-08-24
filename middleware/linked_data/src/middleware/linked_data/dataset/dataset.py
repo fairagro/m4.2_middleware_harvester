@@ -33,8 +33,12 @@ class DiscoveryResult:
 class UrlDiscoveryResult(DiscoveryResult):
     """Discovery result representing a dataset URL.
 
-    The ``identifier`` is the dataset URL.
+    The ``identifier`` is the dataset URL. When the sitemap knows a native
+    catalog id for the harvested record (e.g. MyCoRe Solr ``id``), it MAY
+    supply ``harvest_source_id`` for stable Schema.org mapping.
     """
+
+    harvest_source_id: str | None = None
 
     @property
     def url(self) -> str:

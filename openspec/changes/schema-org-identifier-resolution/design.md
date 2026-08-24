@@ -1,6 +1,6 @@
 ## Context
 
-See proposal.md. `GeneralSchemaOrgMapper._extract_doi()` returns the first DOI from `_schema_objects(..., "identifier")`. `_resolve_investigation_identifier()` uses that value directly when present. Concurrent linked-data workers map records independently with no cross-record DOI visibility.
+See proposal.md. `GeneralSchemaOrgMapper._extract_doi()` returned the first DOI from `_schema_objects(..., "identifier")`. `_resolve_investigation_identifier()` used that value directly when present. DOI is not a stable per-page key: one page can list multiple DOIs (order-dependent selection), and one DOI can appear on multiple harvested pages (duplicate `arc_id`).
 
 Observed cases:
 
@@ -13,52 +13,45 @@ Observed cases:
 
 **Goals:**
 
-- Exactly one stable `Investigation.identifier` per logical OpenAgrar page across harvest runs.
-- No duplicate-identifier upload failures for shared external DOIs within one harvest.
+- Exactly one stable `Investigation.identifier` per harvested page across harvest runs.
+- No duplicate-identifier upload failures for shared external DOIs.
 - All DOIs remain visible in mapped ARC metadata.
-- Small diff aligned with existing mapper conventions.
+- Small diff aligned with existing mapper conventions; no per-run collision registry in the plugin.
 
 **Non-Goals:**
 
 - API-side changes, GitLab merge of existing twins, or OpenAgrar catalog cleanup.
-- Registrar-specific priority lists beyond lexicographic canonical DOI rule.
+- Registrar-specific priority lists beyond lexicographic canonical DOI rule for Publication metadata.
 - Changing Regal/INSPIRE paths.
 
 ## Decisions
 
-1. **Run-level collision registry in `LinkedDataPlugin` (collect-then-map)**
-   — Reasoning: collision resolution requires knowing all `(source_url, doi)` pairs in the batch before choosing identifiers. Concurrent map-as-you-fetch cannot detect cross-page collisions deterministically. Plugin buffers `(graph, source_url)` after fetch, builds `doi → set[source_url]`, derives `colliding_dois = {doi | len(urls) > 1}`, then maps each record with that set. Alternative considered: detect duplicates only in `upload.py` after mapping — rejected because ARC JSON is already wrong and API rejects too late. Alternative: first-wins during concurrent map — rejected as order-dependent across runs.
+1. **Harvest-source-first identifier (Option C)**
+   — Reasoning: the harvest unit is the discovered dataset page, not the DOI. Order:
+   1. `harvest_source_id` from the sitemap/discovery layer when supplied (e.g. MyCoRe Solr `id` on `UrlDiscoveryResult`).
+   2. Sanitized discovered page URL when `source_url` is an `http(s)` URI.
+   3. Canonical `http(s)` URL from `schema:url`, then `schema:sameAs`, then Dataset `@id` when it is an `http(s)` IRI (sanitized).
+   4. Single extracted DOI as last resort.
+   5. Fail closed.
+   RDI-specific id extraction belongs in sitemap implementations, not mapper code or harvester config regex.
 
-2. **Identifier decision chain (mapper)**
-   — Reasoning: collision and multi-DOI are orthogonal. Order:
-   1. Extract all DOIs, `source_url`, RDI ID (OpenAgrar: `openagrar_mods_*` from `/receive/{id}` URL).
-   2. If any extracted DOI is in `colliding_dois` → `Investigation.identifier = RDI ID` when extractable.
-   3. Else if multiple DOIs on this page → lexicographic minimum (`casefold`) as canonical DOI.
-   4. Else if exactly one DOI → that DOI.
-   5. Else existing URL / sanitized `source_url` fallbacks.
-   6. Else fail closed (`ValueError` → `RecordProcessingError`).
-   When step 2 applies, the shared external DOI(s) remain in Publication/Comments, not as primary identifier.
+2. **DOIs always in Publication/Comments, not primary when source exists**
+   — Reasoning: when `source_url` or a graph URL is available, DOIs populate Publication (canonical pick) and `Alternate Identifier` Comments (non-canonical on the same page). Shared external DOIs on different pages no longer collide because each page keeps its own harvest key.
 
-3. **Canonical multi-DOI rule: lexicographic minimum**
-   — Reasoning: generic, testable, order-independent. For `00107508`, `10.3220/253-2025-54` < `10.5281/zenodo.15672440`, matching institutional-before-mirror intent without hard-coded registrars. Alternative: explicit OpenAgrar-before-Zenodo priority — rejected as RDI-specific maintenance.
+3. **Canonical multi-DOI rule: lexicographic minimum for Publication only**
+   — Reasoning: generic, testable, order-independent. For `00107508`, `10.3220/253-2025-54` < `10.5281/zenodo.15672440`. Applies to Publication DOI selection, not `Investigation.identifier`, when `source_url` is present.
 
-4. **RDI ID format for OpenAgrar collision fallback**
-   — Reasoning: use bare MyCoRe id `openagrar_mods_*` (not full sanitized URL) as `Investigation.identifier` — stable, human-readable, unique per page, already used in operator workflows. Extract via regex on Receive-URL; if collision detected but RDI ID not extractable, fall through to step 3/4/5 (canonical DOI or URL fallback) rather than inventing an id.
-
-5. **Alternate DOI metadata**
-   — Reasoning: non-canonical DOIs on the same page → Investigation Comment `Alternate Identifier`. When RDI ID is primary due to collision, the shared external DOI → existing Publication row (or Comment if no single canonical pick). Keeps PANGAEA/CRAN DOI grep-visible without owning `arc_id`.
-
-6. **Extend `map_graph` with optional mapping context**
-   — Reasoning: add `colliding_dois: frozenset[str] | None = None` (or a small `SchemaOrgMappingContext` dataclass) to `LinkedDataMapper.map_graph`; `RegalMapper` ignores it. Keeps ABC compatible with default `None` (= no collision override, current single-record behaviour in tests).
+4. **Plugin passes `source_url` only; no collect-then-map**
+   — Reasoning: harvest-source-first policy makes a per-run DOI collision set redundant. The plugin continues concurrent fetch + map with `map_graph(graph, source_url=...)`.
 
 ## Risks / Trade-offs
 
-- **Collect-then-map buffers all graphs for a harvest batch** → higher peak memory on very large sitemaps; acceptable for OpenAgrar scale (~1k records). Mitigation: only enable two-phase path for Schema.org payload type.
-- **Lexicographic min may pick unexpected DOI in edge cases** → explicit rule + tests; alternates preserved in Comments.
-- **Existing twin ARCs not merged** → first stable harvest after deploy converges on one canonical path per page; orphans remain until manual cleanup.
-- **Collision set is per harvest run** → same page always gets same RDI ID; shared DOI pages always diverge within and across runs once collision is detected in that batch.
+- **Identifier semantics shift** — existing ARCs keyed by DOI will not match new harvests for pages where DOI was previously primary; acceptable: API path is `sha256(identifier + rdi)` and the fix targets stability going forward.
+- **Lexicographic min may pick unexpected Publication DOI** → explicit rule + tests; alternates preserved in Comments.
+- **Existing twin ARCs not merged** → orphans remain until manual cleanup.
+- **Graphs without `source_url` still fall back to DOI** → unit tests and non-HTML sources unchanged.
 
 ## Migration Plan
 
 - Deploy harvester only. No API or config changes.
-- Rollback: revert plugin + mapper; non-deterministic DOI selection and duplicate errors resume.
+- Rollback: revert mapper; non-deterministic DOI selection and duplicate errors resume.

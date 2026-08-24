@@ -73,7 +73,7 @@ def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> No
 
     assert "@graph" in payload
     root = next(item for item in payload["@graph"] if item.get("@id") == "./")
-    assert root["identifier"] == "10.1234/abc"
+    assert root["identifier"] == "example_org_dataset_1"
     assert "CC-BY" in result
     assert "Publisher Co" in result
     people = [
@@ -247,7 +247,20 @@ def _root_identifier(arc_json: str) -> str:
     return identifier
 
 
-def test_openagrar_propertyvalue_doi_is_investigation_identifier() -> None:
+def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
+    harvested = GeneralSchemaOrgMapper().map_graph(
+        _parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI),
+        source_url=source_url,
+        harvest_source_id="openagrar_mods_00107322",
+    )
+    identifier = _root_identifier(harvested.arc_json)
+    assert identifier == "openagrar_mods_00107322"
+    assert identifier != "10.3220/253-2025-42"
+    assert "10.3220/253-2025-42" in harvested.arc_json
+
+
+def test_openagrar_propertyvalue_doi_is_investigation_identifier_when_no_source_url() -> None:
     graph = _parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI)
     subject = None
     for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
@@ -275,7 +288,7 @@ def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
     assert first == second == "10.3220/253-2025-42"
 
 
-def test_openagrar_without_doi_uses_full_receive_url() -> None:
+def test_openagrar_without_doi_uses_sanitized_source_url_without_pattern() -> None:
     graph = _parse_jsonld(
         """
         {
@@ -290,6 +303,26 @@ def test_openagrar_without_doi_uses_full_receive_url() -> None:
     identifier = _root_identifier(harvested.arc_json)
     assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
     assert not _BLANK_NODE_ID.fullmatch(identifier)
+
+
+def test_openagrar_with_harvest_source_id_uses_catalog_id() -> None:
+    graph = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "C-Module"
+        }
+        """
+    )
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
+    harvested = GeneralSchemaOrgMapper().map_graph(
+        graph,
+        source_url=source_url,
+        harvest_source_id="openagrar_mods_00107322",
+    )
+    identifier = _root_identifier(harvested.arc_json)
+    assert identifier == "openagrar_mods_00107322"
 
 
 def test_schema_org_without_stable_identifier_raises_and_does_not_use_blank_node() -> None:
@@ -797,5 +830,165 @@ def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")])).arc_json
     second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")])).arc_json
     assert _contact_name_pairs(first) == _contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
-    assert _publication_author_node_id(first) == _publication_author_node_id(second)
-    _assert_stable_author_node_id(_publication_author_node_id(first), "A. Lovelace; Z. Zebra")
+
+
+_OPENAGRAR_DUAL_DOI_TEMPLATE = """
+{{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "name": "EmiDaT dual DOI example",
+  "identifier": [
+    {{
+      "@type": "PropertyValue",
+      "propertyID": "https://registry.identifiers.org/registry/doi",
+      "value": "{first_doi}"
+    }},
+    {{
+      "@type": "PropertyValue",
+      "propertyID": "https://registry.identifiers.org/registry/doi",
+      "value": "{second_doi}"
+    }}
+  ]
+}}
+"""
+
+
+def _dual_doi_payload(first_doi: str, second_doi: str) -> str:
+    return _OPENAGRAR_DUAL_DOI_TEMPLATE.format(first_doi=first_doi, second_doi=second_doi)
+
+
+def _alternate_identifier_values(arc_json: str) -> list[str]:
+    payload = json.loads(arc_json)
+    values: list[str] = []
+    for item in payload["@graph"]:
+        if item.get("@type") == "Comment" and item.get("name") == "Alternate Identifier":
+            text = item.get("text")
+            if isinstance(text, str):
+                values.append(text)
+    return values
+
+
+def _pangaea_doi_graph(doi: str = "10.1594/PANGAEA.957630") -> Graph:
+    return _parse_jsonld(
+        f"""
+        {{
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "Shared PANGAEA DOI",
+          "identifier": [{{
+            "@type": "PropertyValue",
+            "propertyID": "https://registry.identifiers.org/registry/doi",
+            "value": "{doi}"
+          }}]
+        }}
+        """
+    )
+
+
+def test_multi_doi_with_source_url_uses_harvest_identifier_and_preserves_alternate() -> None:
+    mapper = GeneralSchemaOrgMapper()
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107508"
+    payload = _dual_doi_payload("10.5281/zenodo.15672440", "10.3220/253-2025-54")
+    harvested = mapper.map_graph(
+        _parse_jsonld(payload),
+        source_url=source_url,
+        harvest_source_id="openagrar_mods_00107508",
+    )
+    assert _root_identifier(harvested.arc_json) == "openagrar_mods_00107508"
+    assert _alternate_identifier_values(harvested.arc_json) == ["10.5281/zenodo.15672440"]
+    assert "10.3220/253-2025-54" in harvested.arc_json
+
+
+def test_multi_doi_harvest_identifier_stable_under_permuted_jsonld_order() -> None:
+    mapper = GeneralSchemaOrgMapper()
+    source_url = "https://www.openagrar.de/receive/openagrar_mods_00107508"
+    first_payload = _dual_doi_payload("10.5281/zenodo.15672440", "10.3220/253-2025-54")
+    second_payload = _dual_doi_payload("10.3220/253-2025-54", "10.5281/zenodo.15672440")
+    kwargs = {"source_url": source_url, "harvest_source_id": "openagrar_mods_00107508"}
+    first = _root_identifier(mapper.map_graph(_parse_jsonld(first_payload), **kwargs).arc_json)
+    second = _root_identifier(mapper.map_graph(_parse_jsonld(second_payload), **kwargs).arc_json)
+    assert first == second == "openagrar_mods_00107508"
+
+
+def test_single_doi_without_source_url_has_no_alternate_identifier_comment() -> None:
+    harvested = GeneralSchemaOrgMapper().map_graph(_parse_jsonld(_OPENAGRAR_PROPERTYVALUE_DOI))
+    assert _root_identifier(harvested.arc_json) == "10.3220/253-2025-42"
+    assert _alternate_identifier_values(harvested.arc_json) == []
+
+
+def test_shared_doi_on_two_pages_uses_distinct_harvest_identifiers() -> None:
+    mapper = GeneralSchemaOrgMapper()
+    graph = _pangaea_doi_graph()
+    url_a = "https://www.openagrar.de/receive/openagrar_mods_00088718"
+    url_b = "https://www.openagrar.de/receive/openagrar_mods_00109919"
+    id_a = _root_identifier(
+        mapper.map_graph(graph, source_url=url_a, harvest_source_id="openagrar_mods_00088718").arc_json
+    )
+    id_b = _root_identifier(
+        mapper.map_graph(graph, source_url=url_b, harvest_source_id="openagrar_mods_00109919").arc_json
+    )
+    assert id_a == "openagrar_mods_00088718"
+    assert id_b == "openagrar_mods_00109919"
+    assert id_a != id_b
+    assert (
+        "10.1594/PANGAEA.957630"
+        in mapper.map_graph(graph, source_url=url_a, harvest_source_id="openagrar_mods_00088718").arc_json
+    )
+
+
+def test_shared_doi_with_generic_source_url_uses_sanitized_page_url() -> None:
+    mapper = GeneralSchemaOrgMapper()
+    graph = _pangaea_doi_graph()
+    identifier = _root_identifier(mapper.map_graph(graph, source_url="https://example.org/generic-page").arc_json)
+    assert identifier == "example_org_generic-page"
+    assert identifier != "10.1594/PANGAEA.957630"
+
+
+def test_sorcering_pair_pages_keep_distinct_harvest_identifiers() -> None:
+    mapper = GeneralSchemaOrgMapper()
+    graph_a = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "Sorcering A",
+          "identifier": [{
+            "@type": "PropertyValue",
+            "propertyID": "https://registry.identifiers.org/registry/doi",
+            "value": "10.1234/sorcering-a"
+          }]
+        }
+        """
+    )
+    graph_b = _parse_jsonld(
+        """
+        {
+          "@context": "https://schema.org/",
+          "@type": "Dataset",
+          "name": "Sorcering B",
+          "identifier": [{
+            "@type": "PropertyValue",
+            "propertyID": "https://registry.identifiers.org/registry/doi",
+            "value": "10.1234/sorcering-b"
+          }]
+        }
+        """
+    )
+    url_a = "https://www.openagrar.de/receive/openagrar_mods_00100605"
+    url_b = "https://www.openagrar.de/receive/openagrar_mods_00108456"
+    id_a = _root_identifier(
+        mapper.map_graph(graph_a, source_url=url_a, harvest_source_id="openagrar_mods_00100605").arc_json
+    )
+    id_b = _root_identifier(
+        mapper.map_graph(graph_b, source_url=url_b, harvest_source_id="openagrar_mods_00108456").arc_json
+    )
+    assert id_a == "openagrar_mods_00100605"
+    assert id_b == "openagrar_mods_00108456"
+    assert (
+        "10.1234/sorcering-a"
+        in mapper.map_graph(graph_a, source_url=url_a, harvest_source_id="openagrar_mods_00100605").arc_json
+    )
+    assert (
+        "10.1234/sorcering-b"
+        in mapper.map_graph(graph_b, source_url=url_b, harvest_source_id="openagrar_mods_00108456").arc_json
+    )

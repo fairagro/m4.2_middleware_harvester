@@ -77,7 +77,10 @@ class MycoreSolrSitemap(Sitemap):
                     )
                     continue
 
-                yield UrlDiscoveryResult(f"{base_url}/receive/{object_id.strip()}")
+                yield UrlDiscoveryResult(
+                    f"{base_url}/receive/{object_id.strip()}",
+                    harvest_source_id=object_id.strip(),
+                )
 
             start += len(docs)
             if start >= num_found:

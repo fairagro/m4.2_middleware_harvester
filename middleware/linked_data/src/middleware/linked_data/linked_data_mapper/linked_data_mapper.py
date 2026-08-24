@@ -41,10 +41,18 @@ class LinkedDataMapper(ABC):
         return cls()
 
     @abstractmethod
-    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
+    def map_graph(
+        self,
+        graph: Graph,
+        source_url: str | None = None,
+        *,
+        harvest_source_id: str | None = None,
+    ) -> HarvestedArc:
         """Return a harvested ARC (JSON + composition counts) for the given graph.
 
-        ``source_url`` is the discovered page URL (e.g. MyCoRe Receive-URL) used as a
+        ``source_url`` is the discovered page URL used for fetch context and as a
         stable identifier fallback when the graph has no DOI or http(s) identifier.
+        ``harvest_source_id`` is an optional RDI-native catalog id supplied by the
+        sitemap/discovery layer (e.g. MyCoRe Solr ``id``).
         """
         raise NotImplementedError

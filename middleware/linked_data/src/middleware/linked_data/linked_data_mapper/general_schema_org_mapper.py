@@ -6,7 +6,10 @@ GeneralSchemaOrgMapper works directly on rdflib.Graph throughout —
 no intermediate model layer is created between the graph and the ARC output.
 """
 
+from __future__ import annotations
+
 import re
+from dataclasses import dataclass
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -32,6 +35,15 @@ from middleware.harvester.plugin_base import HarvestedArc
 from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper
 from .person_contacts import require_nonempty_person_given_names
+
+
+@dataclass(frozen=True)
+class _IdentifierPlan:
+    """Resolved investigation identifier and DOI metadata for one Dataset."""
+
+    investigation_id: str
+    publication_doi: str | None
+    alternate_dois: tuple[str, ...]
 
 
 @LinkedDataMapper.register(PayloadType.schema_org_general)
@@ -62,7 +74,13 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # Public API
     # ------------------------------------------------------------------
 
-    def map_graph(self, graph: Graph, source_url: str | None = None) -> HarvestedArc:
+    def map_graph(
+        self,
+        graph: Graph,
+        source_url: str | None = None,
+        *,
+        harvest_source_id: str | None = None,
+    ) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
         schema, subject = self._find_dataset_subject(graph)
         if subject is None:
@@ -70,7 +88,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
         self._active_schema = schema
         try:
-            arc = self._map_arc(graph, subject, source_url=source_url)
+            arc = self._map_arc(graph, subject, source_url=source_url, harvest_source_id=harvest_source_id)
         finally:
             self._active_schema = None
 
@@ -310,14 +328,59 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return doi
         return None
 
-    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+    def _extract_all_dois(self, graph: Graph, subject: Node) -> list[str]:
+        """Collect every valid DOI from ``schema:identifier`` (deduped, sorted)."""
+        by_fold: dict[str, str] = {}
         for obj in self._schema_objects(graph, subject, "identifier"):
             doi = self._doi_from_identifier_node(graph, obj)
-            if doi:
-                return doi
+            if not doi:
+                continue
+            fold = doi.casefold()
+            previous = by_fold.get(fold)
+            if previous is None or doi < previous:
+                by_fold[fold] = doi
         if isinstance(subject, URIRef):
-            return self._normalize_doi(str(subject))
+            subject_doi = self._normalize_doi(str(subject))
+            if subject_doi:
+                fold = subject_doi.casefold()
+                previous = by_fold.get(fold)
+                if previous is None or subject_doi < previous:
+                    by_fold[fold] = subject_doi
+        return sorted(by_fold.values(), key=str.casefold)
+
+    @staticmethod
+    def _pick_canonical_doi(dois: list[str]) -> str | None:
+        if not dois:
+            return None
+        return min(dois, key=str.casefold)
+
+    def _resolve_harvest_source_identifier(
+        self,
+        source_url: str | None,
+        harvest_source_id: str | None = None,
+    ) -> str | None:
+        """Stable harvest-unit identifier from discovery (catalog id or page URL)."""
+        if harvest_source_id and harvest_source_id.strip():
+            return harvest_source_id.strip()
+        if source_url:
+            text = source_url.strip()
+            if text.startswith(("http://", "https://")):
+                return self._sanitize_identifier(text)
         return None
+
+    def _resolve_graph_url_identifier(self, graph: Graph, subject: Node) -> str | None:
+        for term in ("url", "sameAs"):
+            identifier = self._first_http_identifier(graph, subject, term)
+            if identifier:
+                return self._sanitize_identifier(identifier)
+
+        subject_iri = self._http_iri(subject)
+        if subject_iri:
+            return self._sanitize_identifier(subject_iri)
+        return None
+
+    def _extract_doi(self, graph: Graph, subject: Node) -> str | None:
+        return self._pick_canonical_doi(self._extract_all_dois(graph, subject))
 
     def _http_iri(self, node: Node) -> str | None:
         if isinstance(node, BNode):
@@ -348,25 +411,44 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         sanitized = re.sub(r"_{2,}", "_", sanitized).strip("_")
         return sanitized
 
-    def _resolve_investigation_identifier(
-        self, graph: Graph, subject: Node, source_url: str | None, doi: str | None
-    ) -> str:
-        if doi:
-            return doi
+    def _identifier_plan_from_dois(self, all_dois: list[str]) -> tuple[str | None, tuple[str, ...]]:
+        canonical_doi = self._pick_canonical_doi(all_dois)
+        if not canonical_doi:
+            return None, ()
+        return canonical_doi, tuple(doi for doi in all_dois if doi != canonical_doi)
 
-        for term in ("url", "sameAs"):
-            identifier = self._first_http_identifier(graph, subject, term)
-            if identifier:
-                return self._sanitize_identifier(identifier)
+    def _plan_investigation_identifier(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None,
+        harvest_source_id: str | None = None,
+    ) -> _IdentifierPlan:
+        all_dois = self._extract_all_dois(graph, subject)
+        publication_doi, alternate_dois = self._identifier_plan_from_dois(all_dois)
 
-        subject_iri = self._http_iri(subject)
-        if subject_iri:
-            return self._sanitize_identifier(subject_iri)
+        harvest_id = self._resolve_harvest_source_identifier(source_url, harvest_source_id)
+        if harvest_id:
+            return _IdentifierPlan(
+                investigation_id=harvest_id,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
 
-        if source_url:
-            text = source_url.strip()
-            if text.startswith(("http://", "https://")):
-                return self._sanitize_identifier(text)
+        graph_id = self._resolve_graph_url_identifier(graph, subject)
+        if graph_id:
+            return _IdentifierPlan(
+                investigation_id=graph_id,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
+
+        if publication_doi:
+            return _IdentifierPlan(
+                investigation_id=publication_doi,
+                publication_doi=publication_doi,
+                alternate_dois=alternate_dois,
+            )
 
         raise ValueError(
             "Schema.org Dataset has no stable identifier "
@@ -377,17 +459,29 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     # ARC assembly
     # ------------------------------------------------------------------
 
-    def _map_arc(self, graph: Graph, subject: Node, source_url: str | None = None) -> ARC:
-        # Extract DOI once and reuse it for:
-        # - Investigation.identifier
-        # - Publications (DOI-based)
-        # - Assay output URI fallback when the graph has no URL/@id
-        doi = self._extract_doi(graph, subject)
+    def _map_arc(
+        self,
+        graph: Graph,
+        subject: Node,
+        source_url: str | None = None,
+        harvest_source_id: str | None = None,
+    ) -> ARC:
+        identifier_plan = self._plan_investigation_identifier(
+            graph,
+            subject,
+            source_url,
+            harvest_source_id,
+        )
+        publication_doi = identifier_plan.publication_doi
 
-        investigation = self._map_investigation(graph, subject, source_url=source_url, doi=doi)
+        investigation = self._map_investigation(
+            graph,
+            subject,
+            identifier_plan=identifier_plan,
+        )
         study = self._map_study(graph, subject)
         investigation.AddStudy(study)
-        assay = self._map_assay(graph, subject, source_url=source_url, doi=doi)
+        assay = self._map_assay(graph, subject, source_url=source_url, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
@@ -396,12 +490,12 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         self,
         graph: Graph,
         subject: Node,
-        source_url: str | None = None,
-        doi: str | None = None,
+        *,
+        identifier_plan: _IdentifierPlan,
     ) -> ArcInvestigation:
-        doi = doi or self._extract_doi(graph, subject)
+        plan = identifier_plan
         title = self._str(graph, subject, self._schema().name) or "Untitled Dataset"
-        identifier = self._resolve_investigation_identifier(graph, subject, source_url, doi)
+        identifier = plan.investigation_id
 
         description = self._str(graph, subject, self._schema().description) or ""
         submission_date = (
@@ -418,10 +512,16 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
         self._add_contacts(inv, graph, subject)
-        self._add_publications(inv, graph, subject, doi)
+        self._add_publications(inv, graph, subject, plan.publication_doi)
+        self._add_alternate_identifier_comments(inv, plan.alternate_dois)
         self._add_investigation_comments(inv, graph, subject)
         self._add_ontology_sources(inv)
         return inv
+
+    @staticmethod
+    def _add_alternate_identifier_comments(inv: ArcInvestigation, alternate_dois: tuple[str, ...]) -> None:
+        for doi in alternate_dois:
+            inv.Comments.append(Comment.create("Alternate Identifier", doi))
 
     def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
@@ -807,7 +907,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     def _resolve_assay_url(self, graph: Graph, subject: Node, source_url: str | None, doi: str | None) -> str:
         """Resolve the landing-page URL for the Measurement output URI cell.
 
-        Unlike ``_resolve_investigation_identifier``, this keeps full URLs
+        Unlike ``Investigation.identifier`` resolution, this keeps full URLs
         without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
         """
         for term in ("url", "sameAs"):
