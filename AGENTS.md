@@ -67,7 +67,7 @@ uv run pytest middleware/ -v
 uv run ruff format --check middleware/
 uv run ruff check middleware/
 uv run mypy --config-file pyproject.toml
-uv run pylint middleware/
+uv run pylint middleware/inspire middleware/linked_data middleware/harvester
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

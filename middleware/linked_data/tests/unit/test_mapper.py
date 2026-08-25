@@ -22,6 +22,11 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper
+from middleware.linked_data.linked_data_mapper.stable_graph import (
+    SCHEMA_ORG_NAMESPACES,
+    StableGraph,
+    _stable_term_token,
+)
 
 
 def test_general_mapper_returns_jsonld() -> None:
@@ -405,8 +410,6 @@ def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
 
 def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
     """Same lexical value, different language tags must not collide in signatures."""
-    from middleware.linked_data.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph
-
     schema = Namespace("https://schema.org/")
     graph = Graph()
     left = BNode()
@@ -423,8 +426,6 @@ def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
 
 def test_stable_node_sort_key_no_delimiter_collision() -> None:
     """Predicate/literal structures must not collapse to the same signature string."""
-    from middleware.linked_data.linked_data_mapper.stable_graph import StableGraph
-
     graph = Graph()
     left = BNode()
     right = BNode()
@@ -438,8 +439,6 @@ def test_stable_node_sort_key_no_delimiter_collision() -> None:
 
 def test_stable_term_token_no_literal_encoding_collision() -> None:
     """Crafted literal text must not mimic structured lang/datatype encoding."""
-    from middleware.linked_data.linked_data_mapper.stable_graph import _stable_term_token
-
     crafted = Literal("a|lang=|dt=x", datatype=URIRef("y"))
     structured = Literal("a", datatype=URIRef("x|lang=|dt=y"))
     crafted_token = _stable_term_token(crafted)

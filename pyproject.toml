@@ -262,7 +262,9 @@ extension-pkg-allow-list = ["lxml"]
 ignore-patterns = ["^\\..*", ".*\\.egg-info"]
 # Fail if the score is below 8.0
 fail-under = 8.0
-# Same-directory helpers for unit tests (`from fakes import …`, `from csw_client_helpers import …`)
+# Same-directory helpers for unit tests (`from fakes import …`, `from csw_client_helpers import …`).
+# Invoke pylint on package dirs (middleware/inspire …), not middleware/ — a parent path makes
+# discover_package_path pick the wrong source-root and bare helper imports fail (E0401).
 source-roots = ["middleware/linked_data/tests/unit", "middleware/inspire/tests/unit"]
 
 [tool.pylint.messages_control]

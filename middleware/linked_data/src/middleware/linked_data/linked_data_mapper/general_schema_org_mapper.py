@@ -59,10 +59,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         Namespace("http://schema.org/"),
     ]
 
-    def __init__(self) -> None:
-        """Initialize the Schema.org mapper (StableGraph session via base class)."""
-        super().__init__()
-
     def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap with Schema.org http/https term aliases and ``schema:name`` labels."""
         return StableGraph.wrap(

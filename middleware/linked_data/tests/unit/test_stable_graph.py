@@ -54,15 +54,15 @@ def test_resources_rank_bnodes_by_content_not_label() -> None:
     def build(names: list[str]) -> str:
         graph = Graph()
         dataset = URIRef("https://example.org/pub")
-        for name in names:
+        for label in names:
             publisher = BNode()
             graph.add((dataset, SCHEMA.publisher, publisher))
-            graph.add((publisher, SCHEMA.name, Literal(name)))
+            graph.add((publisher, SCHEMA.name, Literal(label)))
         view = _wrap(graph).view(dataset).resource(SCHEMA.publisher)
         assert view is not None
-        name = view.text(SCHEMA.name)
-        assert name is not None
-        return name
+        text = view.text(SCHEMA.name)
+        assert text is not None
+        return text
 
     assert build(["Zeta Org", "Alpha Org"]) == build(["Alpha Org", "Zeta Org"])
     assert build(["Zeta Org", "Alpha Org"]) == "Alpha Org"
