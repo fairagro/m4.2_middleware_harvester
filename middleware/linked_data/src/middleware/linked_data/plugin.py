@@ -16,7 +16,7 @@ from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
 from .errors import LinkedDataError, LinkedDataSitemapError
-from .linked_data_mapper import LinkedDataMapper
+from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .sitemap import Sitemap
 
 logger = logging.getLogger(__name__)
@@ -104,11 +104,14 @@ class LinkedDataPlugin:
 
         try:
             graph = await dataset.to_graph()
+            mapping_context = MappingContext(
+                source_url=source_url,
+                harvest_source_id=harvest_source_id,
+            )
             harvested = await asyncio.to_thread(
                 self._mapper.map_graph,
                 graph,
-                source_url=source_url,
-                harvest_source_id=harvest_source_id,
+                mapping_context,
             )
             return replace(harvested, source_url=source_url)
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:

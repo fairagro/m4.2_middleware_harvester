@@ -16,7 +16,8 @@ vocabulary mapper will rediscover the same harvest-stability bugs.
   accessors, `doi()` (including Schema.org `PropertyValue`), `http_iri()`,
   `labelled()`, optional `unknown_texts` / path helpers as needed for Schema.org.
 - **BREAKING** (mapper ABC): replace `map_graph(..., source_url=, harvest_source_id=)`
-  with `map_graph(graph, context: MappingContext | None = None)`.
+  with `map_graph(graph, context: MappingContext)` (required; empty `MappingContext()`
+  when no discovery data).
 - Migrate **GeneralSchemaOrgMapper** onto ResourceView (behaviour-preserving
   vs existing unit tests); delete private RDF-hygiene helpers that the API
   absorbs.

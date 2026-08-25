@@ -8,7 +8,24 @@ import re
 from arctrl import ARC  # type: ignore[import-untyped]
 from rdflib import Graph
 
+from middleware.linked_data.linked_data_mapper import MappingContext
+
 BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
+
+# Explicit empty discovery context for unit tests that only exercise graph mapping.
+NO_DISCOVERY = MappingContext()
+
+
+def assert_harvest_has_no_bnode_labels(arc_json: str) -> None:
+    """Fail if ARC JSON embeds rdflib blank-node labels in identifier/comment-like fields."""
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        for key, value in item.items():
+            if not isinstance(value, str):
+                continue
+            if BLANK_NODE_ID.fullmatch(value) or value.startswith("_:"):
+                raise AssertionError(f"blank-node label in {key!r}: {value}")
+
 
 OPENAGRAR_PROPERTYVALUE_DOI = """
 {

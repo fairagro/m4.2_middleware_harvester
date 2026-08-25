@@ -8,7 +8,8 @@ When mapping a linked-data graph, the linked-data plugin MUST build a
 `source_url` and MUST forward optional `harvest_source_id` when present so
 Schema.org mapping can key `Investigation.identifier` to the harvest unit
 without parsing URLs inside StableGraph. Inline discovery results without a
-fetched URL MAY pass an empty / null MappingContext (or omit context).
+fetched URL MUST still pass an explicit `MappingContext()` (with null
+`source_url` / `harvest_source_id`); callers MUST NOT omit the context argument.
 
 #### Scenario: Discovery URL is available to the Schema.org mapper
 
@@ -23,10 +24,10 @@ fetched URL MAY pass an empty / null MappingContext (or omit context).
 - **THEN** `map_graph` MUST receive a MappingContext carrying that
   `harvest_source_id`
 
-#### Scenario: Inline discovery without URL uses empty context
+#### Scenario: Inline discovery without URL uses empty MappingContext
 
 - **WHEN** the plugin maps a dataset from an inline discovery result with no
   landing URL
-- **THEN** `map_graph` MAY be called with no MappingContext or with null
-  `source_url` / `harvest_source_id`, and MUST NOT invent a fake URL solely to
-  populate context
+- **THEN** `map_graph` MUST be called with an explicit `MappingContext()` whose
+  `source_url` and `harvest_source_id` are null, and MUST NOT invent a fake URL
+  solely to populate context

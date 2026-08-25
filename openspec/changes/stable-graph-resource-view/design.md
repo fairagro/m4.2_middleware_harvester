@@ -62,13 +62,14 @@ onto it in one reviewable unit; Regal only updates the ABC signature.
    policy during extract.
    — Alternatives considered: redesign accessors first, then adapt Schema.org.
 
-5. **Identifier cascade + publisher invert stay mapper-local; `doi()` includes PropertyValue**
-   — Reasoning: Cascade order (harvest context → graph URL → DOI) and
+5. **Identifier cascade + publisher invert stay mapper-local; `doi()` is a graph brick**
+   — Cascade order (harvest context → graph URL → DOI) and
    publisher-preferring-resources-over-literals are Schema.org ARC policies
    (inverted vs default literal preference). Issue #138 keeps cascade out of the
-   API but lists `doi()` with PropertyValue as a brick. That split keeps
-   `stable-graph` free of Investigation.identifier rules while still centralizing
-   OpenAgrar PropertyValue parsing.
+   API but lists `doi()` with PropertyValue as a brick: reading a DOI from
+   Literal / IRI / PropertyValue-*shaped* RDF is still StableGraph concern when
+   `term_namespaces` are configured; deciding Investigation.identifier vs
+   Publication vs Alternate Identifier stays mapper-local.
    — Alternatives considered: PropertyValue only in mapper; full
    `resolve_investigation_id` inside the API.
 
@@ -83,9 +84,9 @@ onto it in one reviewable unit; Regal only updates the ABC signature.
 - **[Risk] Behaviour drift during Schema.org migrate** → Mitigation: treat
   existing `test_mapper.py` / `test_mapper_identifier.py` as acceptance; add
   focused ResourceView unit tests before deleting private helpers.
-- **[Risk] `doi()` Schema.org PropertyValue couples API to one vocabulary** →
-  Mitigation: document as optional shaped-node branch; Regal can ignore it;
-  prefer over duplicating PropertyValue parsing in the mapper.
+- **[Risk] `doi()` PropertyValue shape couples access to Schema.org-like RDF** →
+  Mitigation: gate on configured `term_namespaces`; document as shaped-node brick,
+  not Investigation.identifier policy; Regal can omit namespaces or ignore `doi()`.
 - **[Risk] ABC signature break churns Regal + all tests** → Mitigation: thin
   adapter in Regal (`_ = context`); update call sites mechanically; no Regal
   behaviour change in this PR.

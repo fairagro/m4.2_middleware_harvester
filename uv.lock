@@ -984,6 +984,7 @@ dependencies = [
     { name = "arctrl" },
     { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
+    { name = "nameparser" },
     { name = "pydantic" },
     { name = "rdflib" },
 ]
@@ -993,6 +994,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "nameparser", specifier = ">=2.1.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
 ]

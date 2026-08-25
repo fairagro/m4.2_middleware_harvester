@@ -88,3 +88,27 @@ and MUST NOT yield/upload a `HarvestedArc` for that record.
   the publisher MUST appear as a Comment (not a Person), and subsequent arctrl
   Write/load/`ToROCrateJsonString` (or equivalent round-trip used in tests)
   MUST NOT fail with `Person must have a given name`
+
+### Requirement: Display-name splitting is shared and parser-backed
+
+When a linked-data mapper must derive given/family names from a display string
+(Schema.org `name` / literal creator, Regal `skos:prefLabel`, etc.) rather than
+from structured given/family fields, it MUST use the shared
+`person_names.split_display_name` helper (backed by `nameparser`). Mappers MUST
+NOT keep private whitespace/last-token split heuristics for Person contacts.
+Single-token display strings MUST continue to yield no usable given name so
+organization-like labels remain fail-closed or Comment-mapped.
+
+#### Scenario: Particle and title-bearing display names split consistently
+
+- **WHEN** a display name such as `Dr. Juan Q. Xavier de la Vega III` is split
+  for a Person contact
+- **THEN** the shared helper MUST produce a non-empty given name and a family
+  name that retains particles such as `de la`, and MUST NOT assign the title or
+  suffix as the family name
+
+#### Scenario: Single-token label has no given name
+
+- **WHEN** the only display string is a single token such as `Zenodo`
+- **THEN** `split_display_name` MUST return an empty/missing given name so the
+  mapper can fail closed or emit an Organization Comment per existing rules

@@ -48,7 +48,10 @@ The current implementation supports only one concrete type per enum, but the plu
    polite client so robots.txt, per-host rate limiting, and retry/backoff apply to
    every outbound request—not only landing-page fetches.
 
-10. **Pass the discovered dataset URL into `map_graph` as `source_url`**
-    — Schema.org JSON-LD often has no Dataset `@id`/`url` (OpenAgrar). The MyCoRe
-    Receive-URL is known at discovery and is the fallback catalog id when no DOI is
-    present. Mapping errors for missing identity become `RecordProcessingError`.
+10. **Pass discovery context into `map_graph` as required `MappingContext`**
+   — The plugin always builds `MappingContext(source_url=…, harvest_source_id=…)` from
+   discovery (empty fields when none) and passes it to `map_graph`. Schema.org mapping
+   keys Investigation.identifier to the harvest unit without putting discovery fields into
+   StableGraph wrap. Schema.org JSON-LD often has no Dataset `@id`/`url` (OpenAgrar); the
+   MyCoRe Receive-URL / Solr id is the harvest-unit fallback. Mapping errors for missing
+   identity become `RecordProcessingError`.

@@ -6,6 +6,7 @@ import json
 import re
 
 import pytest
+from mapper_test_helpers import NO_DISCOVERY
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 
@@ -40,7 +41,7 @@ def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
     graph.add((SUBJECT, DCTERMS.creator, orcid))
     graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert "https://orcid.org/0000-0003-2547-933X" in text
 
 
@@ -50,7 +51,7 @@ def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
     graph.add((SUBJECT, DCTERMS.creator, fake))
     graph.add((fake, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert "Fuerst" in text
     assert "evil-orcid.org" not in text
 
@@ -72,7 +73,7 @@ def test_regal_mapper_maps_core_fields() -> None:
     graph.add((SUBJECT, DCTERMS.hasPart, part))
     graph.add((part, SKOS.prefLabel, Literal("readme.txt")))
 
-    result = json.loads(_mapper().map_graph(graph).arc_json)
+    result = json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json)
     assert "@graph" in result
     text = json.dumps(result)
     assert "Research Data Management Plan" in text
@@ -90,7 +91,7 @@ def test_regal_mapper_expands_compact_has_part_id() -> None:
     graph.add((SUBJECT, DCTERMS.hasPart, part))
     graph.add((part, SKOS.prefLabel, Literal("data.csv")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert f"{RESOURCE_BASE}frl:file-compact" in text
     assert "data.csv" in text
 
@@ -99,7 +100,7 @@ def test_regal_mapper_requires_research_data_type() -> None:
     graph = Graph()
     graph.add((SUBJECT, DCTERMS.title, Literal("Not research data")))
     with pytest.raises(ValueError, match="ResearchData"):
-        _mapper().map_graph(graph)
+        _mapper().map_graph(graph, NO_DISCOVERY)
 
 
 def test_regal_mapper_requires_identity() -> None:
@@ -108,7 +109,7 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
-        _mapper().map_graph(graph)
+        _mapper().map_graph(graph, NO_DISCOVERY)
 
 
 def test_regal_mapper_creates_spatial_sampling_when_location_present() -> None:
@@ -117,7 +118,7 @@ def test_regal_mapper_creates_spatial_sampling_when_location_present() -> None:
     graph.add((SUBJECT, REGAL.recordingLocation, place))
     graph.add((place, SKOS.prefLabel, Literal("Cologne")))
 
-    result = json.loads(_mapper().map_graph(graph).arc_json)
+    result = json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json)
     text = json.dumps(result)
     assert "Spatial Sampling" in text
     assert "Cologne" in text
@@ -135,7 +136,7 @@ def test_regal_mapper_prefers_joined_funding() -> None:
     # Flat duplicates should be ignored when joinedFunding exists.
     graph.add((SUBJECT, REGAL.fundingProgram, Literal("ignored-flat-program")))
 
-    result = json.loads(_mapper().map_graph(graph).arc_json)
+    result = json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json)
     text = json.dumps(result)
     assert "NFDI4Health Consortium" in text
     assert "442326535" in text
@@ -151,7 +152,7 @@ def test_regal_mapper_skips_opaque_duplicates_for_dedicated_predicates() -> None
     graph.add((item, SKOS.prefLabel, Literal("oai:frl.publisso.de:frl:123")))
     graph.add((SUBJECT, REGAL.associatedPublication, URIRef("https://doi.org/10.1000/xyz")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert "Catalog ID" in text
     assert "cat-42" in text
     assert "OAI Identifier" in text
@@ -170,7 +171,7 @@ def test_regal_mapper_license_blank_node_uses_pref_label() -> None:
     graph.add((SUBJECT, REGAL.license, license_node))
     graph.add((license_node, SKOS.prefLabel, Literal("CC BY 4.0")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert "CC BY 4.0" in text
     assert "_:" not in text
 
@@ -185,7 +186,7 @@ def test_regal_mapper_org_style_pref_label_is_comment_not_empty_given_person() -
     graph.add((SUBJECT, DCTERMS.creator, person))
     graph.add((person, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    text = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert "Fuerst" in text
     assert "Julia" in text
     assert "Zenodo" in text
@@ -206,7 +207,7 @@ def test_regal_mapper_orcid_without_given_name_fails_closed() -> None:
     graph.add((orcid, SKOS.prefLabel, Literal("OnlyFamily")))
 
     with pytest.raises(ValueError, match="non-empty given name"):
-        _mapper().map_graph(graph)
+        _mapper().map_graph(graph, NO_DISCOVERY)
 
 
 _BLANK_NODE_LABEL = re.compile(r"(?:N[0-9a-f]{32}|_:[A-Za-z0-9]+)", re.IGNORECASE)
@@ -236,7 +237,7 @@ def test_contributor_order_blank_node_does_not_create_comment() -> None:
     order_node = BNode()
     graph.add((SUBJECT, REGAL.contributorOrder, order_node))
 
-    harvested = _mapper().map_graph(graph)
+    harvested = _mapper().map_graph(graph, NO_DISCOVERY)
     entries = _comment_entries(harvested.arc_json)
     assert not any(name == "contributorOrder" for name, _ in entries)
     blob = json.dumps(json.loads(harvested.arc_json))
@@ -250,8 +251,8 @@ def test_contributor_order_blank_nodes_stable_across_two_maps() -> None:
         graph.add((SUBJECT, REGAL.contributorOrder, BNode()))
         return graph
 
-    first = _comment_entries(_mapper().map_graph(build()).arc_json)
-    second = _comment_entries(_mapper().map_graph(build()).arc_json)
+    first = _comment_entries(_mapper().map_graph(build(), NO_DISCOVERY).arc_json)
+    second = _comment_entries(_mapper().map_graph(build(), NO_DISCOVERY).arc_json)
     first_set = {(n, t) for n, t in first if n != "@id"}
     second_set = {(n, t) for n, t in second if n != "@id"}
     assert first_set == second_set
@@ -263,9 +264,9 @@ def test_opaque_unknown_predicate_unlabelled_blank_node_is_skipped() -> None:
     unknown = URIRef("http://hbz-nrw.de/regal#emi_measurement_techniques")
     graph.add((SUBJECT, unknown, BNode()))
 
-    entries = _comment_entries(_mapper().map_graph(graph).arc_json)
+    entries = _comment_entries(_mapper().map_graph(graph, NO_DISCOVERY).arc_json)
     assert not any(name == "emi_measurement_techniques" for name, _ in entries)
-    blob = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    blob = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert _BLANK_NODE_LABEL.search(blob) is None
 
 
@@ -276,7 +277,7 @@ def test_opaque_blank_node_with_pref_label_is_kept() -> None:
     graph.add((SUBJECT, unknown, node))
     graph.add((node, SKOS.prefLabel, Literal("Stable Label")))
 
-    entries = _comment_entries(_mapper().map_graph(graph).arc_json)
+    entries = _comment_entries(_mapper().map_graph(graph, NO_DISCOVERY).arc_json)
     assert ("emi_measurement_techniques", "Stable Label") in {(n, t) for n, t in entries if n != "@id"}
-    blob = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    blob = json.dumps(json.loads(_mapper().map_graph(graph, NO_DISCOVERY).arc_json))
     assert _BLANK_NODE_LABEL.search(blob) is None

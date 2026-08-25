@@ -100,9 +100,9 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
 
     assert results == [HarvestedArc(arc_json="mapped:graph", source_url="https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
-    (graph_arg,) = mock_mapper.map_graph.call_args.args
+    graph_arg, context_arg = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
-    assert mock_mapper.map_graph.call_args.kwargs["source_url"] == "https://example.org/dataset/1"
+    assert context_arg.source_url == "https://example.org/dataset/1"
 
 
 @pytest.mark.asyncio
@@ -147,7 +147,8 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
 
     assert len(results) == 1
     mock_mapper.map_graph.assert_called_once()
-    assert mock_mapper.map_graph.call_args.kwargs["harvest_source_id"] == "openagrar_mods_00107322"
+    _graph_arg, context_arg = mock_mapper.map_graph.call_args.args
+    assert context_arg.harvest_source_id == "openagrar_mods_00107322"
 
 
 @pytest.mark.asyncio

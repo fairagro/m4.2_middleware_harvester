@@ -9,6 +9,7 @@ from arctrl import ARC  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from mapper_test_helpers import (
+    NO_DISCOVERY,
     assert_stable_author_node_id,
     contact_name_pairs,
     investigation_description,
@@ -36,7 +37,7 @@ def test_general_mapper_returns_jsonld() -> None:
     graph.add((creator, schema.familyName, Literal("Lovelace")))
 
     mapper = GeneralSchemaOrgMapper()
-    result = mapper.map_graph(graph).arc_json
+    result = mapper.map_graph(graph, NO_DISCOVERY).arc_json
 
     assert result.startswith("{") and "@context" in result
 
@@ -46,7 +47,7 @@ def test_general_mapper_raises_when_no_dataset_entity_present() -> None:
 
     mapper = GeneralSchemaOrgMapper()
     with pytest.raises(ValueError, match="Graph does not contain a Schema.org Dataset entity"):
-        mapper.map_graph(graph)
+        mapper.map_graph(graph, NO_DISCOVERY)
 
 
 def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> None:
@@ -77,7 +78,7 @@ def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> No
     graph.add((dist, schema.contentUrl, Literal("https://example.org/data.csv")))
 
     mapper = GeneralSchemaOrgMapper()
-    result = mapper.map_graph(graph).arc_json
+    result = mapper.map_graph(graph, NO_DISCOVERY).arc_json
     payload = json.loads(result)
 
     assert "@graph" in payload
@@ -123,7 +124,7 @@ def _openagrar_like_graph() -> Graph:
 
 def test_openagrar_like_publisher_is_comment_not_empty_given_person(tmp_path: Path) -> None:
     mapper = GeneralSchemaOrgMapper()
-    harvested = mapper.map_graph(_openagrar_like_graph())
+    harvested = mapper.map_graph(_openagrar_like_graph(), NO_DISCOVERY)
     payload = json.loads(harvested.arc_json)
     people = [
         item
@@ -158,7 +159,7 @@ def test_author_without_given_name_fails_mapping() -> None:
 
     mapper = GeneralSchemaOrgMapper()
     with pytest.raises(ValueError, match="non-empty given name"):
-        mapper.map_graph(graph)
+        mapper.map_graph(graph, NO_DISCOVERY)
 
 
 def test_family_name_with_display_name_recovers_given_name() -> None:
@@ -174,7 +175,7 @@ def test_family_name_with_display_name_recovers_given_name() -> None:
     graph.add((author, schema.familyName, Literal("Lovelace")))
     graph.add((author, schema.name, Literal("Ada Lovelace")))
 
-    payload = json.loads(GeneralSchemaOrgMapper().map_graph(graph).arc_json)
+    payload = json.loads(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json)
     people = [
         item
         for item in payload["@graph"]
@@ -195,7 +196,7 @@ def test_single_token_literal_creator_fails_mapping() -> None:
 
     mapper = GeneralSchemaOrgMapper()
     with pytest.raises(ValueError, match="non-empty given name"):
-        mapper.map_graph(graph)
+        mapper.map_graph(graph, NO_DISCOVERY)
 
 
 def test_creator_affiliation_preserved_on_person() -> None:
@@ -214,7 +215,7 @@ def test_creator_affiliation_preserved_on_person() -> None:
     graph.add((org, RDF.type, schema.Organization))
     graph.add((org, schema.name, Literal("Thünen Institute")))
 
-    text = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    text = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert "Thünen Institute" in text
     payload = json.loads(text)
     people = [
@@ -239,8 +240,8 @@ def test_keywords_order_invariant() -> None:
             graph.add((dataset, schema.keywords, Literal(keyword)))
         return graph
 
-    first = GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"])).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"])).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build(["zeta", "alpha", "Beta"]), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Beta", "zeta", "alpha"]), NO_DISCOVERY).arc_json
     assert keywords_comment_text(first) == keywords_comment_text(second) == "alpha, Beta, zeta"
     assert keywords_derived_ids(first) == keywords_derived_ids(second)
     assert keywords_derived_ids(first), "expected Keywords Comment and/or ParameterValue @ids"
@@ -265,8 +266,8 @@ def test_description_prefers_en_over_de_and_skips_empty() -> None:
         Literal("English description", lang="en"),
     ]
     literals_b = list(reversed(literals_a))
-    first = GeneralSchemaOrgMapper().map_graph(build(literals_a)).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(literals_b)).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build(literals_a), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(literals_b), NO_DISCOVERY).arc_json
     assert investigation_description(first) == investigation_description(second) == "English description"
     assert "Deutsche" not in investigation_description(first)
 
@@ -293,8 +294,8 @@ def test_contacts_and_publication_authors_order_invariant() -> None:
         ("https://example.org/p/1", "Ada", "Lovelace"),
     ]
     order_b = list(reversed(order_a))
-    first = GeneralSchemaOrgMapper().map_graph(build(order_a)).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(order_b)).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build(order_a), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(order_b), NO_DISCOVERY).arc_json
     assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
     assert publication_author_node_id(first) == publication_author_node_id(second)
     assert_stable_author_node_id(publication_author_node_id(first), "A. Lovelace; Z. Zebra")
@@ -322,8 +323,8 @@ def test_double_map_openagrar_like_fixture_is_stable() -> None:
         graph.add((person, schema.givenName, Literal(given)))
         graph.add((person, schema.familyName, Literal(family)))
 
-    first = GeneralSchemaOrgMapper().map_graph(graph).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert keywords_comment_text(first) == keywords_comment_text(second) == "intercrop, legume, pollinators"
     assert keywords_derived_ids(first) == keywords_derived_ids(second)
     assert investigation_description(first) == investigation_description(second) == "Full English abstract"
@@ -349,7 +350,7 @@ def test_obj_prefers_uriref_publisher_over_blank_node() -> None:
     graph.add((named, RDF.type, schema.Organization))
     graph.add((named, schema.name, Literal("Named Org")))
 
-    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == "Named Org"
+    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json) == "Named Org"
 
 
 def test_obj_blank_publisher_choice_stable_across_fresh_bnode_labels() -> None:
@@ -368,8 +369,8 @@ def test_obj_blank_publisher_choice_stable_across_fresh_bnode_labels() -> None:
             graph.add((publisher, schema.name, Literal(name)))
         return graph
 
-    first = GeneralSchemaOrgMapper().map_graph(build(["Zeta Org", "Alpha Org"])).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(["Alpha Org", "Zeta Org"])).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build(["Zeta Org", "Alpha Org"]), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(["Alpha Org", "Zeta Org"]), NO_DISCOVERY).arc_json
     assert publisher_comment_text(first) == publisher_comment_text(second) == "Alpha Org"
 
 
@@ -397,22 +398,24 @@ def test_obj_nested_blank_publisher_choice_uses_nested_literals() -> None:
     # Direct name alone would prefer "Aaa Org"; nested locality prefers Amsterdam → "Zzz Org".
     entries_a = [("Zurich", "Aaa Org"), ("Amsterdam", "Zzz Org")]
     entries_b = list(reversed(entries_a))
-    first = GeneralSchemaOrgMapper().map_graph(build(entries_a)).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build(entries_b)).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build(entries_a), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build(entries_b), NO_DISCOVERY).arc_json
     assert publisher_comment_text(first) == publisher_comment_text(second) == "Zzz Org"
 
 
 def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
     """Same lexical value, different language tags must not collide in signatures."""
+    from middleware.linked_data.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph
+
     schema = Namespace("https://schema.org/")
-    mapper = GeneralSchemaOrgMapper()
     graph = Graph()
     left = BNode()
     right = BNode()
     graph.add((left, schema.name, Literal("Same", lang="en")))
     graph.add((right, schema.name, Literal("Same", lang="de")))
-    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
-    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    sg = StableGraph.wrap(graph, term_namespaces=SCHEMA_ORG_NAMESPACES)
+    left_key = sg.view(left).sort_key()
+    right_key = sg.view(right).sort_key()
     assert left_key != right_key
     assert "'en'" in left_key[1]
     assert "'de'" in right_key[1]
@@ -420,24 +423,27 @@ def test_stable_node_sort_key_distinguishes_literal_language_tags() -> None:
 
 def test_stable_node_sort_key_no_delimiter_collision() -> None:
     """Predicate/literal structures must not collapse to the same signature string."""
-    mapper = GeneralSchemaOrgMapper()
+    from middleware.linked_data.linked_data_mapper.stable_graph import StableGraph
+
     graph = Graph()
     left = BNode()
     right = BNode()
     graph.add((left, URIRef("http://ex/a"), Literal("b=c")))
     graph.add((right, URIRef("http://ex/a=b"), Literal("c")))
-    left_key = mapper._stable_node_sort_key(graph, left)  # noqa: SLF001
-    right_key = mapper._stable_node_sort_key(graph, right)  # noqa: SLF001
+    sg = StableGraph.wrap(graph)
+    left_key = sg.view(left).sort_key()
+    right_key = sg.view(right).sort_key()
     assert left_key != right_key
 
 
 def test_stable_term_token_no_literal_encoding_collision() -> None:
     """Crafted literal text must not mimic structured lang/datatype encoding."""
-    mapper = GeneralSchemaOrgMapper()
+    from middleware.linked_data.linked_data_mapper.stable_graph import _stable_term_token
+
     crafted = Literal("a|lang=|dt=x", datatype=URIRef("y"))
     structured = Literal("a", datatype=URIRef("x|lang=|dt=y"))
-    crafted_token = mapper._stable_term_token(crafted)  # noqa: SLF001
-    structured_token = mapper._stable_term_token(structured)  # noqa: SLF001
+    crafted_token = _stable_term_token(crafted)
+    structured_token = _stable_term_token(structured)
     assert crafted_token is not None
     assert structured_token is not None
     assert crafted_token != structured_token
@@ -465,7 +471,7 @@ def test_strs_uses_bnode_schema_name_and_skips_unlabelled_bnodes() -> None:
 
     graph.add((dataset, schema.keywords, Literal("literal-kw")))
 
-    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert keywords_comment_text(arc_json) == "DefinedTerm Keyword, literal-kw"
     assert not re.search(r"\bN[0-9a-fA-F]{32}\b", keywords_comment_text(arc_json) or "")
     assert "_:" not in (keywords_comment_text(arc_json) or "")
@@ -482,7 +488,7 @@ def test_publisher_uriref_without_name_is_kept() -> None:
     graph.add((dataset, schema.publisher, publisher))
     graph.add((publisher, RDF.type, schema.Organization))
 
-    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph).arc_json) == (
+    assert publisher_comment_text(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json) == (
         "https://example.org/org/nameless"
     )
 
@@ -498,7 +504,7 @@ def test_publisher_unlabelled_bnode_without_name_is_skipped() -> None:
     graph.add((dataset, schema.publisher, publisher))
     graph.add((publisher, RDF.type, schema.Organization))
 
-    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert publisher_comment_text(arc_json) is None
     assert not re.search(r"#LDComment_Publisher_N[0-9a-fA-F]{32}", arc_json)
 
@@ -517,7 +523,7 @@ def test_publisher_prefers_organization_name_over_literal_for_processing_note() 
     graph.add((org, RDF.type, schema.Organization))
     graph.add((org, schema.name, Literal("Zenodo")))
 
-    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert publisher_comment_text(arc_json) == "Zenodo"
     assert "Publisher: Zenodo" in arc_json
     assert "Publisher: string-publisher" not in arc_json
@@ -533,7 +539,7 @@ def test_literal_only_publisher_enriches_processing_note() -> None:
     graph.add((dataset, schema.identifier, Literal("10.9/pub-lit")))
     graph.add((dataset, schema.publisher, Literal("Literal Press")))
 
-    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert publisher_comment_text(arc_json) == "Literal Press"
     assert "Publisher: Literal Press" in arc_json
 
@@ -550,7 +556,7 @@ def test_publisher_falls_back_to_literal_when_organization_bnode_has_no_name() -
     graph.add((blank_org, RDF.type, schema.Organization))
     graph.add((dataset, schema.publisher, Literal("Fallback Press")))
 
-    arc_json = GeneralSchemaOrgMapper().map_graph(graph).arc_json
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert publisher_comment_text(arc_json) == "Fallback Press"
     assert "Publisher: Fallback Press" in arc_json
 
@@ -572,6 +578,6 @@ def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
             graph.add((person, schema.familyName, Literal(family)))
         return graph
 
-    first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")])).arc_json
-    second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")])).arc_json
+    first = GeneralSchemaOrgMapper().map_graph(build([("Zed", "Zebra"), ("Ada", "Lovelace")]), NO_DISCOVERY).arc_json
+    second = GeneralSchemaOrgMapper().map_graph(build([("Ada", "Lovelace"), ("Zed", "Zebra")]), NO_DISCOVERY).arc_json
     assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]

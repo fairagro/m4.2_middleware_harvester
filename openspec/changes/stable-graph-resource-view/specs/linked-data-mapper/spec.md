@@ -1,15 +1,16 @@
 ## ADDED Requirements
 
-### Requirement: map_graph accepts optional MappingContext
+### Requirement: map_graph requires MappingContext
 
 The system SHALL provide a `MappingContext` value object that carries discovery
 context for a single map operation: optional `source_url` (discovered landing
 page URL) and optional `harvest_source_id` (RDI-native catalog id). The
-`LinkedDataMapper.map_graph` method MUST accept an `rdflib.Graph` and an
-optional `MappingContext` (or equivalent named parameter) instead of separate
-loose `source_url` / `harvest_source_id` keyword arguments. Implementations that
-do not use discovery context MAY ignore the context value. MappingContext MUST
-NOT be passed into StableGraph wrap.
+`LinkedDataMapper.map_graph` method MUST accept an `rdflib.Graph` and a required
+`MappingContext` instead of separate loose `source_url` / `harvest_source_id`
+keyword arguments. Callers without discovery data MUST pass an explicit empty
+`MappingContext()` (fields default to null). Implementations that do not use
+discovery context MAY ignore the context value. MappingContext MUST NOT be
+passed into StableGraph wrap.
 
 #### Scenario: Schema.org map with harvest context
 
@@ -23,6 +24,13 @@ NOT be passed into StableGraph wrap.
 - **WHEN** `map_graph` is called on RegalMapper with a MappingContext
 - **THEN** mapping MUST still succeed when the graph is mappable; unused context
   fields MUST NOT cause failure
+
+#### Scenario: Map with empty MappingContext remains valid
+
+- **WHEN** `map_graph` is called with a mappable graph and an empty
+  `MappingContext()`
+- **THEN** the return type is still `HarvestedArc` when the vocabulary mapper
+  can resolve required fields without discovery context
 
 ### Requirement: GeneralSchemaOrgMapper MUST use ResourceView for RDF field access
 
@@ -56,7 +64,7 @@ requirements in this capability and `openspec/specs/stable-graph/`).
 ### Requirement: LinkedDataMapper.map_graph returns HarvestedArc
 
 The system SHALL provide a `LinkedDataMapper` ABC whose `map_graph` method
-accepts an `rdflib.Graph` and an optional `MappingContext` and returns a
+accepts an `rdflib.Graph` and a required `MappingContext` and returns a
 `HarvestedArc`. Implementations MUST build the value via
 `HarvestedArc.from_arctrl` (or equivalent) so the orchestrator receives
 serialized ARC JSON plus composition counts without re-parsing RO-Crate JSON.
@@ -64,11 +72,5 @@ The mapper MUST NOT return a bare JSON string.
 
 #### Scenario: Successful map produces HarvestedArc
 
-- **WHEN** `map_graph` is called with a mappable graph
+- **WHEN** `map_graph` is called with a mappable graph and a MappingContext
 - **THEN** the return type is `HarvestedArc`, not `str`
-
-#### Scenario: Map without context remains valid
-
-- **WHEN** `map_graph` is called with a mappable graph and no MappingContext
-- **THEN** the return type is still `HarvestedArc` when the vocabulary mapper
-  can resolve required fields without discovery context

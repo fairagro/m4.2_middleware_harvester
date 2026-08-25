@@ -31,6 +31,11 @@ schema.org, `RegalMapper` for Regal).
    `arc-export` after ISA Write/load. Mappers therefore emit `Comment("Publisher", …)` (and
    keep creator affiliations on `Person.Affiliation`), refuse placeholder given names, and
    fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.
+   Display-string splits (when structured given/family fields are absent) go through shared
+   `person_names.split_display_name` (`nameparser`), not per-mapper heuristics, so particles,
+   titles/suffixes, and `Family, Given` forms stay consistent across Schema.org and Regal.
+   Single-token labels remain unlabeled agents (`given=None`) so org-like literals still fail
+   closed or become Comments.
 
 6. **Schema.org Investigation.identifier is harvest-stable or the record is refused**
    — rdflib blank-node labels are parser-internal and change every parse; the API hashes
@@ -43,7 +48,7 @@ schema.org, `RegalMapper` for Regal).
    mapping error. DOIs (including Schema.org `PropertyValue`) always appear in Publication and/or
    Investigation Comments; they are not the primary identifier when harvest context exists. Title
    slugs and `str(subject)` on blank nodes are not identifiers. The plugin passes
-   `map_graph(..., source_url=..., harvest_source_id=...)`.
+   `map_graph(..., context=MappingContext(source_url=..., harvest_source_id=...))`.
 
 7. **Schema.org multi-value fields and contacts are harvest-deterministic**
    — Keywords are trimmed/deduped/sorted (`casefold`). Multi-literal `_str` prefers
@@ -59,3 +64,35 @@ schema.org, `RegalMapper` for Regal).
    the canonical Publication DOI; non-canonical DOIs become `Alternate Identifier` Comments.
    `Investigation.identifier` remains the harvest source key (`harvest_source_id` or page URL)
    when discovery context is supplied, so multi-DOI order in JSON-LD cannot flip `arc_id` between runs.
+
+9. **RDF field access goes through StableGraph / ResourceView; discovery via MappingContext**
+   — `LinkedDataMapper.map_graph` opens a StableGraph session (subclass
+   `_stable_wrap` supplies vocabulary wrap policy) and delegates to `_map_graph`.
+   Vocabulary mappers read RDF via `view` / `stable` (see
+   `openspec/specs/stable-graph/`) so blank-node labels and rdflib iteration order cannot
+   leak into ARC text. `StableGraph.wrap` takes generic `term_namespaces` /
+   `label_predicates`; Schema.org passes `SCHEMA_ORG_NAMESPACES` from `_stable_wrap`.
+   Regal migration onto ResourceView is a follow-up. Discovery context is a required frozen
+   `MappingContext` on `map_graph`, never part of StableGraph wrap. Callers without
+   discovery pass an explicit empty `MappingContext()`. Identifier cascade and
+   publisher-invert policy stay mapper-local, composed from API bricks (`doi`, `http_iri`,
+   accessors).
+
+10. **StableGraph vs LinkedDataMapper boundary (Faustregel)**
+   — **StableGraph / ResourceView** answer: what is *stably* in the RDF? They know the
+   graph, nodes, literals, and wrap policy; they must not encode discovery,
+   Investigation.identifier cascade, or Person/Comment policy.
+   — **LinkedDataMapper** answers: how does that become a *HarvestedArc*? It owns the
+   plugin contract (`map_graph`, registry), `MappingContext`, session lifecycle, and
+   shared ARC-oriented helpers (`sanitize_identifier`, `to_identifier_slug`,
+   `pick_canonical_doi`, `resolve_harvest_source_identifier`).
+   — Place a function by dependency: if it is explainable with only Graph + policy →
+   StableGraph; if it needs harvest/ARC identity or “what becomes the Investigation?” →
+   mapper ABC or vocabulary mapper. Do not re-wrap ResourceView methods on the ABC
+   (`view(node)["name"]` / `stable.sort_key` instead of mapper `schema_text` /
+   `node_key` facades).
+   — **`doi()` stays on ResourceView**: extracting a DOI from Literal / IRI / a
+   PropertyValue-*shaped* node is still graph reading (optional when
+   `term_namespaces` are configured). Choosing whether that DOI becomes
+   `Investigation.identifier`, a Publication DOI, or an Alternate Identifier Comment
+   remains mapper policy.
