@@ -70,9 +70,18 @@ uv run mypy --config-file pyproject.toml
 uv run pylint middleware/
 uv run bandit -r middleware/ -c .bandit -ll
 
+# Or wrap commit-stage pre-commit hooks:
+./scripts/quality-fix.sh
+./scripts/quality-check.sh
+
 # Install/Update all dependencies
 uv sync --dev --all-packages
 ```
+
+Note: Cursor Source Control may skip git hooks (≥3.15.6: forces `core.hooksPath=/dev/null`).
+Dev Container `remoteEnv` prepends `scripts/bin` so SCM uses `scripts/cursor-git.sh`, which
+strips that pin. Terminal `git` is unaffected. Remove once Cursor fixes
+[forum #167719](https://forum.cursor.com/t/167719).
 
 ### Execution
 

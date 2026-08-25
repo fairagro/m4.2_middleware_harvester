@@ -39,6 +39,11 @@ Runs once per devcontainer create:
 `scripts/load-env.sh` is sourced from `~/.bashrc` on each shell and handles PATH,
 aliases, ggshield status, and SOPS `.env` decryption.
 
+Cursor Source Control (≥3.15.6) may force `core.hooksPath=/dev/null` and skip
+pre-commit. `remoteEnv.PATH` prepends `scripts/bin` so SCM `git` runs
+`scripts/cursor-git.sh`, which strips that pin ([forum #167719](https://forum.cursor.com/t/167719)).
+Rebuild/reopen the container after pulling this change so `remoteEnv` applies.
+
 For a **local clone outside devcontainers**, run once after `uv sync`:
 
 ```bash
