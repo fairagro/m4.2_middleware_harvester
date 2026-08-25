@@ -17,14 +17,25 @@ NO_DISCOVERY = MappingContext()
 
 
 def assert_harvest_has_no_bnode_labels(arc_json: str) -> None:
-    """Fail if ARC JSON embeds rdflib blank-node labels in identifier/comment-like fields."""
-    payload = json.loads(arc_json)
-    for item in payload.get("@graph", []):
-        for key, value in item.items():
-            if not isinstance(value, str):
-                continue
-            if BLANK_NODE_ID.fullmatch(value) or value.startswith("_:"):
-                raise AssertionError(f"blank-node label in {key!r}: {value}")
+    """Fail if ARC JSON embeds rdflib blank-node labels anywhere in the payload."""
+
+    def is_bnode_label(value: str) -> bool:
+        return bool(BLANK_NODE_ID.fullmatch(value) or value.startswith("_:"))
+
+    def walk(value: object, path: str) -> None:
+        if isinstance(value, str):
+            if is_bnode_label(value):
+                raise AssertionError(f"blank-node label at {path}: {value}")
+            return
+        if isinstance(value, dict):
+            for key, inner in value.items():
+                walk(inner, f"{path}.{key}")
+            return
+        if isinstance(value, list):
+            for idx, inner in enumerate(value):
+                walk(inner, f"{path}[{idx}]")
+
+    walk(json.loads(arc_json), "$")
 
 
 OPENAGRAR_PROPERTYVALUE_DOI = """
@@ -68,6 +79,7 @@ def parse_jsonld(payload: str) -> Graph:
 
 
 def root_identifier(arc_json: str) -> str:
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     root = next(item for item in payload["@graph"] if item.get("@id") == "./")
     identifier = root["identifier"]
@@ -86,6 +98,7 @@ def rocrate_prop(item: dict, short_name: str) -> str:
 
 
 def keywords_comment_text(arc_json: str) -> str | None:
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
         types = item.get("@type")
@@ -99,6 +112,7 @@ def keywords_comment_text(arc_json: str) -> str | None:
 
 def keywords_derived_ids(arc_json: str) -> list[str]:
     """Return sorted @ids of Keywords Comment / ParameterValue nodes (hash-relevant)."""
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     ids: list[str] = []
     for item in payload.get("@graph", []):
@@ -109,6 +123,7 @@ def keywords_derived_ids(arc_json: str) -> list[str]:
 
 
 def investigation_description(arc_json: str) -> str:
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
         types = item.get("@type")
@@ -128,6 +143,7 @@ def investigation_description(arc_json: str) -> str:
 
 def contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
     """Return Investigation contact order from ARCtrl, not JSON-LD @graph order."""
+    assert_harvest_has_no_bnode_labels(arc_json)
     arc = ARC.from_rocrate_json_string(arc_json)
     pairs: list[tuple[str, str]] = []
     for person in arc.Contacts:
@@ -140,6 +156,7 @@ def contact_name_pairs(arc_json: str) -> list[tuple[str, str]]:
 
 def publication_author_node_id(arc_json: str) -> str | None:
     """Return a stable #Author_* @id (lexicographically smallest; @graph order is undefined)."""
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     author_ids = [
         person_id
@@ -158,6 +175,7 @@ def assert_stable_author_node_id(author_id: str | None, expected_authors: str) -
 
 
 def publisher_comment_text(arc_json: str) -> str | None:
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     for item in payload.get("@graph", []):
         types = item.get("@type")
@@ -174,6 +192,7 @@ def dual_doi_payload(first_doi: str, second_doi: str) -> str:
 
 
 def alternate_identifier_values(arc_json: str) -> list[str]:
+    assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     values: list[str] = []
     for item in payload["@graph"]:

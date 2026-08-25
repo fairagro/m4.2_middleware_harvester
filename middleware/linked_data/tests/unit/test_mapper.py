@@ -10,6 +10,7 @@ from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # t
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
     contact_name_pairs,
     investigation_description,
@@ -43,6 +44,7 @@ def test_general_mapper_returns_jsonld() -> None:
 
     mapper = GeneralSchemaOrgMapper()
     result = mapper.map_graph(graph, NO_DISCOVERY).arc_json
+    assert_harvest_has_no_bnode_labels(result)
 
     assert result.startswith("{") and "@context" in result
 
@@ -84,6 +86,7 @@ def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> No
 
     mapper = GeneralSchemaOrgMapper()
     result = mapper.map_graph(graph, NO_DISCOVERY).arc_json
+    assert_harvest_has_no_bnode_labels(result)
     payload = json.loads(result)
 
     assert "@graph" in payload
@@ -130,6 +133,7 @@ def _openagrar_like_graph() -> Graph:
 def test_openagrar_like_publisher_is_comment_not_empty_given_person(tmp_path: Path) -> None:
     mapper = GeneralSchemaOrgMapper()
     harvested = mapper.map_graph(_openagrar_like_graph(), NO_DISCOVERY)
+    assert_harvest_has_no_bnode_labels(harvested.arc_json)
     payload = json.loads(harvested.arc_json)
     people = [
         item
@@ -180,7 +184,9 @@ def test_family_name_with_display_name_recovers_given_name() -> None:
     graph.add((author, schema.familyName, Literal("Lovelace")))
     graph.add((author, schema.name, Literal("Ada Lovelace")))
 
-    payload = json.loads(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json)
+    arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
+    assert_harvest_has_no_bnode_labels(arc_json)
+    payload = json.loads(arc_json)
     people = [
         item
         for item in payload["@graph"]
@@ -221,6 +227,7 @@ def test_creator_affiliation_preserved_on_person() -> None:
     graph.add((org, schema.name, Literal("Thünen Institute")))
 
     text = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
+    assert_harvest_has_no_bnode_labels(text)
     assert "Thünen Institute" in text
     payload = json.loads(text)
     people = [

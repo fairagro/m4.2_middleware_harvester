@@ -135,10 +135,11 @@ so callers need not duplicate lookups.
 
 The system SHALL provide a shared unit-test helper that asserts serialized ARC /
 harvest JSON does not embed rdflib blank-node labels (`N` plus 32 hex digits, or
-`_:…`) in identifier or comment text positions under test. The helper is for
-tests only; production harvest MUST NOT require a runtime hard-fail linter.
+`_:…`) anywhere in the JSON tree under test. The helper is for tests only;
+production harvest MUST NOT require a runtime hard-fail linter.
 
 #### Scenario: Helper fails when Comment text is a BNode label
 
 - **WHEN** test ARC JSON contains Comment text matching an rdflib blank-node label
+  (including nested under `@graph` items)
 - **THEN** the helper MUST fail the assertion
