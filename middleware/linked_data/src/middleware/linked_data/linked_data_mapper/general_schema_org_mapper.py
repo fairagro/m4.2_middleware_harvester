@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import override
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -35,7 +36,7 @@ from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .person_contacts import require_nonempty_person_given_names
 from .person_names import split_display_name
-from .stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph, http_iri
+from .stable_graph import SCHEMA_ORG_NAMESPACES, ResourceView, StableGraph, http_iri
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,8 @@ class _IdentifierPlan:
 class GeneralSchemaOrgMapper(LinkedDataMapper):
     """Maps a Schema.org RDF graph to ARC objects.
 
-    RDF reads use StableGraph; identifier cascade and publisher policy stay here.
+    RDF reads use the ``StableGraph`` passed into ``_map_graph`` (via a per-call
+    ``_SchemaOrgRun``); identifier cascade and publisher policy stay here.
     """
 
     SCHEMA_URIS = [
@@ -59,6 +61,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         Namespace("http://schema.org/"),
     ]
 
+    @override
     def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap with Schema.org http/https term aliases and ``schema:name`` labels."""
         return StableGraph.wrap(
@@ -67,22 +70,15 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             label_predicates=tuple(ns.name for ns in SCHEMA_ORG_NAMESPACES),
         )
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    def _map_graph(self, graph: Graph, context: MappingContext) -> HarvestedArc:
+    @override
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
         subject = self._find_dataset_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
-        arc = self._map_arc(subject, context)
+        arc = _SchemaOrgRun(self, stable).map_arc(subject, context)
         return HarvestedArc.from_arctrl(arc)
-
-    # ------------------------------------------------------------------
-    # Graph access helpers
-    # ------------------------------------------------------------------
 
     def _find_dataset_subject(self, graph: Graph) -> Node | None:
         for schema in self.SCHEMA_URIS:
@@ -90,6 +86,30 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             if subjects:
                 return subjects[0]
         return next(iter(graph.subjects()), None)
+
+
+@dataclass(frozen=True)
+class _SchemaOrgRun:
+    """One ``map_graph`` call: owns the StableGraph explicitly (not on the mapper)."""
+
+    mapper: GeneralSchemaOrgMapper
+    stable: StableGraph
+
+    def view(self, subject: Node) -> ResourceView:
+        """ResourceView for ``subject`` on this call's StableGraph."""
+        return self.stable.view(subject)
+
+    def map_arc(self, subject: Node, context: MappingContext) -> ARC:
+        identifier_plan = self._plan_investigation_identifier(subject, context)
+        publication_doi = identifier_plan.publication_doi
+
+        investigation = self._map_investigation(subject, identifier_plan=identifier_plan)
+        study = self._map_study(subject)
+        investigation.AddStudy(study)
+        assay = self._map_assay(subject, context, doi=publication_doi)
+        investigation.AddAssay(assay)
+        study.RegisterAssay(assay.Identifier)
+        return ARC.from_arc_investigation(investigation)
 
     def _canonical_http_identifier(self, subject: Node, term: str) -> str | None:
         iris = [iri for obj in self.view(subject).schema_objects(term) if (iri := http_iri(obj))]
@@ -101,16 +121,16 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         for term in ("url", "sameAs"):
             identifier = self._canonical_http_identifier(subject, term)
             if identifier:
-                return self.sanitize_identifier(identifier)
+                return self.mapper.sanitize_identifier(identifier)
         subject_iri = http_iri(subject)
-        return self.sanitize_identifier(subject_iri) if subject_iri else None
+        return self.mapper.sanitize_identifier(subject_iri) if subject_iri else None
 
     def _plan_investigation_identifier(self, subject: Node, context: MappingContext) -> _IdentifierPlan:
         all_dois = self.view(subject).schema_dois("identifier")
-        publication_doi = self.pick_canonical_doi(all_dois)
+        publication_doi = self.mapper.pick_canonical_doi(all_dois)
         alternate_dois = tuple(doi for doi in all_dois if doi != publication_doi) if publication_doi else ()
 
-        harvest_id = self.resolve_harvest_source_identifier(context)
+        harvest_id = self.mapper.resolve_harvest_source_identifier(context)
         if harvest_id:
             return _IdentifierPlan(harvest_id, publication_doi, alternate_dois)
 
@@ -125,22 +145,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             "Schema.org Dataset has no stable identifier "
             "(DOI, http(s) URL, or source URL); refusing blank-node identifier"
         )
-
-    # ------------------------------------------------------------------
-    # ARC assembly
-    # ------------------------------------------------------------------
-
-    def _map_arc(self, subject: Node, context: MappingContext) -> ARC:
-        identifier_plan = self._plan_investigation_identifier(subject, context)
-        publication_doi = identifier_plan.publication_doi
-
-        investigation = self._map_investigation(subject, identifier_plan=identifier_plan)
-        study = self._map_study(subject)
-        investigation.AddStudy(study)
-        assay = self._map_assay(subject, context, doi=publication_doi)
-        investigation.AddAssay(assay)
-        study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
 
     def _map_investigation(
         self,
@@ -191,10 +195,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 OntologySourceReference.create(name=name, file=url, version="", description=desc)
             )
 
-    # ------------------------------------------------------------------
-    # Contacts
-    # ------------------------------------------------------------------
-
     def _add_contacts(self, inv: ArcInvestigation, subject: Node) -> None:
         creators = sorted(
             self.view(subject).schema_objects("creator"),
@@ -217,7 +217,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
         for node in contributors:
             self._append_contact(inv, node, "contributor")
-        # Organization publishers are Investigation comments, not Person contacts.
         require_nonempty_person_given_names(inv)
 
     def _contact_sort_key(self, node: Node) -> tuple[str, str, str, tuple[int, str]]:
@@ -275,7 +274,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         family = (self.view(node)["familyName"] or "").strip()
         name = self.view(node)["name"]
 
-        # Common Schema.org shape: familyName set, givenName missing, full display in name.
         if not given and name:
             parts = split_display_name(name)
             if parts.given:
@@ -342,17 +340,12 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         ]
         return ", ".join(p for p in parts if p) or None
 
-    # ------------------------------------------------------------------
-    # Publications
-    # ------------------------------------------------------------------
-
     def _add_publications(self, inv: ArcInvestigation, subject: Node, doi: str | None) -> None:
         if doi:
             authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
             author_strs: list[str] = []
             for p in authors:
                 if p.FirstName and p.LastName:
-                    # Avoid "Last, F." — ARCtrl splits on commas into broken Author nodes.
                     author_strs.append(f"{p.FirstName[0]}. {p.LastName}")
                 elif p.LastName:
                     author_strs.append(p.LastName)
@@ -370,10 +363,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         for citation in self.view(subject).schema_texts("citation"):
             if citation and citation not in [p.DOI for p in inv.Publications]:
                 inv.Publications.append(Publication.create(title=citation[:200], authors=None))
-
-    # ------------------------------------------------------------------
-    # Investigation comments
-    # ------------------------------------------------------------------
 
     def _add_investigation_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         keywords = self.view(subject).schema_texts("keywords")
@@ -418,7 +407,6 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             yield Literal(lit.value)
 
     def _add_publisher_comment(self, inv: ArcInvestigation, subject: Node) -> None:
-        # Prefer Organization / named resources over bare string literals when both exist.
         for publisher_node in self._iter_preferred_publishers(subject):
             if isinstance(publisher_node, Literal):
                 inv.Comments.append(Comment.create("Publisher", str(publisher_node)))
@@ -447,13 +435,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
                 return str(node)
         return None
 
-    # ------------------------------------------------------------------
-    # Study
-    # ------------------------------------------------------------------
-
     def _map_study(self, subject: Node) -> ArcStudy:
         title = self.view(subject)["name"] or "Untitled Dataset"
-        identifier = self.to_identifier_slug(title) or "dataset"
+        identifier = self.mapper.to_identifier_slug(title) or "dataset"
         description = self.view(subject)["description"] or "Imported from Schema.org metadata"
 
         study = ArcStudy.create(
@@ -513,13 +497,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
         return table
 
-    # ------------------------------------------------------------------
-    # Assay
-    # ------------------------------------------------------------------
-
     def _map_assay(self, subject: Node, context: MappingContext, *, doi: str | None = None) -> ArcAssay:
         title = self.view(subject)["name"] or "Untitled Dataset"
-        identifier = self.to_identifier_slug(title) or "dataset"
+        identifier = self.mapper.to_identifier_slug(title) or "dataset"
 
         assay = ArcAssay.create(
             identifier=identifier,
@@ -532,11 +512,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         return assay
 
     def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str:
-        """Resolve the landing-page URL for the Measurement output URI cell.
-
-        Unlike ``Investigation.identifier`` resolution, this keeps full URLs
-        without compacting Receive-URL ``/receive/{id}`` paths to catalog ids.
-        """
+        """Resolve the landing-page URL for the Measurement output URI cell."""
         for term in ("url", "sameAs"):
             iri = self._canonical_http_identifier(subject, term)
             if iri:

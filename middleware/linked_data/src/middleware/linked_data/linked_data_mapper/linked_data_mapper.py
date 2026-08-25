@@ -4,19 +4,17 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
 from rdflib import Graph
-from rdflib.term import Node
 
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
 from ..registry import Registry
-from .stable_graph import ResourceView, StableGraph
+from .stable_graph import StableGraph
 
 M = TypeVar("M", bound="LinkedDataMapper")
 
@@ -32,10 +30,9 @@ class MappingContext:
 class LinkedDataMapper(ABC):
     """Maps a parsed Linked Data RDF graph to ARC RO-Crate JSON-LD.
 
-    ``map_graph`` opens a StableGraph session (via :meth:`_stable_wrap`), then
-    delegates to :meth:`_map_graph`. Subclasses read RDF via :meth:`view` /
-    :attr:`stable` during that call. Vocabulary-specific wrap options belong
-    in :meth:`_stable_wrap`, not on this ABC.
+    ``map_graph`` wraps the graph via :meth:`_stable_wrap`, then passes the
+    ``StableGraph`` explicitly into :meth:`_map_graph`. Subclasses must not store
+    the wrap on ``self`` — the plugin maps concurrently via ``asyncio.to_thread``.
 
     See ``openspec/specs/linked-data-mapper/design.md`` for the StableGraph vs
     LinkedDataMapper boundary (Faustregel).
@@ -44,10 +41,6 @@ class LinkedDataMapper(ABC):
     registry: Registry[PayloadType, LinkedDataMapper] = Registry()
 
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
-
-    def __init__(self) -> None:
-        """Initialize per-call StableGraph session state."""
-        self._stable: StableGraph | None = None
 
     @classmethod
     def register(cls, payload_type: PayloadType) -> Callable[[type[M]], type[M]]:
@@ -71,7 +64,7 @@ class LinkedDataMapper(ABC):
     def map_graph(self, graph: Graph, context: MappingContext) -> HarvestedArc:
         """Return a harvested ARC (JSON + composition counts) for the given graph.
 
-        Opens a StableGraph session for the duration of :meth:`_map_graph`.
+        Wraps ``graph`` once and passes the ``StableGraph`` into :meth:`_map_graph`.
 
         ``context`` is required. Callers without discovery data pass
         ``MappingContext()`` (fields default to ``None``).
@@ -86,35 +79,16 @@ class LinkedDataMapper(ABC):
         ``source_url`` as the primary harvest-stable identifier before graph URL or
         DOI fallbacks.
         """
-        with self._stable_session(graph):
-            return self._map_graph(graph, context)
+        return self._map_graph(graph, context, self._stable_wrap(graph))
 
     @abstractmethod
-    def _map_graph(self, graph: Graph, context: MappingContext) -> HarvestedArc:
-        """Map ``graph`` while a StableGraph session is active (see :meth:`map_graph`)."""
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
+        """Map ``graph`` using the caller-provided ``stable`` wrap (see :meth:`map_graph`)."""
         raise NotImplementedError
 
     def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap ``graph`` for this mapper. Override for vocabulary-specific policy."""
         return StableGraph.wrap(graph)
-
-    @contextmanager
-    def _stable_session(self, graph: Graph) -> Iterator[StableGraph]:
-        """Bind :meth:`_stable_wrap` result as the active StableGraph for the block."""
-        self._stable = self._stable_wrap(graph)
-        try:
-            yield self._stable
-        finally:
-            self._stable = None
-
-    @property
-    def stable(self) -> StableGraph:
-        """Active StableGraph for this ``map_graph`` call (set by the session)."""
-        return self._stable  # type: ignore[return-value]
-
-    def view(self, subject: Node) -> ResourceView:
-        """Return a ResourceView for ``subject`` on the active StableGraph."""
-        return self.stable.view(subject)
 
     @classmethod
     def sanitize_identifier(cls, raw: str) -> str:

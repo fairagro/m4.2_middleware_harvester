@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import override
 from urllib.parse import quote, urlparse
 
 from arctrl import (  # type: ignore[import-untyped]
@@ -30,6 +31,7 @@ from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .person_contacts import require_nonempty_person_given_names
 from .person_names import split_display_name
+from .stable_graph import StableGraph
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
@@ -82,17 +84,18 @@ class RegalMapper(LinkedDataMapper):
 
     def __init__(self, resource_base_url: str) -> None:
         """Create a mapper that expands/strips Regal ids with ``resource_base_url``."""
-        super().__init__()
         self._resource_base_url = resource_base_url.rstrip("/") + "/"
 
     @classmethod
+    @override
     def from_config(cls, config: Config) -> RegalMapper:
         """Construct a mapper using ``config.effective_resource_base_url``."""
         return cls(config.effective_resource_base_url)
 
-    def _map_graph(self, graph: Graph, context: MappingContext) -> HarvestedArc:
+    @override
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
-        _ = context
+        _ = context, stable  # Regal still reads the raw graph; StableGraph migration is follow-up.
         subject = self._find_research_data_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")

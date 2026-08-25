@@ -66,14 +66,14 @@ schema.org, `RegalMapper` for Regal).
    when discovery context is supplied, so multi-DOI order in JSON-LD cannot flip `arc_id` between runs.
 
 9. **RDF field access goes through StableGraph / ResourceView; discovery via MappingContext**
-   — `LinkedDataMapper.map_graph` opens a StableGraph session (subclass
-   `_stable_wrap` supplies vocabulary wrap policy) and delegates to `_map_graph`.
-   Vocabulary mappers read RDF via `view` / `stable` (see
-   `openspec/specs/stable-graph/`) so blank-node labels and rdflib iteration order cannot
-   leak into ARC text. `StableGraph.wrap` takes generic `term_namespaces` /
-   `label_predicates`; Schema.org passes `SCHEMA_ORG_NAMESPACES` from `_stable_wrap`.
-   Regal migration onto ResourceView is a follow-up. Discovery context is a required frozen
-   `MappingContext` on `map_graph`, never part of StableGraph wrap. Callers without
+   — `LinkedDataMapper.map_graph` wraps via subclass `_stable_wrap` and passes the
+   resulting `StableGraph` **explicitly** into `_map_graph(graph, context, stable)`.
+   Mappers must not store the wrap on `self` (the plugin maps concurrently with
+   `asyncio.to_thread` on one shared mapper instance). Schema.org keeps the wrap on a
+   per-call helper (`_SchemaOrgRun`); Regal migration onto ResourceView is a follow-up.
+   `StableGraph.wrap` takes generic `term_namespaces` / `label_predicates`; Schema.org
+   passes `SCHEMA_ORG_NAMESPACES` from `_stable_wrap`. Discovery context is a required
+   frozen `MappingContext` on `map_graph`, never part of StableGraph wrap. Callers without
    discovery pass an explicit empty `MappingContext()`. Identifier cascade and
    publisher-invert policy stay mapper-local, composed from API bricks (`doi`, `http_iri`,
    accessors).
@@ -83,13 +83,13 @@ schema.org, `RegalMapper` for Regal).
    graph, nodes, literals, and wrap policy; they must not encode discovery,
    Investigation.identifier cascade, or Person/Comment policy.
    — **LinkedDataMapper** answers: how does that become a *HarvestedArc*? It owns the
-   plugin contract (`map_graph`, registry), `MappingContext`, session lifecycle, and
-   shared ARC-oriented helpers (`sanitize_identifier`, `to_identifier_slug`,
-   `pick_canonical_doi`, `resolve_harvest_source_identifier`).
+   plugin contract (`map_graph`, registry), `MappingContext`, wrap hand-off into
+   `_map_graph`, and shared ARC-oriented helpers (`sanitize_identifier`,
+   `to_identifier_slug`, `pick_canonical_doi`, `resolve_harvest_source_identifier`).
    — Place a function by dependency: if it is explainable with only Graph + policy →
    StableGraph; if it needs harvest/ARC identity or “what becomes the Investigation?” →
    mapper ABC or vocabulary mapper. Do not re-wrap ResourceView methods on the ABC
-   (`view(node)["name"]` / `stable.sort_key` instead of mapper `schema_text` /
+   (`stable.view(node)["name"]` / `stable.sort_key` instead of mapper `schema_text` /
    `node_key` facades).
    — **`doi()` stays on ResourceView**: extracting a DOI from Literal / IRI / a
    PropertyValue-*shaped* node is still graph reading (optional when
