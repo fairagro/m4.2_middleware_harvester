@@ -33,6 +33,8 @@ class LinkedDataMapper(ABC):
     ``map_graph`` wraps the graph via :meth:`_stable_wrap`, then passes the
     ``StableGraph`` explicitly into :meth:`_map_graph`. Subclasses must not store
     the wrap on ``self`` — the plugin maps concurrently via ``asyncio.to_thread``.
+    Per-call helpers (e.g. Schema.org ``_SchemaOrgRun``) or threading ``stable``
+    through private methods are fine; a ``_*Run`` class is not mandatory.
 
     See ``openspec/specs/linked-data-mapper/design.md`` for the StableGraph vs
     LinkedDataMapper boundary (Faustregel).

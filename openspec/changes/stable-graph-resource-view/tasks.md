@@ -22,6 +22,7 @@
 - [x] 3.3 Keep identifier cascade, sanitize, multi-DOI alternate comments, and publisher-invert logic in the mapper composed from API bricks + MappingContext
 - [x] 3.4 Delete obsolete private RDF-hygiene methods from `GeneralSchemaOrgMapper`
 - [x] 3.5 Confirm existing Schema.org tests (`test_mapper.py`, `test_mapper_identifier.py`) stay green; add/adjust only for MappingContext call sites
+- [x] 3.6 Document call-scoped StableGraph invariant; add concurrent `map_graph` regression test
 
 ## 4. Validation
 

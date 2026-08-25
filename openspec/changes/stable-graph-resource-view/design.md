@@ -79,6 +79,13 @@ onto it in one reviewable unit; Regal only updates the ABC signature.
    / ABC do not import RDF accessors to build context.
    — Keep `person_contacts.py` as-is.
 
+7. **StableGraph is call-scoped (no `self._stable`)**
+   — The plugin maps with one shared mapper via `asyncio.to_thread`. Storing the
+   wrap on the instance would cross-talk. ABC passes `stable` into `_map_graph`;
+   Schema.org may use a per-call `_SchemaOrgRun`, but a `_*Run` class is not
+   mandatory for every vocabulary. Concurrent `map_graph` unit tests guard this.
+   — Alternatives considered: `contextvars` / `threading.local()`; serialize mapping.
+
 ## Risks / Trade-offs
 
 - **[Risk] Behaviour drift during Schema.org migrate** → Mitigation: treat

@@ -1,7 +1,10 @@
 """Schema.org mapper unit tests."""
 
+from __future__ import annotations
+
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -18,6 +21,7 @@ from mapper_test_helpers import (
     keywords_derived_ids,
     publication_author_node_id,
     publisher_comment_text,
+    root_identifier,
 )
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
@@ -47,6 +51,39 @@ def test_general_mapper_returns_jsonld() -> None:
     assert_harvest_has_no_bnode_labels(result)
 
     assert result.startswith("{") and "@context" in result
+
+
+def test_concurrent_map_graph_on_shared_mapper_does_not_cross_talk() -> None:
+    """One mapper + worker threads must not mix StableGraph sessions (plugin shape)."""
+    schema = Namespace("https://schema.org/")
+
+    def build(slug: str, title: str) -> Graph:
+        graph = Graph()
+        dataset = URIRef(f"https://example.org/dataset/{slug}")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal(title)))
+        graph.add((dataset, schema.url, dataset))
+        return graph
+
+    mapper = GeneralSchemaOrgMapper()
+    left = build("alpha", "Alpha Title")
+    right = build("zeta", "Zeta Title")
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(mapper.map_graph, left, NO_DISCOVERY),
+            pool.submit(mapper.map_graph, right, NO_DISCOVERY),
+        ]
+        results = [future.result() for future in futures]
+
+    by_id = {root_identifier(harvested.arc_json): harvested.arc_json for harvested in results}
+    assert set(by_id) == {"example_org_dataset_alpha", "example_org_dataset_zeta"}
+    assert "Alpha Title" in by_id["example_org_dataset_alpha"]
+    assert "Zeta Title" not in by_id["example_org_dataset_alpha"]
+    assert "Zeta Title" in by_id["example_org_dataset_zeta"]
+    assert "Alpha Title" not in by_id["example_org_dataset_zeta"]
+    for arc_json in by_id.values():
+        assert_harvest_has_no_bnode_labels(arc_json)
 
 
 def test_general_mapper_raises_when_no_dataset_entity_present() -> None:

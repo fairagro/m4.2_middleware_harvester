@@ -96,3 +96,17 @@ schema.org, `RegalMapper` for Regal).
    `term_namespaces` are configured). Choosing whether that DOI becomes
    `Investigation.identifier`, a Publication DOI, or an Alternate Identifier Comment
    remains mapper policy.
+
+11. **StableGraph is call-scoped; never store it on the shared mapper instance**
+   — The linked-data plugin keeps one mapper and maps datasets concurrently via
+   `asyncio.to_thread(self._mapper.map_graph, …)`. Instance fields such as
+   `self._stable` would cross-talk between threads. Therefore:
+   - `map_graph` MUST wrap once and pass `StableGraph` into `_map_graph` as a
+     parameter (ABC contract).
+   - Concrete mappers MUST NOT assign the wrap (or a ResourceView session) to
+     `self` for the duration of mapping.
+   - Allowed patterns: a **per-call** helper object that owns `stable`
+     (e.g. Schema.org `_SchemaOrgRun`), or threading `stable` through private
+     methods. Requiring a `_*Run` class for every vocabulary is NOT required.
+   - Regression: unit tests MUST exercise concurrent `map_graph` on one mapper
+     instance with distinct graphs and assert identifiers / titles do not mix.

@@ -59,6 +59,23 @@ requirements in this capability and `openspec/specs/stable-graph/`).
   keyword/description determinism, contacts/authors, and publisher comments run
 - **THEN** they MUST pass without weakening blank-node or order invariants
 
+### Requirement: StableGraph MUST be call-scoped on concurrent map_graph
+
+`LinkedDataMapper.map_graph` MUST wrap the graph and pass `StableGraph` into
+`_map_graph` as a parameter. Concrete mappers MUST NOT store that wrap (or an
+equivalent RDF session) on the shared mapper instance (`self`), because the
+linked-data plugin maps concurrently via `asyncio.to_thread` on one mapper.
+Per-call helper objects that own `stable`, or threading `stable` through private
+methods, are allowed. Requiring a dedicated `_*Run` class per vocabulary is NOT
+required. Unit tests MUST cover concurrent `map_graph` calls on one instance.
+
+#### Scenario: Concurrent maps on one Schema.org mapper do not cross-talk
+
+- **WHEN** one `GeneralSchemaOrgMapper` instance maps two distinct Dataset graphs
+  concurrently in worker threads
+- **THEN** each result's Investigation identifier and title MUST match its own
+  graph (no swapped or mixed values)
+
 ## MODIFIED Requirements
 
 ### Requirement: LinkedDataMapper.map_graph returns HarvestedArc
