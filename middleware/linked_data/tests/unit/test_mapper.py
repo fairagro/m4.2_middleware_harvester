@@ -95,6 +95,27 @@ def test_general_mapper_raises_when_no_dataset_entity_present() -> None:
         mapper.map_graph(graph, NO_DISCOVERY)
 
 
+def test_general_mapper_raises_when_schema_name_missing() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/no-name")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.url, dataset))
+    with pytest.raises(ValueError, match="schema:name"):
+        GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)
+
+
+def test_general_mapper_raises_when_schema_name_blank() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/blank-name")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("   ")))
+    graph.add((dataset, schema.url, dataset))
+    with pytest.raises(ValueError, match="schema:name"):
+        GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)
+
+
 def test_general_mapper_full_dataset_graph_includes_authors_and_comments() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")

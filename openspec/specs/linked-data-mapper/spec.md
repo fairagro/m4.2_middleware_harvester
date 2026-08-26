@@ -124,6 +124,32 @@ record-level failure and does not upload.
 - **THEN** `map_graph` MUST raise a mapping error and MUST NOT return a
   HarvestedArc
 
+### Requirement: Schema.org Dataset MUST have a non-empty schema:name
+
+`GeneralSchemaOrgMapper` MUST require a non-empty Dataset `schema:name` (after
+trim) for Investigation / Study / Assay titles and for Study/Assay identifier
+slugs. It MUST NOT invent display titles such as `Untitled` / `Untitled Dataset`
+and MUST NOT invent Study/Assay identifier fallbacks such as `untitled` /
+`dataset`. When `schema:name` is missing or blank, or sanitizes to an empty
+slug, `map_graph` MUST fail closed with a mapping error (no `HarvestedArc`).
+The shared helper `to_identifier_slug` MUST return null for blank input or an
+empty sanitized slug; Schema.org MUST treat that as a mapping error.
+`Investigation.identifier` resolution remains the harvest-stable cascade and
+MUST NOT use the title slug.
+
+#### Scenario: Dataset without schema:name fails mapping
+
+- **WHEN** a Schema.org Dataset graph has no non-empty `schema:name` (and
+  otherwise would be mappable)
+- **THEN** `map_graph` MUST raise a mapping error and MUST NOT return a
+  HarvestedArc
+
+#### Scenario: Dataset with schema:name maps titles from that name
+
+- **WHEN** a Schema.org Dataset graph has `schema:name` `Example Dataset`
+- **THEN** Investigation, Study, and Assay titles MUST be `Example Dataset`
+  and Study/Assay identifiers MUST be the slug of that name
+
 ### Requirement: Schema.org Investigation identifier MUST be harvest-stable
 
 `GeneralSchemaOrgMapper` MUST set `Investigation.identifier` from a harvest-stable value and MUST NOT use an rdflib blank-node label (`N` plus 32 hex digits, or `_:…`), MUST NOT hash or invent an identifier, and MUST NOT fall back to an 80-character title slug.

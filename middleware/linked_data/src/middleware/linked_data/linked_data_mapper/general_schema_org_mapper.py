@@ -100,16 +100,30 @@ class _SchemaOrgRun:
         return self.stable.view(subject)
 
     def map_arc(self, subject: Node, context: MappingContext) -> ARC:
+        title = self._require_dataset_title(subject)
         identifier_plan = self._plan_investigation_identifier(subject, context)
         publication_doi = identifier_plan.publication_doi
 
-        investigation = self._map_investigation(subject, identifier_plan=identifier_plan)
-        study = self._map_study(subject)
+        investigation = self._map_investigation(subject, title=title, identifier_plan=identifier_plan)
+        study = self._map_study(subject, title=title)
         investigation.AddStudy(study)
-        assay = self._map_assay(subject, context, doi=publication_doi)
+        assay = self._map_assay(subject, context, title=title, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
+
+    def _require_dataset_title(self, subject: Node) -> str:
+        """Return a non-empty ``schema:name``, or fail closed (no Untitled fallback)."""
+        title = (self.view(subject)["name"] or "").strip()
+        if not title:
+            raise ValueError("Schema.org Dataset has no non-empty schema:name; refusing Untitled fallback")
+        return title
+
+    def _study_assay_identifier(self, title: str) -> str:
+        identifier = self.mapper.to_identifier_slug(title)
+        if identifier is None:
+            raise ValueError(f"Schema.org Dataset title {title!r} does not yield a usable Study/Assay identifier slug")
+        return identifier
 
     def _canonical_http_identifier(self, subject: Node, term: str) -> str | None:
         iris = [iri for obj in self.view(subject).schema_objects(term) if (iri := http_iri(obj))]
@@ -150,10 +164,10 @@ class _SchemaOrgRun:
         self,
         subject: Node,
         *,
+        title: str,
         identifier_plan: _IdentifierPlan,
     ) -> ArcInvestigation:
         plan = identifier_plan
-        title = self.view(subject)["name"] or "Untitled Dataset"
         identifier = plan.investigation_id
 
         description = self.view(subject)["description"] or ""
@@ -167,7 +181,7 @@ class _SchemaOrgRun:
         )
 
         self._add_contacts(inv, subject)
-        self._add_publications(inv, subject, plan.publication_doi)
+        self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
         self._add_alternate_identifier_comments(inv, plan.alternate_dois)
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
@@ -340,7 +354,7 @@ class _SchemaOrgRun:
         ]
         return ", ".join(p for p in parts if p) or None
 
-    def _add_publications(self, inv: ArcInvestigation, subject: Node, doi: str | None) -> None:
+    def _add_publications(self, inv: ArcInvestigation, subject: Node, *, title: str, doi: str | None) -> None:
         if doi:
             authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
             author_strs: list[str] = []
@@ -354,7 +368,7 @@ class _SchemaOrgRun:
 
             inv.Publications.append(
                 Publication.create(
-                    title=self.view(subject)["name"] or "Untitled",
+                    title=title,
                     authors="; ".join(author_strs) if author_strs else None,
                     doi=doi,
                 )
@@ -433,9 +447,8 @@ class _SchemaOrgRun:
                 return str(node)
         return None
 
-    def _map_study(self, subject: Node) -> ArcStudy:
-        title = self.view(subject)["name"] or "Untitled Dataset"
-        identifier = self.mapper.to_identifier_slug(title) or "dataset"
+    def _map_study(self, subject: Node, *, title: str) -> ArcStudy:
+        identifier = self._study_assay_identifier(title)
         description = self.view(subject)["description"] or "Imported from Schema.org metadata"
 
         study = ArcStudy.create(
@@ -495,9 +508,8 @@ class _SchemaOrgRun:
         )
         return table
 
-    def _map_assay(self, subject: Node, context: MappingContext, *, doi: str | None = None) -> ArcAssay:
-        title = self.view(subject)["name"] or "Untitled Dataset"
-        identifier = self.mapper.to_identifier_slug(title) or "dataset"
+    def _map_assay(self, subject: Node, context: MappingContext, *, title: str, doi: str | None = None) -> ArcAssay:
+        identifier = self._study_assay_identifier(title)
 
         assay = ArcAssay.create(
             identifier=identifier,

@@ -104,12 +104,17 @@ class LinkedDataMapper(ABC):
         return re.sub(r"_{2,}", "_", sanitized).strip("_")
 
     @staticmethod
-    def to_identifier_slug(title: str) -> str:
-        """Slugify a title for use in ARC identifiers (max 80 chars)."""
-        if not title:
-            return "untitled"
+    def to_identifier_slug(title: str) -> str | None:
+        """Slugify a non-empty title for ARC identifiers (max 80 chars).
+
+        Returns ``None`` when ``title`` is blank or sanitizes to an empty slug.
+        Callers that invent display titles (e.g. Regal ``Untitled``) must supply
+        that policy themselves; Schema.org refuses missing ``schema:name``.
+        """
+        if not title or not title.strip():
+            return None
         slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
-        return slug[:80] or "untitled"
+        return slug[:80] or None
 
     @staticmethod
     def pick_canonical_doi(dois: list[str]) -> str | None:

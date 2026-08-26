@@ -661,10 +661,10 @@ class RegalMapper(LinkedDataMapper):
     ) -> str:
         if regal_id:
             slug = re.sub(r"[^a-zA-Z0-9._-]+", "_", regal_id).strip("_")
-            return slug or self.to_identifier_slug(title)
+            return slug or self.to_identifier_slug(title) or "untitled"
         if doi:
             return doi
-        return self.to_identifier_slug(title)
+        return self.to_identifier_slug(title) or "untitled"
 
     def _output_uri(self, *, regal_id: str | None, doi: str | None) -> str:
         if doi:

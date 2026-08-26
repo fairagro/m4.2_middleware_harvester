@@ -110,3 +110,11 @@ schema.org, `RegalMapper` for Regal).
      methods. Requiring a `_*Run` class for every vocabulary is NOT required.
    - Regression: unit tests MUST exercise concurrent `map_graph` on one mapper
      instance with distinct graphs and assert identifiers / titles do not mix.
+
+12. **Schema.org refuses missing Dataset titles (no Untitled invent)**
+   — ISA/ARC titles and Study/Assay identifier slugs come from `schema:name`.
+   Inventing `Untitled Dataset` / `untitled` / `dataset` hides bad source
+   metadata and still produces an uploadable ARC. Schema.org therefore fail-
+   closes with a mapping error (plugin → `RecordProcessingError` / harvest
+   report). `to_identifier_slug` returns `None` for blank/unusable input;
+   Regal may keep its own Untitled display policy separately.
