@@ -386,11 +386,9 @@ class _SchemaOrgRun:
         if conforms_text:
             inv.Comments.append(Comment.create("Conforms To", conforms_text))
 
-        for dist_node in self.view(subject).schema_objects("distribution"):
-            if isinstance(dist_node, Literal):
-                continue
-            encoding = self.view(dist_node)["encodingFormat"] or ""
-            content_url = self.view(dist_node)["contentUrl"] or ""
+        for dist in self.view(subject).schema_resources("distribution"):
+            encoding = dist["encodingFormat"] or ""
+            content_url = dist["contentUrl"] or ""
             if encoding or content_url:
                 inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
 

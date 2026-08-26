@@ -16,6 +16,7 @@ from mapper_test_helpers import (
     assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
     contact_name_pairs,
+    distribution_comment_texts,
     investigation_description,
     keywords_comment_text,
     keywords_derived_ids,
@@ -602,6 +603,36 @@ def test_publisher_falls_back_to_literal_when_organization_bnode_has_no_name() -
     arc_json = GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY).arc_json
     assert publisher_comment_text(arc_json) == "Fallback Press"
     assert "Publisher: Fallback Press" in arc_json
+
+
+def test_distribution_comments_stable_across_bnode_order() -> None:
+    schema = Namespace("https://schema.org/")
+
+    def build(order: list[tuple[str, str]]) -> Graph:
+        graph = Graph()
+        dataset = URIRef("https://example.org/dist-order")
+        graph.add((dataset, RDF.type, schema.Dataset))
+        graph.add((dataset, schema.name, Literal("Distribution Order Dataset")))
+        graph.add((dataset, schema.identifier, Literal("10.9/dist-order")))
+        for encoding, url in order:
+            dist = BNode()
+            graph.add((dataset, schema.distribution, dist))
+            graph.add((dist, schema.encodingFormat, Literal(encoding)))
+            graph.add((dist, schema.contentUrl, Literal(url)))
+        return graph
+
+    order_a = [
+        ("text/csv", "https://example.org/a.csv"),
+        ("application/json", "https://example.org/b.json"),
+    ]
+    order_b = list(reversed(order_a))
+    first = distribution_comment_texts(GeneralSchemaOrgMapper().map_graph(build(order_a), NO_DISCOVERY).arc_json)
+    second = distribution_comment_texts(GeneralSchemaOrgMapper().map_graph(build(order_b), NO_DISCOVERY).arc_json)
+    assert first == second
+    assert set(first) == {
+        "text/csv: https://example.org/a.csv",
+        "application/json: https://example.org/b.json",
+    }
 
 
 def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:

@@ -187,6 +187,21 @@ def publisher_comment_text(arc_json: str) -> str | None:
     return None
 
 
+def distribution_comment_texts(arc_json: str) -> list[str]:
+    """Return Distribution Investigation Comment texts in @graph encounter order."""
+    assert_harvest_has_no_bnode_labels(arc_json)
+    payload = json.loads(arc_json)
+    texts: list[str] = []
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        if rocrate_prop(item, "name") == "Distribution":
+            texts.append(rocrate_prop(item, "text"))
+    return texts
+
+
 def dual_doi_payload(first_doi: str, second_doi: str) -> str:
     return OPENAGRAR_DUAL_DOI_TEMPLATE.format(first_doi=first_doi, second_doi=second_doi)
 
