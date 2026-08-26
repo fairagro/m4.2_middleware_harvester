@@ -704,6 +704,7 @@ dependencies = [
     { name = "fairagro-middleware-shared" },
     { name = "inspire" },
     { name = "linked-data" },
+    { name = "nameparser" },
     { name = "pydantic" },
 ]
 
@@ -714,6 +715,7 @@ requires-dist = [
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "linked-data", editable = "middleware/linked_data" },
+    { name = "nameparser", specifier = ">=2.1.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]
 
@@ -802,7 +804,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.1.1.dev34" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
-    { name = "nameparser", specifier = ">=1.1.0" },
+    { name = "nameparser", specifier = ">=2.1.0" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]

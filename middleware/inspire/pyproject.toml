@@ -9,7 +9,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "fairagro-middleware-api-client>=11.1.1.dev34",
     "fairagro-middleware-shared>=11.1.1.dev34",
-    "nameparser>=1.1.0",
+    "nameparser>=2.1.0",
 ]
 
 [build-system]

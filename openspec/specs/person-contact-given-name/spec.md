@@ -93,11 +93,13 @@ and MUST NOT yield/upload a `HarvestedArc` for that record.
 
 When the Schema.org mapper must derive given/family names from a display string
 (`schema:name` / literal creator) rather than from structured given/family
-fields, it MUST use the shared `person_names.split_display_name` helper (backed
-by `nameparser`). It MUST NOT keep private whitespace/last-token split
-heuristics for Person contacts. Single-token display strings MUST continue to
-yield no usable given name so organization-like labels remain fail-closed or
-Comment-mapped.
+fields, it MUST use the shared
+`middleware.harvester.person_names.split_display_name` helper (backed by
+`nameparser`). It MUST NOT keep private whitespace/last-token split heuristics
+for Person contacts. Single-token display strings MUST continue to yield no
+usable given name so organization-like labels remain fail-closed or
+Comment-mapped. The INSPIRE mapper MUST use the same helper for
+CI_ResponsibleParty display names.
 
 Regal agent `skos:prefLabel` values follow the PUBLISSO/Regal
 `FamilyName, Given Name(s)` convention and MUST be split on the first `", "` as

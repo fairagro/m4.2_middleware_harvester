@@ -534,8 +534,8 @@ def test_split_name(mapper: InspireMapper) -> None:
         ("Doe, John", ("John", "Doe")),
         ("Jane", ("", "Jane")),
         ("", ("", "")),
-        ("Dr. John Michael Doe", ("John", "Doe")),
-        ("Maria Garcia Brizuela", ("Maria", "Garcia Brizuela")),
+        ("Dr. John Michael Doe", ("John Michael", "Doe")),
+        ("Maria Garcia Brizuela", ("Maria Garcia", "Brizuela")),
         ("Hans-Joachim von Müller", ("Hans-Joachim", "von Müller")),
     ]
 

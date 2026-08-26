@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from middleware.linked_data.linked_data_mapper.person_names import PersonNameParts, split_display_name
+from middleware.harvester.person_names import PersonNameParts, split_display_name
 
 
 @pytest.mark.parametrize(

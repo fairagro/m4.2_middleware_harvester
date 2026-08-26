@@ -1,9 +1,12 @@
-"""Shared display-name splitting for linked-data Person contacts.
+"""Shared display-name splitting for ARC Person contacts.
 
-Vocabulary mappers prefer structured given/family fields when present. When only
-a display string is available, this module uses ``nameparser`` so titles,
-suffixes, particles (e.g. ``de la``), and ``Family, Given`` forms are handled
-consistently across Schema.org and Regal.
+When only a display string is available (INSPIRE CI_ResponsibleParty name,
+Schema.org ``schema:name`` / literal creator), this module uses ``nameparser``
+so titles, suffixes, particles (e.g. ``de la``), and ``Family, Given`` forms
+are handled consistently.
+
+Regal agent ``skos:prefLabel`` values follow the PUBLISSO ``Family, Given``
+convention and MUST keep the Regal comma-split — they MUST NOT use this helper.
 """
 
 from __future__ import annotations
@@ -32,7 +35,7 @@ def split_display_name(name: str) -> PersonNameParts:
     Titles and suffixes are dropped. A single token with no family name is
     treated as an unlabeled agent (``given=None``, ``family=<token>``) so
     callers can fail closed or remap organizations — matching the
-    person-contact-given-name policy.
+    person-contact-given-name policy for linked-data.
     """
     stripped = name.strip()
     if not stripped:

@@ -30,12 +30,12 @@ from rdflib import Graph, Literal, Namespace, URIRef  # type: ignore[import-unty
 from rdflib.namespace import RDF
 from rdflib.term import Node
 
+from middleware.harvester.person_names import split_display_name
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .person_contacts import require_nonempty_person_given_names
-from .person_names import split_display_name
 from .stable_graph import SCHEMA_ORG_NAMESPACES, ResourceView, StableGraph, http_iri
 
 

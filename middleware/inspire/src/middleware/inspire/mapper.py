@@ -21,7 +21,8 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
-from nameparser import HumanName  # type: ignore[import-untyped]
+
+from middleware.harvester.person_names import split_display_name
 
 from .models import Contact, InspireRecord
 
@@ -80,29 +81,9 @@ class InspireMapper:
         return person
 
     def _split_name(self, name: str) -> tuple[str, str]:
-        """Split full name into first name and last name."""
-        name = name.strip()
-        if not name:
-            return "", ""
-
-        parsed = HumanName(name)
-        has_comma = "," in name
-        has_title_or_suffix = bool(parsed.title or parsed.suffix)
-
-        if has_comma:
-            first_name = " ".join(filter(None, [parsed.first, parsed.middle]))
-            last_name = parsed.last or ""
-        elif has_title_or_suffix:
-            first_name = parsed.first or ""
-            last_name = parsed.last or ""
-        else:
-            tokens = [token for token in name.split() if token]
-            if len(tokens) == 1:
-                first_name, last_name = "", tokens[0]
-            else:
-                first_name, last_name = tokens[0], " ".join(tokens[1:])
-
-        return first_name, last_name
+        """Split full name into first name and last name via shared helper."""
+        parts = split_display_name(name)
+        return parts.given or "", parts.family
 
     def _format_address(self, contact: Contact) -> str | None:
         """Format full address from contact components."""
