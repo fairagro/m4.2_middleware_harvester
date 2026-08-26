@@ -79,6 +79,25 @@ MUST be omitted. The accessor MUST NEVER use `str(BNode)` as label or id.
 - **THEN** the accessor MUST include that label and MUST NOT set a stable id
   from the blank-node label
 
+### Requirement: Singular text accessors resolve labelled blank objects
+
+ResourceView singular `text` / Schema.org `schema_text` MUST use the same
+display-text rules as plural `texts`: Literals and IRI strings are returned as
+trimmed text; blank-node objects MUST yield their configured label when
+present and MUST yield no value when unlabelled. Singular and plural accessors
+MUST NEVER return `str(BNode)` parser labels.
+
+#### Scenario: Labelled blank license yields name via singular text
+
+- **WHEN** `schema:license` points at a blank node with configured label
+  `CC BY 4.0`
+- **THEN** singular `text` / `schema_text("license")` MUST return `CC BY 4.0`
+
+#### Scenario: Unlabelled blank license yields no singular text
+
+- **WHEN** `schema:license` points at a blank node with no configured label
+- **THEN** singular `text` / `schema_text("license")` MUST return no value
+
 ### Requirement: DOI helper accepts Literal, IRI, and typed PropertyValue nodes
 
 The access layer SHALL provide a DOI extraction helper that accepts a literal

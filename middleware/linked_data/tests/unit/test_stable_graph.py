@@ -89,6 +89,28 @@ def test_labelled_bnode_with_name_keeps_label_without_id() -> None:
     assert labelled[0].stable_id is None
 
 
+def test_text_resolves_labelled_blank_object() -> None:
+    graph = Graph()
+    dataset = URIRef("https://example.org/ds")
+    license_node = BNode()
+    graph.add((dataset, SCHEMA.license, license_node))
+    graph.add((license_node, SCHEMA.name, Literal("CC BY 4.0")))
+    view = _wrap(graph).view(dataset)
+    assert view.text(SCHEMA.license) == "CC BY 4.0"
+    assert view.schema_text("license") == "CC BY 4.0"
+    assert view.texts(SCHEMA.license) == ["CC BY 4.0"]
+
+
+def test_text_skips_unlabelled_blank_object() -> None:
+    graph = Graph()
+    dataset = URIRef("https://example.org/ds")
+    graph.add((dataset, SCHEMA.license, BNode()))
+    view = _wrap(graph).view(dataset)
+    assert view.text(SCHEMA.license) is None
+    assert view.schema_text("license") is None
+    assert view.texts(SCHEMA.license) == []
+
+
 def test_doi_from_property_value() -> None:
     graph = Graph()
     dataset = URIRef("https://example.org/ds")

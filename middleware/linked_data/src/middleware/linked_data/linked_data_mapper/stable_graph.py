@@ -170,15 +170,14 @@ class ResourceView:
         return [ResourceView(self._stable, node) for node in ordered]
 
     def text(self, *predicates: Node) -> str | None:
-        """Soft-lift of Schema.org ``_str``: literal preferred, else URIRef string.
+        """Soft-lift of Schema.org ``_str``: literal preferred, else URIRef / labelled blank.
 
-        Never returns a blank-node label.
+        Never returns an rdflib blank-node parser label (``str(BNode)``).
         """
         value = self.object_node(*predicates)
-        if value is None or isinstance(value, BNode):
+        if value is None:
             return None
-        text = str(value)
-        return text.strip() if isinstance(value, Literal) else text
+        return self._object_text_for(value)
 
     def texts(self, *predicates: Node) -> list[str]:
         """Soft-lift of Schema.org ``_strs``: literals, URIRefs, labelled blanks."""
