@@ -94,7 +94,8 @@ schema.org, `RegalMapper` for Regal).
    (`stable.view(node)["name"]` / `stable.sort_key` instead of mapper `schema_text` /
    `node_key` facades).
    — **`doi()` stays on ResourceView**: extracting a DOI from Literal / IRI / a
-   PropertyValue-*shaped* node is still graph reading (optional when
+   typed Schema.org `PropertyValue` node (`rdf:type` required, not duck-typed
+   `propertyID`/`value` alone) is still graph reading (optional when
    `term_namespaces` are configured). Choosing whether that DOI becomes
    `Investigation.identifier`, a Publication DOI, or an Alternate Identifier Comment
    remains mapper policy.

@@ -79,24 +79,31 @@ MUST be omitted. The accessor MUST NEVER use `str(BNode)` as label or id.
 - **THEN** the accessor MUST include that label and MUST NOT set a stable id
   from the blank-node label
 
-### Requirement: DOI helper accepts Literal, IRI, and PropertyValue-shaped nodes
+### Requirement: DOI helper accepts Literal, IRI, and typed PropertyValue nodes
 
 The access layer SHALL provide a DOI extraction helper that accepts a literal
 or IRI whose normalized value starts with `10.` (optional `https://doi.org/` /
 `http://doi.org/` / `doi:` prefix MAY be stripped). When wrap-time
-`term_namespaces` are configured, the helper MUST also accept a
-PropertyValue-*shaped* RDF node whose `propertyID` indicates DOI
-(identifiers.org DOI URI or contains `doi`, case-insensitive) and whose value
-starts with `10.` (Schema.org is the reference vocabulary for that shape). The
-helper MUST NOT invent identifiers, MUST NOT return blank-node labels, and MUST
-NOT decide ARC Investigation.identifier / Publication / Comment policy — that
-remains vocabulary-mapper responsibility.
+`term_namespaces` are configured, the helper MUST also accept an RDF node that
+has `rdf:type` Schema.org `PropertyValue` (in any configured term namespace),
+whose `propertyID` indicates DOI (identifiers.org DOI URI or contains `doi`,
+case-insensitive), and whose value starts with `10.`. Nodes that carry
+`propertyID`/`value` without that `PropertyValue` type MUST NOT yield a DOI
+via this path. The helper MUST NOT invent identifiers, MUST NOT return
+blank-node labels, and MUST NOT decide ARC Investigation.identifier /
+Publication / Comment policy — that remains vocabulary-mapper responsibility.
 
 #### Scenario: PropertyValue DOI is extracted
 
 - **WHEN** an identifier node is a PropertyValue with DOI `propertyID` and
   value `10.3220/253-2025-42` and Schema.org term namespaces are configured
 - **THEN** the DOI helper MUST return `10.3220/253-2025-42`
+
+#### Scenario: DOI-like fields without PropertyValue type yield no DOI
+
+- **WHEN** a node has Schema.org `propertyID`/`value` that would otherwise look
+  like a DOI PropertyValue, but has no `rdf:type` PropertyValue
+- **THEN** the DOI helper MUST return no DOI
 
 #### Scenario: Blank node without DOI fields yields no DOI
 

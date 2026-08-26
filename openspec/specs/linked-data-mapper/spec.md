@@ -165,7 +165,10 @@ Resolution MUST follow this decision chain:
 
 When `harvest_source_id` or `source_url` is supplied and the graph lists multiple DOIs, non-canonical DOIs MUST appear as Investigation Comments named `Alternate Identifier`. The canonical Publication DOI MUST be the lexicographic minimum regardless of rdflib or JSON-LD order.
 
-DOI extraction rules are unchanged: a literal whose value starts with `10.`, or a `PropertyValue` whose `propertyID` is an identifiers.org DOI URI or contains `doi` (case-insensitive) and whose `schema:value` starts with `10.`.
+DOI extraction rules are unchanged: a literal whose value starts with `10.`, or a
+`PropertyValue` (`rdf:type` Schema.org `PropertyValue`) whose `propertyID` is an
+identifiers.org DOI URI or contains `doi` (case-insensitive) and whose
+`schema:value` starts with `10.`.
 
 #### Scenario: OpenAgrar PropertyValue DOI with harvest source id uses catalog id
 

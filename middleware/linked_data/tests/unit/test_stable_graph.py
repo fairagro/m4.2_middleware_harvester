@@ -101,6 +101,17 @@ def test_doi_from_property_value() -> None:
     assert dois == ["10.3220/253-2025-42"]
 
 
+def test_doi_ignores_property_id_value_without_property_value_type() -> None:
+    graph = Graph()
+    dataset = URIRef("https://example.org/ds")
+    not_pv = BNode()
+    graph.add((dataset, SCHEMA.identifier, not_pv))
+    graph.add((not_pv, SCHEMA.propertyID, Literal("https://registry.identifiers.org/registry/doi")))
+    graph.add((not_pv, SCHEMA.value, Literal("10.3220/253-2025-42")))
+    assert _wrap(graph).view(dataset).schema_dois("identifier") == []
+    assert _wrap(graph).view(not_pv).doi() is None
+
+
 def test_doi_property_value_ignores_blank_node_fields() -> None:
     graph = Graph()
     dataset = URIRef("https://example.org/ds")

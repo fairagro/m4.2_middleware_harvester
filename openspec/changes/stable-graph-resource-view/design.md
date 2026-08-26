@@ -67,9 +67,10 @@ onto it in one reviewable unit; Regal only updates the ABC signature.
    publisher-preferring-resources-over-literals are Schema.org ARC policies
    (inverted vs default literal preference). Issue #138 keeps cascade out of the
    API but lists `doi()` with PropertyValue as a brick: reading a DOI from
-   Literal / IRI / PropertyValue-*shaped* RDF is still StableGraph concern when
-   `term_namespaces` are configured; deciding Investigation.identifier vs
-   Publication vs Alternate Identifier stays mapper-local.
+   Literal / IRI / typed Schema.org `PropertyValue` RDF (`rdf:type` required) is
+   still StableGraph concern when `term_namespaces` are configured; deciding
+   Investigation.identifier vs Publication vs Alternate Identifier stays
+   mapper-local.
    — Alternatives considered: PropertyValue only in mapper; full
    `resolve_investigation_id` inside the API.
 

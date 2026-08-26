@@ -281,10 +281,11 @@ class ResourceView:
         return http_iri(self._subject)
 
     def doi(self) -> str | None:
-        """DOI from this node (literal, IRI, or PropertyValue-shaped RDF).
+        """DOI from this node (literal, IRI, or typed Schema.org PropertyValue).
 
-        PropertyValue extraction uses configured ``term_namespaces`` (e.g. Schema.org).
-        This is graph structure reading, not ARC identifier policy — cascade stays
+        PropertyValue extraction requires ``rdf:type`` PropertyValue in a
+        configured term namespace plus DOI ``propertyID`` / ``value``. This is
+        graph structure reading, not ARC identifier policy — cascade stays
         in the vocabulary mapper.
         """
         return doi_from_node(self._stable, self._subject)
@@ -463,7 +464,7 @@ def normalize_doi(raw: str) -> str | None:
 
 
 def doi_from_node(stable: StableGraph, node: Node) -> str | None:
-    """Extract a DOI from a literal, IRI, or Schema.org PropertyValue node."""
+    """Extract a DOI from a literal, IRI, or typed Schema.org PropertyValue node."""
     if isinstance(node, Literal):
         return normalize_doi(str(node))
     if isinstance(node, URIRef):
@@ -490,9 +491,11 @@ def _stable_object_texts(objects: list[Node]) -> list[str]:
 
 def _doi_from_property_value(stable: StableGraph, node: Node) -> str | None:
     if not stable.policy.term_namespaces:
-        # Require schema aliases for PropertyValue-shaped extraction.
+        # Require schema aliases for PropertyValue extraction.
         return None
     view = ResourceView(stable, node)
+    if not view.schema_is_type("PropertyValue"):
+        return None
     property_ids = _stable_object_texts(view.schema_objects("propertyID"))
     values = _stable_object_texts(view.schema_objects("value"))
     if not values or not property_ids:
