@@ -207,6 +207,19 @@ def test_regal_mapper_org_style_pref_label_is_comment_not_empty_given_person() -
     assert not any(p.get("familyName") == "Zenodo" for p in people)
 
 
+def test_regal_mapper_org_style_bnode_pref_label_comment_omits_bnode_id() -> None:
+    graph = _base_graph()
+    org = BNode()
+    graph.add((SUBJECT, DCTERMS.creator, org))
+    graph.add((org, SKOS.prefLabel, Literal("Zenodo")))
+
+    arc_json = _mapped_arc_json(graph)
+    entries = {(name, text) for name, text in _comment_entries(arc_json) if name != "@id"}
+    assert ("Creator", "Zenodo") in entries
+    assert not any("Zenodo (" in text for _, text in entries)
+    assert _BLANK_NODE_LABEL.search(json.dumps(json.loads(arc_json))) is None
+
+
 def test_regal_mapper_orcid_without_given_name_fails_closed() -> None:
     graph = _base_graph()
     orcid = URIRef("https://orcid.org/0000-0003-2547-933X")

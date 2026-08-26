@@ -410,12 +410,14 @@ class RegalMapper(LinkedDataMapper):
         if not pref_label:
             return None
         parts = split_display_name(pref_label)
+        # Only URIRefs are stable identity; never pass str(BNode) into Comments.
+        node_id = str(node) if isinstance(node, URIRef) else None
         return self._person_from_label(
             inv,
             (parts.family, parts.given or ""),
             affiliation=affiliation,
             role=role,
-            node_id=str(node),
+            node_id=node_id,
         )
 
     def _person_from_label(
