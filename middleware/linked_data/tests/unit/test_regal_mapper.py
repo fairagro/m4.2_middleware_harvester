@@ -280,3 +280,83 @@ def test_opaque_blank_node_with_pref_label_is_kept() -> None:
     assert ("emi_measurement_techniques", "Stable Label") in {(n, t) for n, t in entries if n != "@id"}
     blob = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
     assert _BLANK_NODE_LABEL.search(blob) is None
+
+
+def test_flat_funding_bnodes_without_pref_label_are_omitted() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, REGAL.fundingProgram, BNode()))
+    graph.add((SUBJECT, REGAL.projectId, BNode()))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert "Funding Program" not in text
+    assert "Project ID" not in text
+    assert _BLANK_NODE_LABEL.search(text) is None
+
+
+def test_flat_funding_bnodes_with_pref_label_are_kept() -> None:
+    graph = _base_graph()
+    program = BNode()
+    project = BNode()
+    funder = BNode()
+    graph.add((SUBJECT, REGAL.fundingProgram, program))
+    graph.add((program, SKOS.prefLabel, Literal("NFDI Consortium")))
+    graph.add((SUBJECT, REGAL.projectId, project))
+    graph.add((project, SKOS.prefLabel, Literal("42-PROJECT")))
+    graph.add((SUBJECT, REGAL.fundingId, funder))
+    graph.add((funder, SKOS.prefLabel, Literal("Example Funder")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert "NFDI Consortium" in text
+    assert "42-PROJECT" in text
+    assert "Example Funder" in text
+    assert _BLANK_NODE_LABEL.search(text) is None
+
+
+def test_joined_funding_bnodes_with_pref_label_are_kept() -> None:
+    graph = _base_graph()
+    joined = BNode()
+    program = BNode()
+    project = BNode()
+    funder = BNode()
+    graph.add((SUBJECT, URIRef("info:regal/regal/joinedFunding"), joined))
+    graph.add((joined, REGAL.fundingProgramJoined, program))
+    graph.add((program, SKOS.prefLabel, Literal("Joined Program")))
+    graph.add((joined, REGAL.projectIdJoined, project))
+    graph.add((project, SKOS.prefLabel, Literal("JOIN-99")))
+    graph.add((joined, REGAL.fundingJoined, funder))
+    graph.add((funder, SKOS.prefLabel, Literal("Joined Funder")))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert "Joined Program" in text
+    assert "JOIN-99" in text
+    assert "Joined Funder" in text
+    assert _BLANK_NODE_LABEL.search(text) is None
+
+
+def test_funding_bnode_fields_stable_across_two_maps() -> None:
+    def build() -> Graph:
+        graph = _base_graph()
+        program = BNode()
+        project = BNode()
+        funder = BNode()
+        graph.add((SUBJECT, REGAL.fundingProgram, program))
+        graph.add((program, SKOS.prefLabel, Literal("Stable Program")))
+        graph.add((SUBJECT, REGAL.projectId, project))
+        graph.add((project, SKOS.prefLabel, Literal("STABLE-1")))
+        graph.add((SUBJECT, REGAL.fundingId, funder))
+        graph.add((funder, SKOS.prefLabel, Literal("Stable Funder")))
+        # Unlabelled funding BNodes must not destabilize funding fields.
+        graph.add((SUBJECT, REGAL.fundingProgram, BNode()))
+        return graph
+
+    def funding_snippet(arc_json: str) -> str:
+        text = json.dumps(json.loads(arc_json))
+        assert _BLANK_NODE_LABEL.search(text) is None
+        for needle in ("Stable Program", "STABLE-1", "Stable Funder"):
+            assert needle in text
+        # Compare only funding-related parameter cells (ignore other ARC @ids).
+        return ";".join(sorted(part for part in ("Stable Program", "STABLE-1", "Stable Funder") if part in text))
+
+    first = funding_snippet(_mapper().map_graph(build()).arc_json)
+    second = funding_snippet(_mapper().map_graph(build()).arc_json)
+    assert first == second
