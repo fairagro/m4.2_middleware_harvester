@@ -42,6 +42,18 @@ def _base_graph() -> Graph:
     return graph
 
 
+def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
+    graph = Graph()
+    subject = URIRef(f"{RESOURCE_BASE}frl:12.3")
+    graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((subject, DCTERMS.title, Literal("Research Data Management Plan")))
+    graph.add((subject, DCTERMS.description, Literal("A useful description")))
+
+    harvested = _mapper().map_graph(graph, NO_DISCOVERY)
+    assert harvested.identifier == "frl_12_3"
+    assert harvested.identifier == RegalMapper.sanitize_identifier("frl:12.3")
+
+
 def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
     graph = _base_graph()
     orcid = URIRef("https://orcid.org/0000-0003-2547-933X")

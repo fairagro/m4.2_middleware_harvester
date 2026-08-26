@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import override
 from urllib.parse import quote, urlparse
 
@@ -673,7 +672,7 @@ class RegalMapper(LinkedDataMapper):
         title: str,
     ) -> str:
         if regal_id:
-            slug = re.sub(r"[^a-zA-Z0-9._-]+", "_", regal_id).strip("_")
+            slug = self.sanitize_identifier(regal_id)
             return slug or self.to_identifier_slug(title) or "untitled"
         if doi:
             return doi
