@@ -24,11 +24,11 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
-from .person_contacts import require_nonempty_person_given_names
 from .stable_graph import StableGraph
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")

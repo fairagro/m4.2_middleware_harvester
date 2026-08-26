@@ -86,15 +86,15 @@ Detailed contact information for persons and organizations.
 
 | INSPIRE Field | OWSLib Attribute | Description | ARC Mapping |
 | --- | --- | --- | --- |
-| **individualName** | `name` | Person name | `Person.LastName` (split to First/Last if possible) |
-| **organisationName** | `organization` | Organization name | `Person.Affiliation` |
+| **individualName** | `name` | Person name | Split via shared `split_display_name` → `Person` First/Last. Missing given name → mapping failure (fail closed). |
+| **organisationName** | `organization` | Organization name | With individualName: `Person.Affiliation`. Organisation-only (no individualName): Investigation Comment named from the role (e.g. `Publisher`), not a Person. |
 | **positionName** | `position` | Job title | `Person` comment or custom field |
 | **contactInfo/phone** | `phone` | Telephone number | `Person.Phone` |
 | **contactInfo/fax** | `fax` | Fax number | `Person.Fax` |
 | **contactInfo/address** | `address`, `city`, `region`, `postcode`, `country` | Full postal address | `Person.Address` (formatted) |
 | **contactInfo/electronicMailAddress** | `email` | Email address | `Person.Email` |
 | **contactInfo/onlineResource** | `onlineresource` (CI_OnlineResource) | Website URL | `Person` comment (ORCID or website) |
-| **role** | `role` | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms) |
+| **role** | `role` | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms); also names organisation-only Comments |
 
 ### 5. MD_Constraints (Legal and Security Constraints)
 
@@ -272,13 +272,16 @@ One INSPIRE record = One Study representing the data creation workflow.
 
 ### Person (Contacts)
 
-Map all CI_ResponsibleParty objects with full details:
+Map CI_ResponsibleParty objects using ISO field typing:
 
-- **FirstName / LastName**: Split individualName if possible
+- **individualName present**: Split with shared `split_display_name` into FirstName /
+  LastName. If given name is empty after split → fail closed (no ARC).
+- **organisationName only** (no individualName): Investigation Comment named from
+  the role (e.g. Publisher), not a Person contact.
 - **Email**: electronicMailAddress
 - **Phone / Fax**: contact phone/fax
 - **Address**: Formatted from address, city, region, postcode, country
-- **Affiliation**: organisationName
+- **Affiliation**: organisationName when paired with a successful individualName Person
 - **Roles**: Map role codes to ontology terms (via NCIT ontology mapping):
   - pointOfContact → NCIT:C70902 (Point of Contact)
   - author → NCIT:C70909 (Author)

@@ -1,4 +1,4 @@
-"""Validation helpers for ARC Person contacts produced by linked-data mappers."""
+"""Validation helpers for ARC Person contacts produced by harvester mappers."""
 
 from __future__ import annotations
 

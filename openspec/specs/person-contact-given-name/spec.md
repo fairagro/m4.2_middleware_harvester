@@ -11,9 +11,10 @@ fails closed instead of producing ARCs that break DataHUB `arc-export`.
 ### Requirement: Person contacts MUST have a non-empty given name
 
 Every Person contact produced by linked-data mappers (Schema.org and Regal)
-MUST have a given name that is non-empty after trimming whitespace. Missing,
-null, and empty-string given names MUST be treated as invalid. The system MUST
-NOT invent placeholder given names such as `.`, `n/a`, or the organization name.
+and by the INSPIRE mapper MUST have a given name that is non-empty after
+trimming whitespace. Missing, null, and empty-string given names MUST be
+treated as invalid. The system MUST NOT invent placeholder given names such as
+`.`, `n/a`, or the organization name.
 
 #### Scenario: Person with givenName maps successfully
 
@@ -27,6 +28,44 @@ NOT invent placeholder given names such as `.`, `n/a`, or the organization name.
   given name
 - **THEN** the mapping MUST fail for that record (see fail-closed requirement);
   the system MUST NOT upload an ARC containing that contact
+
+### Requirement: INSPIRE MUST use ISO individualName vs organisationName
+
+The INSPIRE mapper MUST treat ISO `CI_ResponsibleParty` fields as typed
+signals: `individualName` identifies a person; `organisationName` identifies an
+organization (or a person's affiliation when both are present).
+
+1. When `individualName` is present, the mapper MUST split it with
+   `middleware.harvester.person_names.split_display_name`. If that split does
+   not yield a non-empty given name, mapping MUST fail closed for the record.
+2. When only `organisationName` is present (no `individualName`), the mapper
+   MUST emit an Investigation Comment named from the contact role (for example
+   `Publisher`, `Point of Contact`) with the organization name, and MUST NOT
+   emit a Person contact.
+3. When both are present and the individualName split succeeds, the mapper MUST
+   emit a Person with that given/family name and MUST set
+   `Person.Affiliation` from `organisationName`.
+
+#### Scenario: INSPIRE organisation-only contact becomes Comment
+
+- **WHEN** a CI_ResponsibleParty has `organisationName` `Zenodo`, role
+  `publisher`, and no `individualName`
+- **THEN** the Investigation MUST include a Comment named `Publisher` with
+  value `Zenodo` and MUST NOT append a Person for Zenodo
+
+#### Scenario: INSPIRE individualName without given name fails closed
+
+- **WHEN** a CI_ResponsibleParty has `individualName` `Jane` (no usable given
+  name after split)
+- **THEN** mapping MUST raise a mapping error and MUST NOT return an ARC for
+  that record
+
+#### Scenario: INSPIRE individual plus organisation maps Person with Affiliation
+
+- **WHEN** a CI_ResponsibleParty has `individualName` `Jane Doe` and
+  `organisationName` `Acme Corp`
+- **THEN** the Investigation MUST contain a Person with given `Jane`, family
+  `Doe`, and Affiliation `Acme Corp`
 
 ### Requirement: Organizations MUST NOT be mapped as Person with empty given name
 
@@ -99,7 +138,8 @@ fields, it MUST use the shared
 for Person contacts. Single-token display strings MUST continue to yield no
 usable given name so organization-like labels remain fail-closed or
 Comment-mapped. The INSPIRE mapper MUST use the same helper for
-CI_ResponsibleParty display names.
+`individualName` values (fail closed when given name is missing; see INSPIRE
+ISO field requirement above).
 
 Regal agent `skos:prefLabel` values follow the PUBLISSO/Regal
 `FamilyName, Given Name(s)` convention and MUST be split on the first `", "` as

@@ -22,9 +22,25 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
+from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.person_names import split_display_name
 
 from .models import Contact, InspireRecord
+
+# Map INSPIRE role codes to ontology terms / Comment names.
+_ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
+    "pointofcontact": ("Point of Contact", "http://purl.obolibrary.org/obo/NCIT_C70902", "NCIT"),
+    "custodian": ("Custodian", "http://purl.obolibrary.org/obo/NCIT_C70903", "NCIT"),
+    "owner": ("Owner", "http://purl.obolibrary.org/obo/NCIT_C70904", "NCIT"),
+    "user": ("User", "http://purl.obolibrary.org/obo/NCIT_C70905", "NCIT"),
+    "distributor": ("Distributor", "http://purl.obolibrary.org/obo/NCIT_C70906", "NCIT"),
+    "originator": ("Originator", "http://purl.obolibrary.org/obo/NCIT_C70907", "NCIT"),
+    "publisher": ("Publisher", "http://purl.obolibrary.org/obo/NCIT_C70908", "NCIT"),
+    "author": ("Author", "http://purl.obolibrary.org/obo/NCIT_C70909", "NCIT"),
+    "principalinvestigator": ("Principal Investigator", "http://purl.obolibrary.org/obo/NCIT_C70910", "NCIT"),
+    "processor": ("Processor", "http://purl.obolibrary.org/obo/NCIT_C70911", "NCIT"),
+    "metadatacontact": ("Metadata Contact", "http://purl.obolibrary.org/obo/NCIT_C70912", "NCIT"),
+}
 
 
 class InspireMapper:
@@ -59,11 +75,22 @@ class InspireMapper:
         return slug[:80]
 
     def map_person(self, contact: Contact) -> Person | None:
-        """Map contact object to Person with full CI_ResponsibleParty details."""
-        if not contact.name:
-            return None  # Skip contacts without name
+        """Map an ISO individualName contact to Person.
+
+        ``organisationName``-only contacts are handled in ``_add_contacts`` as
+        Investigation comments. When ``individualName`` is present but yields no
+        given name after splitting, mapping fails closed.
+        """
+        if not contact.name or not contact.name.strip():
+            return None
 
         first_name, last_name = self._split_name(contact.name)
+        if not first_name.strip():
+            raise ValueError(
+                f"INSPIRE individualName must yield a non-empty given name "
+                f"(individualName={contact.name!r}, last_name={last_name!r})"
+            )
+
         full_address = self._format_address(contact)
         person = Person.create(
             last_name=last_name,
@@ -85,6 +112,15 @@ class InspireMapper:
         parts = split_display_name(name)
         return parts.given or "", parts.family
 
+    def _contact_role_label(self, contact: Contact) -> str:
+        """Human-readable role label for Person roles or Investigation comments."""
+        if not contact.role:
+            return "Contact"
+        mapped = _ROLE_MAPPING.get(contact.role.lower())
+        if mapped:
+            return mapped[0]
+        return contact.role
+
     def _format_address(self, contact: Contact) -> str | None:
         """Format full address from contact components."""
         address_parts = []
@@ -105,23 +141,7 @@ class InspireMapper:
         if not contact.role:
             return
 
-        # Map INSPIRE role codes to ontology terms
-        role_mapping = {
-            "pointOfContact": ("Point of Contact", "http://purl.obolibrary.org/obo/NCIT_C70902", "NCIT"),
-            "custodian": ("Custodian", "http://purl.obolibrary.org/obo/NCIT_C70903", "NCIT"),
-            "owner": ("Owner", "http://purl.obolibrary.org/obo/NCIT_C70904", "NCIT"),
-            "user": ("User", "http://purl.obolibrary.org/obo/NCIT_C70905", "NCIT"),
-            "distributor": ("Distributor", "http://purl.obolibrary.org/obo/NCIT_C70906", "NCIT"),
-            "originator": ("Originator", "http://purl.obolibrary.org/obo/NCIT_C70907", "NCIT"),
-            "publisher": ("Publisher", "http://purl.obolibrary.org/obo/NCIT_C70908", "NCIT"),
-            "author": ("Author", "http://purl.obolibrary.org/obo/NCIT_C70909", "NCIT"),
-            "principalInvestigator": ("Principal Investigator", "http://purl.obolibrary.org/obo/NCIT_C70910", "NCIT"),
-            "processor": ("Processor", "http://purl.obolibrary.org/obo/NCIT_C70911", "NCIT"),
-            "metadataContact": ("Metadata Contact", "http://purl.obolibrary.org/obo/NCIT_C70912", "NCIT"),
-        }
-
-        # Use mapped role or fall back to original
-        mapped_role = role_mapping.get(contact.role.lower(), (contact.role, None, None))
+        mapped_role = _ROLE_MAPPING.get(contact.role.lower(), (contact.role, None, None))
         role_name, tan, tsr = mapped_role
 
         if tan and tsr:
@@ -153,6 +173,7 @@ class InspireMapper:
         )
 
         self._add_contacts(inv, record)
+        require_nonempty_person_given_names(inv)
         self._add_publications(inv, record)
         self._add_comments(inv, record)
         self._add_ontology_sources(inv, record)
@@ -190,12 +211,18 @@ class InspireMapper:
             )
 
     def _add_contacts(self, inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add all contacts to the investigation."""
+        """Add contacts: Persons from individualName, Comments from organisation-only."""
         all_contacts = list(record.contacts)
         all_contacts.extend(record.creators)
         all_contacts.extend(record.publishers)
         all_contacts.extend(record.contributors)
         for contact in all_contacts:
+            individual = (contact.name or "").strip()
+            organization = (contact.organization or "").strip()
+            if not individual:
+                if organization:
+                    inv.Comments.append(Comment.create(self._contact_role_label(contact), organization))
+                continue
             person = self.map_person(contact)
             if person:
                 inv.Contacts.append(person)
