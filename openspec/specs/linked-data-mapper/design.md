@@ -31,11 +31,12 @@ schema.org, `RegalMapper` for Regal).
    `arc-export` after ISA Write/load. Mappers therefore emit `Comment("Publisher", …)` (and
    keep creator affiliations on `Person.Affiliation`), refuse placeholder given names, and
    fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.
-   Display-string splits (when structured given/family fields are absent) go through shared
-   `person_names.split_display_name` (`nameparser`), not per-mapper heuristics, so particles,
-   titles/suffixes, and `Family, Given` forms stay consistent across Schema.org and Regal.
-   Single-token labels remain unlabeled agents (`given=None`) so org-like literals still fail
-   closed or become Comments.
+   Schema.org display-string splits (when structured given/family fields are absent) go
+   through shared `person_names.split_display_name` (`nameparser`). Regal agent
+   `skos:prefLabel` values follow PUBLISSO `Family, Given` and split on the first `", "`
+   (labels without comma → organization/label Comment; ORCID without given → fail closed).
+   Single-token / no-comma Regal labels remain unlabeled agents so org-like agents become
+   Comments rather than fake Persons.
 
 6. **Schema.org Investigation.identifier is harvest-stable or the record is refused**
    — rdflib blank-node labels are parser-internal and change every parse; the API hashes

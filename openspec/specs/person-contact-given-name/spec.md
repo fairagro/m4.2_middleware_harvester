@@ -89,15 +89,20 @@ and MUST NOT yield/upload a `HarvestedArc` for that record.
   Write/load/`ToROCrateJsonString` (or equivalent round-trip used in tests)
   MUST NOT fail with `Person must have a given name`
 
-### Requirement: Display-name splitting is shared and parser-backed
+### Requirement: Display-name splitting is shared and parser-backed (Schema.org)
 
-When a linked-data mapper must derive given/family names from a display string
-(Schema.org `name` / literal creator, Regal `skos:prefLabel`, etc.) rather than
-from structured given/family fields, it MUST use the shared
-`person_names.split_display_name` helper (backed by `nameparser`). Mappers MUST
-NOT keep private whitespace/last-token split heuristics for Person contacts.
-Single-token display strings MUST continue to yield no usable given name so
-organization-like labels remain fail-closed or Comment-mapped.
+When the Schema.org mapper must derive given/family names from a display string
+(`schema:name` / literal creator) rather than from structured given/family
+fields, it MUST use the shared `person_names.split_display_name` helper (backed
+by `nameparser`). It MUST NOT keep private whitespace/last-token split
+heuristics for Person contacts. Single-token display strings MUST continue to
+yield no usable given name so organization-like labels remain fail-closed or
+Comment-mapped.
+
+Regal agent `skos:prefLabel` values follow the PUBLISSO/Regal
+`FamilyName, Given Name(s)` convention and MUST be split on the first `", "` as
+specified in `regal-to-arc-mapping` / `docs/regal_mapping.md` (not via
+`split_display_name`). Labels without `", "` are organization/label agents.
 
 #### Scenario: Particle and title-bearing display names split consistently
 

@@ -30,7 +30,6 @@ from middleware.harvester.plugin_base import HarvestedArc
 from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .person_contacts import require_nonempty_person_given_names
-from .person_names import split_display_name
 from .stable_graph import StableGraph
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
@@ -387,6 +386,20 @@ class RegalMapper(LinkedDataMapper):
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
 
+    @staticmethod
+    def _split_regal_agent_label(label: str) -> tuple[str, str]:
+        """Split Regal agent labels on first ``", "`` → ``(family, given)``.
+
+        PUBLISSO/Regal person ``prefLabel`` values use ``Family, Given`` form.
+        Labels without ``", "`` are treated as organization/label agents (empty
+        given → Comment path in ``_person_from_label``).
+        """
+        stripped = label.strip()
+        if ", " not in stripped:
+            return stripped, ""
+        family, given = stripped.split(", ", 1)
+        return family.strip(), given.strip()
+
     def _node_to_person(
         self,
         graph: Graph,
@@ -397,10 +410,9 @@ class RegalMapper(LinkedDataMapper):
         inv: ArcInvestigation,
     ) -> Person | None:
         if isinstance(node, Literal):
-            parts = split_display_name(str(node))
             return self._person_from_label(
                 inv,
-                (parts.family, parts.given or ""),
+                self._split_regal_agent_label(str(node)),
                 affiliation=affiliation,
                 role=role,
                 node_id=None,
@@ -409,12 +421,11 @@ class RegalMapper(LinkedDataMapper):
         pref_label = self._str(graph, node, SKOS.prefLabel) or ""
         if not pref_label:
             return None
-        parts = split_display_name(pref_label)
         # Only URIRefs are stable identity; never pass str(BNode) into Comments.
         node_id = str(node) if isinstance(node, URIRef) else None
         return self._person_from_label(
             inv,
-            (parts.family, parts.given or ""),
+            self._split_regal_agent_label(pref_label),
             affiliation=affiliation,
             role=role,
             node_id=node_id,

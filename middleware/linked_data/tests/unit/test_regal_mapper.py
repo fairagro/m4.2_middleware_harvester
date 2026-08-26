@@ -207,6 +207,26 @@ def test_regal_mapper_org_style_pref_label_is_comment_not_empty_given_person() -
     assert not any(p.get("familyName") == "Zenodo" for p in people)
 
 
+def test_regal_mapper_multiword_org_pref_label_without_comma_is_comment() -> None:
+    """Regal has no Family, Given → Comment; do not nameparse into a fake Person."""
+    graph = _base_graph()
+    org = URIRef("https://example.org/org/nfdi4health-tf")
+    graph.add((SUBJECT, DCTERMS.creator, org))
+    graph.add((org, SKOS.prefLabel, Literal("NFDI4Health Task Force COVID-19")))
+
+    arc_json = _mapped_arc_json(graph)
+    entries = {(name, text) for name, text in _comment_entries(arc_json)}
+    assert ("Creator", "NFDI4Health Task Force COVID-19 (https://example.org/org/nfdi4health-tf)") in entries
+    payload = json.loads(arc_json)
+    people = [
+        item
+        for item in payload["@graph"]
+        if item.get("@type") == "Person" or (isinstance(item.get("@type"), list) and "Person" in item.get("@type", []))
+    ]
+    assert not any("NFDI4Health" in str(p.get("familyName", "")) for p in people)
+    assert not any("Task" in str(p.get("givenName", "")) for p in people)
+
+
 def test_regal_mapper_org_style_bnode_pref_label_comment_omits_bnode_id() -> None:
     graph = _base_graph()
     org = BNode()
