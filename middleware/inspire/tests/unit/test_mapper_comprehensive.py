@@ -271,6 +271,27 @@ def test_add_contacts_organisation_only_becomes_comment(mapper: InspireMapper) -
     assert any(c.Name == "Publisher" and c.Value == "Zenodo" for c in inv.Comments)
 
 
+def test_add_contacts_dedupes_identical_organisation_comments(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(organization="BGR", role="publisher", type="metadata")],
+        creators=[],
+        publishers=[Contact(organization="bgr", role="publisher")],
+        contributors=[],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    publisher_comments = [c for c in inv.Comments if c.Name == "Publisher" and c.Value.casefold() == "bgr"]
+    assert len(publisher_comments) == 1
+    # Different roles for the same org remain distinct.
+    record2 = _create_minimal_record(
+        contacts=[Contact(organization="BGR", role="pointOfContact")],
+        publishers=[Contact(organization="BGR", role="publisher")],
+    )
+    inv2 = ArcInvestigation.create(identifier="test2", title="Test")
+    mapper._add_contacts(inv2, record2)
+    assert {c.Name for c in inv2.Comments if c.Value == "BGR"} == {"Point of Contact", "Publisher"}
+
+
 def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test creation of Spatial Sampling protocol."""
     table = mapper._create_spatial_sampling_protocol(sample_record)

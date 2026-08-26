@@ -216,12 +216,17 @@ class InspireMapper:
         all_contacts.extend(record.creators)
         all_contacts.extend(record.publishers)
         all_contacts.extend(record.contributors)
+        seen_org_comments: set[tuple[str, str]] = set()
         for contact in all_contacts:
             individual = (contact.name or "").strip()
             organization = (contact.organization or "").strip()
             if not individual:
                 if organization:
-                    inv.Comments.append(Comment.create(self._contact_role_label(contact), organization))
+                    comment_name = self._contact_role_label(contact)
+                    key = (comment_name.casefold(), organization.casefold())
+                    if key not in seen_org_comments:
+                        seen_org_comments.add(key)
+                        inv.Comments.append(Comment.create(comment_name, organization))
                 continue
             person = self.map_person(contact)
             if person:
