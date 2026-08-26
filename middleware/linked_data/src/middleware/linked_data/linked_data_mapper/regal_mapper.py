@@ -209,7 +209,7 @@ class RegalMapper(LinkedDataMapper):
 
     def _create_spatial_sampling_table(self, graph: Graph, subject: Node) -> ArcTable | None:
         locations = self._labelled_nodes(graph, subject, REGAL.recordingLocation)
-        coordinates = [str(obj) for obj in graph.objects(subject, REGAL.recordingCoordinates) if obj is not None]
+        coordinates = self._strs(graph, subject, REGAL.recordingCoordinates)
         if not locations and not coordinates:
             return None
 
@@ -406,7 +406,9 @@ class RegalMapper(LinkedDataMapper):
         if not pref_label:
             return None
         family, given = self._split_pref_label(pref_label)
-        return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=str(node))
+        # Only URIRefs are stable ids (e.g. ORCID); never persist str(BNode).
+        node_id = str(node) if isinstance(node, URIRef) else None
+        return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=node_id)
 
     def _person_from_label(
         self,
@@ -692,10 +694,36 @@ class RegalMapper(LinkedDataMapper):
 
     def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
         value = graph.value(subject, predicate)
-        return str(value) if value is not None else None
+        if value is None:
+            return None
+        return self._term_text(graph, value)
 
     def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
-        return [str(obj) for obj in graph.objects(subject, predicate) if obj is not None]
+        texts: list[str] = []
+        for obj in graph.objects(subject, predicate):
+            if obj is None:
+                continue
+            text = self._term_text(graph, obj)
+            if text is not None:
+                texts.append(text)
+        return texts
+
+    def _term_text(self, graph: Graph, term: Node) -> str | None:
+        """Stable display text for an RDF term; never return ``str(BNode)``."""
+        if isinstance(term, Literal):
+            return str(term)
+        if isinstance(term, URIRef):
+            return str(term)
+        if isinstance(term, BNode):
+            pref = graph.value(term, SKOS.prefLabel)
+            if isinstance(pref, Literal):
+                text = str(pref).strip()
+                return text or None
+            if isinstance(pref, URIRef):
+                text = str(pref).strip()
+                return text or None
+            return None
+        return None
 
     def _join_literals(self, graph: Graph, subject: Node, predicate: Node) -> str:
         return "\n\n".join(self._strs(graph, subject, predicate))
