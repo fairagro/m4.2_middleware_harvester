@@ -333,6 +333,18 @@ def test_joined_funding_bnodes_with_pref_label_are_kept() -> None:
     assert _BLANK_NODE_LABEL.search(text) is None
 
 
+def test_joined_funding_bnodes_without_pref_label_are_omitted() -> None:
+    graph = _base_graph()
+    joined = BNode()
+    graph.add((SUBJECT, URIRef("info:regal/regal/joinedFunding"), joined))
+    graph.add((joined, REGAL.fundingProgramJoined, BNode()))
+    graph.add((joined, REGAL.projectIdJoined, BNode()))
+    graph.add((joined, REGAL.fundingJoined, BNode()))
+
+    text = json.dumps(json.loads(_mapper().map_graph(graph).arc_json))
+    assert _BLANK_NODE_LABEL.search(text) is None
+
+
 def test_funding_bnode_fields_stable_across_two_maps() -> None:
     def build() -> Graph:
         graph = _base_graph()
