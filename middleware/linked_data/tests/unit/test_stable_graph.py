@@ -101,6 +101,18 @@ def test_doi_from_property_value() -> None:
     assert dois == ["10.3220/253-2025-42"]
 
 
+def test_doi_property_value_ignores_blank_node_fields() -> None:
+    graph = Graph()
+    dataset = URIRef("https://example.org/ds")
+    pv = BNode()
+    graph.add((dataset, SCHEMA.identifier, pv))
+    graph.add((pv, RDF.type, SCHEMA.PropertyValue))
+    graph.add((pv, SCHEMA.propertyID, BNode()))
+    graph.add((pv, SCHEMA.value, BNode()))
+    assert _wrap(graph).view(dataset).schema_dois("identifier") == []
+    assert _wrap(graph).view(pv).doi() is None
+
+
 def test_doi_blank_without_fields_is_none() -> None:
     graph = Graph()
     blank = BNode()

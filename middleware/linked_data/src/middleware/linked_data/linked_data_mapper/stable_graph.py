@@ -300,7 +300,7 @@ class ResourceView:
             previous = by_fold.get(fold)
             if previous is None or doi < previous:
                 by_fold[fold] = doi
-        return sorted(by_fold.values(), key=str.casefold)
+        return sorted(by_fold.values(), key=lambda doi: (doi.casefold(), doi))
 
     def schema_dois(self, term: str = "identifier") -> list[str]:
         """Collect DOIs from Schema.org ``term`` objects (and subject IRI if DOI-like)."""
@@ -320,7 +320,7 @@ class ResourceView:
                 previous = by_fold.get(fold)
                 if previous is None or subject_doi < previous:
                     by_fold[fold] = subject_doi
-        return sorted(by_fold.values(), key=str.casefold)
+        return sorted(by_fold.values(), key=lambda doi: (doi.casefold(), doi))
 
     def _schema_predicates(self, term: str) -> tuple[Node, ...]:
         return tuple(getattr(ns, term) for ns in self._stable.policy.term_namespaces)
@@ -476,18 +476,28 @@ def doi_from_node(stable: StableGraph, node: Node) -> str | None:
     return None
 
 
+def _stable_object_texts(objects: list[Node]) -> list[str]:
+    """Return stripped texts from Literal/URIRef objects; skip blank nodes."""
+    texts: list[str] = []
+    for obj in objects:
+        if isinstance(obj, BNode) or not isinstance(obj, (Literal, URIRef)):
+            continue
+        text = str(obj).strip()
+        if text:
+            texts.append(text)
+    return texts
+
+
 def _doi_from_property_value(stable: StableGraph, node: Node) -> str | None:
+    if not stable.policy.term_namespaces:
+        # Require schema aliases for PropertyValue-shaped extraction.
+        return None
     view = ResourceView(stable, node)
-    namespaces = stable.policy.term_namespaces
-    if namespaces:
-        property_ids = [str(obj) for obj in view.schema_objects("propertyID") if obj is not None]
-        values = [str(obj) for obj in view.schema_objects("value") if obj is not None]
-    else:
-        # Fallback: any outgoing literals named loosely — require schema aliases for PropertyValue.
+    property_ids = _stable_object_texts(view.schema_objects("propertyID"))
+    values = _stable_object_texts(view.schema_objects("value"))
+    if not values or not property_ids:
         return None
-    if not values:
-        return None
-    if not property_ids or not any("doi" in pid.lower() for pid in property_ids):
+    if not any("doi" in pid.lower() for pid in property_ids):
         return None
     for value in values:
         doi = normalize_doi(value)

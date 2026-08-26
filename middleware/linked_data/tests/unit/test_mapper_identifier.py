@@ -14,7 +14,13 @@ from mapper_test_helpers import (
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper, MappingContext
+from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper, LinkedDataMapper, MappingContext
+
+
+def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> None:
+    left = ["10.1234/Ab", "10.1234/ab"]
+    right = list(reversed(left))
+    assert LinkedDataMapper.pick_canonical_doi(left) == LinkedDataMapper.pick_canonical_doi(right) == "10.1234/Ab"
 
 
 def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:

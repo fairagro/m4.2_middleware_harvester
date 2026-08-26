@@ -113,8 +113,8 @@ class LinkedDataMapper(ABC):
 
     @staticmethod
     def pick_canonical_doi(dois: list[str]) -> str | None:
-        """Return the lexicographic minimum DOI by Unicode ``casefold``, or None."""
-        return min(dois, key=str.casefold) if dois else None
+        """Return the lexicographic minimum DOI (casefold, then original string)."""
+        return min(dois, key=lambda doi: (doi.casefold(), doi)) if dois else None
 
     def resolve_harvest_source_identifier(self, context: MappingContext) -> str | None:
         """Stable harvest-unit identifier from discovery (catalog id or page URL)."""
