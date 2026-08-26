@@ -124,6 +124,27 @@ record-level failure and does not upload.
 - **THEN** `map_graph` MUST raise a mapping error and MUST NOT return a
   HarvestedArc
 
+### Requirement: Schema.org mapping MUST require an rdf:type Dataset subject
+
+`GeneralSchemaOrgMapper` MUST select the graph subject via `rdf:type`
+Schema.org `Dataset` (http and/or https schema.org namespace). If no such
+subject exists, `map_graph` MUST fail closed with a mapping error stating that
+the graph does not contain a Schema.org Dataset entity. The mapper MUST NOT
+fall back to an arbitrary first graph subject.
+
+#### Scenario: Empty graph has no Dataset entity
+
+- **WHEN** the RDF graph has no triples
+- **THEN** `map_graph` MUST raise a mapping error and MUST NOT return a
+  HarvestedArc
+
+#### Scenario: Non-Dataset subjects alone are refused
+
+- **WHEN** the graph has subjects (for example a `schema:Person`) but no
+  `rdf:type` Schema.org `Dataset`
+- **THEN** `map_graph` MUST raise a mapping error and MUST NOT return a
+  HarvestedArc
+
 ### Requirement: Schema.org Dataset MUST have a non-empty schema:name
 
 `GeneralSchemaOrgMapper` MUST require a non-empty Dataset `schema:name` (after

@@ -85,7 +85,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
             subjects = list(graph.subjects(RDF.type, schema.Dataset))
             if subjects:
                 return subjects[0]
-        return next(iter(graph.subjects()), None)
+        return None
 
 
 @dataclass(frozen=True)

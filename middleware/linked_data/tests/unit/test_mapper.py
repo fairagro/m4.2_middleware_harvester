@@ -95,6 +95,18 @@ def test_general_mapper_raises_when_no_dataset_entity_present() -> None:
         mapper.map_graph(graph, NO_DISCOVERY)
 
 
+def test_general_mapper_raises_when_graph_has_subjects_but_no_dataset_type() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    person = URIRef("https://example.org/person/1")
+    graph.add((person, RDF.type, schema.Person))
+    graph.add((person, schema.name, Literal("Ada Lovelace")))
+    graph.add((person, schema.url, person))
+
+    with pytest.raises(ValueError, match="Graph does not contain a Schema.org Dataset entity"):
+        GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)
+
+
 def test_general_mapper_raises_when_schema_name_missing() -> None:
     graph = Graph()
     schema = Namespace("https://schema.org/")
