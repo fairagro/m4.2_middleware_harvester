@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels
+from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 
@@ -426,3 +428,106 @@ def test_funding_bnode_fields_stable_across_two_maps() -> None:
     first = funding_snippet(_mapped_arc_json(build()))
     second = funding_snippet(_mapped_arc_json(build()))
     assert first == second
+
+
+def _person_name_pairs(arc_json: str) -> list[tuple[str, str]]:
+    payload = json.loads(arc_json)
+    pairs: list[tuple[str, str]] = []
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Person" not in type_list:
+            continue
+        family = str(item.get("familyName") or "").strip()
+        given = str(item.get("givenName") or "").strip()
+        if family or given:
+            pairs.append((family, given))
+    return pairs
+
+
+def test_creator_blank_node_order_permutation_yields_same_contacts() -> None:
+    def build(*, reverse: bool) -> Graph:
+        graph = Graph()
+        graph.add((SUBJECT, RDF.type, RESEARCH_DATA_TYPE))
+        graph.add((SUBJECT, DCTERMS.title, Literal("Contact order fixture")))
+        graph.add((SUBJECT, DCTERMS.description, Literal("No DOI — avoid Publication author Person nodes")))
+        a = BNode()
+        b = BNode()
+        graph.add((a, SKOS.prefLabel, Literal("Alpha, Ada")))
+        graph.add((b, SKOS.prefLabel, Literal("Zebra, Zoe")))
+        creators = (b, a) if reverse else (a, b)
+        for node in creators:
+            graph.add((SUBJECT, DCTERMS.creator, node))
+        return graph
+
+    first = _person_name_pairs(_mapped_arc_json(build(reverse=False)))
+    second = _person_name_pairs(_mapped_arc_json(build(reverse=True)))
+    assert first == second
+    assert first == [("Alpha", "Ada"), ("Zebra", "Zoe")]
+
+
+def test_opaque_unknown_predicates_are_order_stable() -> None:
+    pred_a = URIRef("http://hbz-nrw.de/regal#opaque_alpha")
+    pred_z = URIRef("http://hbz-nrw.de/regal#opaque_zeta")
+
+    def build(*, reverse: bool) -> Graph:
+        graph = _base_graph()
+        pairs = (
+            ((pred_z, "Zeta note"), (pred_a, "Alpha note"))
+            if reverse
+            else ((pred_a, "Alpha note"), (pred_z, "Zeta note"))
+        )
+        for pred, text in pairs:
+            graph.add((SUBJECT, pred, Literal(text)))
+        return graph
+
+    def opaque_names(arc_json: str) -> list[tuple[str, str]]:
+        return [(n, t) for n, t in _comment_entries(arc_json) if n in {"opaque_alpha", "opaque_zeta"}]
+
+    first = opaque_names(_mapped_arc_json(build(reverse=False)))
+    second = opaque_names(_mapped_arc_json(build(reverse=True)))
+    assert first == second
+    assert first == [("opaque_alpha", "Alpha note"), ("opaque_zeta", "Zeta note")]
+
+
+def test_concurrent_map_graph_on_shared_regal_mapper_does_not_cross_talk() -> None:
+    def build(slug: str, title: str) -> Graph:
+        graph = Graph()
+        subject = URIRef(f"{RESOURCE_BASE}frl:{slug}")
+        graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
+        graph.add((subject, DCTERMS.title, Literal(title)))
+        graph.add((subject, DCTERMS.description, Literal(f"Description for {slug}")))
+        graph.add((subject, REGAL.doi, Literal(f"10.4126/{slug}")))
+        return graph
+
+    mapper = _mapper()
+    left = build("alpha", "Alpha Regal Title")
+    right = build("zeta", "Zeta Regal Title")
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(mapper.map_graph, left, NO_DISCOVERY),
+            pool.submit(mapper.map_graph, right, NO_DISCOVERY),
+        ]
+        results = [future.result() for future in futures]
+
+    by_id = {root_identifier(harvested.arc_json): harvested.arc_json for harvested in results}
+    assert set(by_id) == {"frl_alpha", "frl_zeta"}
+    assert "Alpha Regal Title" in by_id["frl_alpha"]
+    assert "Zeta Regal Title" not in by_id["frl_alpha"]
+    assert "Zeta Regal Title" in by_id["frl_zeta"]
+    assert "Alpha Regal Title" not in by_id["frl_zeta"]
+    for arc_json in by_id.values():
+        assert_harvest_has_no_bnode_labels(arc_json)
+
+
+def test_regal_mapper_has_no_private_string_hygiene_helpers() -> None:
+    """Tier-B done bar: private RDF string helpers must be gone."""
+    forbidden = ("_str", "_strs", "_term_text", "_labelled_nodes", "_join_literals")
+    for name in forbidden:
+        assert not hasattr(RegalMapper, name)
+    module = inspect.getmodule(RegalMapper)
+    assert module is not None
+    module_source = inspect.getsource(module)
+    for name in forbidden:
+        assert f"def {name}(" not in module_source

@@ -1,7 +1,11 @@
-"""Mapper from Regal ResearchData RDF graphs to ARC RO-Crate JSON-LD."""
+"""Mapper from Regal ResearchData RDF graphs to ARC RO-Crate JSON-LD.
+
+Field access goes through StableGraph / ResourceView; ARC assembly stays here.
+"""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import override
 from urllib.parse import quote, urlparse
 
@@ -20,7 +24,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import BNode, Graph, Literal, Namespace, URIRef
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
@@ -29,7 +33,7 @@ from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
-from .stable_graph import StableGraph
+from .stable_graph import LabelledNode, ResourceView, StableGraph
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
@@ -78,7 +82,11 @@ _KNOWN_PREDICATES = {
 
 @LinkedDataMapper.register(PayloadType.regal_general)
 class RegalMapper(LinkedDataMapper):
-    """Maps a Regal ResearchData RDF graph to ARC objects."""
+    """Maps a Regal ResearchData RDF graph to ARC objects.
+
+    RDF reads use the ``StableGraph`` passed into ``_map_graph`` (via a per-call
+    ``_RegalRun``); Regal ARC policy stays here.
+    """
 
     def __init__(self, resource_base_url: str) -> None:
         """Create a mapper that expands/strips Regal ids with ``resource_base_url``."""
@@ -91,19 +99,19 @@ class RegalMapper(LinkedDataMapper):
         return cls(config.effective_resource_base_url)
 
     @override
+    def _stable_wrap(self, graph: Graph) -> StableGraph:
+        """Wrap with ``skos:prefLabel`` as the Regal labelled-node policy."""
+        return StableGraph.wrap(graph, label_predicates=(SKOS.prefLabel,))
+
+    @override
     def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
-        _ = context, stable  # Regal still reads the raw graph; StableGraph migration is follow-up.
+        _ = context  # Discovery context unused for Regal Investigation.identifier.
         subject = self._find_research_data_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")
 
-        regal_id = self._regal_id(subject)
-        doi = self._doi(graph, subject)
-        if not regal_id and not doi:
-            raise ValueError("Regal record is missing both @id and doi")
-
-        arc = self._map_arc(graph, subject, regal_id=regal_id, doi=doi)
+        arc = _RegalRun(self, stable, self._resource_base_url).map_arc(subject)
         return HarvestedArc.from_arctrl(arc)
 
     def _find_research_data_subject(self, graph: Graph) -> Node | None:
@@ -114,34 +122,44 @@ class RegalMapper(LinkedDataMapper):
             return subject
         return None
 
-    def _map_arc(
-        self,
-        graph: Graph,
-        subject: Node,
-        *,
-        regal_id: str | None,
-        doi: str | None,
-    ) -> ARC:
-        investigation = self._map_investigation(graph, subject, regal_id=regal_id, doi=doi)
-        study = self._map_study(graph, subject, investigation.Identifier)
+
+@dataclass(frozen=True)
+class _RegalRun:
+    """One ``map_graph`` call: owns the StableGraph explicitly (not on the mapper)."""
+
+    mapper: RegalMapper
+    stable: StableGraph
+    resource_base_url: str
+
+    def view(self, subject: Node) -> ResourceView:
+        """ResourceView for ``subject`` on this call's StableGraph."""
+        return self.stable.view(subject)
+
+    def map_arc(self, subject: Node) -> ARC:
+        regal_id = self._regal_id(subject)
+        doi = self._doi(subject)
+        if not regal_id and not doi:
+            raise ValueError("Regal record is missing both @id and doi")
+
+        investigation = self._map_investigation(subject, regal_id=regal_id, doi=doi)
+        study = self._map_study(subject, investigation.Identifier)
         investigation.AddStudy(study)
-        assay = self._map_assay(graph, subject, investigation.Identifier, regal_id=regal_id, doi=doi)
+        assay = self._map_assay(subject, investigation.Identifier, regal_id=regal_id, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
 
     def _map_investigation(
         self,
-        graph: Graph,
         subject: Node,
         *,
         regal_id: str | None,
         doi: str | None,
     ) -> ArcInvestigation:
-        title = self._title(graph, subject)
+        title = self._title(subject)
         identifier = self._investigation_identifier(regal_id=regal_id, doi=doi, title=title)
-        description = self._join_literals(graph, subject, DCTERMS.description)
-        submission_date = self._str(graph, subject, DCTERMS.issued) or ""
+        description = self._join_texts(subject, DCTERMS.description)
+        submission_date = self.view(subject).text(DCTERMS.issued) or ""
 
         inv = ArcInvestigation.create(
             identifier=identifier,
@@ -149,19 +167,19 @@ class RegalMapper(LinkedDataMapper):
             description=description,
             submission_date=submission_date,
         )
-        institutions = self._labelled_nodes(graph, subject, DBO.institution)
+        institutions = self._labelled_pairs(subject, DBO.institution)
         affiliation = institutions[0][0] if len(institutions) == 1 else None
-        self._add_contacts(inv, graph, subject, affiliation=affiliation)
+        self._add_contacts(inv, subject, affiliation=affiliation)
         require_nonempty_person_given_names(inv)
-        self._add_publications(inv, graph, subject, title=title, doi=doi)
-        self._add_investigation_comments(inv, graph, subject, institutions=institutions)
+        self._add_publications(inv, subject, title=title, doi=doi)
+        self._add_investigation_comments(inv, subject, institutions=institutions)
         self._add_ontology_sources(inv)
         return inv
 
-    def _map_study(self, graph: Graph, subject: Node, investigation_id: str) -> ArcStudy:
-        title = self._title(graph, subject)
-        description = self._join_literals(graph, subject, DCTERMS.description)
-        usage_manual = self._str(graph, subject, REGAL.usageManual)
+    def _map_study(self, subject: Node, investigation_id: str) -> ArcStudy:
+        title = self._title(subject)
+        description = self._join_texts(subject, DCTERMS.description)
+        usage_manual = self.view(subject).text(REGAL.usageManual)
         if usage_manual:
             description = f"{description}\n\nUsage Manual: {usage_manual}".strip()
 
@@ -169,30 +187,29 @@ class RegalMapper(LinkedDataMapper):
             identifier=f"{investigation_id}_study",
             title=title,
             description=description,
-            submission_date=self._str(graph, subject, DCTERMS.issued) or "",
+            submission_date=self.view(subject).text(DCTERMS.issued) or "",
         )
 
-        spatial = self._create_spatial_sampling_table(graph, subject)
+        spatial = self._create_spatial_sampling_table(subject)
         if spatial is not None:
             study.AddTable(spatial)
 
-        collection = self._create_data_collection_table(graph, subject)
+        collection = self._create_data_collection_table(subject)
         if collection is not None:
             study.AddTable(collection)
 
-        study.AddTable(self._create_data_processing_table(graph, subject))
+        study.AddTable(self._create_data_processing_table(subject))
         return study
 
     def _map_assay(
         self,
-        graph: Graph,
         subject: Node,
         investigation_id: str,
         *,
         regal_id: str | None,
         doi: str | None,
     ) -> ArcAssay:
-        title = self._title(graph, subject)
+        title = self._title(subject)
         assay = ArcAssay.create(
             identifier=f"{investigation_id}_assay",
             title=title,
@@ -200,12 +217,12 @@ class RegalMapper(LinkedDataMapper):
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Regal Research Data Repository")
-        assay.AddTable(self._create_assay_table(graph, subject, regal_id=regal_id, doi=doi))
+        assay.AddTable(self._create_assay_table(subject, regal_id=regal_id, doi=doi))
         return assay
 
-    def _create_spatial_sampling_table(self, graph: Graph, subject: Node) -> ArcTable | None:
-        locations = self._labelled_nodes(graph, subject, REGAL.recordingLocation)
-        coordinates = self._strs(graph, subject, REGAL.recordingCoordinates)
+    def _create_spatial_sampling_table(self, subject: Node) -> ArcTable | None:
+        locations = self._labelled_pairs(subject, REGAL.recordingLocation)
+        coordinates = self.view(subject).texts(REGAL.recordingCoordinates)
         if not locations and not coordinates:
             return None
 
@@ -231,10 +248,10 @@ class RegalMapper(LinkedDataMapper):
         )
         return table
 
-    def _create_data_collection_table(self, graph: Graph, subject: Node) -> ArcTable | None:
-        keywords = self._keyword_labels(graph, subject)
-        data_origins = self._labelled_nodes(graph, subject, REGAL.dataOrigin)
-        temporal = self._str(graph, subject, REGAL.recordingPeriod)
+    def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
+        keywords = self._keyword_labels(subject)
+        data_origins = self._labelled_pairs(subject, REGAL.dataOrigin)
+        temporal = self.view(subject).text(REGAL.recordingPeriod)
         if not keywords and not data_origins and not temporal:
             return None
 
@@ -265,7 +282,7 @@ class RegalMapper(LinkedDataMapper):
         )
         return table
 
-    def _create_data_processing_table(self, graph: Graph, subject: Node) -> ArcTable:
+    def _create_data_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
         table.AddColumn(
             CompositeHeader.input(IOType.data()),
@@ -276,7 +293,7 @@ class RegalMapper(LinkedDataMapper):
             [CompositeCell.term(OntologyAnnotation(name="Published research data metadata from a Regal repository"))],
         )
 
-        funders, programs, project_ids = self._funding_values(graph, subject)
+        funders, programs, project_ids = self._funding_values(subject)
         if funders:
             table.AddColumn(
                 CompositeHeader.parameter(OntologyAnnotation(name="Funder")),
@@ -293,7 +310,7 @@ class RegalMapper(LinkedDataMapper):
                 [CompositeCell.term(OntologyAnnotation(name="; ".join(project_ids)))],
             )
 
-        license_value = self._license_value(graph, subject)
+        license_value = self._license_value(subject)
         if license_value:
             table.AddColumn(
                 CompositeHeader.parameter(OntologyAnnotation(name="License")),
@@ -308,7 +325,6 @@ class RegalMapper(LinkedDataMapper):
 
     def _create_assay_table(
         self,
-        graph: Graph,
         subject: Node,
         *,
         regal_id: str | None,
@@ -325,16 +341,16 @@ class RegalMapper(LinkedDataMapper):
             [CompositeCell.free_text(output_uri)],
         )
 
-        license_value = self._license_value(graph, subject)
+        license_value = self._license_value(subject)
         if license_value:
             table.AddColumn(CompositeHeader.comment("License"), [CompositeCell.free_text(license_value)])
 
-        languages = self._labelled_nodes(graph, subject, DCTERMS.language)
+        languages = self._labelled_pairs(subject, DCTERMS.language)
         if languages:
             labels = "; ".join(label for label, _ in languages)
             table.AddColumn(CompositeHeader.comment("Language"), [CompositeCell.free_text(labels)])
 
-        parts = self._labelled_nodes(graph, subject, DCTERMS.hasPart)
+        parts = self._labelled_pairs(subject, DCTERMS.hasPart)
         if parts:
             urls = [self._resource_url(node_id) for _, node_id in parts if node_id]
             names = [label for label, _ in parts if label]
@@ -349,7 +365,7 @@ class RegalMapper(LinkedDataMapper):
                     [CompositeCell.free_text("; ".join(names))],
                 )
 
-        institutions = self._labelled_nodes(graph, subject, DBO.institution)
+        institutions = self._labelled_pairs(subject, DBO.institution)
         if institutions:
             table.AddColumn(
                 CompositeHeader.comment("Institution"),
@@ -360,30 +376,60 @@ class RegalMapper(LinkedDataMapper):
     def _add_contacts(
         self,
         inv: ArcInvestigation,
-        graph: Graph,
         subject: Node,
         *,
         affiliation: str | None,
     ) -> None:
-        for node in graph.objects(subject, DCTERMS.creator):
-            self._append_contact(inv, graph, node, "author", affiliation=affiliation)
-        for node in graph.objects(subject, DCTERMS.contributor):
-            self._append_contact(inv, graph, node, "contributor", affiliation=affiliation)
+        view = self.view(subject)
+        # Literals then resources, each in StableGraph order — never rdflib iteration order.
+        for lit in view.literals(DCTERMS.creator):
+            self._append_contact_from_label(inv, lit.value, "author", affiliation=affiliation, node_id=None)
+        for res in view.resources(DCTERMS.creator):
+            self._append_contact_from_resource(inv, res, "author", affiliation=affiliation)
+        for lit in view.literals(DCTERMS.contributor):
+            self._append_contact_from_label(inv, lit.value, "contributor", affiliation=affiliation, node_id=None)
+        for res in view.resources(DCTERMS.contributor):
+            self._append_contact_from_resource(inv, res, "contributor", affiliation=affiliation)
 
-    def _append_contact(
+    def _append_contact_from_label(
         self,
         inv: ArcInvestigation,
-        graph: Graph,
-        node: Node,
+        label: str,
         role: str,
         *,
         affiliation: str | None,
+        node_id: str | None,
     ) -> None:
-        person = self._node_to_person(graph, node, affiliation=affiliation, role=role, inv=inv)
+        person = self._person_from_label(
+            inv,
+            self._split_regal_agent_label(label),
+            affiliation=affiliation,
+            role=role,
+            node_id=node_id,
+        )
         if person is None:
             return
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
+
+    def _append_contact_from_resource(
+        self,
+        inv: ArcInvestigation,
+        res: ResourceView,
+        role: str,
+        *,
+        affiliation: str | None,
+    ) -> None:
+        pref_label = res.text(SKOS.prefLabel) or ""
+        if not pref_label:
+            return
+        self._append_contact_from_label(
+            inv,
+            pref_label,
+            role,
+            affiliation=affiliation,
+            node_id=res.iri,
+        )
 
     @staticmethod
     def _split_regal_agent_label(label: str) -> tuple[str, str]:
@@ -398,37 +444,6 @@ class RegalMapper(LinkedDataMapper):
             return stripped, ""
         family, given = stripped.split(", ", 1)
         return family.strip(), given.strip()
-
-    def _node_to_person(
-        self,
-        graph: Graph,
-        node: Node,
-        *,
-        affiliation: str | None,
-        role: str,
-        inv: ArcInvestigation,
-    ) -> Person | None:
-        if isinstance(node, Literal):
-            return self._person_from_label(
-                inv,
-                self._split_regal_agent_label(str(node)),
-                affiliation=affiliation,
-                role=role,
-                node_id=None,
-            )
-
-        pref_label = self._str(graph, node, SKOS.prefLabel) or ""
-        if not pref_label:
-            return None
-        # Only URIRefs are stable identity; never pass str(BNode) into Comments.
-        node_id = str(node) if isinstance(node, URIRef) else None
-        return self._person_from_label(
-            inv,
-            self._split_regal_agent_label(pref_label),
-            affiliation=affiliation,
-            role=role,
-            node_id=node_id,
-        )
 
     def _person_from_label(
         self,
@@ -465,7 +480,6 @@ class RegalMapper(LinkedDataMapper):
     def _add_publications(
         self,
         inv: ArcInvestigation,
-        graph: Graph,
         subject: Node,
         *,
         title: str,
@@ -487,25 +501,24 @@ class RegalMapper(LinkedDataMapper):
                 )
             )
 
-        for associated in graph.objects(subject, URIRef("http://hbz-nrw.de/regal#associatedPublication")):
-            uri = str(associated)
+        associated = URIRef("http://hbz-nrw.de/regal#associatedPublication")
+        for uri in self.view(subject).texts(associated):
             inv.Comments.append(Comment.create("Associated Publication", uri))
 
     def _add_investigation_comments(
         self,
         inv: ArcInvestigation,
-        graph: Graph,
         subject: Node,
         *,
         institutions: list[tuple[str, str | None]],
     ) -> None:
-        self._add_simple_comments(inv, graph, subject)
-        self._add_keyword_comments(inv, graph, subject)
+        self._add_simple_comments(inv, subject)
+        self._add_keyword_comments(inv, subject)
         self._add_institution_comments(inv, institutions)
-        self._add_oai_comments(inv, graph, subject)
-        self._add_opaque_comments(inv, graph, subject)
+        self._add_oai_comments(inv, subject)
+        self._add_opaque_comments(inv, subject)
 
-    def _add_simple_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
+    def _add_simple_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         for label, predicate in [
             ("Alternative Title", DCTERMS.alternative),
             ("Copyright Year", REGAL.yearOfCopyright),
@@ -515,24 +528,24 @@ class RegalMapper(LinkedDataMapper):
             ("Content Type", REGAL.contentType),
             ("Catalog ID", URIRef("http://hbz-nrw.de/regal#catalogId")),
         ]:
-            value = self._join_literals(graph, subject, predicate)
+            value = self._join_texts(subject, predicate)
             if value:
                 inv.Comments.append(Comment.create(label, value))
 
-        license_value = self._license_value(graph, subject)
+        license_value = self._license_value(subject)
         if license_value:
             inv.Comments.append(Comment.create("License", license_value))
 
-        languages = self._labelled_nodes(graph, subject, DCTERMS.language)
+        languages = self._labelled_pairs(subject, DCTERMS.language)
         if languages:
             inv.Comments.append(Comment.create("Language", "; ".join(label for label, _ in languages)))
 
-    def _add_keyword_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        for label, node_id in self._labelled_nodes(graph, subject, DCTERMS.subject):
+    def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
+        for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):
             comment_name = f"keyword [{node_id}]" if node_id else "keyword"
             inv.Comments.append(Comment.create(comment_name, label))
 
-        for label, node_id in self._labelled_nodes(graph, subject, REGAL.ddc):
+        for label, node_id in self._labelled_pairs(subject, REGAL.ddc):
             comment_name = f"keyword [DDC:{node_id}]" if node_id else "keyword [DDC]"
             inv.Comments.append(Comment.create(comment_name, label))
 
@@ -547,32 +560,24 @@ class RegalMapper(LinkedDataMapper):
             value = f"{label} ({node_id})" if node_id else label
             inv.Comments.append(Comment.create("Institution", value))
 
-    def _add_oai_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
-        for item in graph.objects(subject, URIRef("http://hbz-nrw.de/regal#itemID")):
-            if isinstance(item, Literal):
-                inv.Comments.append(Comment.create("OAI Identifier", str(item)))
-                continue
-            pref = self._str(graph, item, SKOS.prefLabel)
-            if pref:
-                inv.Comments.append(Comment.create("OAI Identifier", pref))
-            elif isinstance(item, URIRef):
-                inv.Comments.append(Comment.create("OAI Identifier", str(item)))
-            # Blank node without prefLabel: skip (never persist parser ids).
+    def _add_oai_comments(self, inv: ArcInvestigation, subject: Node) -> None:
+        for labelled in self._sorted_labelled(self.view(subject).labelled(URIRef("http://hbz-nrw.de/regal#itemID"))):
+            inv.Comments.append(Comment.create("OAI Identifier", labelled.label.value))
 
-    def _add_opaque_comments(self, inv: ArcInvestigation, graph: Graph, subject: Node) -> None:
+    def _add_opaque_comments(self, inv: ArcInvestigation, subject: Node) -> None:
+        graph = self.stable.graph
+        opaque: list[tuple[str, str, str]] = []
         for predicate, obj in graph.predicate_objects(subject):
             if predicate in _KNOWN_PREDICATES:
                 continue
             pred_name = str(predicate).rsplit("/", maxsplit=1)[-1].rsplit("#", maxsplit=1)[-1]
-            if isinstance(obj, Literal):
-                inv.Comments.append(Comment.create(pred_name, str(obj)))
+            text = self.stable.object_text(obj)
+            if not text:
                 continue
-            pref = self._str(graph, obj, SKOS.prefLabel)
-            if pref:
-                inv.Comments.append(Comment.create(pred_name, pref))
-            elif isinstance(obj, URIRef):
-                inv.Comments.append(Comment.create(pred_name, str(obj)))
-            # Blank node without prefLabel: skip (never persist str(BNode)).
+            opaque.append((str(predicate), pred_name, text))
+        opaque.sort(key=lambda item: (item[0].casefold(), item[0], item[2].casefold(), item[2]))
+        for _, pred_name, text in opaque:
+            inv.Comments.append(Comment.create(pred_name, text))
 
     def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
@@ -592,74 +597,59 @@ class RegalMapper(LinkedDataMapper):
             )
         )
 
-    def _funding_values(
-        self,
-        graph: Graph,
-        subject: Node,
-    ) -> tuple[list[str], list[str], list[str]]:
+    def _funding_values(self, subject: Node) -> tuple[list[str], list[str], list[str]]:
         funders: list[str] = []
         programs: list[str] = []
         project_ids: list[str] = []
 
-        joined_nodes = list(graph.objects(subject, JOINED_FUNDING))
+        joined_nodes = self.view(subject).resources(JOINED_FUNDING)
         if joined_nodes:
-            for node in joined_nodes:
-                if isinstance(node, Literal):
-                    continue
-                program = self._str(graph, node, REGAL.fundingProgramJoined)
+            for node_view in joined_nodes:
+                program = node_view.text(REGAL.fundingProgramJoined)
                 if program:
                     programs.append(program)
-                project_id = self._str(graph, node, REGAL.projectIdJoined)
+                project_id = node_view.text(REGAL.projectIdJoined)
                 if project_id:
                     project_ids.append(project_id)
-                funding_joined = graph.value(node, REGAL.fundingJoined)
-                if funding_joined is not None and not isinstance(funding_joined, Literal):
-                    label = self._str(graph, funding_joined, SKOS.prefLabel)
+                funding_joined = node_view.resource(REGAL.fundingJoined)
+                if funding_joined is not None:
+                    label = funding_joined.text(SKOS.prefLabel)
                     if label:
                         funders.append(label)
-                    elif isinstance(funding_joined, URIRef):
-                        funders.append(str(funding_joined))
+                    elif funding_joined.iri:
+                        funders.append(funding_joined.iri)
             return funders, programs, project_ids
 
-        for label, _ in self._labelled_nodes(graph, subject, REGAL.fundingId):
+        for label, _ in self._labelled_pairs(subject, REGAL.fundingId):
             funders.append(label)
-        programs.extend(self._strs(graph, subject, REGAL.fundingProgram))
-        project_ids.extend(self._strs(graph, subject, REGAL.projectId))
+        programs.extend(self.view(subject).texts(REGAL.fundingProgram))
+        project_ids.extend(self.view(subject).texts(REGAL.projectId))
         return funders, programs, project_ids
 
-    def _keyword_labels(self, graph: Graph, subject: Node) -> list[str]:
-        labels = [label for label, _ in self._labelled_nodes(graph, subject, DCTERMS.subject)]
-        labels.extend(label for label, _ in self._labelled_nodes(graph, subject, REGAL.ddc))
+    def _keyword_labels(self, subject: Node) -> list[str]:
+        labels = [label for label, _ in self._labelled_pairs(subject, DCTERMS.subject)]
+        labels.extend(label for label, _ in self._labelled_pairs(subject, REGAL.ddc))
         return labels
 
-    def _license_value(self, graph: Graph, subject: Node) -> str | None:
-        for obj in graph.objects(subject, REGAL.license):
-            if isinstance(obj, Literal):
-                return str(obj)
-            if isinstance(obj, URIRef):
-                return str(obj)
-            # Blank / non-URI nodes: prefer human-readable label over internal ids.
-            pref = self._str(graph, obj, SKOS.prefLabel)
-            if pref:
-                return pref
-        return None
+    def _license_value(self, subject: Node) -> str | None:
+        return self.view(subject).text(REGAL.license)
 
-    def _title(self, graph: Graph, subject: Node) -> str:
-        title = self._str(graph, subject, DCTERMS.title)
+    def _title(self, subject: Node) -> str:
+        title = self.view(subject).text(DCTERMS.title)
         if title:
             return title
-        pref = self._str(graph, subject, SKOS.prefLabel)
+        pref = self.view(subject).text(SKOS.prefLabel)
         return pref or "Untitled"
 
-    def _doi(self, graph: Graph, subject: Node) -> str | None:
-        doi = self._str(graph, subject, REGAL.doi)
+    def _doi(self, subject: Node) -> str | None:
+        doi = self.view(subject).text(REGAL.doi)
         return doi.strip() if doi else None
 
     def _regal_id(self, subject: Node) -> str | None:
         if isinstance(subject, URIRef):
             value = str(subject)
-            if value.startswith(self._resource_base_url):
-                return value.removeprefix(self._resource_base_url)
+            if value.startswith(self.resource_base_url):
+                return value.removeprefix(self.resource_base_url)
             if value.startswith(("frl:", "edoweb:")):
                 return value
         return None
@@ -672,11 +662,11 @@ class RegalMapper(LinkedDataMapper):
         title: str,
     ) -> str:
         if regal_id:
-            slug = self.sanitize_identifier(regal_id)
-            return slug or self.to_identifier_slug(title) or "untitled"
+            slug = self.mapper.sanitize_identifier(regal_id)
+            return slug or self.mapper.to_identifier_slug(title) or "untitled"
         if doi:
             return doi
-        return self.to_identifier_slug(title) or "untitled"
+        return self.mapper.to_identifier_slug(title) or "untitled"
 
     def _output_uri(self, *, regal_id: str | None, doi: str | None) -> str:
         if doi:
@@ -694,56 +684,23 @@ class RegalMapper(LinkedDataMapper):
         """
         if regal_id.startswith(("http://", "https://")):
             return regal_id
-        return f"{self._resource_base_url}{quote(regal_id, safe=':')}"
+        return f"{self.resource_base_url}{quote(regal_id, safe=':')}"
 
-    def _labelled_nodes(self, graph: Graph, subject: Node, predicate: Node) -> list[tuple[str, str | None]]:
-        results: list[tuple[str, str | None]] = []
-        for obj in graph.objects(subject, predicate):
-            if isinstance(obj, Literal):
-                results.append((str(obj), None))
-                continue
-            label = self._str(graph, obj, SKOS.prefLabel)
-            if isinstance(obj, URIRef):
-                results.append((label or str(obj), str(obj)))
-                continue
-            # Blank / non-URI nodes: keep only when a stable prefLabel exists.
-            # Never use str(BNode) as label or node id (parser-local, harvest-unstable).
-            if label and isinstance(obj, BNode):
-                results.append((label, None))
-        return results
+    def _join_texts(self, subject: Node, predicate: Node) -> str:
+        return "\n\n".join(self.view(subject).texts(predicate))
 
-    def _str(self, graph: Graph, subject: Node, predicate: Node) -> str | None:
-        value = graph.value(subject, predicate)
-        if value is None:
-            return None
-        return self._term_text(graph, value)
+    def _labelled_pairs(self, subject: Node, predicate: Node) -> list[tuple[str, str | None]]:
+        labelled = self._sorted_labelled(self.view(subject).labelled(predicate))
+        return [(item.label.value, item.stable_id) for item in labelled]
 
-    def _strs(self, graph: Graph, subject: Node, predicate: Node) -> list[str]:
-        texts: list[str] = []
-        for obj in graph.objects(subject, predicate):
-            if obj is None:
-                continue
-            text = self._term_text(graph, obj)
-            if text is not None:
-                texts.append(text)
-        return texts
-
-    def _term_text(self, graph: Graph, term: Node) -> str | None:
-        """Stable display text for an RDF term; never return ``str(BNode)``."""
-        if isinstance(term, Literal):
-            return str(term)
-        if isinstance(term, URIRef):
-            return str(term)
-        if isinstance(term, BNode):
-            pref = graph.value(term, SKOS.prefLabel)
-            if isinstance(pref, Literal):
-                text = str(pref).strip()
-                return text or None
-            if isinstance(pref, URIRef):
-                text = str(pref).strip()
-                return text or None
-            return None
-        return None
-
-    def _join_literals(self, graph: Graph, subject: Node, predicate: Node) -> str:
-        return "\n\n".join(self._strs(graph, subject, predicate))
+    @staticmethod
+    def _sorted_labelled(items: list[LabelledNode]) -> list[LabelledNode]:
+        return sorted(
+            items,
+            key=lambda item: (
+                item.label.value.casefold(),
+                item.label.value,
+                (item.stable_id or "").casefold(),
+                item.stable_id or "",
+            ),
+        )

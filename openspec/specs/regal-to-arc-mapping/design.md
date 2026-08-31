@@ -43,3 +43,10 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
    — Unlabelled blank nodes are skipped; Literals, URIRefs, and `skos:prefLabel` remain.
    `regal:contributorOrder` is known metadata (not an opaque Comment); Contact ordering
    via that predicate is deferred until stable order keys are available.
+
+7. **ARC-bound RDF reads go through StableGraph / ResourceView**
+   — Per-call `_RegalRun` wraps the graph with `label_predicates=(skos:prefLabel,)`.
+   Private `_str` / `_strs` / `_labelled_nodes` helpers are not used. Multi-value,
+   contact, and opaque-comment order is harvest-stable under RDF permutation.
+   Regal ARC policy (joinedFunding preference, PUBLISSO name split, resource base
+   URL) stays mapper-local — see `openspec/specs/stable-graph/`.
