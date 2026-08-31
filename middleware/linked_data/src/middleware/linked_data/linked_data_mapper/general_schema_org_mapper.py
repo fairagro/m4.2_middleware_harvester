@@ -7,7 +7,7 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import override
 
@@ -71,21 +71,29 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
     @override
-    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
-        """Map an RDF graph to a harvested ARC with composition counts."""
-        subject = self._find_dataset_subject(graph)
-        if subject is None:
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> Iterable[HarvestedArc]:
+        """Map an RDF graph to harvested ARCs with composition counts.
+
+        Yields one HarvestedArc per schema:Dataset entity in the graph.
+        """
+        subjects = self._find_dataset_subjects(graph)
+        if not subjects:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
-        arc = _SchemaOrgRun(self, stable).map_arc(subject, context)
-        return HarvestedArc.from_arctrl(arc)
+        for subject in subjects:
+            arc = _SchemaOrgRun(self, stable).map_arc(subject, context)
+            yield HarvestedArc.from_arctrl(arc)
 
-    def _find_dataset_subject(self, graph: Graph) -> Node | None:
+    def _find_dataset_subjects(self, graph: Graph) -> list[Node]:
+        """Return all schema:Dataset subjects in the graph."""
+        seen: set[Node] = set()
+        result: list[Node] = []
         for schema in self.SCHEMA_URIS:
-            subjects = list(graph.subjects(RDF.type, schema.Dataset))
-            if subjects:
-                return subjects[0]
-        return None
+            for subject in graph.subjects(RDF.type, schema.Dataset):
+                if subject not in seen:
+                    seen.add(subject)
+                    result.append(subject)
+        return result
 
 
 @dataclass(frozen=True)
@@ -404,7 +412,8 @@ class _SchemaOrgRun:
             encoding = dist["encodingFormat"] or ""
             content_url = dist["contentUrl"] or ""
             if encoding or content_url:
-                inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
+                label = f"{encoding}: {content_url}" if encoding else content_url
+                inv.Comments.append(Comment.create("Distribution", label))
 
     def _iter_preferred_publishers(self, subject: Node) -> Iterator[Node]:
         """Yield publisher resources first (stable order), then optional literal."""
@@ -578,6 +587,21 @@ class _SchemaOrgRun:
             table.AddColumn(
                 CompositeHeader.comment("Language"),
                 [CompositeCell.free_text(language)],
+            )
+
+        dist_entries: list[str] = []
+        for dist in self.view(subject).schema_resources("distribution"):
+            content_url = dist["contentUrl"] or ""
+            encoding = dist["encodingFormat"] or ""
+            if content_url:
+                if encoding:
+                    dist_entries.append(f"{encoding}: {content_url}")
+                else:
+                    dist_entries.append(content_url)
+        if dist_entries:
+            table.AddColumn(
+                CompositeHeader.comment("Distribution"),
+                [CompositeCell.free_text(entry) for entry in dist_entries],
             )
 
         return table

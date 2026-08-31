@@ -27,7 +27,9 @@ def _mapper() -> RegalMapper:
 
 def _mapped_arc_json(graph: Graph) -> str:
     """Map ``graph`` and assert the ARC JSON has no rdflib blank-node labels."""
-    arc_json = _mapper().map_graph(graph, NO_DISCOVERY).arc_json
+    results = list(_mapper().map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    arc_json = results[0].arc_json
     assert_harvest_has_no_bnode_labels(arc_json)
     return arc_json
 
@@ -49,7 +51,7 @@ def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
     graph.add((subject, DCTERMS.title, Literal("Research Data Management Plan")))
     graph.add((subject, DCTERMS.description, Literal("A useful description")))
 
-    harvested = _mapper().map_graph(graph, NO_DISCOVERY)
+    harvested = list(_mapper().map_graph(graph, NO_DISCOVERY))[0]
     assert harvested.identifier == "frl_12_3"
     assert harvested.identifier == RegalMapper.sanitize_identifier("frl:12.3")
 
@@ -119,7 +121,7 @@ def test_regal_mapper_requires_research_data_type() -> None:
     graph = Graph()
     graph.add((SUBJECT, DCTERMS.title, Literal("Not research data")))
     with pytest.raises(ValueError, match="ResearchData"):
-        _mapper().map_graph(graph, NO_DISCOVERY)
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
 def test_regal_mapper_requires_identity() -> None:
@@ -128,7 +130,7 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
-        _mapper().map_graph(graph, NO_DISCOVERY)
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
 def test_regal_mapper_creates_spatial_sampling_when_location_present() -> None:
@@ -259,7 +261,7 @@ def test_regal_mapper_orcid_without_given_name_fails_closed() -> None:
     graph.add((orcid, SKOS.prefLabel, Literal("OnlyFamily")))
 
     with pytest.raises(ValueError, match="non-empty given name"):
-        _mapper().map_graph(graph, NO_DISCOVERY)
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
 _BLANK_NODE_LABEL = re.compile(r"(?:N[0-9a-f]{32}|_:[A-Za-z0-9]+)", re.IGNORECASE)

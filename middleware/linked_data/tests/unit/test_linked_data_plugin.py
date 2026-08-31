@@ -79,7 +79,7 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     )
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:graph")
+    mock_mapper.map_graph.return_value = [HarvestedArc(arc_json="mapped:graph")]
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
@@ -126,7 +126,7 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
             return 1
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:graph")
+    mock_mapper.map_graph.return_value = [HarvestedArc(arc_json="mapped:graph")]
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemapWithCatalogId:
         del client
@@ -223,7 +223,7 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
         staticmethod(
-            lambda _config: MagicMock(map_graph=MagicMock(return_value=HarvestedArc(arc_json="mapped:graph")))
+            lambda _config: MagicMock(map_graph=MagicMock(return_value=[HarvestedArc(arc_json="mapped:graph")]))
         ),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))

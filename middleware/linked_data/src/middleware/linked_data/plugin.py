@@ -77,7 +77,7 @@ class LinkedDataPlugin:
         self,
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
-    ) -> HarvestedArc | RecordProcessingError | SkippedRecord:
+    ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
         # Only UrlDiscoveryResult carries a real fetched/landing URL; inline
         # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
         source_url: str | None = None
@@ -92,15 +92,17 @@ class LinkedDataPlugin:
                 config=self._config,
             )
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                (
-                    f"Failed to construct dataset from "
-                    f"{type(discovery_result).__name__} {discovery_result.identifier}: {exc}"
-                ),
-                discovery_result.identifier,
-                exc,
-                url=source_url,
-            )
+            return [
+                RecordProcessingError(
+                    (
+                        f"Failed to construct dataset from "
+                        f"{type(discovery_result).__name__} {discovery_result.identifier}: {exc}"
+                    ),
+                    discovery_result.identifier,
+                    exc,
+                    url=source_url,
+                )
+            ]
 
         try:
             graph = await dataset.to_graph()
@@ -108,19 +110,19 @@ class LinkedDataPlugin:
                 source_url=source_url,
                 harvest_source_id=harvest_source_id,
             )
-            harvested = await asyncio.to_thread(
-                self._mapper.map_graph,
-                graph,
-                mapping_context,
+            harvested_items = await asyncio.to_thread(
+                lambda: list(self._mapper.map_graph(graph, mapping_context)),
             )
-            return replace(harvested, source_url=source_url)
+            return [replace(harvested, source_url=source_url) for harvested in harvested_items]
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                f"Failed to map dataset {dataset.identifier}: {exc}",
-                dataset.identifier,
-                exc,
-                url=source_url,
-            )
+            return [
+                RecordProcessingError(
+                    f"Failed to map dataset {dataset.identifier}: {exc}",
+                    dataset.identifier,
+                    exc,
+                    url=source_url,
+                )
+            ]
 
     async def _run_with_task_group(
         self,
@@ -140,15 +142,22 @@ class LinkedDataPlugin:
             # for active_workers to reach 0 while results.get() never completes.
             try:
                 try:
-                    result = await self._process_result(discovery_result, nice_http)
+                    result_items = await self._process_result(discovery_result, nice_http)
                 except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
-                    result = RecordProcessingError(
-                        (f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
-                        discovery_result.identifier,
-                        exc,
-                        url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
-                    )
-                await results.put(result)
+                    result_items = [
+                        RecordProcessingError(
+                            f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}",
+                            discovery_result.identifier,
+                            exc,
+                            url=(
+                                discovery_result.identifier
+                                if isinstance(discovery_result, UrlDiscoveryResult)
+                                else None
+                            ),
+                        )
+                    ]
+                for result in result_items:
+                    await results.put(result)
             finally:
                 active_workers -= 1
                 semaphore.release()
