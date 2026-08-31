@@ -98,11 +98,13 @@ The system SHALL construct the dataset HTML page URL as `{scheme}://{host}/recei
 - **THEN** Construct the dataset HTML page URL as `{scheme}://{host}/receive/{id}` where scheme and host are derived from `sitemap_url`
 
 ### Requirement: Yield one UrlDiscoveryResult per unique constructed URL
-The system SHALL yield one `UrlDiscoveryResult` per unique constructed URL.
 
-#### Scenario: Satisfies — Yield one UrlDiscoveryResult per unique constructed URL
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Yield one `UrlDiscoveryResult` per unique constructed URL
+The system SHALL yield one `UrlDiscoveryResult` per unique constructed URL. Each result MUST set `identifier` (and `url`) to the constructed Receive-URL and MUST set `harvest_source_id` to the Solr document `id` value used to build that URL.
+
+#### Scenario: MyCoRe Solr id is forwarded as harvest source id
+
+- **WHEN** a Solr document has `id` `openagrar_mods_0001` and the constructed URL is `https://www.openagrar.de/receive/openagrar_mods_0001`
+- **THEN** the yielded `UrlDiscoveryResult` MUST have `harvest_source_id` `openagrar_mods_0001`
 
 ### Requirement: Deduplicate discovered dataset URLs; skip any URL already yielded in…
 The system SHALL deduplicate discovered dataset URLs; skip any URL already yielded in the current run.

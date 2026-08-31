@@ -55,8 +55,8 @@ def sample_record() -> InspireRecord:
                 type="resource",
             )
         ],
-        publishers=[Contact(name="Test Publisher", organization="Test Org")],
-        contributors=[Contact(name="Contributor Name", organization="Test Org")],
+        publishers=[Contact(name="Pub Lee", organization="Test Org", role="publisher")],
+        contributors=[Contact(name="Con Tributor", organization="Test Org", role="contributor")],
         lineage="Processed using algorithm X",
         spatial_extent=[10.0, 48.0, 11.0, 49.0],
         temporal_extent=("2020-01-01", "2020-12-31"),
@@ -240,16 +240,56 @@ def test_map_person(mapper: InspireMapper) -> None:
 
     # Check Role annotation
     assert len(person.Roles) == 1
-    assert person.Roles[0].Name == "principalInvestigator"
+    assert person.Roles[0].Name == "Principal Investigator"
 
 
 def test_map_person_without_name(mapper: InspireMapper) -> None:
-    """Test that map_person returns None when contact has no name."""
+    """organisationName-only contacts are not Persons (handled as Comments)."""
     contact = Contact(organization="Acme Corp", email="contact@acme.com", role="pointOfContact")
 
     person = mapper.map_person(contact)
 
     assert person is None
+
+
+def test_map_person_individual_without_given_fails_closed(mapper: InspireMapper) -> None:
+    contact = Contact(name="Jane", organization="Acme Corp", role="author")
+    with pytest.raises(ValueError, match="individualName must yield a non-empty given name"):
+        mapper.map_person(contact)
+
+
+def test_add_contacts_organisation_only_becomes_comment(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[],
+        creators=[],
+        publishers=[Contact(organization="Zenodo", role="publisher")],
+        contributors=[],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert inv.Contacts == []
+    assert any(c.Name == "Publisher" and c.Value == "Zenodo" for c in inv.Comments)
+
+
+def test_add_contacts_dedupes_identical_organisation_comments(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(organization="BGR", role="publisher", type="metadata")],
+        creators=[],
+        publishers=[Contact(organization="bgr", role="publisher")],
+        contributors=[],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    publisher_comments = [c for c in inv.Comments if c.Name == "Publisher" and c.Value.casefold() == "bgr"]
+    assert len(publisher_comments) == 1
+    # Different roles for the same org remain distinct.
+    record2 = _create_minimal_record(
+        contacts=[Contact(organization="BGR", role="pointOfContact")],
+        publishers=[Contact(organization="BGR", role="publisher")],
+    )
+    inv2 = ArcInvestigation.create(identifier="test2", title="Test")
+    mapper._add_contacts(inv2, record2)
+    assert {c.Name for c in inv2.Comments if c.Value == "BGR"} == {"Point of Contact", "Publisher"}
 
 
 def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -534,8 +574,8 @@ def test_split_name(mapper: InspireMapper) -> None:
         ("Doe, John", ("John", "Doe")),
         ("Jane", ("", "Jane")),
         ("", ("", "")),
-        ("Dr. John Michael Doe", ("John", "Doe")),
-        ("Maria Garcia Brizuela", ("Maria", "Garcia Brizuela")),
+        ("Dr. John Michael Doe", ("John Michael", "Doe")),
+        ("Maria Garcia Brizuela", ("Maria Garcia", "Brizuela")),
         ("Hans-Joachim von Müller", ("Hans-Joachim", "von Müller")),
     ]
 
@@ -591,10 +631,10 @@ def test_add_person_comments(mapper: InspireMapper) -> None:
 def test_add_contacts(mapper: InspireMapper) -> None:
     """Test adding multiple contacts to investigation."""
     record = _create_minimal_record(
-        contacts=[Contact(name="Contact 1", role="author")],
-        creators=[Contact(name="Creator 1", role="creator")],
-        publishers=[Contact(name="Publisher 1", role="publisher")],
-        contributors=[Contact(name="Contributor 1", role="contributor")],
+        contacts=[Contact(name="Ann Author", role="author")],
+        creators=[Contact(name="Chris Creator", role="creator")],
+        publishers=[Contact(name="Pat Publisher", role="publisher")],
+        contributors=[Contact(name="Con Tributor", role="contributor")],
     )
 
     inv = ArcInvestigation.create(identifier="test", title="Test")
@@ -605,7 +645,6 @@ def test_add_contacts(mapper: InspireMapper) -> None:
     # Check that roles are properly mapped
     roles = [role.Name for contact in inv.Contacts for role in contact.Roles]
     assert "Author" in roles
-    # Note: creator, publisher, contributor roles are not mapped to ontology terms in current implementation
     assert "creator" in roles
     assert "Publisher" in roles
     assert "contributor" in roles

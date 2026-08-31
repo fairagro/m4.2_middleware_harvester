@@ -44,7 +44,7 @@ jobs:
         run: |
           uv run ruff format --check --diff middleware/
           uv run ruff check middleware/
-          uv run pylint middleware/
+          uv run pylint middleware/inspire middleware/linked_data middleware/harvester
           uv run mypy --config-file pyproject.toml
 
       - name: Security check with bandit

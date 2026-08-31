@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import re
+from typing import override
 from urllib.parse import quote, urlparse
 
 from arctrl import (  # type: ignore[import-untyped]
@@ -24,11 +24,12 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.plugin_base import HarvestedArc
 
 from ..config import Config, PayloadType
-from .linked_data_mapper import LinkedDataMapper
-from .person_contacts import require_nonempty_person_given_names
+from .linked_data_mapper import LinkedDataMapper, MappingContext
+from .stable_graph import StableGraph
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
@@ -84,20 +85,15 @@ class RegalMapper(LinkedDataMapper):
         self._resource_base_url = resource_base_url.rstrip("/") + "/"
 
     @classmethod
+    @override
     def from_config(cls, config: Config) -> RegalMapper:
         """Construct a mapper using ``config.effective_resource_base_url``."""
         return cls(config.effective_resource_base_url)
 
-    def map_graph(
-        self,
-        graph: Graph,
-        source_url: str | None = None,
-        *,
-        harvest_source_id: str | None = None,
-    ) -> HarvestedArc:
+    @override
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
         """Map an RDF graph to a harvested ARC with composition counts."""
-        _ = source_url
-        _ = harvest_source_id
+        _ = context, stable  # Regal still reads the raw graph; StableGraph migration is follow-up.
         subject = self._find_research_data_subject(graph)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")
@@ -389,6 +385,20 @@ class RegalMapper(LinkedDataMapper):
         person.Roles.append(OntologyAnnotation(name=role))
         inv.Contacts.append(person)
 
+    @staticmethod
+    def _split_regal_agent_label(label: str) -> tuple[str, str]:
+        """Split Regal agent labels on first ``", "`` → ``(family, given)``.
+
+        PUBLISSO/Regal person ``prefLabel`` values use ``Family, Given`` form.
+        Labels without ``", "`` are treated as organization/label agents (empty
+        given → Comment path in ``_person_from_label``).
+        """
+        stripped = label.strip()
+        if ", " not in stripped:
+            return stripped, ""
+        family, given = stripped.split(", ", 1)
+        return family.strip(), given.strip()
+
     def _node_to_person(
         self,
         graph: Graph,
@@ -399,16 +409,26 @@ class RegalMapper(LinkedDataMapper):
         inv: ArcInvestigation,
     ) -> Person | None:
         if isinstance(node, Literal):
-            family, given = self._split_pref_label(str(node))
-            return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=None)
+            return self._person_from_label(
+                inv,
+                self._split_regal_agent_label(str(node)),
+                affiliation=affiliation,
+                role=role,
+                node_id=None,
+            )
 
         pref_label = self._str(graph, node, SKOS.prefLabel) or ""
         if not pref_label:
             return None
-        family, given = self._split_pref_label(pref_label)
-        # Only URIRefs are stable ids (e.g. ORCID); never persist str(BNode).
+        # Only URIRefs are stable identity; never pass str(BNode) into Comments.
         node_id = str(node) if isinstance(node, URIRef) else None
-        return self._person_from_label(inv, (family, given), affiliation=affiliation, role=role, node_id=node_id)
+        return self._person_from_label(
+            inv,
+            self._split_regal_agent_label(pref_label),
+            affiliation=affiliation,
+            role=role,
+            node_id=node_id,
+        )
 
     def _person_from_label(
         self,
@@ -652,11 +672,11 @@ class RegalMapper(LinkedDataMapper):
         title: str,
     ) -> str:
         if regal_id:
-            slug = re.sub(r"[^a-zA-Z0-9._-]+", "_", regal_id).strip("_")
-            return slug or self._to_identifier_slug(title)
+            slug = self.sanitize_identifier(regal_id)
+            return slug or self.to_identifier_slug(title) or "untitled"
         if doi:
             return doi
-        return self._to_identifier_slug(title)
+        return self.to_identifier_slug(title) or "untitled"
 
     def _output_uri(self, *, regal_id: str | None, doi: str | None) -> str:
         if doi:
@@ -727,17 +747,3 @@ class RegalMapper(LinkedDataMapper):
 
     def _join_literals(self, graph: Graph, subject: Node, predicate: Node) -> str:
         return "\n\n".join(self._strs(graph, subject, predicate))
-
-    @staticmethod
-    def _split_pref_label(pref_label: str) -> tuple[str, str]:
-        if ", " in pref_label:
-            family, given = pref_label.split(", ", maxsplit=1)
-            return family.strip(), given.strip()
-        return pref_label.strip(), ""
-
-    @staticmethod
-    def _to_identifier_slug(title: str) -> str:
-        if not title:
-            return "untitled"
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
-        return slug[:80] or "untitled"

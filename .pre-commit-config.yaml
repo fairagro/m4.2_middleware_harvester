@@ -65,10 +65,11 @@ repos:
         types: [python]
         files: ^middleware/
 
-      # pylint - Code quality (same as CI: uv run pylint middleware/)
+      # pylint — pass package dirs (not middleware/) so source-roots can resolve
+      # same-dir helpers (`from fakes import …`, `from csw_client_helpers import …`)
       - id: pylint
         name: pylint
-        entry: uv run pylint middleware/
+        entry: uv run pylint middleware/inspire middleware/linked_data middleware/harvester
         language: system
         pass_filenames: false
         types: [python]
