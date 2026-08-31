@@ -104,7 +104,7 @@ class RegalMapper(LinkedDataMapper):
         return StableGraph.wrap(graph, label_predicates=(SKOS.prefLabel,))
 
     @override
-    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> list[HarvestedArc]:
         """Map an RDF graph to a harvested ARC with composition counts."""
         _ = context  # Discovery context unused for Regal Investigation.identifier.
         subject = self._find_research_data_subject(graph)
@@ -112,7 +112,7 @@ class RegalMapper(LinkedDataMapper):
             raise ValueError("Graph does not contain a Regal ResearchData entity")
 
         arc = _RegalRun(self, stable, self._resource_base_url).map_arc(subject)
-        return HarvestedArc.from_arctrl(arc)
+        return [HarvestedArc.from_arctrl(arc)]
 
     def _find_research_data_subject(self, graph: Graph) -> Node | None:
         subjects = list(graph.subjects(RDF.type, RESEARCH_DATA_TYPE))

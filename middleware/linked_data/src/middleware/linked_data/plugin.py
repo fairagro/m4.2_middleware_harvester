@@ -77,7 +77,7 @@ class LinkedDataPlugin:
         self,
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
-    ) -> HarvestedArc | RecordProcessingError | SkippedRecord:
+    ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
         # Only UrlDiscoveryResult carries a real fetched/landing URL; inline
         # payloads (e.g. Regal JSON-LD) yield None and rely on record_id.
         source_url: str | None = None
@@ -92,15 +92,17 @@ class LinkedDataPlugin:
                 config=self._config,
             )
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                (
-                    f"Failed to construct dataset from "
-                    f"{type(discovery_result).__name__} {discovery_result.identifier}: {exc}"
-                ),
-                discovery_result.identifier,
-                exc,
-                url=source_url,
-            )
+            return [
+                RecordProcessingError(
+                    (
+                        f"Failed to construct dataset from "
+                        f"{type(discovery_result).__name__} {discovery_result.identifier}: {exc}"
+                    ),
+                    discovery_result.identifier,
+                    exc,
+                    url=source_url,
+                )
+            ]
 
         try:
             graph = await dataset.to_graph()
@@ -108,19 +110,41 @@ class LinkedDataPlugin:
                 source_url=source_url,
                 harvest_source_id=harvest_source_id,
             )
-            harvested = await asyncio.to_thread(
-                self._mapper.map_graph,
-                graph,
-                mapping_context,
+            harvested_items = await asyncio.to_thread(
+                lambda: list(self._mapper.map_graph(graph, mapping_context)),
             )
-            return replace(harvested, source_url=source_url)
+            return [replace(harvested, source_url=source_url) for harvested in harvested_items]
         except (LinkedDataError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                f"Failed to map dataset {dataset.identifier}: {exc}",
-                dataset.identifier,
+            return [
+                RecordProcessingError(
+                    f"Failed to map dataset {dataset.identifier}: {exc}",
+                    dataset.identifier,
+                    exc,
+                    url=source_url,
+                )
+            ]
+
+    @staticmethod
+    def _processing_failure(
+        discovery_result: DiscoveryResult,
+        exc: Exception,
+    ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
+        """Build a single yieldable processing error for a discovery item."""
+        url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
+        return [
+            RecordProcessingError(
+                f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}",
+                discovery_result.identifier,
                 exc,
-                url=source_url,
+                url=url,
             )
+        ]
+
+    def _harvester_error_from_discovery_failure(self, exc: BaseException) -> HarvesterError:
+        """Convert a discovery exception into a yieldable harvester error."""
+        if isinstance(exc, HarvesterError):
+            return exc
+        return LinkedDataSitemapError(f"Sitemap discovery failed for {self._config.sitemap_url}: {exc}")
 
     async def _run_with_task_group(
         self,
@@ -140,15 +164,11 @@ class LinkedDataPlugin:
             # for active_workers to reach 0 while results.get() never completes.
             try:
                 try:
-                    result = await self._process_result(discovery_result, nice_http)
+                    result_items = await self._process_result(discovery_result, nice_http)
                 except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
-                    result = RecordProcessingError(
-                        (f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
-                        discovery_result.identifier,
-                        exc,
-                        url=(discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None),
-                    )
-                await results.put(result)
+                    result_items = self._processing_failure(discovery_result, exc)
+                for result in result_items:
+                    await results.put(result)
             finally:
                 active_workers -= 1
                 semaphore.release()
@@ -176,12 +196,7 @@ class LinkedDataPlugin:
                 ) as exc:
                     # Discovery-level failure must not escape TaskGroup as ExceptionGroup;
                     # yield a HarvesterError so the orchestrator can report it cleanly.
-                    if isinstance(exc, HarvesterError):
-                        await results.put(exc)
-                    else:
-                        await results.put(
-                            LinkedDataSitemapError(f"Sitemap discovery failed for {self._config.sitemap_url}: {exc}")
-                        )
+                    await results.put(self._harvester_error_from_discovery_failure(exc))
                 finally:
                     discovery_finished = True
 
