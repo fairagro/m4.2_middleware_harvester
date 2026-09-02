@@ -106,21 +106,22 @@ class RegalMapper(LinkedDataMapper):
     @override
     def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> list[HarvestedArc]:
         """Map an RDF graph to a harvested ARC with composition counts."""
+        _ = graph  # Access via ``stable`` (call-scoped wrap).
         _ = context  # Discovery context unused for Regal Investigation.identifier.
-        subject = self._find_research_data_subject(graph)
+        subject = self._find_research_data_subject(stable)
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")
 
         arc = _RegalRun(self, stable, self._resource_base_url).map_arc(subject)
         return [HarvestedArc.from_arctrl(arc)]
 
-    def _find_research_data_subject(self, graph: Graph) -> Node | None:
-        subjects = list(graph.subjects(RDF.type, RESEARCH_DATA_TYPE))
-        if subjects:
-            return subjects[0]
-        for subject in graph.subjects(REGAL.contentType, Literal("researchData")):
-            return subject
-        return None
+    def _find_research_data_subject(self, stable: StableGraph) -> Node | None:
+        """Pick the ResearchData subject (stable order when several exist)."""
+        typed = stable.subjects_of_type(RESEARCH_DATA_TYPE)
+        if typed:
+            return typed[0].node
+        by_content = stable.subjects(REGAL.contentType, Literal("researchData"))
+        return by_content[0].node if by_content else None
 
 
 @dataclass(frozen=True)

@@ -27,7 +27,6 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 from rdflib import Graph, Literal, Namespace, URIRef  # type: ignore[import-untyped]
-from rdflib.namespace import RDF
 from rdflib.term import Node
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
@@ -76,35 +75,22 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
 
         Yields one HarvestedArc per schema:Dataset entity in the graph.
         """
-        subjects = self._find_dataset_subjects(graph)
-        if not subjects:
+        _ = graph  # Access via ``stable`` (call-scoped wrap).
+        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in self.SCHEMA_URIS))
+        if not dataset_views:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
-
-        # Harvest-stable yield order (rdflib subject iteration is not ordered).
-        subjects = sorted(subjects, key=stable.sort_key)
 
         # Page-level harvest_source_id / source_url is one catalog unit. When a page
         # embeds multiple Datasets, prefer per-subject graph identifiers so ARCs do
         # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
-        use_page_harvest_id = len(subjects) == 1
-        for subject in subjects:
+        use_page_harvest_id = len(dataset_views) == 1
+        for dataset in dataset_views:
             arc = _SchemaOrgRun(self, stable).map_arc(
-                subject,
+                dataset.node,
                 context,
                 use_page_harvest_id=use_page_harvest_id,
             )
             yield HarvestedArc.from_arctrl(arc)
-
-    def _find_dataset_subjects(self, graph: Graph) -> list[Node]:
-        """Return all schema:Dataset subjects in the graph."""
-        seen: set[Node] = set()
-        result: list[Node] = []
-        for schema in self.SCHEMA_URIS:
-            for subject in graph.subjects(RDF.type, schema.Dataset):
-                if subject not in seen:
-                    seen.add(subject)
-                    result.append(subject)
-        return result
 
 
 @dataclass(frozen=True)

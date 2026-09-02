@@ -167,3 +167,55 @@ def test_dual_schema_org_namespaces() -> None:
     assert view.schema_text("name") == "Http Name"
     assert view["name"] == "Http Name"
     assert view.schema_texts("keywords") == ["kw"]
+
+
+def test_subjects_of_type_orders_by_sort_key_not_insert_order() -> None:
+    def ids(order: list[str]) -> list[str]:
+        graph = Graph()
+        for iri in order:
+            subject = URIRef(iri)
+            graph.add((subject, RDF.type, SCHEMA.Dataset))
+            graph.add((subject, SCHEMA.name, Literal(iri.rsplit("/", maxsplit=1)[-1])))
+        return [view.iri or "" for view in _wrap(graph).subjects_of_type(SCHEMA.Dataset)]
+
+    left = ["https://example.org/dataset/zeta", "https://example.org/dataset/alpha"]
+    right = list(reversed(left))
+    assert (
+        ids(left)
+        == ids(right)
+        == [
+            "https://example.org/dataset/alpha",
+            "https://example.org/dataset/zeta",
+        ]
+    )
+
+
+def test_subjects_of_types_dedupes_dual_namespace_dataset() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/dataset/both")
+    graph.add((subject, RDF.type, SCHEMA.Dataset))
+    graph.add((subject, RDF.type, SCHEMA_HTTP.Dataset))
+    graph.add((subject, SCHEMA.name, Literal("Both")))
+    views = _wrap(graph).subjects_of_types(SCHEMA.Dataset, SCHEMA_HTTP.Dataset)
+    assert [view.iri for view in views] == ["https://example.org/dataset/both"]
+
+
+def test_subjects_predicate_object_is_ordered() -> None:
+    content_type = URIRef("http://example.org/vocab#contentType")
+    marker = Literal("researchData")
+
+    def ids(order: list[str]) -> list[str]:
+        graph = Graph()
+        for iri in order:
+            graph.add((URIRef(iri), content_type, marker))
+        return [view.iri or "" for view in StableGraph.wrap(graph).subjects(content_type, marker)]
+
+    left = ["https://example.org/b", "https://example.org/a"]
+    assert (
+        ids(left)
+        == ids(list(reversed(left)))
+        == [
+            "https://example.org/a",
+            "https://example.org/b",
+        ]
+    )

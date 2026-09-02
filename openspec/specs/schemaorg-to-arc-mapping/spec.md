@@ -41,8 +41,9 @@ source.
 - **THEN** two mapping outputs are produced, one per Dataset, each with its
   own `Investigation.identifier` derived from its respective `@id` or discovered
   page URL
-- **AND** the outputs are yielded in deterministic subject order (stable node
-  sort key), independent of RDF triple insertion order
+- **AND** the outputs are yielded in deterministic subject order
+  (`StableGraph.subjects_of_types` / sort key), independent of RDF triple
+  insertion order
 
 #### Scenario: Dataset nested in DataCatalog
 
@@ -303,9 +304,9 @@ The system SHALL produce deterministic (harvest-stable) ordering for all
 multi-value fields: keywords (trim/dedup/sort casefold), contacts (sort by
 family, given, display, then stable node key), publications (DOI order), DOIs
 (casefold lexicographic minimum is canonical). When a graph yields multiple
-`schema:Dataset` subjects, the mapper SHALL emit Investigation outputs in
-deterministic subject order (stable node sort key), independent of RDF triple
-insertion order.
+`schema:Dataset` subjects, the mapper SHALL emit Investigation outputs via
+`StableGraph.subjects_of_types` (deterministic subject order), independent of
+RDF triple insertion order.
 
 #### Scenario: Keywords with mixed case and duplicates
 
