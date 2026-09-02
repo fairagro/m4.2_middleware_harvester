@@ -133,8 +133,9 @@ def _validate_context_dict(contexts: dict[str, Any]) -> None:
 def _validate_vocab_ref(value: Any) -> None:
     """Allowlist absolute http(s) @vocab; permit relative / other non-HTTP strings."""
     if isinstance(value, str):
-        if value.startswith(("http://", "https://")):
-            _check_context_string(value)
+        http_iri = _normalized_http_context_iri(value)
+        if http_iri is not None:
+            _check_allowlisted_context_iri(http_iri)
         return
     if isinstance(value, list):
         for item in value:
@@ -146,9 +147,10 @@ def _validate_vocab_ref(value: Any) -> None:
 def _validate_import_ref(value: Any) -> None:
     """Require absolute allowlisted http(s) @import (no relative / other schemes)."""
     if isinstance(value, str):
-        if not value.startswith(("http://", "https://")):
+        http_iri = _normalized_http_context_iri(value)
+        if http_iri is None:
             raise JsonLdContextError(f"Unsupported @import (must be absolute http(s) IRI): {value.strip()}")
-        _check_context_string(value)
+        _check_allowlisted_context_iri(http_iri)
         return
     if isinstance(value, list):
         for item in value:
@@ -160,16 +162,19 @@ def _validate_import_ref(value: Any) -> None:
 def _validate_context_entry_value(key: str, value: Any) -> None:
     """Allowlist absolute http(s) IRIs; scan nested term defs for remote contexts."""
     if isinstance(value, str):
-        if value.startswith(("http://", "https://")):
-            _check_context_string(value)
+        http_iri = _normalized_http_context_iri(value)
+        if http_iri is not None:
+            _check_allowlisted_context_iri(http_iri)
         return
     if isinstance(value, dict):
         _validate_nested_term_definition(value)
         return
     if isinstance(value, list):
         for item in value:
-            if isinstance(item, str) and item.startswith(("http://", "https://")):
-                _check_context_string(item)
+            if isinstance(item, str):
+                http_iri = _normalized_http_context_iri(item)
+                if http_iri is not None:
+                    _check_allowlisted_context_iri(http_iri)
             elif isinstance(item, dict):
                 _validate_nested_term_definition(item)
             elif not isinstance(item, str):
@@ -186,8 +191,30 @@ def _validate_nested_term_definition(term_def: dict[str, Any]) -> None:
         _validate_import_ref(term_def["@import"])
 
 
+def _normalized_http_context_iri(value: str) -> str | None:
+    """Return stripped IRI with lowercase http(s) scheme, or None if not absolute http(s).
+
+    Leading/trailing whitespace is stripped. Scheme matching is case-insensitive
+    (``HTTPS://…`` → ``https://…``). Protocol-relative (``//…``), ``file:``, and
+    other schemes return ``None``.
+    """
+    stripped = value.strip()
+    folded = stripped.casefold()
+    for scheme in ("https://", "http://"):
+        if folded.startswith(scheme):
+            return f"{scheme}{stripped[len(scheme) :]}"
+    return None
+
+
 def _check_context_string(context: str) -> None:
-    """Check if a single context string is in the allowlist."""
-    normalized = context.strip()
-    if normalized not in SCHEMAORG_CONTEXT_ALLOWLIST:
-        raise JsonLdContextError(f"Unsupported @context: {normalized}")
+    """Check if a single context string is an allowlisted absolute http(s) IRI."""
+    http_iri = _normalized_http_context_iri(context)
+    if http_iri is None:
+        raise JsonLdContextError(f"Unsupported @context: {context.strip()}")
+    _check_allowlisted_context_iri(http_iri)
+
+
+def _check_allowlisted_context_iri(http_iri: str) -> None:
+    """Require ``http_iri`` to be an exact allowlist member (already normalized)."""
+    if http_iri not in SCHEMAORG_CONTEXT_ALLOWLIST:
+        raise JsonLdContextError(f"Unsupported @context: {http_iri}")

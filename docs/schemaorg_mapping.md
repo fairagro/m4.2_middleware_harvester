@@ -172,8 +172,9 @@ The validator supports all JSON-LD `@context` formats:
 Remote context loads via `@import` or a nested `@context` inside a term definition
 must be absolute allowlisted `http(s)` IRIs (relative `@import` is rejected).
 Absolute `http(s)` `@vocab` values must be allowlisted; relative `@vocab` is
-allowed (expansion only). Other JSON-LD keywords (`@language`, `@version`, …)
-are ignored.
+allowed (expansion only). Scheme matching is case-insensitive and values are
+stripped before allowlist comparison (`HTTPS://schema.org/` → allowlisted).
+Other JSON-LD keywords (`@language`, `@version`, …) are ignored.
 
 ### Extension Mechanism
 

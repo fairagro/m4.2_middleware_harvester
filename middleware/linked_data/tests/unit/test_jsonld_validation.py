@@ -166,6 +166,28 @@ def test_raises_on_relative_import_in_term_definition() -> None:
         validate_jsonld_context(raw)
 
 
+def test_raises_on_protocol_relative_import() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "//evil.example/ctx"}, "name": "test"}'
+    with pytest.raises(JsonLdContextError, match=r"Unsupported @import \(must be absolute http\(s\) IRI\)"):
+        validate_jsonld_context(raw)
+
+
+def test_raises_on_file_scheme_import() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "file:///tmp/ctx"}, "name": "test"}'
+    with pytest.raises(JsonLdContextError, match=r"Unsupported @import \(must be absolute http\(s\) IRI\)"):
+        validate_jsonld_context(raw)
+
+
+def test_accepts_import_with_uppercase_scheme_and_whitespace() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "  HTTPS://bioschemas.org/  "}, "name": "test"}'
+    validate_jsonld_context(raw)
+
+
+def test_accepts_top_level_context_with_uppercase_scheme() -> None:
+    raw = '{"@context": "HTTP://schema.org/", "name": "test"}'
+    validate_jsonld_context(raw)
+
+
 def test_raises_on_context_type_not_supported() -> None:
     raw = '{"@context": 123, "name": "test"}'
     with pytest.raises(JsonLdContextError, match="Unsupported @context type"):
