@@ -20,6 +20,17 @@ Implementations SHALL honour the Values, Constraints, and Module Dependency Grap
 - **WHEN** code is added or modified
 - **THEN** it complies with the Values, Constraints, and dependency rules in the principles document
 
+### Requirement: Separate domain logic from technical plumbing
+Plugin packages SHALL keep harvest domain logic (discovery semantics, mapping, and record-level error meaning) in domain-oriented modules, and SHALL place concurrency, backpressure, retry, cancellation, and similar mechanics in dedicated infrastructure modules composed by the plugin entrypoint. Plugin entrypoints MAY wire domain callbacks into plumbing modules but MUST NOT embed large asyncio lifecycle, queue, or cancellation blocks alongside mapping rules. Implementations MUST NOT introduce harvester-wide generic frameworks for such plumbing until a second plugin requires the same mechanism.
+
+#### Scenario: Substantial plumbing mixed with domain rules is extracted
+- **WHEN** a change adds substantial asyncio queue, semaphore, TaskGroup, or cancellation lifecycle logic in the same module as mapping or dataset-construction rules
+- **THEN** that plumbing MUST be moved to a dedicated infrastructure module (or an existing one) and composed through a narrow callback or port interface
+
+#### Scenario: Package-local plumbing until a second consumer exists
+- **WHEN** only one plugin needs a given plumbing pattern
+- **THEN** the pattern MUST remain inside that plugin package and MUST NOT be promoted to `middleware/harvester` solely for speculative reuse
+
 ## Full Principles
 
 # FAIRagro Middleware Harvester — Principles
@@ -72,6 +83,13 @@ what the Middleware API receives.
 are treated as untrusted. Follow OWASP best practices: validate before use, fail
 closed, apply least privilege.
 
+**Domain over plumbing** — Harvesting semantics (discovery, mapping, error
+meaning) stay readable as domain code. Concurrency, backpressure, retries, HTTP
+politeness wrappers, and similar mechanics live in dedicated modules and are
+wired via narrow callbacks or ports — not mixed into the same methods that encode
+what a source means. Extract plumbing when it obscures the harvest steps; do not
+extract every trivial `asyncio` call.
+
 ## Constraints
 
 - Python 3.12. No type-unsafe workarounds; all public APIs are fully typed.
@@ -111,6 +129,13 @@ closed, apply least privilege.
   `@field_validator` to enforce valid values — a `ValidationError` triggers the
   standard skip-with-yield-error path. Only write custom error code outside
   Pydantic when a spec violation should log a warning but NOT skip the record.
+- Within a plugin package, separate **domain modules** (mapper, dataset, sitemap,
+  models) from **infrastructure modules** (bounded pipelines, retry loops, shared
+  HTTP wrappers used as composition targets). Plugin entrypoints (`plugin.py`) MAY
+  compose both, but MUST NOT grow large blocks of asyncio lifecycle / queue /
+  cancellation logic alongside mapping rules. Prefer extracting plumbing when it
+  obscures the harvest steps. Do not invent harvester-wide generic frameworks
+  until a second plugin needs the same mechanism (YAGNI).
 
 ## Module Dependency Graph
 
@@ -132,11 +157,19 @@ inspire/plugin.py  →  inspire/mapper.py      →  inspire/models.py
 inspire/plugin.py  →  inspire/config.py
 inspire/plugin.py  →  harvester/errors.py
 
+# Linked Data plugin — domain wiring vs concurrency plumbing
+linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker/consumer
+linked_data/plugin.py   →  linked_data/sitemap.py / dataset / linked_data_mapper
+linked_data/pipeline.py ↛  linked_data_mapper / dataset implementations
+# pipeline may import shared signal/types (DiscoveryResult, HarvesterError) only;
+# it MUST NOT perform mapping or own source-format semantics.
+
 config  ←── all modules (read-only)
 ```
 
 Circular imports are forbidden. Within a plugin, the mapper must not import the
-source client and vice versa. Plugins must not import each other.
+source client and vice versa. Plugins must not import each other. Infrastructure
+modules MUST NOT import mappers or execute mapping logic.
 
 ## Extension Points
 
