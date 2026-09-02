@@ -16,11 +16,16 @@
 
 ## 3. DataDownload Distribution Mapping
 
-- [x] 3.1 Extend `_create_assay_table` to iterate `schema:distribution` → `schema:DataDownload` resources
-- [x] 3.2 Add output column for each distribution with `contentUrl` as the Measurement output URI
-- [x] 3.3 Add `encodingFormat` as a Format comment column
-- [x] 3.4 Add unit test: single DataDownload → single output column
-- [x] 3.5 Add unit test: multiple DataDownload → multiple output columns
+- [x] 3.1 Extend Investigation + `_create_assay_table` to iterate
+      `schema:distribution` → `schema:DataDownload` resources
+- [x] 3.2 Add Investigation `"Distribution"` comments
+      (`encodingFormat: contentUrl`, skip empty `contentUrl`)
+- [x] 3.3 Add one Measurement `"Distribution"` comment column with joined
+      labels (ARCtrl: no multi-output-column Measurement row)
+- [x] 3.4 Add unit test: single DataDownload → Investigation + Measurement
+      `"Distribution"` comments
+- [x] 3.5 Add unit test: multiple DataDownload → joined Measurement cell
+      (no extra output columns)
 
 ## 4. Documentation
 

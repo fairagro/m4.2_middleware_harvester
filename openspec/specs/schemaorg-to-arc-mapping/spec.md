@@ -224,28 +224,55 @@ protocol table named "Data Collection" with a Keywords parameter. Dataset
 - **WHEN** the mapper builds the Study
 - **THEN** no "Data Collection" protocol table is created
 
-### Requirement: Handle schema:DataDownload distributions as Assay outputs
+### Requirement: Handle schema:DataDownload distributions as comments
 
 The system SHALL map each `schema:DataDownload` linked via
-`schema:distribution` on the Dataset to an Assay table output column with
-`contentUrl` as the Measurement output URI and `encodingFormat` as a Format
-comment.
+`schema:distribution` on the Dataset that has a non-empty `contentUrl` into
+distribution metadata comments (not additional Assay output columns). Multiple
+Measurement output columns per row are not ARCtrl-compatible; the Assay
+Measurement table keeps a single landing-page `Output [URI]` and records file
+access as comments.
+
+For each eligible distribution the system SHALL:
+
+1. Append an Investigation comment named `"Distribution"` with label
+   `encodingFormat: contentUrl` when `encodingFormat` is present, otherwise
+   just `contentUrl`.
+2. Include the same labels in one Measurement table comment column named
+   `"Distribution"`, joined with `"; "` when multiple distributions exist.
+
+Entries without `contentUrl` MUST be skipped.
 
 #### Scenario: Dataset with single DataDownload
 
 - **GIVEN** a Dataset with `schema:distribution` → `schema:DataDownload` having
   `contentUrl` "https://repo.example.org/data/file.csv" and `encodingFormat`
   "text/csv"
-- **WHEN** the mapper creates the Assay table
-- **THEN** the Assay table has an output column with value
-  "https://repo.example.org/data/file.csv" and a "Format" comment "text/csv"
+- **WHEN** the mapper creates Investigation and Assay
+- **THEN** Investigation has a `"Distribution"` comment
+  `"text/csv: https://repo.example.org/data/file.csv"`
+- **AND** the Measurement table has a `"Distribution"` comment column with that
+  same label
+- **AND** the Measurement `Output [URI]` remains the dataset landing-page URI
+  (not the download `contentUrl`)
 
 #### Scenario: Dataset with multiple DataDownload
 
-- **GIVEN** a Dataset with two `schema:distribution` entries: CSV and Excel
-- **WHEN** the mapper creates the Assay table
-- **THEN** the Assay table has two output columns (one per distribution), each
-  with its `encodingFormat` comment
+- **GIVEN** a Dataset with two `schema:distribution` entries that both have
+  `contentUrl` (e.g. CSV and JSON)
+- **WHEN** the mapper creates Investigation and Assay
+- **THEN** Investigation has one `"Distribution"` comment per entry
+- **AND** the Measurement table has a single `"Distribution"` comment column
+  whose cell joins both labels with `"; "`
+- **AND** no extra Assay output columns are created for the downloads
+
+#### Scenario: DataDownload without contentUrl is skipped
+
+- **GIVEN** a `schema:DataDownload` under `schema:distribution` with
+  `encodingFormat` but empty or missing `contentUrl`
+- **WHEN** the mapper processes distributions
+- **THEN** that entry is omitted from Investigation and Measurement
+  `"Distribution"` comments
 
 ### Requirement: Fail closed on missing required fields
 
