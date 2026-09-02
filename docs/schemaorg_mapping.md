@@ -22,10 +22,12 @@ producing a separate Investigation.
 > **Protocols are central to ARC**: They describe exactly how data was created. Since
 > Schema.org metadata rarely encodes laboratory steps, we model publication as process:
 >
-> - **Data Collection** — keywords, description, research subject
+> - **Data Collection** — keywords, research subject (single-row protocol stub)
 > - **Data Processing** — repository publication, license, publisher context
 > - **Measurement** — dataset landing page URL, distribution file access
-
+>
+> Dataset `schema:description` maps to `Investigation.Description` /
+> `Study.Description` only — it is not duplicated as a Data Collection parameter.
 ### Scope
 
 | In scope | Out of scope |
@@ -46,7 +48,7 @@ and `https://schema.org/` namespaces (dual-namespace aliasing via `StableGraph`)
 | **`@id`** | Subject IRI (blank node or HTTP(S) URI) | `Investigation.Identifier` (when no higher-precedence ID); see [Identifier Cascade](#identifier-cascade-precedence) |
 | **`@type`** | Must be `schema:Dataset` | Gate: only Dataset entities are mapped; `DataCatalog` is container, not output |
 | **`schema:name`** | Dataset title | `Investigation.Title`, `Study.Title`, `Assay.Title` |
-| **`schema:description`** | Abstract / summary | `Investigation.Description`, `Study.Description`, Data Collection parameter |
+| **`schema:description`** | Abstract / summary | `Investigation.Description`, `Study.Description` |
 | **`schema:url`** | Canonical landing page URL | `Investigation.Identifier` (sanitized); Assay `Output [URI]` |
 | **`schema:sameAs`** | Equivalent URLs | `Investigation.Identifier` fallback (lexicographic min) |
 | **`schema:identifier`** | DOI, URL, or other identifiers | `Investigation.Identifier` (DOI as last resort); Publication DOI; `Investigation.Comment("Alternate Identifier")` |

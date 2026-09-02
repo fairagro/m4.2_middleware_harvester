@@ -501,8 +501,7 @@ class _SchemaOrgRun:
 
     def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
         keywords = self.view(subject).schema_texts("keywords")
-        description = self.view(subject)["description"]
-        if not (keywords or description):
+        if not keywords:
             return None
 
         table = ArcTable.init("Data Collection")
@@ -510,11 +509,10 @@ class _SchemaOrgRun:
             CompositeHeader.input(IOType.source()),
             [CompositeCell.free_text("Research Subject")],
         )
-        if keywords:
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-                [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-            )
+        table.AddColumn(
+            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
+            [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
+        )
         table.AddColumn(
             CompositeHeader.output(IOType.sample()),
             [CompositeCell.free_text("")],
