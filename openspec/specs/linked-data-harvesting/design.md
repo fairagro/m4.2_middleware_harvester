@@ -62,6 +62,6 @@ The current implementation supports only one concrete type per enum, but the plu
    Workers block on `put` before releasing the fetch/map semaphore, so at most
    **2 × `effective_worker_tasks`** mapped outcomes (in-flight plus queued) reside
    in the plugin when upload is slower than discovery. On generator close
-   (`aclose()` / upload abort), `GeneratorExit` propagates so the TaskGroup
-   cancels producer and worker tasks instead of draining the remainder of the
+   (`aclose()` / upload abort), the plugin sets a shutdown flag and cancels
+   TaskGroup producer and worker tasks instead of draining the remainder of the
    catalog into an unread queue.
