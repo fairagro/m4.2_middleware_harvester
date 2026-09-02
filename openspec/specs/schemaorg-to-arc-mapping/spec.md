@@ -133,13 +133,17 @@ The system SHALL assign `Investigation.identifier` using the following precedenc
 same logical dataset:
 
 1. Harvest-source catalog identifier when supplied by discovery (e.g., MyCoRe
-   Solr `id`)
-2. Sanitized discovered page URL when supplied by discovery
+   Solr `id`) — only when the graph contains a single `schema:Dataset`
+2. Sanitized discovered page URL when supplied by discovery — only when the
+   graph contains a single `schema:Dataset`
 3. Canonical HTTP(S) IRI from `schema:url` → `schema:sameAs` → subject `@id`
    (lexicographic minimum, casefold)
 4. Canonical DOI from `schema:identifier` (including `schema:PropertyValue` with
    `propertyID` containing "doi") — only when no higher-precedence identifier
    exists
+
+When a graph contains multiple `schema:Dataset` entities, steps 1–2 are skipped
+so each Investigation uses that Dataset's own graph URI or DOI (steps 3–4).
 
 DOIs (including all extracted DOIs) MUST appear in `Publication` and/or
 `Investigation` Comments; they MUST NOT become the primary
