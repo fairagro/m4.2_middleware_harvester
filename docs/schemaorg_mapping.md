@@ -168,6 +168,10 @@ The validator supports all JSON-LD `@context` formats:
 - **List**: `"@context": ["https://schema.org/", {"bios": "https://bioschemas.org/"}]`
 - **Dict**: `"@context": {"schema": "https://schema.org/"}`
 
+Remote context loads via `@import` or a nested `@context` inside a term definition
+must also resolve to an allowlisted IRI; other JSON-LD keywords (`@language`,
+`@version`, …) are ignored.
+
 ### Extension Mechanism
 
 New extension contexts can be added by updating `_KNOWN_EXTENSION_CONTEXTS` in

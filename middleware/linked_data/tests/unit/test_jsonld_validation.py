@@ -123,6 +123,25 @@ def test_valid_context_dict_with_nested_term_definition() -> None:
     validate_jsonld_context(raw)
 
 
+def test_raises_on_unknown_import_in_context_dict() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "https://evil.example/ctx"}, "name": "test"}'
+    with pytest.raises(JsonLdContextError, match="Unsupported @context"):
+        validate_jsonld_context(raw)
+
+
+def test_raises_on_unknown_nested_context_in_term_definition() -> None:
+    raw = (
+        '{"@context": {"@vocab": "https://schema.org/", "x": {"@context": "https://evil.example/ctx"}}, "name": "test"}'
+    )
+    with pytest.raises(JsonLdContextError, match="Unsupported @context"):
+        validate_jsonld_context(raw)
+
+
+def test_valid_import_of_allowlisted_context() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "https://bioschemas.org/"}, "name": "test"}'
+    validate_jsonld_context(raw)
+
+
 def test_raises_on_context_type_not_supported() -> None:
     raw = '{"@context": 123, "name": "test"}'
     with pytest.raises(JsonLdContextError, match="Unsupported @context type"):
