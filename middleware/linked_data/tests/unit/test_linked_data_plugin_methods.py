@@ -297,7 +297,7 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
         return FakeSitemap(["https://example.org/dataset/slow"])
 
     mock_mapper = MagicMock()
-    mock_mapper.map_graph.return_value = HarvestedArc(arc_json="mapped:arc")
+    mock_mapper.map_graph.return_value = [HarvestedArc(arc_json="mapped:arc")]
 
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",

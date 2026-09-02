@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TypeVar, cast
 
@@ -63,8 +63,8 @@ class LinkedDataMapper(ABC):
         _ = config
         return cls()
 
-    def map_graph(self, graph: Graph, context: MappingContext) -> HarvestedArc:
-        """Return a harvested ARC (JSON + composition counts) for the given graph.
+    def map_graph(self, graph: Graph, context: MappingContext) -> Iterable[HarvestedArc]:
+        """Return harvested ARCs (JSON + composition counts) for the given graph.
 
         Wraps ``graph`` once and passes the ``StableGraph`` into :meth:`_map_graph`.
 
@@ -80,11 +80,17 @@ class LinkedDataMapper(ABC):
         ``harvest_source_id`` is supplied, Schema.org mappers may use a sanitized
         ``source_url`` as the primary harvest-stable identifier before graph URL or
         DOI fallbacks.
+
+        Returns an iterable of HarvestedArc objects. Mappers that handle a single
+        entity per graph yield an iterable with exactly one element. Mappers that
+        handle multiple entities (e.g. multiple Schema.org Datasets) yield multiple
+        elements. Callers that need a concrete sequence should materialize with
+        ``list(...)``.
         """
         return self._map_graph(graph, context, self._stable_wrap(graph))
 
     @abstractmethod
-    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> Iterable[HarvestedArc]:
         """Map ``graph`` using the caller-provided ``stable`` wrap (see :meth:`map_graph`)."""
         raise NotImplementedError
 

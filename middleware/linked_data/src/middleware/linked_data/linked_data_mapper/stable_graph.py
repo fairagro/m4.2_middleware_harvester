@@ -101,6 +101,38 @@ class StableGraph:
         """Stable sort key for ``node`` (never ranks by blank-node labels)."""
         return self.view(node).sort_key()
 
+    def subjects(self, predicate: Node, obj: Node) -> list[ResourceView]:
+        """Return subjects with ``(subject, predicate, obj)``, ordered by :meth:`sort_key`.
+
+        rdflib subject iteration order is not harvest-stable; callers MUST use
+        this (or :meth:`subjects_of_type` / :meth:`subjects_of_types`) instead of
+        raw ``graph.subjects`` when yield / pick order matters.
+        """
+        nodes = list(self._graph.subjects(predicate, obj))
+        return [self.view(node) for node in sorted(nodes, key=self.sort_key)]
+
+    def subjects_of_type(self, rdf_type: Node) -> list[ResourceView]:
+        """Return subjects with ``rdf:type`` ``rdf_type``, ordered by :meth:`sort_key`."""
+        return self.subjects(RDF.type, rdf_type)
+
+    def subjects_of_types(self, *rdf_types: Node) -> list[ResourceView]:
+        """Union of subjects typed as any of ``rdf_types``, deduped, sort-key ordered.
+
+        Useful for dual-namespace vocabularies (e.g. ``http://`` and
+        ``https://schema.org/Dataset``) without depending on which type IRI
+        appears first in the graph.
+        """
+        if not rdf_types:
+            return []
+        seen: set[Node] = set()
+        collected: list[Node] = []
+        for rdf_type in rdf_types:
+            for node in self._graph.subjects(RDF.type, rdf_type):
+                if node not in seen:
+                    seen.add(node)
+                    collected.append(node)
+        return [self.view(node) for node in sorted(collected, key=self.sort_key)]
+
     def object_text(self, node: Node | None) -> str | None:
         """Stable display text for ``node``; never a blank-node label."""
         if node is None:

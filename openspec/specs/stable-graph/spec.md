@@ -159,6 +159,28 @@ so callers need not duplicate lookups.
 - **THEN** aliased accessors for those terms MUST see the respective objects
   without the caller issuing two separate namespace lookups
 
+### Requirement: Subject discovery is deterministic
+
+StableGraph MUST expose subject lookup by triple pattern (and `rdf:type`
+helpers) that returns ResourceView handles ordered by the same deterministic
+sort key used for resource objects. Callers MUST NOT rely on raw
+`graph.subjects` iteration order for harvest-stable output. When multiple type
+IRIs are queried together, the result MUST be deduplicated and then ordered.
+
+#### Scenario: Subjects of one type are insertion-order independent
+
+- **GIVEN** two graphs that assert the same two `rdf:type` subjects in opposite
+  insert order
+- **WHEN** `subjects_of_type` is called for that type
+- **THEN** both calls return the same ordered sequence of ResourceViews
+
+#### Scenario: Dual-namespace type union dedupes one subject
+
+- **GIVEN** one subject typed as both `http://schema.org/Dataset` and
+  `https://schema.org/Dataset`
+- **WHEN** `subjects_of_types` is called with both type IRIs
+- **THEN** the subject appears exactly once in the result
+
 ### Requirement: Shared test helper detects blank-node labels in harvest output
 
 The system SHALL provide a shared unit-test helper that asserts serialized ARC /

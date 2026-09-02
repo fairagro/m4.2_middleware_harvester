@@ -41,6 +41,9 @@ source.
 - **THEN** two mapping outputs are produced, one per Dataset, each with its
   own `Investigation.identifier` derived from its respective `@id` or discovered
   page URL
+- **AND** the outputs are yielded in deterministic subject order
+  (`StableGraph.subjects_of_types` / sort key), independent of RDF triple
+  insertion order
 
 #### Scenario: Dataset nested in DataCatalog
 
@@ -69,12 +72,17 @@ The system SHALL reject (mapping error) RDF graphs that contain no
 - **WHEN** the mapper processes the graph
 - **THEN** a mapping error is raised
 
-### Requirement: Validate and normalize @context before mapping
+### Requirement: Validate @context before mapping
 
 The system SHALL extract `@context` from the raw JSON-LD payload before RDF
-parsing, normalize known Schema.org contexts to `https://schema.org/`, accept
-known extension contexts (e.g., Bioschemas), and reject unknown contexts with a
-mapping error.
+parsing, accept known Schema.org and extension context IRIs (HTTP and HTTPS
+variants), and reject unknown remote context IRIs with a mapping error.
+`@import` and nested remote `@context` loads MUST be absolute allowlisted
+`http(s)` IRIs (relative imports are rejected). Absolute `http(s)` `@vocab`
+values MUST be allowlisted; relative `@vocab` MAY be accepted (IRI expansion
+only). Namespace aliasing of `http://schema.org/` and `https://schema.org/`
+terms happens during RDF access via `StableGraph`, not by rewriting the
+`@context` string.
 
 #### Scenario: Standard Schema.org HTTPS context
 
@@ -87,8 +95,8 @@ mapping error.
 
 - **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"`
 - **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; all `schema:` terms resolve to
-  `https://schema.org/` (normalized)
+- **THEN** parsing proceeds; HTTP and HTTPS Schema.org namespaces are treated
+  as aliases via `StableGraph`
 
 #### Scenario: Mixed http/https in same graph
 
@@ -113,6 +121,13 @@ mapping error.
 - **WHEN** the mapper processes the payload
 - **THEN** a mapping error is raised before RDF parsing
 
+#### Scenario: Relative @import rejected
+
+- **GIVEN** a JSON-LD payload with a dict `@context` containing
+  `"@import": "./remote-context.jsonld"`
+- **WHEN** the mapper processes the payload
+- **THEN** a mapping error is raised before RDF parsing
+
 ### Requirement: Support vocabulary extensions via declared extension namespaces
 
 The system SHALL allow mappers to declare supported extension namespaces (beyond
@@ -133,13 +148,17 @@ The system SHALL assign `Investigation.identifier` using the following precedenc
 same logical dataset:
 
 1. Harvest-source catalog identifier when supplied by discovery (e.g., MyCoRe
-   Solr `id`)
-2. Sanitized discovered page URL when supplied by discovery
+   Solr `id`) — only when the graph contains a single `schema:Dataset`
+2. Sanitized discovered page URL when supplied by discovery — only when the
+   graph contains a single `schema:Dataset`
 3. Canonical HTTP(S) IRI from `schema:url` → `schema:sameAs` → subject `@id`
    (lexicographic minimum, casefold)
 4. Canonical DOI from `schema:identifier` (including `schema:PropertyValue` with
    `propertyID` containing "doi") — only when no higher-precedence identifier
    exists
+
+When a graph contains multiple `schema:Dataset` entities, steps 1–2 are skipped
+so each Investigation uses that Dataset's own graph URI or DOI (steps 3–4).
 
 DOIs (including all extracted DOIs) MUST appear in `Publication` and/or
 `Investigation` Comments; they MUST NOT become the primary
@@ -186,28 +205,77 @@ available.
 - **WHEN** both harvests are mapped
 - **THEN** both produce identical `Investigation.identifier` values
 
-### Requirement: Handle schema:DataDownload distributions as Assay outputs
+### Requirement: Study Data Collection protocol uses keywords, not description
+
+When `schema:keywords` are present, the system SHALL add a single-row Study
+protocol table named "Data Collection" with a Keywords parameter. Dataset
+`schema:description` SHALL map only to `Investigation.Description` and
+`Study.Description` — it MUST NOT be emitted as a Data Collection parameter
+(abstract text is not a per-process factor and would duplicate Study fields).
+
+#### Scenario: Keywords create Data Collection protocol
+
+- **GIVEN** a Dataset with `schema:keywords` "soil, moisture" and a non-empty
+  `schema:description`
+- **WHEN** the mapper builds the Study
+- **THEN** a "Data Collection" table exists with a Keywords parameter, and the
+  description appears on Investigation/Study only (not as a protocol parameter)
+
+#### Scenario: Description alone does not create Data Collection
+
+- **GIVEN** a Dataset with `schema:description` but no `schema:keywords`
+- **WHEN** the mapper builds the Study
+- **THEN** no "Data Collection" protocol table is created
+
+### Requirement: Handle schema:DataDownload distributions as comments
 
 The system SHALL map each `schema:DataDownload` linked via
-`schema:distribution` on the Dataset to an Assay table output column with
-`contentUrl` as the Measurement output URI and `encodingFormat` as a Format
-comment.
+`schema:distribution` on the Dataset that has a non-empty `contentUrl` into
+distribution metadata comments (not additional Assay output columns). Multiple
+Measurement output columns per row are not ARCtrl-compatible; the Assay
+Measurement table keeps a single landing-page `Output [URI]` and records file
+access as comments.
+
+For each eligible distribution the system SHALL:
+
+1. Append an Investigation comment named `"Distribution"` with label
+   `encodingFormat: contentUrl` when `encodingFormat` is present, otherwise
+   just `contentUrl`.
+2. Include the same labels in one Measurement table comment column named
+   `"Distribution"`, joined with `"; "` when multiple distributions exist.
+
+Entries without `contentUrl` MUST be skipped.
 
 #### Scenario: Dataset with single DataDownload
 
 - **GIVEN** a Dataset with `schema:distribution` → `schema:DataDownload` having
   `contentUrl` "https://repo.example.org/data/file.csv" and `encodingFormat`
   "text/csv"
-- **WHEN** the mapper creates the Assay table
-- **THEN** the Assay table has an output column with value
-  "https://repo.example.org/data/file.csv" and a "Format" comment "text/csv"
+- **WHEN** the mapper creates Investigation and Assay
+- **THEN** Investigation has a `"Distribution"` comment
+  `"text/csv: https://repo.example.org/data/file.csv"`
+- **AND** the Measurement table has a `"Distribution"` comment column with that
+  same label
+- **AND** the Measurement `Output [URI]` remains the dataset landing-page URI
+  (not the download `contentUrl`)
 
 #### Scenario: Dataset with multiple DataDownload
 
-- **GIVEN** a Dataset with two `schema:distribution` entries: CSV and Excel
-- **WHEN** the mapper creates the Assay table
-- **THEN** the Assay table has two output columns (one per distribution), each
-  with its `encodingFormat` comment
+- **GIVEN** a Dataset with two `schema:distribution` entries that both have
+  `contentUrl` (e.g. CSV and JSON)
+- **WHEN** the mapper creates Investigation and Assay
+- **THEN** Investigation has one `"Distribution"` comment per entry
+- **AND** the Measurement table has a single `"Distribution"` comment column
+  whose cell joins both labels with `"; "`
+- **AND** no extra Assay output columns are created for the downloads
+
+#### Scenario: DataDownload without contentUrl is skipped
+
+- **GIVEN** a `schema:DataDownload` under `schema:distribution` with
+  `encodingFormat` but empty or missing `contentUrl`
+- **WHEN** the mapper processes distributions
+- **THEN** that entry is omitted from Investigation and Measurement
+  `"Distribution"` comments
 
 ### Requirement: Fail closed on missing required fields
 
@@ -235,7 +303,10 @@ The system SHALL raise a mapping error (not invent fallbacks) when:
 The system SHALL produce deterministic (harvest-stable) ordering for all
 multi-value fields: keywords (trim/dedup/sort casefold), contacts (sort by
 family, given, display, then stable node key), publications (DOI order), DOIs
-(casefold lexicographic minimum is canonical).
+(casefold lexicographic minimum is canonical). When a graph yields multiple
+`schema:Dataset` subjects, the mapper SHALL emit Investigation outputs via
+`StableGraph.subjects_of_types` (deterministic subject order), independent of
+RDF triple insertion order.
 
 #### Scenario: Keywords with mixed case and duplicates
 
@@ -250,6 +321,14 @@ family, given, display, then stable node key), publications (DOI order), DOIs
 - **GIVEN** two harvests of the same graph where `schema:creator` order differs
 - **WHEN** both are mapped
 - **THEN** the Investigation Contacts list has identical order in both harvests
+
+#### Scenario: Multi-Dataset yield order is insertion-independent
+
+- **GIVEN** two graphs with the same two `schema:Dataset` subjects inserted in
+  opposite order
+- **WHEN** both are mapped
+- **THEN** the sequence of Investigation identifiers is identical across both
+  harvests
 
 ### Requirement: Serialize the resulting ARC as valid RO-Crate JSON-LD
 

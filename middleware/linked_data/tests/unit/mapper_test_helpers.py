@@ -4,16 +4,25 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable
 
 from arctrl import ARC  # type: ignore[import-untyped]
 from rdflib import Graph
 
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.linked_data_mapper import MappingContext
 
 BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
 
 # Explicit empty discovery context for unit tests that only exercise graph mapping.
 NO_DISCOVERY = MappingContext()
+
+
+def first_harvest(result: Iterable[HarvestedArc]) -> HarvestedArc:
+    """Return the first HarvestedArc from an iterable, asserting exactly one."""
+    items = list(result)
+    assert len(items) == 1, f"Expected exactly one HarvestedArc, got {len(items)}"
+    return items[0]
 
 
 def assert_harvest_has_no_bnode_labels(arc_json: str) -> None:

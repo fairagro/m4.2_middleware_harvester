@@ -13,6 +13,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 
 from ..config import Config, DatasetType
 from ..errors import LinkedDataDatasetError
+from ..jsonld_validation import JsonLdContextError, validate_jsonld_context_data
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 
 logger = logging.getLogger(__name__)
@@ -99,11 +100,16 @@ class HtmlJsonLdDataset(Dataset):
         normalized_blocks: list[str] = []
         for block in parser.blocks:
             try:
-                normalized_blocks.append(json.dumps(json.loads(block, strict=False)))
+                parsed = json.loads(block, strict=False)
             except json.JSONDecodeError as exc:
                 raise LinkedDataDatasetError(
                     f"Invalid JSON in JSON-LD block at {self._url}: {exc}\nBlock:\n{block}"
                 ) from exc
+            try:
+                validate_jsonld_context_data(parsed)
+            except JsonLdContextError as exc:
+                raise LinkedDataDatasetError(f"Unsupported @context in JSON-LD block at {self._url}: {exc}") from exc
+            normalized_blocks.append(json.dumps(parsed))
 
         self._jsonld_blocks = normalized_blocks
         return normalized_blocks

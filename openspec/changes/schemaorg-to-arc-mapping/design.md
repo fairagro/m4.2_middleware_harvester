@@ -22,7 +22,8 @@ existing identifier cascade as a formal precedence rule.
 - Support vocabulary extensions (Bioschemas, etc.) via declared extension
   namespaces in the existing `StableGraphPolicy.term_namespaces`.
 - Handle multiple `schema:Dataset` entities per graph (yield multiple outputs).
-- Map `schema:DataDownload` distributions to Assay output columns.
+- Map `schema:DataDownload` distributions to Investigation + Measurement
+  `"Distribution"` comments (ARCtrl-compatible single-output Measurement).
 - Document the identifier cascade precedence rule (currently implicit).
 
 **Non-Goals:**
@@ -64,13 +65,16 @@ existing identifier cascade as a formal precedence rule.
    — Alternatives considered: move cascade into StableGraph (couples RDF access
    to harvest identity); expose cascade as a separate utility.
 
-5. **`DataDownload` → Assay output columns**
+5. **`DataDownload` → Distribution comments (not multi-output columns)**
    — Reasoning: `schema:distribution` → `schema:DataDownload` with
-   `contentUrl`/`encodingFormat` is the natural mapping for dataset file
-   access. Each distribution becomes an output column in the Measurement Assay
-   table (matching current Assay table structure).
-   — Alternatives considered: map as Investigation comments (loses structured
-   access); map as separate Assay per distribution (too many Assays).
+   `contentUrl`/`encodingFormat` must stay harvest-visible, but ARCtrl does
+   not accept a Measurement table with multiple output columns on one row.
+   Keep a single landing-page `Output [URI]`; record each download as an
+   Investigation `"Distribution"` comment and join the same labels into one
+   Measurement `"Distribution"` comment cell.
+   — Alternatives considered: one output column per distribution (rejected —
+   ARCtrl); separate Assay per distribution (too many Assays); Investigation
+   comments only (loses Assay-side visibility).
 
 6. **`DataCatalog` as container, not output**
    — Reasoning: a DataCatalog is a collection of Datasets; the ISA model
@@ -97,7 +101,8 @@ existing identifier cascade as a formal precedence rule.
    for Schema.org + Bioschemas.
 2. Extend `_find_dataset_subject` → `_find_dataset_subjects` returning all
    `schema:Dataset` entities; update `_map_graph` to yield multiple outputs.
-3. Add `DataDownload` → Assay output column mapping in `_create_assay_table`.
+3. Add `DataDownload` → Investigation/Measurement `"Distribution"` comments
+   (joined Measurement cell; skip empty `contentUrl`).
 4. Write `docs/schemaorg_mapping.md` field tables (authoritative source).
 5. Run linked_data unit tests + ruff; confirm no regressions.
 

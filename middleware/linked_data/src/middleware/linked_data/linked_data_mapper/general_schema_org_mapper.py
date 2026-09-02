@@ -7,7 +7,7 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import override
 
@@ -27,7 +27,6 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 from rdflib import Graph, Literal, Namespace, URIRef  # type: ignore[import-untyped]
-from rdflib.namespace import RDF
 from rdflib.term import Node
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
@@ -71,21 +70,27 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         )
 
     @override
-    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> HarvestedArc:
-        """Map an RDF graph to a harvested ARC with composition counts."""
-        subject = self._find_dataset_subject(graph)
-        if subject is None:
+    def _map_graph(self, graph: Graph, context: MappingContext, stable: StableGraph) -> Iterable[HarvestedArc]:
+        """Map an RDF graph to harvested ARCs with composition counts.
+
+        Yields one HarvestedArc per schema:Dataset entity in the graph.
+        """
+        _ = graph  # Access via ``stable`` (call-scoped wrap).
+        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in self.SCHEMA_URIS))
+        if not dataset_views:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
-        arc = _SchemaOrgRun(self, stable).map_arc(subject, context)
-        return HarvestedArc.from_arctrl(arc)
-
-    def _find_dataset_subject(self, graph: Graph) -> Node | None:
-        for schema in self.SCHEMA_URIS:
-            subjects = list(graph.subjects(RDF.type, schema.Dataset))
-            if subjects:
-                return subjects[0]
-        return None
+        # Page-level harvest_source_id / source_url is one catalog unit. When a page
+        # embeds multiple Datasets, prefer per-subject graph identifiers so ARCs do
+        # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
+        use_page_harvest_id = len(dataset_views) == 1
+        for dataset in dataset_views:
+            arc = _SchemaOrgRun(self, stable).map_arc(
+                dataset.node,
+                context,
+                use_page_harvest_id=use_page_harvest_id,
+            )
+            yield HarvestedArc.from_arctrl(arc)
 
 
 @dataclass(frozen=True)
@@ -99,9 +104,19 @@ class _SchemaOrgRun:
         """ResourceView for ``subject`` on this call's StableGraph."""
         return self.stable.view(subject)
 
-    def map_arc(self, subject: Node, context: MappingContext) -> ARC:
+    def map_arc(
+        self,
+        subject: Node,
+        context: MappingContext,
+        *,
+        use_page_harvest_id: bool = True,
+    ) -> ARC:
         title = self._require_dataset_title(subject)
-        identifier_plan = self._plan_investigation_identifier(subject, context)
+        identifier_plan = self._plan_investigation_identifier(
+            subject,
+            context,
+            use_page_harvest_id=use_page_harvest_id,
+        )
         publication_doi = identifier_plan.publication_doi
 
         investigation = self._map_investigation(subject, title=title, identifier_plan=identifier_plan)
@@ -139,14 +154,21 @@ class _SchemaOrgRun:
         subject_iri = http_iri(subject)
         return self.mapper.sanitize_identifier(subject_iri) if subject_iri else None
 
-    def _plan_investigation_identifier(self, subject: Node, context: MappingContext) -> _IdentifierPlan:
+    def _plan_investigation_identifier(
+        self,
+        subject: Node,
+        context: MappingContext,
+        *,
+        use_page_harvest_id: bool = True,
+    ) -> _IdentifierPlan:
         all_dois = self.view(subject).schema_dois("identifier")
         publication_doi = self.mapper.pick_canonical_doi(all_dois)
         alternate_dois = tuple(doi for doi in all_dois if doi != publication_doi) if publication_doi else ()
 
-        harvest_id = self.mapper.resolve_harvest_source_identifier(context)
-        if harvest_id:
-            return _IdentifierPlan(harvest_id, publication_doi, alternate_dois)
+        if use_page_harvest_id:
+            harvest_id = self.mapper.resolve_harvest_source_identifier(context)
+            if harvest_id:
+                return _IdentifierPlan(harvest_id, publication_doi, alternate_dois)
 
         graph_id = self._resolve_graph_url_identifier(subject)
         if graph_id:
@@ -401,10 +423,12 @@ class _SchemaOrgRun:
             inv.Comments.append(Comment.create("Conforms To", conforms_text))
 
         for dist in self.view(subject).schema_resources("distribution"):
-            encoding = dist["encodingFormat"] or ""
             content_url = dist["contentUrl"] or ""
-            if encoding or content_url:
-                inv.Comments.append(Comment.create("Distribution", f"{encoding}: {content_url}"))
+            if not content_url:
+                continue
+            encoding = dist["encodingFormat"] or ""
+            label = f"{encoding}: {content_url}" if encoding else content_url
+            inv.Comments.append(Comment.create("Distribution", label))
 
     def _iter_preferred_publishers(self, subject: Node) -> Iterator[Node]:
         """Yield publisher resources first (stable order), then optional literal."""
@@ -466,8 +490,7 @@ class _SchemaOrgRun:
 
     def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
         keywords = self.view(subject).schema_texts("keywords")
-        description = self.view(subject)["description"]
-        if not (keywords or description):
+        if not keywords:
             return None
 
         table = ArcTable.init("Data Collection")
@@ -475,11 +498,10 @@ class _SchemaOrgRun:
             CompositeHeader.input(IOType.source()),
             [CompositeCell.free_text("Research Subject")],
         )
-        if keywords:
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-                [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-            )
+        table.AddColumn(
+            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
+            [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
+        )
         table.AddColumn(
             CompositeHeader.output(IOType.sample()),
             [CompositeCell.free_text("")],
@@ -578,6 +600,20 @@ class _SchemaOrgRun:
             table.AddColumn(
                 CompositeHeader.comment("Language"),
                 [CompositeCell.free_text(language)],
+            )
+
+        dist_entries: list[str] = []
+        for dist in self.view(subject).schema_resources("distribution"):
+            content_url = dist["contentUrl"] or ""
+            if not content_url:
+                continue
+            encoding = dist["encodingFormat"] or ""
+            dist_entries.append(f"{encoding}: {content_url}" if encoding else content_url)
+        if dist_entries:
+            # One cell per assay row (joined), matching other Measurement columns.
+            table.AddColumn(
+                CompositeHeader.comment("Distribution"),
+                [CompositeCell.free_text("; ".join(dist_entries))],
             )
 
         return table
