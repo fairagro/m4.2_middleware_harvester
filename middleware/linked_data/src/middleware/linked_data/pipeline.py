@@ -170,8 +170,9 @@ async def run_bounded_pipeline(
     """Run a bounded producer/worker/consumer pipeline and yield outcomes.
 
     At most ``worker_tasks`` results may sit in the queue and ``worker_tasks``
-    workers may run concurrently (``2 × worker_tasks`` in-flight mapped
-    outcomes). Closing the returned generator cancels in-flight work.
+    workers may run concurrently (``2 × worker_tasks`` discovery items in
+    workers plus queue slots). One discovery item may still map to multiple
+    outcomes. Closing the returned generator cancels in-flight work.
     """
     results: _PipelineQueue = asyncio.Queue(maxsize=worker_tasks)
     semaphore = asyncio.Semaphore(worker_tasks)

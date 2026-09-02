@@ -448,7 +448,7 @@ async def _drain_with_slow_consumer(
 
 @pytest.mark.asyncio
 async def test_linked_data_plugin_bounds_pipeline_under_slow_consumer(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Mapped outcomes in the plugin pipeline must not exceed 2 × worker_tasks."""
+    """Discovery items in workers plus queue slots must not exceed 2 × worker_tasks."""
     worker_tasks = 2
     catalog_size = 12
     config = Config(

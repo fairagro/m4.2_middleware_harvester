@@ -110,21 +110,33 @@ fetched URL MUST still pass an explicit `MappingContext()` (with null
 
 ### Requirement: Linked Data plugin bounds buffered mapped ARC payloads
 
-The Linked Data plugin pipeline (`discovery → fetch/map → yield`) MUST bound
-the number of completed mapped outcomes (`HarvestedArc`, `RecordProcessingError`,
-or `SkippedRecord`) waiting between the worker stage and the consumer `yield`.
-The bound MUST be tied to the configured worker concurrency
-(`effective_worker_tasks`, derived from `max_connections`). At no time during
-a normal harvest run SHALL more than **2 × `effective_worker_tasks`** mapped
-outcomes reside in the plugin pipeline (in-flight worker tasks plus items
-queued for yield).
+The Linked Data plugin pipeline (`discovery → fetch/map → yield`) MUST apply
+backpressure with a bounded results queue of
+`maxsize = effective_worker_tasks` (derived from `max_connections`) and at most
+`effective_worker_tasks` concurrent worker tasks. Each worker handles one
+discovery item at a time. Together, at most **2 × `effective_worker_tasks`**
+discovery items may be in flight as workers plus queued result slots.
 
-#### Scenario: Slow consumer does not grow unbounded memory
+The bound is on **discovery-item concurrency** (in-flight workers + queue
+slots), not on the raw count of individual `HarvestedArc` /
+`RecordProcessingError` / `SkippedRecord` objects. A single discovery item MAY
+map to multiple outcomes (e.g. several `schema:Dataset` entities on one page);
+those outcomes for one item are not required to be streamed one-by-one to keep
+the per-outcome count ≤ 2 × `effective_worker_tasks`.
 
-- **WHEN** the plugin maps datasets faster than the orchestrator consumes
+#### Scenario: Slow consumer does not grow unbounded discovery buffering
+
+- **WHEN** the plugin maps discovery items faster than the orchestrator consumes
   yielded items (simulated slow consumer)
-- **THEN** the number of mapped outcomes held inside the plugin pipeline MUST
-  NOT exceed 2 × `effective_worker_tasks`
+- **THEN** at most `effective_worker_tasks` workers MAY run concurrently AND the
+  results queue MUST NOT accept more than `effective_worker_tasks` pending
+  items (production stalls on full queue rather than growing without bound)
+
+#### Scenario: Multi-Dataset pages do not redefine the concurrency bound
+
+- **WHEN** one discovery item maps to multiple `HarvestedArc` outcomes
+- **THEN** the plugin MAY hold that item's mapped outcomes while enqueueing them
+  AND MUST still limit concurrent workers and queue slots as above
 
 #### Scenario: Backpressure does not stall discovery permanently
 
