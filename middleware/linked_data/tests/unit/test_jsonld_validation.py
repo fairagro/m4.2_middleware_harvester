@@ -148,6 +148,24 @@ def test_valid_import_of_allowlisted_context() -> None:
     validate_jsonld_context(raw)
 
 
+def test_valid_relative_vocab() -> None:
+    """Relative @vocab only expands IRIs; it does not load a remote context."""
+    raw = '{"@context": {"@vocab": "#", "schema": "https://schema.org/"}, "name": "test"}'
+    validate_jsonld_context(raw)
+
+
+def test_raises_on_relative_import() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@import": "./evil-context.jsonld"}, "name": "test"}'
+    with pytest.raises(JsonLdContextError, match=r"Unsupported @import \(must be absolute http\(s\) IRI\)"):
+        validate_jsonld_context(raw)
+
+
+def test_raises_on_relative_import_in_term_definition() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "x": {"@import": "context.jsonld"}}, "name": "test"}'
+    with pytest.raises(JsonLdContextError, match=r"Unsupported @import \(must be absolute http\(s\) IRI\)"):
+        validate_jsonld_context(raw)
+
+
 def test_raises_on_context_type_not_supported() -> None:
     raw = '{"@context": 123, "name": "test"}'
     with pytest.raises(JsonLdContextError, match="Unsupported @context type"):

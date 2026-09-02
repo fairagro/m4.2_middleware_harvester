@@ -74,9 +74,12 @@ The system SHALL reject (mapping error) RDF graphs that contain no
 The system SHALL extract `@context` from the raw JSON-LD payload before RDF
 parsing, accept known Schema.org and extension context IRIs (HTTP and HTTPS
 variants), and reject unknown remote context IRIs with a mapping error.
-Namespace aliasing of `http://schema.org/` and `https://schema.org/` terms
-happens during RDF access via `StableGraph`, not by rewriting the `@context`
-string.
+`@import` and nested remote `@context` loads MUST be absolute allowlisted
+`http(s)` IRIs (relative imports are rejected). Absolute `http(s)` `@vocab`
+values MUST be allowlisted; relative `@vocab` MAY be accepted (IRI expansion
+only). Namespace aliasing of `http://schema.org/` and `https://schema.org/`
+terms happens during RDF access via `StableGraph`, not by rewriting the
+`@context` string.
 
 #### Scenario: Standard Schema.org HTTPS context
 
@@ -112,6 +115,13 @@ string.
 
 - **GIVEN** a JSON-LD payload with
   `"@context": "https://unknown-vocabulary.example.org/"`
+- **WHEN** the mapper processes the payload
+- **THEN** a mapping error is raised before RDF parsing
+
+#### Scenario: Relative @import rejected
+
+- **GIVEN** a JSON-LD payload with a dict `@context` containing
+  `"@import": "./remote-context.jsonld"`
 - **WHEN** the mapper processes the payload
 - **THEN** a mapping error is raised before RDF parsing
 

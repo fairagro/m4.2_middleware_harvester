@@ -111,30 +111,50 @@ def _validate_context_list(contexts: Sequence[Any]) -> None:
 def _validate_context_dict(contexts: dict[str, Any]) -> None:
     """Validate a dict @context, checking remote vocabulary / import IRIs.
 
-    Absolute ``http(s)`` strings (including ``@vocab`` and ``@import``) must be
-    allowlisted. Nested term definitions are scanned for nested ``@context`` /
-    ``@import`` only — other keys (``@id``, ``@type``, ``@language``, …) are ignored.
+    Absolute ``http(s)`` ``@vocab`` values must be allowlisted; relative ``@vocab``
+    is allowed (IRI expansion only, no remote load). ``@import`` must be an
+    absolute allowlisted ``http(s)`` IRI — relative or other schemes are rejected
+    so processors cannot resolve them against a document base. Nested term
+    definitions are scanned for nested ``@context`` / ``@import`` only — other
+    keys (``@id``, ``@type``, ``@language``, …) are ignored.
     """
     for key, value in contexts.items():
-        if key in ("@vocab", "@import"):
-            _validate_remote_context_ref(value)
+        if key == "@vocab":
+            _validate_vocab_ref(value)
+            continue
+        if key == "@import":
+            _validate_import_ref(value)
             continue
         if key.startswith("@"):
             continue
         _validate_context_entry_value(key, value)
 
 
-def _validate_remote_context_ref(value: Any) -> None:
-    """Allowlist a remote context reference (string or list of strings)."""
+def _validate_vocab_ref(value: Any) -> None:
+    """Allowlist absolute http(s) @vocab; permit relative / other non-HTTP strings."""
     if isinstance(value, str):
         if value.startswith(("http://", "https://")):
             _check_context_string(value)
         return
     if isinstance(value, list):
         for item in value:
-            _validate_remote_context_ref(item)
+            _validate_vocab_ref(item)
         return
-    raise JsonLdContextError(f"Unsupported remote context reference type: {type(value).__name__}")
+    raise JsonLdContextError(f"Unsupported @vocab reference type: {type(value).__name__}")
+
+
+def _validate_import_ref(value: Any) -> None:
+    """Require absolute allowlisted http(s) @import (no relative / other schemes)."""
+    if isinstance(value, str):
+        if not value.startswith(("http://", "https://")):
+            raise JsonLdContextError(f"Unsupported @import (must be absolute http(s) IRI): {value.strip()}")
+        _check_context_string(value)
+        return
+    if isinstance(value, list):
+        for item in value:
+            _validate_import_ref(item)
+        return
+    raise JsonLdContextError(f"Unsupported @import reference type: {type(value).__name__}")
 
 
 def _validate_context_entry_value(key: str, value: Any) -> None:
@@ -163,7 +183,7 @@ def _validate_nested_term_definition(term_def: dict[str, Any]) -> None:
     if "@context" in term_def:
         _validate_context_value(term_def["@context"])
     if "@import" in term_def:
-        _validate_remote_context_ref(term_def["@import"])
+        _validate_import_ref(term_def["@import"])
 
 
 def _check_context_string(context: str) -> None:
