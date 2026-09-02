@@ -190,10 +190,10 @@ async def run_bounded_pipeline(
         run.track_task(task_group.create_task(_run_discovery_producer(discover, ctx)))
         try:
             async for payload in _stream_pipeline_results(results):
-                try:
-                    yield payload
-                except GeneratorExit:
-                    run.request_shutdown()
-                    return
+                yield payload
+        except GeneratorExit:
+            # Also covers aclose while suspended in results.get(), not only at yield.
+            run.request_shutdown()
+            return
         finally:
             run.shutdown.set()

@@ -161,8 +161,9 @@ inspire/plugin.py  →  harvester/errors.py
 linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker/consumer
 linked_data/plugin.py   →  linked_data/sitemap.py / dataset / linked_data_mapper
 linked_data/pipeline.py ↛  linked_data_mapper / dataset implementations
-# pipeline may import shared signal/types (DiscoveryResult, HarvesterError) only;
-# it MUST NOT perform mapping or own source-format semantics.
+# pipeline may import DiscoveryResult (and related types) from the dataset
+# package; ``dataset/__init__.py`` MUST NOT eagerly import provider dataset
+# classes. Pipeline MUST NOT perform mapping or own source-format semantics.
 
 config  ←── all modules (read-only)
 ```
