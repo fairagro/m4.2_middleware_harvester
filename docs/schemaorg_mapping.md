@@ -109,10 +109,10 @@ node identity).
 | **`schema:sameAs`** | Equivalent URLs | Assay `Output [URI]` fallback |
 | **`@id`** | Subject IRI | Assay `Output [URI]` fallback |
 | **DOI** | Canonical DOI | Assay `Output [URI]` fallback (`https://doi.org/{doi}`) |
-| **`schema:distribution`** | `schema:DataDownload` resources | Assay `Comment("Distribution")` (one entry per distribution) |
-| **`schema:license`** | License | Assay `Comment("License")` |
-| **`schema:publisher`** | Publisher name | Assay `Comment("Publisher")` |
-| **`schema:inLanguage`** | Language code | Assay `Comment("Language")` |
+| **`schema:distribution`** | `schema:DataDownload` resources | Assay Measurement column `Comment("Distribution")` (entries joined in one cell) |
+| **`schema:license`** | License | Assay Measurement column `Comment("License")` |
+| **`schema:publisher`** | Publisher name | Assay Measurement column `Comment("Publisher")` |
+| **`schema:inLanguage`** | Language code | Assay Measurement column `Comment("Language")` |
 
 ## Identifier Cascade Precedence
 
@@ -143,8 +143,9 @@ are skipped so each Investigation uses that Dataset’s own graph URI (step 3) o
 ## @context Validation
 
 Before RDF parsing, the raw JSON-LD payload is validated to ensure the `@context` is
-Schema.org or a known extension. This avoids double-parsing and rejects unknown
-vocabularies early.
+Schema.org or a known extension. This fails closed early (before rdflib parsing) and
+rejects unknown vocabularies; HTML extraction already JSON-decodes each block once
+for normalization and reuses that object for validation.
 
 ### Allowlist
 
@@ -196,8 +197,8 @@ to:
 
 1. **Investigation Comment**: `"Distribution"` comment with format `encodingFormat: contentUrl`
    (or just `contentUrl` when `encodingFormat` is absent). Entries without `contentUrl` are skipped.
-2. **Assay Comment**: The same labels joined into one Measurement-table `"Distribution"` cell
-   (semicolon-separated), so the column stays single-row with the other assay fields.
+2. **Assay Measurement column**: The same labels joined into one `"Distribution"`
+   cell (semicolon-separated), so the column stays single-row with the other assay fields.
 
 Example:
 

@@ -54,7 +54,16 @@ def validate_jsonld_context(raw_json: str) -> None:
         data: Any = json.loads(raw_json)
     except json.JSONDecodeError as exc:
         raise JsonLdContextError(f"Invalid JSON: {exc}") from exc
+    validate_jsonld_context_data(data)
 
+
+def validate_jsonld_context_data(data: Any) -> None:
+    """Validate ``@context`` on already-parsed JSON (object or array of objects).
+
+    Prefer this over :func:`validate_jsonld_context` when the caller has already
+    decoded the payload (e.g. HTML block normalization) to avoid a second
+    ``json.loads``.
+    """
     if isinstance(data, list):
         if not data:
             raise JsonLdContextError("Empty JSON-LD array")

@@ -6,6 +6,7 @@ from middleware.linked_data.jsonld_validation import (
     SCHEMAORG_CONTEXT_ALLOWLIST,
     JsonLdContextError,
     validate_jsonld_context,
+    validate_jsonld_context_data,
 )
 
 
@@ -24,6 +25,11 @@ def test_allowlist_matches_expected_contexts() -> None:
         }
     )
     assert expected == SCHEMAORG_CONTEXT_ALLOWLIST
+
+
+def test_validate_jsonld_context_data_accepts_parsed_object() -> None:
+    """Callers that already decoded JSON should validate without re-parsing."""
+    validate_jsonld_context_data({"@context": "https://schema.org/", "name": "test"})
 
 
 def test_valid_https_context() -> None:

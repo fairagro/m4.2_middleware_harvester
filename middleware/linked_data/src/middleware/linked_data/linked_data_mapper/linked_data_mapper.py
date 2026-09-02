@@ -82,8 +82,10 @@ class LinkedDataMapper(ABC):
         DOI fallbacks.
 
         Returns an iterable of HarvestedArc objects. Mappers that handle a single
-        entity per graph return a list with one element. Mappers that handle
-        multiple entities (e.g. multiple Schema.org Datasets) return multiple elements.
+        entity per graph yield an iterable with exactly one element. Mappers that
+        handle multiple entities (e.g. multiple Schema.org Datasets) yield multiple
+        elements. Callers that need a concrete sequence should materialize with
+        ``list(...)``.
         """
         return self._map_graph(graph, context, self._stable_wrap(graph))
 

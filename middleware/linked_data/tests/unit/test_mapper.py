@@ -28,6 +28,7 @@ from mapper_test_helpers import (
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
+from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper
 from middleware.linked_data.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
@@ -71,10 +72,14 @@ def test_concurrent_map_graph_on_shared_mapper_does_not_cross_talk() -> None:
     left = build("alpha", "Alpha Title")
     right = build("zeta", "Zeta Title")
 
+    def map_in_worker(graph: Graph) -> list[HarvestedArc]:
+        # Invoke map_graph inside the worker (wrap + map), matching asyncio.to_thread.
+        return list(mapper.map_graph(graph, NO_DISCOVERY))
+
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [
-            pool.submit(list, mapper.map_graph(left, NO_DISCOVERY)),
-            pool.submit(list, mapper.map_graph(right, NO_DISCOVERY)),
+            pool.submit(map_in_worker, left),
+            pool.submit(map_in_worker, right),
         ]
         results = [item for future in futures for item in future.result()]
 

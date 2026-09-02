@@ -69,12 +69,14 @@ The system SHALL reject (mapping error) RDF graphs that contain no
 - **WHEN** the mapper processes the graph
 - **THEN** a mapping error is raised
 
-### Requirement: Validate and normalize @context before mapping
+### Requirement: Validate @context before mapping
 
 The system SHALL extract `@context` from the raw JSON-LD payload before RDF
-parsing, normalize known Schema.org contexts to `https://schema.org/`, accept
-known extension contexts (e.g., Bioschemas), and reject unknown contexts with a
-mapping error.
+parsing, accept known Schema.org and extension context IRIs (HTTP and HTTPS
+variants), and reject unknown remote context IRIs with a mapping error.
+Namespace aliasing of `http://schema.org/` and `https://schema.org/` terms
+happens during RDF access via `StableGraph`, not by rewriting the `@context`
+string.
 
 #### Scenario: Standard Schema.org HTTPS context
 
@@ -87,8 +89,8 @@ mapping error.
 
 - **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"`
 - **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; all `schema:` terms resolve to
-  `https://schema.org/` (normalized)
+- **THEN** parsing proceeds; HTTP and HTTPS Schema.org namespaces are treated
+  as aliases via `StableGraph`
 
 #### Scenario: Mixed http/https in same graph
 
