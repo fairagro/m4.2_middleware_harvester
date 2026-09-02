@@ -9,20 +9,21 @@ from middleware.linked_data.jsonld_validation import (
 )
 
 
-def test_allowlist_contains_schemaorg_https() -> None:
-    assert "https://schema.org/" in SCHEMAORG_CONTEXT_ALLOWLIST
-
-
-def test_allowlist_contains_schemaorg_http() -> None:
-    assert "http://schema.org/" in SCHEMAORG_CONTEXT_ALLOWLIST
-
-
-def test_allowlist_contains_schemaorg_without_trailing_slash() -> None:
-    assert "https://schema.org" in SCHEMAORG_CONTEXT_ALLOWLIST
-
-
-def test_allowlist_contains_bioschemas() -> None:
-    assert "https://bioschemas.org/" in SCHEMAORG_CONTEXT_ALLOWLIST
+def test_allowlist_matches_expected_contexts() -> None:
+    """Exact membership — avoid ``url in container`` which CodeQL flags as substring sanitization."""
+    expected = frozenset(
+        {
+            "https://schema.org/",
+            "http://schema.org/",
+            "https://schema.org",
+            "http://schema.org",
+            "https://bioschemas.org/",
+            "http://bioschemas.org/",
+            "https://bioschemas.org",
+            "http://bioschemas.org",
+        }
+    )
+    assert expected == SCHEMAORG_CONTEXT_ALLOWLIST
 
 
 def test_valid_https_context() -> None:
