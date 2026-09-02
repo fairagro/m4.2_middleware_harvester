@@ -402,3 +402,28 @@ def test_sorcering_pair_pages_keep_distinct_harvest_identifiers() -> None:
             mapper.map_graph(graph_b, MappingContext(source_url=url_b, harvest_source_id="openagrar_mods_00108456"))
         ).arc_json
     )
+
+
+def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> None:
+    """Page-level harvest context must not collide Investigation.identifier across Datasets."""
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    alpha = URIRef("https://example.org/dataset/alpha")
+    beta = URIRef("https://example.org/dataset/beta")
+    for subject, title in ((alpha, "Dataset Alpha"), (beta, "Dataset Beta")):
+        graph.add((subject, RDF.type, schema.Dataset))
+        graph.add((subject, schema.name, Literal(title)))
+
+    harvested = list(
+        GeneralSchemaOrgMapper().map_graph(
+            graph,
+            MappingContext(
+                source_url="https://example.org/catalog/page",
+                harvest_source_id="catalog_page_1",
+            ),
+        )
+    )
+    assert len(harvested) == 2
+    identifiers = {root_identifier(item.arc_json) for item in harvested}
+    assert identifiers == {"example_org_dataset_alpha", "example_org_dataset_beta"}
+    assert "catalog_page_1" not in identifiers

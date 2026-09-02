@@ -121,10 +121,15 @@ first). The chosen identifier is stable across harvests of the same logical data
 
 | Priority | Source | Description |
 | --- | --- | --- |
-| 1 | **Harvest-source catalog ID** | `context.harvest_source_id` from discovery (e.g., MyCoRe Solr `id`) |
-| 2 | **Sanitized discovered page URL** | `context.source_url` when no catalog ID; sanitized to identifier-safe slug |
+| 1 | **Harvest-source catalog ID** | `context.harvest_source_id` from discovery (e.g., MyCoRe Solr `id`) — **only when the graph has a single `schema:Dataset`** |
+| 2 | **Sanitized discovered page URL** | `context.source_url` when no catalog ID; sanitized to identifier-safe slug — **single-Dataset graphs only** |
 | 3 | **Canonical HTTP(S) IRI** | `schema:url` → `schema:sameAs` → subject `@id` (lexicographic minimum, casefold) |
 | 4 | **Canonical DOI** | `schema:identifier` (including `schema:PropertyValue` with `propertyID` containing "doi") — only when no higher-precedence identifier exists |
+
+**Multi-Dataset pages:** When a graph contains more than one `schema:Dataset`, steps 1–2
+are skipped so each Investigation uses that Dataset’s own graph URI (step 3) or DOI
+(step 4). Shared page-level discovery IDs must not collapse distinct Datasets onto one
+`Investigation.identifier`.
 
 **Rules:**
 
@@ -145,15 +150,15 @@ vocabularies early.
 
 | Context | Status |
 | --- | --- |
-| `https://schema.org/` | Allowed (normalized) |
-| `http://schema.org/` | Allowed (normalized to HTTPS) |
+| `https://schema.org/` | Allowed |
+| `http://schema.org/` | Allowed (same vocabulary; dual-namespace aliasing in RDF) |
 | `https://schema.org` (no trailing slash) | Allowed |
 | `http://schema.org` (no trailing slash) | Allowed |
 | `https://bioschemas.org/` | Allowed (known extension) |
 | `http://bioschemas.org/` | Allowed (known extension) |
 | `https://bioschemas.org` (no trailing slash) | Allowed |
 | `http://bioschemas.org` (no trailing slash) | Allowed |
-| Any other context | **Rejected** (`JsonLdContextError`) |
+| Any other remote context IRI | **Rejected** (`JsonLdContextError`) |
 
 ### Context Formats
 
@@ -186,8 +191,9 @@ Each `schema:DataDownload` linked via `schema:distribution` on the Dataset is ma
 to:
 
 1. **Investigation Comment**: `"Distribution"` comment with format `encodingFormat: contentUrl`
-   (or just `contentUrl` when `encodingFormat` is absent).
-2. **Assay Comment**: Same entry in the Assay Measurement table.
+   (or just `contentUrl` when `encodingFormat` is absent). Entries without `contentUrl` are skipped.
+2. **Assay Comment**: The same labels joined into one Measurement-table `"Distribution"` cell
+   (semicolon-separated), so the column stays single-row with the other assay fields.
 
 Example:
 

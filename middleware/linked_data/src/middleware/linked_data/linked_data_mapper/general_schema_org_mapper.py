@@ -80,8 +80,16 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         if not subjects:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
+        # Page-level harvest_source_id / source_url is one catalog unit. When a page
+        # embeds multiple Datasets, prefer per-subject graph identifiers so ARCs do
+        # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
+        use_page_harvest_id = len(subjects) == 1
         for subject in subjects:
-            arc = _SchemaOrgRun(self, stable).map_arc(subject, context)
+            arc = _SchemaOrgRun(self, stable).map_arc(
+                subject,
+                context,
+                use_page_harvest_id=use_page_harvest_id,
+            )
             yield HarvestedArc.from_arctrl(arc)
 
     def _find_dataset_subjects(self, graph: Graph) -> list[Node]:
@@ -107,9 +115,19 @@ class _SchemaOrgRun:
         """ResourceView for ``subject`` on this call's StableGraph."""
         return self.stable.view(subject)
 
-    def map_arc(self, subject: Node, context: MappingContext) -> ARC:
+    def map_arc(
+        self,
+        subject: Node,
+        context: MappingContext,
+        *,
+        use_page_harvest_id: bool = True,
+    ) -> ARC:
         title = self._require_dataset_title(subject)
-        identifier_plan = self._plan_investigation_identifier(subject, context)
+        identifier_plan = self._plan_investigation_identifier(
+            subject,
+            context,
+            use_page_harvest_id=use_page_harvest_id,
+        )
         publication_doi = identifier_plan.publication_doi
 
         investigation = self._map_investigation(subject, title=title, identifier_plan=identifier_plan)
@@ -147,14 +165,21 @@ class _SchemaOrgRun:
         subject_iri = http_iri(subject)
         return self.mapper.sanitize_identifier(subject_iri) if subject_iri else None
 
-    def _plan_investigation_identifier(self, subject: Node, context: MappingContext) -> _IdentifierPlan:
+    def _plan_investigation_identifier(
+        self,
+        subject: Node,
+        context: MappingContext,
+        *,
+        use_page_harvest_id: bool = True,
+    ) -> _IdentifierPlan:
         all_dois = self.view(subject).schema_dois("identifier")
         publication_doi = self.mapper.pick_canonical_doi(all_dois)
         alternate_dois = tuple(doi for doi in all_dois if doi != publication_doi) if publication_doi else ()
 
-        harvest_id = self.mapper.resolve_harvest_source_identifier(context)
-        if harvest_id:
-            return _IdentifierPlan(harvest_id, publication_doi, alternate_dois)
+        if use_page_harvest_id:
+            harvest_id = self.mapper.resolve_harvest_source_identifier(context)
+            if harvest_id:
+                return _IdentifierPlan(harvest_id, publication_doi, alternate_dois)
 
         graph_id = self._resolve_graph_url_identifier(subject)
         if graph_id:
@@ -409,11 +434,12 @@ class _SchemaOrgRun:
             inv.Comments.append(Comment.create("Conforms To", conforms_text))
 
         for dist in self.view(subject).schema_resources("distribution"):
-            encoding = dist["encodingFormat"] or ""
             content_url = dist["contentUrl"] or ""
-            if encoding or content_url:
-                label = f"{encoding}: {content_url}" if encoding else content_url
-                inv.Comments.append(Comment.create("Distribution", label))
+            if not content_url:
+                continue
+            encoding = dist["encodingFormat"] or ""
+            label = f"{encoding}: {content_url}" if encoding else content_url
+            inv.Comments.append(Comment.create("Distribution", label))
 
     def _iter_preferred_publishers(self, subject: Node) -> Iterator[Node]:
         """Yield publisher resources first (stable order), then optional literal."""
@@ -592,16 +618,15 @@ class _SchemaOrgRun:
         dist_entries: list[str] = []
         for dist in self.view(subject).schema_resources("distribution"):
             content_url = dist["contentUrl"] or ""
+            if not content_url:
+                continue
             encoding = dist["encodingFormat"] or ""
-            if content_url:
-                if encoding:
-                    dist_entries.append(f"{encoding}: {content_url}")
-                else:
-                    dist_entries.append(content_url)
+            dist_entries.append(f"{encoding}: {content_url}" if encoding else content_url)
         if dist_entries:
+            # One cell per assay row (joined), matching other Measurement columns.
             table.AddColumn(
                 CompositeHeader.comment("Distribution"),
-                [CompositeCell.free_text(entry) for entry in dist_entries],
+                [CompositeCell.free_text("; ".join(dist_entries))],
             )
 
         return table

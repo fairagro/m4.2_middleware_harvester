@@ -94,8 +94,33 @@ def test_raises_on_invalid_json() -> None:
 
 def test_raises_on_non_object_json() -> None:
     raw = '"just a string"'
-    with pytest.raises(JsonLdContextError, match="JSON-LD must be a JSON object"):
+    with pytest.raises(JsonLdContextError, match="JSON-LD must be a JSON object or array"):
         validate_jsonld_context(raw)
+
+
+def test_valid_top_level_array_of_objects() -> None:
+    raw = (
+        '[{"@context": "https://schema.org/", "@type": "Dataset", "name": "A"},'
+        ' {"@context": "https://schema.org/", "@type": "Dataset", "name": "B"}]'
+    )
+    validate_jsonld_context(raw)
+
+
+def test_raises_on_empty_top_level_array() -> None:
+    with pytest.raises(JsonLdContextError, match="Empty JSON-LD array"):
+        validate_jsonld_context("[]")
+
+
+def test_valid_context_dict_with_jsonld_keywords() -> None:
+    raw = '{"@context": {"@vocab": "https://schema.org/", "@language": "en", "@version": 1.1}, "name": "test"}'
+    validate_jsonld_context(raw)
+
+
+def test_valid_context_dict_with_nested_term_definition() -> None:
+    raw = (
+        '{"@context": {"schema": "https://schema.org/", "url": {"@id": "schema:url", "@type": "@id"}}, "name": "test"}'
+    )
+    validate_jsonld_context(raw)
 
 
 def test_raises_on_context_type_not_supported() -> None:
