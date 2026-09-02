@@ -20,7 +20,8 @@ from middleware.linked_data.config import (
 )
 from middleware.linked_data.dataset import UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
-from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.linked_data.plugin import LinkedDataPlugin, PipelineResult
+from middleware.linked_data.sitemap import Sitemap
 
 
 class FakeSitemap:
@@ -249,7 +250,7 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
 
     try:
         agen = LinkedDataPlugin(config).run()
-        first_result = await agen.__anext__()
+        first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         assert first_result.arc_json == "mapped:graph"
         await agen.aclose()
@@ -384,10 +385,10 @@ def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: in
 
     async def tracking_run(
         self: LinkedDataPlugin,
-        sitemap: object,
+        sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks_arg: int,
-    ) -> AsyncGenerator[HarvestedArc | RecordProcessingError, None]:
+    ) -> AsyncGenerator[PipelineResult, None]:
         async for item in original_run(self, sitemap, nice_http, worker_tasks_arg):
             metrics.record_pipeline_size()
             yield item
@@ -421,7 +422,7 @@ def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: in
 
 
 async def _drain_with_slow_consumer(
-    agen: AsyncGenerator[HarvestedArc | RecordProcessingError, None],
+    agen: AsyncGenerator[PipelineResult, None],
     catalog_size: int,
     *,
     item_delay: float,
@@ -434,7 +435,7 @@ async def _drain_with_slow_consumer(
         for _ in range(catalog_size):
             await consumer_gate.wait()
             consumer_gate.clear()
-            item = await agen.__anext__()
+            item = await anext(agen)
             assert isinstance(item, HarvestedArc)
             collected.append(item)
             await asyncio.sleep(item_delay)
@@ -514,7 +515,7 @@ async def test_linked_data_plugin_early_aclose_stops_mapping(monkeypatch: pytest
 
     try:
         agen = LinkedDataPlugin(config).run()
-        first_result = await agen.__anext__()
+        first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         await agen.aclose()
         await asyncio.sleep(0.1)
@@ -557,7 +558,7 @@ async def test_linked_data_plugin_preserves_arrival_order_under_backpressure(
     collected: list[str] = []
     try:
         for _ in range(catalog_size):
-            item = await agen.__anext__()
+            item = await anext(agen)
             assert isinstance(item, HarvestedArc)
             collected.append(item.source_url or "")
             await asyncio.sleep(0.02)

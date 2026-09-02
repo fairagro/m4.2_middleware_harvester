@@ -140,8 +140,11 @@ class StableGraph:
         return self.view(node).object_text()
 
 
-class ResourceView:
-    """Opaque handle for a subject; ``iri`` is None for blank nodes."""
+class ResourceView:  # pylint: disable=too-many-public-methods
+    """Opaque handle for a subject; ``iri`` is None for blank nodes.
+
+    Many small accessors are intentional (RDF access facade / DSL surface).
+    """
 
     def __init__(self, stable: StableGraph, subject: Node) -> None:
         """Bind this view to ``subject`` within ``stable``."""
