@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncGenerator, Mapping
+from dataclasses import dataclass
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -328,3 +329,239 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
     assert isinstance(results[0], LinkedDataSitemapError)
     assert "Sitemap discovery failed" in str(results[0])
     assert "robots.txt" in str(results[0])
+
+
+def _install_plugin_fakes(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    sitemap: FakeSitemap | object,
+    dataset_cls: type = FakeDataset,
+    mapper: MagicMock | None = None,
+) -> MagicMock:
+    """Patch LinkedDataPlugin dependencies for pipeline behaviour tests."""
+    mock_mapper = mapper or MagicMock(map_graph=MagicMock(return_value=[HarvestedArc(arc_json="mapped:graph")]))
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> object:
+        del client
+        return sitemap
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: dataset_cls},
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
+        staticmethod(lambda _config: mock_mapper),
+    )
+    monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
+    monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.wait_for_host", AsyncMock(return_value=None))
+    return mock_mapper
+
+
+@dataclass
+class _PipelineMetrics:
+    """Observed concurrency while exercising the linked-data pipeline."""
+
+    concurrent_maps: int = 0
+    peak_concurrent_maps: int = 0
+    peak_pipeline: int = 0
+    results_queue: asyncio.Queue[object] | None = None
+
+    def record_pipeline_size(self) -> None:
+        if self.results_queue is not None:
+            in_pipeline = self.concurrent_maps + self.results_queue.qsize()
+            self.peak_pipeline = max(self.peak_pipeline, in_pipeline)
+
+
+def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: int) -> _PipelineMetrics:
+    """Patch plugin internals so tests can observe queue depth and worker concurrency."""
+    metrics = _PipelineMetrics()
+    original_run = LinkedDataPlugin._run_with_task_group  # noqa: SLF001
+
+    async def tracking_run(
+        self: LinkedDataPlugin,
+        sitemap: object,
+        nice_http: NiceHttpClient,
+        worker_tasks_arg: int,
+    ) -> AsyncGenerator[HarvestedArc | RecordProcessingError, None]:
+        async for item in original_run(self, sitemap, nice_http, worker_tasks_arg):
+            metrics.record_pipeline_size()
+            yield item
+
+    async def slow_process(
+        _self: LinkedDataPlugin,
+        discovery_result: UrlDiscoveryResult,
+        _nice_http: NiceHttpClient,
+    ) -> list[HarvestedArc]:
+        metrics.concurrent_maps += 1
+        metrics.peak_concurrent_maps = max(metrics.peak_concurrent_maps, metrics.concurrent_maps)
+        metrics.record_pipeline_size()
+        try:
+            await asyncio.sleep(0.02)
+            return [HarvestedArc(arc_json=f"mapped:{discovery_result.url}", source_url=discovery_result.url)]
+        finally:
+            metrics.concurrent_maps -= 1
+            metrics.record_pipeline_size()
+
+    original_queue_init = asyncio.Queue.__init__
+
+    def queue_init(self: asyncio.Queue[object], maxsize: int = 0) -> None:
+        original_queue_init(self, maxsize)
+        if maxsize == worker_tasks:
+            metrics.results_queue = self
+
+    monkeypatch.setattr(LinkedDataPlugin, "_run_with_task_group", tracking_run)
+    monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
+    monkeypatch.setattr(asyncio.Queue, "__init__", queue_init)
+    return metrics
+
+
+async def _drain_with_slow_consumer(
+    agen: AsyncGenerator[HarvestedArc | RecordProcessingError, None],
+    catalog_size: int,
+    *,
+    item_delay: float,
+) -> list[HarvestedArc]:
+    """Consume a plugin stream one item at a time with a delay between reads."""
+    consumer_gate = asyncio.Event()
+    consumer_gate.set()
+    collected: list[HarvestedArc] = []
+    try:
+        for _ in range(catalog_size):
+            await consumer_gate.wait()
+            consumer_gate.clear()
+            item = await agen.__anext__()
+            assert isinstance(item, HarvestedArc)
+            collected.append(item)
+            await asyncio.sleep(item_delay)
+            consumer_gate.set()
+    finally:
+        await agen.aclose()
+    return collected
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_bounds_pipeline_under_slow_consumer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mapped outcomes in the plugin pipeline must not exceed 2 × worker_tasks."""
+    worker_tasks = 2
+    catalog_size = 12
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(max_connections=worker_tasks),
+    )
+    urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
+    _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap(urls))
+    metrics = _install_pipeline_tracking(monkeypatch, worker_tasks)
+
+    collected = await _drain_with_slow_consumer(LinkedDataPlugin(config).run(), catalog_size, item_delay=0.03)
+
+    assert len(collected) == catalog_size
+    assert metrics.peak_concurrent_maps <= worker_tasks
+    assert metrics.peak_pipeline <= 2 * worker_tasks
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_early_aclose_stops_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Closing the generator early must not map the full catalog."""
+    catalog_size = 50
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(max_connections=4),
+    )
+    urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
+    _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap(urls))
+
+    process_count = 0
+
+    async def slow_process(
+        _self: LinkedDataPlugin,
+        discovery_result: UrlDiscoveryResult,
+        _nice_http: NiceHttpClient,
+    ) -> list[HarvestedArc]:
+        nonlocal process_count
+        process_count += 1
+        await asyncio.sleep(0.05)
+        return [HarvestedArc(arc_json=f"mapped:{discovery_result.url}", source_url=discovery_result.url)]
+
+    monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
+
+    loop = asyncio.get_running_loop()
+    original_handler = loop.get_exception_handler()
+    exceptions: list[BaseException | str] = []
+
+    def handle_exception(
+        _loop: asyncio.AbstractEventLoop,
+        context: Mapping[str, BaseException | str | None],
+    ) -> None:
+        value = context.get("exception")
+        if value is None:
+            value = context.get("message", "unknown")
+        if not isinstance(value, (BaseException, str)):
+            value = str(value)
+        exceptions.append(value)
+
+    loop.set_exception_handler(handle_exception)
+
+    try:
+        agen = LinkedDataPlugin(config).run()
+        first_result = await agen.__anext__()
+        assert isinstance(first_result, HarvestedArc)
+        await agen.aclose()
+        await asyncio.sleep(0.1)
+    finally:
+        loop.set_exception_handler(original_handler)
+
+    assert process_count < catalog_size // 2
+    assert not exceptions
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_preserves_arrival_order_under_backpressure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Yield order must stay discovery order when mapping runs sequentially."""
+    worker_tasks = 1
+    catalog_size = 8
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(max_connections=worker_tasks),
+    )
+    urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
+    _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap(urls))
+
+    async def slow_process(
+        _self: LinkedDataPlugin,
+        discovery_result: UrlDiscoveryResult,
+        _nice_http: NiceHttpClient,
+    ) -> list[HarvestedArc]:
+        del _nice_http
+        await asyncio.sleep(0.01)
+        return [HarvestedArc(arc_json=f"mapped:{discovery_result.url}", source_url=discovery_result.url)]
+
+    monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
+
+    agen = LinkedDataPlugin(config).run()
+    collected: list[str] = []
+    try:
+        for _ in range(catalog_size):
+            item = await agen.__anext__()
+            assert isinstance(item, HarvestedArc)
+            collected.append(item.source_url or "")
+            await asyncio.sleep(0.02)
+    finally:
+        await agen.aclose()
+
+    assert collected == urls
