@@ -1,6 +1,7 @@
 """Linked Data harvester plugin integration point."""
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, replace
@@ -22,7 +23,14 @@ from .sitemap import Sitemap
 logger = logging.getLogger(__name__)
 
 PipelineResult = HarvestedArc | HarvesterError | SkippedRecord
-PipelineQueue = asyncio.Queue[PipelineResult]
+
+
+class _PipelineComplete:
+    """Sentinel: discovery finished and no workers remain."""
+
+
+_PIPELINE_COMPLETE = _PipelineComplete()
+PipelineQueue = asyncio.Queue[PipelineResult | _PipelineComplete]
 
 
 @dataclass
@@ -31,14 +39,26 @@ class _PipelineRun:
 
     discovery_finished: bool = False
     active_workers: int = 0
+    complete_signaled: bool = False
     shutdown: asyncio.Event = field(default_factory=asyncio.Event)
     pipeline_tasks: list[asyncio.Task[None]] = field(default_factory=list)
 
     def request_shutdown(self) -> None:
         """Signal shutdown and cancel all pipeline tasks."""
         self.shutdown.set()
-        for task in self.pipeline_tasks:
+        # Copy: done-callbacks prune the live list while we cancel.
+        for task in list(self.pipeline_tasks):
             task.cancel()
+
+    def track_task(self, task: asyncio.Task[None]) -> None:
+        """Register a pipeline task and prune it when it completes."""
+        self.pipeline_tasks.append(task)
+
+        def _prune(done: asyncio.Task[None]) -> None:
+            with contextlib.suppress(ValueError):
+                self.pipeline_tasks.remove(done)
+
+        task.add_done_callback(_prune)
 
 
 @dataclass
@@ -176,6 +196,21 @@ class LinkedDataPlugin:
             return exc
         return LinkedDataSitemapError(f"Sitemap discovery failed for {self._config.sitemap_url}: {exc}")
 
+    @staticmethod
+    async def _signal_complete_if_idle(ctx: _PipelineContext) -> None:
+        """Unblock the consumer when discovery is done and no workers remain.
+
+        Skipped when shutdown is already set: the consumer has left and must not
+        block a cancelled worker on a full queue waiting to enqueue the sentinel.
+        """
+        run = ctx.run
+        if not run.discovery_finished or run.active_workers > 0 or run.complete_signaled:
+            return
+        run.complete_signaled = True
+        if run.shutdown.is_set():
+            return
+        await ctx.results.put(_PIPELINE_COMPLETE)
+
     async def _run_pipeline_worker(
         self,
         discovery_result: DiscoveryResult,
@@ -195,6 +230,7 @@ class LinkedDataPlugin:
         finally:
             ctx.run.active_workers -= 1
             ctx.semaphore.release()
+            await self._signal_complete_if_idle(ctx)
 
     async def _run_discovery_producer(
         self,
@@ -215,7 +251,7 @@ class LinkedDataPlugin:
                     ctx.semaphore.release()
                     break
                 ctx.run.active_workers += 1
-                ctx.run.pipeline_tasks.append(
+                ctx.run.track_task(
                     ctx.task_group.create_task(self._run_pipeline_worker(item, ctx)),
                 )
         except (LinkedDataError, RobotsTxtDisallowedError, RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
@@ -225,15 +261,19 @@ class LinkedDataPlugin:
                 await ctx.results.put(self._harvester_error_from_discovery_failure(exc))
         finally:
             ctx.run.discovery_finished = True
+            await self._signal_complete_if_idle(ctx)
 
     async def _stream_pipeline_results(
         self,
         results: PipelineQueue,
-        run: _PipelineRun,
+        _run: _PipelineRun,
     ) -> AsyncGenerator[PipelineResult, None]:
-        """Yield queued outcomes until discovery and workers finish."""
-        while not run.discovery_finished or run.active_workers > 0 or not results.empty():
-            yield await results.get()
+        """Yield queued outcomes until the idle sentinel arrives."""
+        while True:
+            item = await results.get()
+            if isinstance(item, _PipelineComplete):
+                return
+            yield item
 
     async def _run_with_task_group(
         self,
@@ -255,7 +295,7 @@ class LinkedDataPlugin:
                 run=run,
                 nice_http=nice_http,
             )
-            run.pipeline_tasks.append(task_group.create_task(self._run_discovery_producer(sitemap, ctx)))
+            run.track_task(task_group.create_task(self._run_discovery_producer(sitemap, ctx)))
             try:
                 async for payload in self._stream_pipeline_results(results, run):
                     try:

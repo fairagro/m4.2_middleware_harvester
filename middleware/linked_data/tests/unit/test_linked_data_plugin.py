@@ -464,8 +464,28 @@ async def test_linked_data_plugin_bounds_pipeline_under_slow_consumer(monkeypatc
     collected = await _drain_with_slow_consumer(LinkedDataPlugin(config).run(), catalog_size, item_delay=0.03)
 
     assert len(collected) == catalog_size
+    assert metrics.results_queue is not None
     assert metrics.peak_concurrent_maps <= worker_tasks
     assert metrics.peak_pipeline <= 2 * worker_tasks
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_empty_sitemap_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An empty discovery catalog must complete without hanging on results.get()."""
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(max_connections=2),
+    )
+    _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap([]))
+
+    async def collect() -> list[PipelineResult]:
+        return [item async for item in LinkedDataPlugin(config).run()]
+
+    collected = await asyncio.wait_for(collect(), timeout=2.0)
+    assert collected == []
 
 
 @pytest.mark.asyncio
