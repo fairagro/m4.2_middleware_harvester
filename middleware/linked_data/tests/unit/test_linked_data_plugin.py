@@ -20,7 +20,8 @@ from middleware.linked_data.config import (
 )
 from middleware.linked_data.dataset import UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
-from middleware.linked_data.plugin import LinkedDataPlugin, PipelineResult
+from middleware.linked_data.pipeline import PipelineResult
+from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import Sitemap
 
 
