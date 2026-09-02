@@ -707,7 +707,7 @@ def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
     assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
 
 
-def test_single_datadownload_creates_assay_output_column() -> None:
+def test_single_datadownload_creates_distribution_comment() -> None:
     schema = Namespace("https://schema.org/")
     graph = Graph()
     dataset = URIRef("https://example.org/dataset/dist-1")
@@ -726,7 +726,7 @@ def test_single_datadownload_creates_assay_output_column() -> None:
     assert texts == ["text/csv: https://repo.example.org/data/file.csv"]
 
 
-def test_multiple_datadownload_creates_multiple_output_columns() -> None:
+def test_multiple_datadownload_creates_multiple_distribution_comments() -> None:
     schema = Namespace("https://schema.org/")
     graph = Graph()
     dataset = URIRef("https://example.org/dataset/dist-multi")
@@ -771,7 +771,7 @@ def test_datadownload_without_encoding_format_skips_format_comment() -> None:
     assert texts == ["https://repo.example.org/data.bin"]
 
 
-def test_datadownload_output_columns_deterministic_order() -> None:
+def test_datadownload_distribution_comments_deterministic_order() -> None:
     schema = Namespace("https://schema.org/")
 
     def build(order: list[tuple[str, str]]) -> Graph:

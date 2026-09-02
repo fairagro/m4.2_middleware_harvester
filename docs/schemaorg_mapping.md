@@ -28,6 +28,7 @@ producing a separate Investigation.
 >
 > Dataset `schema:description` maps to `Investigation.Description` /
 > `Study.Description` only — it is not duplicated as a Data Collection parameter.
+
 ### Scope
 
 | In scope | Out of scope |
@@ -190,7 +191,8 @@ A single page may contain multiple `schema:Dataset` entities (e.g., a DataCatalo
 with `hasPart` linking to member Datasets). The mapper handles this as follows:
 
 1. All `schema:Dataset` subjects (in either `http://` or `https://` namespace) are
-   discovered via `_find_dataset_subjects`.
+   discovered via `_find_dataset_subjects`, then sorted by the StableGraph node
+   sort key so multi-Dataset pages yield ARCs in harvest-stable order.
 2. Each Dataset produces a separate `HarvestedArc` (one Investigation + Study + Assay).
 3. `schema:DataCatalog` itself does NOT produce an output — it's a container only.
 4. Graphs with no `schema:Dataset` subject raise a mapping error.

@@ -424,6 +424,32 @@ def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> 
         )
     )
     assert len(harvested) == 2
-    identifiers = {root_identifier(item.arc_json) for item in harvested}
-    assert identifiers == {"example_org_dataset_alpha", "example_org_dataset_beta"}
+    identifiers = [root_identifier(item.arc_json) for item in harvested]
+    assert identifiers == ["example_org_dataset_alpha", "example_org_dataset_beta"]
     assert "catalog_page_1" not in identifiers
+
+
+def test_multi_dataset_yield_order_is_deterministic() -> None:
+    """Multi-Dataset pages yield ARCs in stable subject order, not RDF insert order."""
+    schema = Namespace("https://schema.org/")
+
+    def build(order: list[tuple[str, str]]) -> Graph:
+        graph = Graph()
+        for iri, title in order:
+            subject = URIRef(iri)
+            graph.add((subject, RDF.type, schema.Dataset))
+            graph.add((subject, schema.name, Literal(title)))
+        return graph
+
+    order_a = [
+        ("https://example.org/dataset/zeta", "Zeta"),
+        ("https://example.org/dataset/alpha", "Alpha"),
+    ]
+    order_b = list(reversed(order_a))
+    ids_a = [
+        root_identifier(item.arc_json) for item in GeneralSchemaOrgMapper().map_graph(build(order_a), NO_DISCOVERY)
+    ]
+    ids_b = [
+        root_identifier(item.arc_json) for item in GeneralSchemaOrgMapper().map_graph(build(order_b), NO_DISCOVERY)
+    ]
+    assert ids_a == ids_b == ["example_org_dataset_alpha", "example_org_dataset_zeta"]

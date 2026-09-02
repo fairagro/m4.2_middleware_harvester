@@ -41,6 +41,8 @@ source.
 - **THEN** two mapping outputs are produced, one per Dataset, each with its
   own `Investigation.identifier` derived from its respective `@id` or discovered
   page URL
+- **AND** the outputs are yielded in deterministic subject order (stable node
+  sort key), independent of RDF triple insertion order
 
 #### Scenario: Dataset nested in DataCatalog
 
@@ -300,7 +302,10 @@ The system SHALL raise a mapping error (not invent fallbacks) when:
 The system SHALL produce deterministic (harvest-stable) ordering for all
 multi-value fields: keywords (trim/dedup/sort casefold), contacts (sort by
 family, given, display, then stable node key), publications (DOI order), DOIs
-(casefold lexicographic minimum is canonical).
+(casefold lexicographic minimum is canonical). When a graph yields multiple
+`schema:Dataset` subjects, the mapper SHALL emit Investigation outputs in
+deterministic subject order (stable node sort key), independent of RDF triple
+insertion order.
 
 #### Scenario: Keywords with mixed case and duplicates
 
@@ -315,6 +320,14 @@ family, given, display, then stable node key), publications (DOI order), DOIs
 - **GIVEN** two harvests of the same graph where `schema:creator` order differs
 - **WHEN** both are mapped
 - **THEN** the Investigation Contacts list has identical order in both harvests
+
+#### Scenario: Multi-Dataset yield order is insertion-independent
+
+- **GIVEN** two graphs with the same two `schema:Dataset` subjects inserted in
+  opposite order
+- **WHEN** both are mapped
+- **THEN** the sequence of Investigation identifiers is identical across both
+  harvests
 
 ### Requirement: Serialize the resulting ARC as valid RO-Crate JSON-LD
 

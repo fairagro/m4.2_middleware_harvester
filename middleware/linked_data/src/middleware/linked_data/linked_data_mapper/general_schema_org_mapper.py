@@ -80,6 +80,9 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         if not subjects:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
+        # Harvest-stable yield order (rdflib subject iteration is not ordered).
+        subjects = sorted(subjects, key=stable.sort_key)
+
         # Page-level harvest_source_id / source_url is one catalog unit. When a page
         # embeds multiple Datasets, prefer per-subject graph identifiers so ARCs do
         # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
