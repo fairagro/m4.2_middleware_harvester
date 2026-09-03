@@ -44,6 +44,7 @@ class _PipelineComplete:
 
 _PIPELINE_COMPLETE = _PipelineComplete()
 _PipelineQueue = asyncio.Queue[PipelineResult | _PipelineComplete]
+ResultsQueueHook = Callable[[_PipelineQueue], None]
 
 
 @dataclass
@@ -166,6 +167,7 @@ async def run_bounded_pipeline(
     process: ProcessFn,
     on_discovery_error: DiscoveryErrorFn,
     worker_tasks: int,
+    on_results_queue: ResultsQueueHook | None = None,
 ) -> AsyncGenerator[PipelineResult, None]:
     """Run a bounded producer/worker/consumer pipeline and yield outcomes.
 
@@ -176,11 +178,16 @@ async def run_bounded_pipeline(
 
     ``worker_tasks`` must be >= 1. ``Semaphore(0)`` would deadlock discovery;
     ``Queue(maxsize=0)`` is unbounded in asyncio and would disable backpressure.
+
+    ``on_results_queue`` is an optional test/observability hook invoked once with
+    the bounded results queue after creation.
     """
     if worker_tasks < 1:
         raise ValueError(f"worker_tasks must be >= 1, got {worker_tasks}")
 
     results: _PipelineQueue = asyncio.Queue(maxsize=worker_tasks)
+    if on_results_queue is not None:
+        on_results_queue(results)
     semaphore = asyncio.Semaphore(worker_tasks)
     run = _PipelineRun()
 

@@ -3,7 +3,7 @@
 import asyncio
 from collections.abc import AsyncGenerator, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,7 +21,7 @@ from middleware.linked_data.config import (
 )
 from middleware.linked_data.dataset import UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
-from middleware.linked_data.pipeline import PipelineResult
+from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import Sitemap
 
@@ -384,17 +384,43 @@ class _PipelineMetrics:
 
 
 def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: int) -> _PipelineMetrics:
-    """Patch plugin internals so tests can observe queue depth and worker concurrency."""
+    """Observe queue depth and worker concurrency via the pipeline results-queue hook."""
     metrics = _PipelineMetrics()
     original_run = LinkedDataPlugin._run_with_task_group  # noqa: SLF001
+
+    def capture_results_queue(queue: asyncio.Queue[object]) -> None:
+        assert queue.maxsize == worker_tasks
+        metrics.results_queue = queue
+        original_put = queue.put
+
+        async def tracked_put(item: object) -> None:
+            metrics.pending_puts += 1
+            metrics.record_pipeline_size()
+            try:
+                await original_put(item)
+            finally:
+                metrics.pending_puts -= 1
+                metrics.record_pipeline_size()
+
+        queue.put = tracked_put  # type: ignore[method-assign]
 
     async def tracking_run(
         self: LinkedDataPlugin,
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks_arg: int,
+        *,
+        on_results_queue: object | None = None,
     ) -> AsyncGenerator[PipelineResult, None]:
-        async for item in original_run(self, sitemap, nice_http, worker_tasks_arg):
+        del on_results_queue
+
+        async for item in original_run(
+            self,
+            sitemap,
+            nice_http,
+            worker_tasks_arg,
+            on_results_queue=cast(ResultsQueueHook, capture_results_queue),
+        ):
             metrics.record_pipeline_size()
             yield item
 
@@ -413,30 +439,8 @@ def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: in
             metrics.concurrent_maps -= 1
             metrics.record_pipeline_size()
 
-    original_queue_init = asyncio.Queue.__init__
-
-    def queue_init(self: asyncio.Queue[object], *args: Any, **kwargs: Any) -> None:
-        original_queue_init(self, *args, **kwargs)
-        maxsize = kwargs.get("maxsize", args[0] if args else 0)
-        if maxsize != worker_tasks:
-            return
-        metrics.results_queue = self
-        original_put = self.put
-
-        async def tracked_put(item: object) -> None:
-            metrics.pending_puts += 1
-            metrics.record_pipeline_size()
-            try:
-                await original_put(item)
-            finally:
-                metrics.pending_puts -= 1
-                metrics.record_pipeline_size()
-
-        self.put = tracked_put  # type: ignore[method-assign]
-
     monkeypatch.setattr(LinkedDataPlugin, "_run_with_task_group", tracking_run)
     monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
-    monkeypatch.setattr(asyncio.Queue, "__init__", queue_init)
     return metrics
 
 

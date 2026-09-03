@@ -17,7 +17,7 @@ from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
 from .errors import LinkedDataError, LinkedDataSitemapError
 from .linked_data_mapper import LinkedDataMapper, MappingContext
-from .pipeline import PipelineResult, run_bounded_pipeline
+from .pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from .sitemap import Sitemap
 
 logger = logging.getLogger(__name__)
@@ -152,6 +152,8 @@ class LinkedDataPlugin:
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks: int,
+        *,
+        on_results_queue: ResultsQueueHook | None = None,
     ) -> AsyncGenerator[PipelineResult, None]:
         """Wire domain callbacks into the bounded pipeline and stream outcomes."""
 
@@ -168,6 +170,7 @@ class LinkedDataPlugin:
             process=process,
             on_discovery_error=self._harvester_error_from_discovery_failure,
             worker_tasks=worker_tasks,
+            on_results_queue=on_results_queue,
         ):
             yield item
 
