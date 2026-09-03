@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncGenerator, Mapping
 from dataclasses import dataclass
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -371,11 +372,14 @@ class _PipelineMetrics:
     concurrent_maps: int = 0
     peak_concurrent_maps: int = 0
     peak_pipeline: int = 0
+    pending_puts: int = 0
     results_queue: asyncio.Queue[object] | None = None
 
     def record_pipeline_size(self) -> None:
         if self.results_queue is not None:
-            in_pipeline = self.concurrent_maps + self.results_queue.qsize()
+            # Include workers blocked on put after mapping finished — otherwise
+            # peak undercounts discovery items still holding a semaphore slot.
+            in_pipeline = self.concurrent_maps + self.pending_puts + self.results_queue.qsize()
             self.peak_pipeline = max(self.peak_pipeline, in_pipeline)
 
 
@@ -411,10 +415,24 @@ def _install_pipeline_tracking(monkeypatch: pytest.MonkeyPatch, worker_tasks: in
 
     original_queue_init = asyncio.Queue.__init__
 
-    def queue_init(self: asyncio.Queue[object], maxsize: int = 0) -> None:
-        original_queue_init(self, maxsize)
-        if maxsize == worker_tasks:
-            metrics.results_queue = self
+    def queue_init(self: asyncio.Queue[object], *args: Any, **kwargs: Any) -> None:
+        original_queue_init(self, *args, **kwargs)
+        maxsize = kwargs.get("maxsize", args[0] if args else 0)
+        if maxsize != worker_tasks:
+            return
+        metrics.results_queue = self
+        original_put = self.put
+
+        async def tracked_put(item: object) -> None:
+            metrics.pending_puts += 1
+            metrics.record_pipeline_size()
+            try:
+                await original_put(item)
+            finally:
+                metrics.pending_puts -= 1
+                metrics.record_pipeline_size()
+
+        self.put = tracked_put  # type: ignore[method-assign]
 
     monkeypatch.setattr(LinkedDataPlugin, "_run_with_task_group", tracking_run)
     monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
