@@ -8,7 +8,7 @@ from dataclasses import replace
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
 
 from .config import Config
@@ -17,6 +17,7 @@ from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
 from .errors import LinkedDataError, LinkedDataSitemapError
 from .linked_data_mapper import LinkedDataMapper, MappingContext
+from .pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from .sitemap import Sitemap
 
 logger = logging.getLogger(__name__)
@@ -151,66 +152,27 @@ class LinkedDataPlugin:
         sitemap: Sitemap,
         nice_http: NiceHttpClient,
         worker_tasks: int,
-    ) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
-        results: asyncio.Queue[HarvestedArc | HarvesterError | SkippedRecord] = asyncio.Queue()
-        semaphore = asyncio.Semaphore(worker_tasks)
-        discovery_finished = False
-        active_workers = 0
+        *,
+        on_results_queue: ResultsQueueHook | None = None,
+    ) -> AsyncGenerator[PipelineResult, None]:
+        """Wire domain callbacks into the bounded pipeline and stream outcomes."""
 
-        async def worker(discovery_result: DiscoveryResult) -> None:
-            nonlocal active_workers
-            # Always release the permit and decrement the counter, including on
-            # CancelledError — otherwise the consumer loop can deadlock waiting
-            # for active_workers to reach 0 while results.get() never completes.
+        async def process(
+            discovery_result: DiscoveryResult,
+        ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
             try:
-                try:
-                    result_items = await self._process_result(discovery_result, nice_http)
-                except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
-                    result_items = self._processing_failure(discovery_result, exc)
-                for result in result_items:
-                    await results.put(result)
-            finally:
-                active_workers -= 1
-                semaphore.release()
+                return await self._process_result(discovery_result, nice_http)
+            except (RuntimeError, ValueError, OSError, httpx.HTTPError) as exc:
+                return self._processing_failure(discovery_result, exc)
 
-        async with asyncio.TaskGroup() as task_group:
-
-            async def producer() -> None:
-                nonlocal discovery_finished, active_workers
-                try:
-                    async for item in sitemap.discover():
-                        # Inspire-style: discovery already yields shared harvester signals.
-                        if isinstance(item, (RecordProcessingError, SkippedRecord)):
-                            await results.put(item)
-                            continue
-                        await semaphore.acquire()
-                        active_workers += 1
-                        task_group.create_task(worker(item))
-                except (
-                    LinkedDataError,
-                    RobotsTxtDisallowedError,
-                    RuntimeError,
-                    ValueError,
-                    OSError,
-                    httpx.HTTPError,
-                ) as exc:
-                    # Discovery-level failure must not escape TaskGroup as ExceptionGroup;
-                    # yield a HarvesterError so the orchestrator can report it cleanly.
-                    await results.put(self._harvester_error_from_discovery_failure(exc))
-                finally:
-                    discovery_finished = True
-
-            # Run the discovery producer inside the TaskGroup so its lifecycle and
-            # exceptions are managed together with the worker tasks.
-            # This keeps discovery and result streaming concurrent.
-            task_group.create_task(producer())
-
-            while not discovery_finished or active_workers > 0 or not results.empty():
-                payload = await results.get()
-                try:
-                    yield payload
-                except GeneratorExit:
-                    return
+        async for item in run_bounded_pipeline(
+            discover=sitemap.discover(),
+            process=process,
+            on_discovery_error=self._harvester_error_from_discovery_failure,
+            worker_tasks=worker_tasks,
+            on_results_queue=on_results_queue,
+        ):
+            yield item
 
     async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the plugin and yield harvested ARCs, errors, or skips."""

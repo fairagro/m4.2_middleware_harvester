@@ -140,3 +140,32 @@ The system SHALL handle this edge case: when Source reports `numberOfMatchedReco
 #### Scenario: Edge case — Source reports numberOfMatchedRecords = 0 on first call
 - **WHEN** Source reports `numberOfMatchedRecords = 0` on first call
 - **THEN** `expected_datasets` is passed as `0`; `harvest_arcs` creates and immediately completes the harvest
+
+### Requirement: Linked Data mapped-output buffering is bounded by worker_tasks
+
+In addition to limiting concurrent dataset fetch/map tasks, the Linked Data
+plugin MUST bound buffered output between the worker stage and plugin `yield`
+with a results queue of `maxsize = effective_worker_tasks`. Together with the
+worker semaphore, at most **2 × `effective_worker_tasks`** discovery items may
+be in flight (in-flight workers plus queued result slots). Production MUST
+stall when the queue is full rather than buffering an unbounded number of
+discovery results while waiting for a slow upload consumer.
+
+The bound MUST be interpreted as discovery-item / queue-slot concurrency. A
+single discovery item MAY produce multiple mapped outcomes (e.g. multi-Dataset
+Schema.org pages); those are not required to stay within a separate per-outcome
+cap of 2 × `effective_worker_tasks`.
+
+#### Scenario: Bound is documented and tied to config
+
+- **WHEN** `effective_worker_tasks` is N for a linked-data repository
+- **THEN** the plugin MUST run at most N concurrent workers AND MUST use a
+  results queue with maxsize N (at most 2 × N discovery items in workers plus
+  queue slots)
+
+#### Scenario: Max_connections = 1 remains sequential and bounded
+
+- **WHEN** `max_connections = 1` (so `effective_worker_tasks = 1`)
+- **THEN** the plugin MUST process discovery items sequentially without deadlock
+  AND MUST keep at most one worker and one queued result slot in use for
+  backpressure (2 × 1 discovery-item slots)

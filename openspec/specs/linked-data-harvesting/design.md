@@ -55,3 +55,15 @@ The current implementation supports only one concrete type per enum, but the plu
    StableGraph wrap. Schema.org JSON-LD often has no Dataset `@id`/`url` (OpenAgrar); the
    MyCoRe Receive-URL / Solr id is the harvest-unit fallback. Mapping errors for missing
    identity become `RecordProcessingError`.
+
+11. **Bound mapped-output buffering in the plugin pipeline**
+   — The Linked Data plugin uses a bounded result queue (`maxsize =
+   effective_worker_tasks`) between worker tasks and the consumer `yield`.
+   Workers block on `put` before releasing the fetch/map semaphore, so at most
+   **2 × `effective_worker_tasks`** discovery items are in flight as workers plus
+   queued slots when upload is slower than discovery. The bound is concurrency of
+   discovery processing, not a hard cap on individual `HarvestedArc` counts when
+   one page maps to multiple datasets. On generator close (`aclose()` / upload
+   abort), the plugin sets a shutdown flag and cancels TaskGroup producer and
+   worker tasks instead of draining the remainder of the catalog into an unread
+   queue.

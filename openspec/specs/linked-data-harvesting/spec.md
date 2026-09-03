@@ -108,6 +108,65 @@ fetched URL MUST still pass an explicit `MappingContext()` (with null
 - **WHEN** a harvest run processes multiple Schema.org datasets including pages that share the same DOI
 - **THEN** the plugin MUST NOT require a collect-then-map phase or colliding-DOI set; distinct harvest source ids or `source_url` values MUST yield distinct `Investigation.identifier` values via the mapper's harvest-source-first chain
 
+### Requirement: Linked Data plugin bounds buffered mapped ARC payloads
+
+The Linked Data plugin pipeline (`discovery → fetch/map → yield`) MUST apply
+backpressure with a bounded results queue of
+`maxsize = effective_worker_tasks` (derived from `max_connections`) and at most
+`effective_worker_tasks` concurrent worker tasks. Each worker handles one
+discovery item at a time. Together, at most **2 × `effective_worker_tasks`**
+discovery items may be in flight as workers plus queued result slots.
+
+The bound is on **discovery-item concurrency** (in-flight workers + queue
+slots), not on the raw count of individual `HarvestedArc` /
+`RecordProcessingError` / `SkippedRecord` objects. A single discovery item MAY
+map to multiple outcomes (e.g. several `schema:Dataset` entities on one page);
+those outcomes for one item are not required to be streamed one-by-one to keep
+the per-outcome count ≤ 2 × `effective_worker_tasks`.
+
+#### Scenario: Slow consumer does not grow unbounded discovery buffering
+
+- **WHEN** the plugin maps discovery items faster than the orchestrator consumes
+  yielded items (simulated slow consumer)
+- **THEN** at most `effective_worker_tasks` workers MAY run concurrently AND the
+  results queue MUST NOT accept more than `effective_worker_tasks` pending
+  items (production stalls on full queue rather than growing without bound)
+
+#### Scenario: Multi-Dataset pages do not redefine the concurrency bound
+
+- **WHEN** one discovery item maps to multiple `HarvestedArc` outcomes
+- **THEN** the plugin MAY hold that item's mapped outcomes while enqueueing them
+  AND MUST still limit concurrent workers and queue slots as above
+
+#### Scenario: Backpressure does not stall discovery permanently
+
+- **WHEN** the consumer resumes after a slow period
+- **THEN** the plugin MUST continue yielding remaining datasets in arrival order
+  until discovery completes and all workers finish
+
+### Requirement: Linked Data plugin stops promptly on generator close
+
+When the plugin async generator is closed early (e.g. orchestrator
+`aclose()` after upload abort or repository teardown), the plugin MUST stop
+starting new worker tasks and MUST cancel in-flight producer and worker tasks
+within a bounded shutdown window. The plugin MUST NOT continue mapping the
+remainder of the catalog into an unread queue. Shutdown MUST NOT leave
+unhandled exceptions on the asyncio event loop.
+
+#### Scenario: Early aclose cancels remaining work
+
+- **WHEN** the consumer takes one or more yielded items then closes the plugin
+  generator while discovery would still produce many more datasets
+- **THEN** further dataset mapping MUST stop without processing the full catalog
+  AND the asyncio event loop MUST report no unhandled task exceptions
+
+#### Scenario: Clean shutdown after full harvest is unchanged
+
+- **WHEN** the consumer drains all yielded items until the generator completes
+  normally
+- **THEN** the plugin MUST exit cleanly with no cancellation side effects on
+  the harvest report counters for items already yielded
+
 ## Feature split
 
 - `openspec/specs/xml-sitemap-parser/spec.md` — XML sitemap discovery from a single sitemap URL and dataset URL extraction.

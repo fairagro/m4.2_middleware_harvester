@@ -2,6 +2,11 @@
   // GitHub Copilot Configuration
   // For AI assistant instructions, see: copilot-instructions.md
   // For detailed project context, see: AGENTS.md
+  //
+  // Quality tools: shared config is pyproject.toml ([tool.ruff], [tool.mypy],
+  // [tool.pylint.*]). CI / pre-commit / IDE must invoke the uv.lock binaries
+  // from .venv (or `uv run`) with --rcfile/--config-file pointing at that file.
+  // See openspec/specs/principles/ (identical results requirement).
 
   "python.testing.pytestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
@@ -22,21 +27,23 @@
   },
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 
-  // Mypy — identical to pre-commit / CI:
-  //   uv run mypy --config-file pyproject.toml
-  // path is the executable only; "run mypy" belongs in args (not path).
-  // Target tree, overrides, mypy_path: only in [tool.mypy] (pyproject.toml).
-  // reportingScope=custom: Problems use the same `files = ["middleware"]` as CI.
+  // Mypy — same as CI / pre-commit: `uv run mypy --config-file pyproject.toml`
+  // Use the lockfile binary (like ruff/pylint). Do NOT put `uv run` in path —
+  // the extension's own LSP server must start independently; path is only the
+  // mypy CLI it shells out to.
+  // reportingScope=custom: Problems use [tool.mypy] files = ["middleware"].
   // cursorpyright / Pylance are NOT the merge gate.
+  // If Problems stay empty: Output → "Mypy Type Checker". A crash like
+  // ModuleNotFoundError: vscode_common_python_lsp means the extension package
+  // is broken — update ms-python.mypy-type-checker (settings alone cannot fix it).
+  // Note: mypy-type-checker.showNotifications is machine-scoped (user settings only).
   "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.path": ["uv"],
+  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
   "mypy-type-checker.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "mypy-type-checker.cwd": "${workspaceFolder}",
   "mypy-type-checker.reportingScope": "custom",
   "mypy-type-checker.preferDaemon": false,
   "mypy-type-checker.args": [
-    "run",
-    "mypy",
     "--config-file",
     "pyproject.toml"
   ],
@@ -48,6 +55,7 @@
   "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
   "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "ruff.importStrategy": "fromEnvironment",
+  "ruff.nativeServer": "on",
 
   // Keep in sync with [tool.mypy] mypy_path package roots in pyproject.toml
   "python.analysis.extraPaths": [
@@ -65,13 +73,25 @@
     "dev_environment"
   ],
 
-  // Pylint Extension Settings — same rcfile as pre-commit / CI (pyproject.toml)
+  // Pylint — same rcfile as pre-commit / CI (pyproject.toml).
+  // Default extension maps convention→Information and refactor→Hint; Cursor's
+  // Problems filter often hides those, so CI-visible C*/R* never appear on save.
+  // Map them to Warning so open+save matches what `uv run pylint …` prints.
   "pylint.args": [
     "--rcfile=${workspaceFolder}/pyproject.toml"
   ],
   "pylint.path": ["${workspaceFolder}/.venv/bin/pylint"],
   "pylint.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "pylint.importStrategy": "fromEnvironment",
+  "pylint.severity": {
+    "convention": "Warning",
+    "refactor": "Warning",
+    "warning": "Warning",
+    "error": "Error",
+    "fatal": "Error",
+    "info": "Information"
+  },
+
   "cursorpyright.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
