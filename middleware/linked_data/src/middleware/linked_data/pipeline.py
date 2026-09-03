@@ -173,7 +173,13 @@ async def run_bounded_pipeline(
     workers may run concurrently (``2 × worker_tasks`` discovery items in
     workers plus queue slots). One discovery item may still map to multiple
     outcomes. Closing the returned generator cancels in-flight work.
+
+    ``worker_tasks`` must be >= 1. ``Semaphore(0)`` would deadlock discovery;
+    ``Queue(maxsize=0)`` is unbounded in asyncio and would disable backpressure.
     """
+    if worker_tasks < 1:
+        raise ValueError(f"worker_tasks must be >= 1, got {worker_tasks}")
+
     results: _PipelineQueue = asyncio.Queue(maxsize=worker_tasks)
     semaphore = asyncio.Semaphore(worker_tasks)
     run = _PipelineRun()
