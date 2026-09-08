@@ -43,8 +43,11 @@ Pinned SHA matches the middleware_api pilot proposal.
 ### D1: Verbatim sync from pinned Devinfra SHA
 
 Copy listed paths from `fairagro/m4.2_middleware_devinfra` at
-`906870bd18fa7fef3c5593f75440291e04ceb43e`. Do not hand-edit synced files after
-copy.
+`d8a22b90babf766fc15cdac5f41ad6b26326fa27` (includes closed Devinfra
+[#45](https://github.com/fairagro/m4.2_middleware_devinfra/issues/45) synced-path
+guard + [#46](https://github.com/fairagro/m4.2_middleware_devinfra/issues/46)
+`relation=linked` on parent-attach failure). Do not hand-edit synced files after
+copy. Allowlist lives in synced `docs/synced-paths.global.md`.
 
 **Reason:** Same SoT as the API pilot; avoids fleet drift.
 **Alternatives:** Wait for #13 (optional); cherry-pick with local edits (forks).

@@ -3,10 +3,11 @@
 ## 1. Pin and sync Wave A paths
 
 - [x] 1.1 Record Devinfra `main` commit SHA in the adopt PR description — pin:
-      `906870bd18fa7fef3c5593f75440291e04ceb43e` (also in `proposal.md`)
+      `d8a22b90babf766fc15cdac5f41ad6b26326fa27` (also in `proposal.md`; includes
+      Devinfra #45 / #46)
 - [x] 1.2 Copy verbatim from that SHA: `docs/ai_review_policy.md`,
-      `docs/surface-quality-bar.global.md`, `docs/review-fixer.md`,
-      `docs/create-issue.md`, `docs/issue-fixer.md`
+      `docs/surface-quality-bar.global.md`, `docs/synced-paths.global.md`,
+      `docs/review-fixer.md`, `docs/create-issue.md`, `docs/issue-fixer.md`
 - [x] 1.3 Copy verbatim: `.cursor/BUGBOT.md`,
       `.cursor/commands/{review,create,issue}-fixer.md`
 - [x] 1.4 Copy verbatim: `.github/copilot-instructions.md`,

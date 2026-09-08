@@ -5,22 +5,25 @@
 Shared Devinfra Wave A (AI review / agent stack) is extracted and closed upstream
 ([fairagro/m4.2_middleware_devinfra](https://github.com/fairagro/m4.2_middleware_devinfra)
 issues #4–#6, #14–#16, plus [#32](https://github.com/fairagro/m4.2_middleware_devinfra/issues/32)
-surface-bar split and [#35](https://github.com/fairagro/m4.2_middleware_devinfra/issues/35)
-canonical arctrl skill). This harvester repo has **no** Wave A stack yet (greenfield
-adopt aside from a local arctrl skill and product `config-wrapper`). Issue
+surface-bar split, [#35](https://github.com/fairagro/m4.2_middleware_devinfra/issues/35)
+canonical arctrl skill, [#45](https://github.com/fairagro/m4.2_middleware_devinfra/issues/45)
+review-fixer synced-path guard, and [#46](https://github.com/fairagro/m4.2_middleware_devinfra/issues/46)
+`m42-ai` parent-fail `relation=linked`). This harvester repo had **no** Wave A stack yet
+(greenfield adopt aside from a local arctrl skill and product `config-wrapper`). Issue
 [#167](https://github.com/fairagro/m4.2_middleware_harvester/issues/167) asks to adopt
 the shared stack without local drift on synced paths, reusing the fleet matrix from
 the middleware_api pilot ([#366](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/366)).
 Wave A prereqs on Devinfra are **done**; sync automation (#13) remains optional.
-Start **now** on the same pinned SHA as the API pilot (do not wait for API PR merge).
+Pin bumped past the API pilot SHA to include closed Devinfra #45 / #46.
 
-**Pinned Devinfra SHA for this adopt:** `906870bd18fa7fef3c5593f75440291e04ceb43e`
+**Pinned Devinfra SHA for this adopt:** `d8a22b90babf766fc15cdac5f41ad6b26326fa27`
 (document the same value in the adopt PR description).
 
 ## What Changes
 
 - Copy synced Wave A paths from Devinfra at the **pinned SHA**: policy,
-  `docs/surface-quality-bar.global.md`, Bugbot/Copilot entries,
+  `docs/surface-quality-bar.global.md`, `docs/synced-paths.global.md`,
+  Bugbot/Copilot entries,
   `/review-fixer` + `/create-issue` + `/issue-fixer` skills/commands/prompts,
   thin fixer docs, first-party `.agents/skills/arctrl/`, vendor skills
   `{gh,docker,hadolint,uv}`, `scripts/ai/` / `m42-ai`,
