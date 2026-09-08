@@ -37,6 +37,9 @@ Start **now** on the same pinned SHA as the API pilot (do not wait for API PR me
 - Replace local `.agents/skills/arctrl/` with the shared first-party skill; keep
   product-local `.agents/skills/config-wrapper/`.
 - Minimal lint-exclude updates for new vendor skills; thin `AGENTS.md` pointers.
+- **Ruff cutover:** sync Devinfra `ruff.toml` as `ruff.global.toml`; product
+  `ruff.toml` extends it (scripts/ai + test ignores, temporary preview-rule
+  ignores); remove `[tool.ruff*]` from `pyproject.toml`.
 - Smoke-test `/review-fixer` (and briefly create/issue-fixer entrypoints).
 
 ### Non-goals

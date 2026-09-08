@@ -17,9 +17,10 @@ context: |
   - Slash commands (Cursor): /opsx-propose, /opsx-apply, /opsx-archive, /opsx-explore
   - Slash commands (GitHub Copilot): /opsx-propose etc. via .github/prompts/
 
-  Read openspec/specs/principles/spec.md first. It defines the plugin contract,
-  module dependency rules, values, constraints, and code quality requirements.
-  Do not restate what is there in change proposals.
+  Read openspec/principles.global.md then openspec/principles.md first. They
+  define the shared foundation plus the harvester plugin contract, module
+  dependency rules, values, and constraints. Do not restate what is there in
+  change proposals.
 
   Plugin architecture: each input format is an AsyncGenerator plugin yielding
   `HarvestedArc | HarvesterError | SkippedRecord`. The orchestrator
@@ -38,7 +39,8 @@ rules:
   specs:
     - Use SHALL/MUST in every requirement statement
     - Every requirement needs at least one #### Scenario with WHEN/THEN
-    - Reference openspec/specs/principles/ instead of restating project constraints
+    - Reference openspec/principles.md (and principles.global.md) instead of
+      restating project constraints
     - Do not restate ARC mapping field tables — link inspire-to-arc-mapping or
       docs/regal_mapping.md / docs/inspire_mapping.md as appropriate
   design:

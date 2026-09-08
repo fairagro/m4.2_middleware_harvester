@@ -11,32 +11,28 @@ from dataclasses import dataclass
 
 _HARVEST_ID_IN_URL = re.compile(r"/v3/harvests/([^/?#]+)")
 
-_TIMEOUT_TYPE_NAMES = frozenset(
-    {
-        "TimeoutException",
-        "TimeoutError",
-        "ReadTimeout",
-        "WriteTimeout",
-        "ConnectTimeout",
-        "PoolTimeout",
-    }
-)
+_TIMEOUT_TYPE_NAMES = frozenset({
+    "TimeoutException",
+    "TimeoutError",
+    "ReadTimeout",
+    "WriteTimeout",
+    "ConnectTimeout",
+    "PoolTimeout",
+})
 
-_CONNECTION_TYPE_NAMES = frozenset(
-    {
-        "ConnectError",
-        "ConnectTimeout",
-        "NetworkError",
-        "ProxyError",
-        "UnsupportedProtocol",
-        "ProtocolError",
-        "RemoteProtocolError",
-        "LocalProtocolError",
-        "ReadError",
-        "WriteError",
-        "CloseError",
-    }
-)
+_CONNECTION_TYPE_NAMES = frozenset({
+    "ConnectError",
+    "ConnectTimeout",
+    "NetworkError",
+    "ProxyError",
+    "UnsupportedProtocol",
+    "ProtocolError",
+    "RemoteProtocolError",
+    "LocalProtocolError",
+    "ReadError",
+    "WriteError",
+    "CloseError",
+})
 
 
 class HarvesterError(Exception):

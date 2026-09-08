@@ -18,16 +18,23 @@ This file contains critical context about the FAIRagro Middleware Harvester proj
 ```text
 .agents/
 └── skills/                # Agent Skills (agentskills.io standard)
-    ├── arctrl/            # arctrl Python library reference
-    └── config-wrapper/    # ConfigWrapper / ConfigBase pattern
+    ├── arctrl/            # shared first-party arctrl reference (synced)
+    ├── config-wrapper/    # ConfigWrapper / ConfigBase pattern (product-local)
+    ├── {review,create,issue}-fixer/  # shared AI review / issue skills
+    └── {gh,docker,hadolint,uv}/      # vendor skills (do not hand-edit)
 
 openspec/                  # OpenSpec — spec-driven development
 ├── config.yaml            # Project context + artifact rules
+├── principles.global.md   # Shared foundation (synced from Devinfra)
+├── principles.md          # Product overlay (plugin contract, module graph)
 ├── specs/                 # Current behaviour (source of truth)
 └── changes/               # In-flight change proposals
 
 docs/
-└── ai_workflow.md         # AI agent workflow documentation
+├── ai_workflow.md         # AI agent workflow documentation
+├── ai_review_policy.md    # Shared AI review policy (synced)
+├── surface-quality-bar.global.md  # Default path→surface map (synced)
+└── surface-quality-bar.md # Product path→surface overlay
 
 middleware/
 ├── harvester/             # Central orchestrator and configuration
@@ -63,7 +70,8 @@ middleware/
 # Run tests
 uv run pytest middleware/ -v
 
-# Quality checks (all read config from pyproject.toml — see openspec/specs/principles/)
+# Quality checks (Ruff: root `ruff.toml` extends synced `ruff.global.toml`;
+# mypy/pylint: pyproject.toml — see openspec/principles.md)
 uv run ruff format --check middleware/
 uv run ruff check middleware/
 uv run mypy --config-file pyproject.toml
@@ -76,6 +84,9 @@ uv run bandit -r middleware/ -c .bandit -ll
 
 # Install/Update all dependencies
 uv sync --dev --all-packages
+
+# Agent GitHub CLI (Wave A) — not part of the root uv workspace
+uv run --project scripts/ai m42-ai --help
 ```
 
 Note: Cursor Source Control may skip git hooks (≥3.15.6: forces `core.hooksPath=/dev/null`).
@@ -100,14 +111,19 @@ openspec list
 openspec validate --specs
 ```
 
-In Cursor chat: `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-explore`.
-In GitHub Copilot: the same via `.github/prompts/opsx-*.prompt.md`.
+In Cursor chat: `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, `/opsx-explore`,
+`/review-fixer`, `/create-issue`, `/issue-fixer`.
+In GitHub Copilot: the same via `.github/prompts/` (`opsx-*.prompt.md`,
+`{review,create,issue}-fixer.prompt.md`).
 
 ## Architecture & Design
 
-**Read [`openspec/specs/principles/`](openspec/specs/principles/) first.** It defines the plugin
-contract, module dependency rules, values, constraints, and code quality requirements. Do not
-restate what is there.
+**Read [`openspec/principles.global.md`](openspec/principles.global.md) then
+[`openspec/principles.md`](openspec/principles.md) first.** Shared foundation plus
+harvester plugin contract, module dependency rules, values, and constraints. Do not
+restate what is there. For AI review triage path maps, see
+[`docs/surface-quality-bar.global.md`](docs/surface-quality-bar.global.md) and the
+product overlay [`docs/surface-quality-bar.md`](docs/surface-quality-bar.md).
 
 Before generating or modifying code, read the relevant OpenSpec domains under `openspec/specs/`.
 For new work, prefer `/opsx-propose` so changes land as deltas in `openspec/changes/` and are
@@ -115,7 +131,8 @@ archived into main specs.
 
 **Project-level** (cross-cutting):
 
-- **[`openspec/specs/principles/`](openspec/specs/principles/)** — Authoritative project principles (start here).
+- **[`openspec/principles.global.md`](openspec/principles.global.md)** — Shared engineering foundation (synced).
+- **[`openspec/principles.md`](openspec/principles.md)** — Harvester product overlay (start here for plugins).
 - **[`openspec/specs/error-handling/`](openspec/specs/error-handling/)** — Centralized exception hierarchy and generator yielding patterns.
 - **[`openspec/specs/demo-environment/`](openspec/specs/demo-environment/)** — One-command local demo environment (mock API + harvester).
 - **[`openspec/specs/async-concurrency/`](openspec/specs/async-concurrency/)** —
@@ -182,5 +199,6 @@ When editing files:
 
 ---
 
-**Last Updated**: 2026-07-29
+**Last Updated**: 2026-09-08
 **Maintainer Notes**: This repository is the standalone Middleware Harvester. It is decoupled from the main Middleware API. Spec-driven development uses [OpenSpec](https://github.com/Fission-AI/OpenSpec).
+Shared AI review / agent stack is synced from Devinfra Wave A (see issue #167).

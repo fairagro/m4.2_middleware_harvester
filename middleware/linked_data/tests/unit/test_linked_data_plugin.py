@@ -209,12 +209,10 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
         del client
-        return FakeSitemap(
-            [
-                "https://example.org/dataset/1",
-                "https://example.org/dataset/2",
-            ]
-        )
+        return FakeSitemap([
+            "https://example.org/dataset/1",
+            "https://example.org/dataset/2",
+        ])
 
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",

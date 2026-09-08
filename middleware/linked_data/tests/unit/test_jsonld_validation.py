@@ -12,18 +12,16 @@ from middleware.linked_data.jsonld_validation import (
 
 def test_allowlist_matches_expected_contexts() -> None:
     """Exact membership — avoid ``url in container`` which CodeQL flags as substring sanitization."""
-    expected = frozenset(
-        {
-            "https://schema.org/",
-            "http://schema.org/",
-            "https://schema.org",
-            "http://schema.org",
-            "https://bioschemas.org/",
-            "http://bioschemas.org/",
-            "https://bioschemas.org",
-            "http://bioschemas.org",
-        }
-    )
+    expected = frozenset({
+        "https://schema.org/",
+        "http://schema.org/",
+        "https://schema.org",
+        "http://schema.org",
+        "https://bioschemas.org/",
+        "http://bioschemas.org/",
+        "https://bioschemas.org",
+        "http://bioschemas.org",
+    })
     assert expected == SCHEMAORG_CONTEXT_ALLOWLIST
 
 

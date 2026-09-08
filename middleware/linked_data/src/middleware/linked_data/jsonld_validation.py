@@ -7,24 +7,20 @@ from collections.abc import Sequence
 from typing import Any
 
 # Known Schema.org contexts (http and https variants)
-_SCHEMAORG_CONTEXTS: frozenset[str] = frozenset(
-    {
-        "https://schema.org/",
-        "http://schema.org/",
-        "https://schema.org",
-        "http://schema.org",
-    }
-)
+_SCHEMAORG_CONTEXTS: frozenset[str] = frozenset({
+    "https://schema.org/",
+    "http://schema.org/",
+    "https://schema.org",
+    "http://schema.org",
+})
 
 # Known extension contexts that are acceptable alongside Schema.org
-_KNOWN_EXTENSION_CONTEXTS: frozenset[str] = frozenset(
-    {
-        "https://bioschemas.org/",
-        "http://bioschemas.org/",
-        "https://bioschemas.org",
-        "http://bioschemas.org",
-    }
-)
+_KNOWN_EXTENSION_CONTEXTS: frozenset[str] = frozenset({
+    "https://bioschemas.org/",
+    "http://bioschemas.org/",
+    "https://bioschemas.org",
+    "http://bioschemas.org",
+})
 
 # Combined allowlist: Schema.org + known extensions
 SCHEMAORG_CONTEXT_ALLOWLIST: frozenset[str] = _SCHEMAORG_CONTEXTS | _KNOWN_EXTENSION_CONTEXTS

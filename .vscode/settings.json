@@ -3,10 +3,10 @@
   // For AI assistant instructions, see: copilot-instructions.md
   // For detailed project context, see: AGENTS.md
   //
-  // Quality tools: shared config is pyproject.toml ([tool.ruff], [tool.mypy],
-  // [tool.pylint.*]). CI / pre-commit / IDE must invoke the uv.lock binaries
-  // from .venv (or `uv run`) with --rcfile/--config-file pointing at that file.
-  // See openspec/specs/principles/ (identical results requirement).
+  // Quality tools: Ruff uses synced root `ruff.toml`; mypy/pylint still use
+  // `pyproject.toml` until those fragments are adopted. CI / pre-commit / IDE
+  // must invoke the uv.lock binaries from .venv (or `uv run`).
+  // See openspec/principles.md (identical results requirement).
 
   "python.testing.pytestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
@@ -49,13 +49,17 @@
   ],
 
   // Ruff: same binary as `uv run ruff` / pre-commit (project .venv).
+  // Config SoT is synced root `ruff.toml` (not [tool.ruff] in pyproject).
   // ruff.path must be ruff executables only — NOT ["uv","run","ruff"]
   // (that would pick `uv` as the binary and break formatOnSave silently).
-  "ruff.configuration": "./pyproject.toml",
+  "ruff.enable": true,
+  "ruff.configuration": "${workspaceFolder}/ruff.toml",
+  "ruff.configurationPreference": "editorOnly",
   "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
   "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
   "ruff.importStrategy": "fromEnvironment",
   "ruff.nativeServer": "on",
+  "ruff.lint.enable": true,
 
   // Keep in sync with [tool.mypy] mypy_path package roots in pyproject.toml
   "python.analysis.extraPaths": [

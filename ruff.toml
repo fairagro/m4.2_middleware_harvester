@@ -1,0 +1,35 @@
+# Product Ruff entrypoint. Extends the Devinfra-synced fragment.
+# Synced SoT: ruff.global.toml (do not hand-edit). Product deltas only below.
+extend = "ruff.global.toml"
+
+[lint]
+# Preview rules from the shared fragment that are not yet green on this repo's
+# middleware tree. Prefer a dedicated cleanup over silent weaken forever.
+ignore = [
+  "PLR6301",  # no-self-use
+  "PLR6201",  # literal-membership
+  "D421",     # property docstring mood (preview)
+  "PLR1702",  # too-many-nested-blocks
+  "PLR0904",  # too-many-public-methods
+]
+
+[lint.per-file-ignores]
+# Redefining this table replaces the extended file's per-file-ignores — repeat
+# shared entries and add product deltas (D103 for tests).
+"middleware/*/tests/**/*.py" = [
+  "SLF001",
+  "PLR0913",
+  "PLR0917",
+  "PLR2004",
+  "D103",
+]
+"scripts/ai/**/*.py" = [
+  "D",
+  "ARG001",
+  "C901",
+  "PLR0913",
+  "PLR0914",
+  "PLR0915",
+  "PLR0917",
+  "PLR2004",
+]

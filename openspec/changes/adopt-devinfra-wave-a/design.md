@@ -116,13 +116,26 @@ remove. Vendor set `{gh,docker,hadolint,uv}`.
 **Reason:** #35 + product-local skill inventory.
 **Alternatives:** Keep drifted local arctrl (rejected).
 
-### D7: `skip_specs: true`
+### D8: Ruff cutover — `ruff.global.toml` + product `ruff.toml`
 
-No deltas under `openspec/changes/.../specs/`. Deleting `specs/principles/` is
-layout migration documented here and in tasks, not a requirement delta package.
+Sync Devinfra `ruff.toml` as **`ruff.global.toml`** (verbatim). Root **`ruff.toml`**
+is the product entrypoint with `extend = "ruff.global.toml"` plus minimal deltas:
 
-**Reason:** Tooling/docs adopt; domain harvest specs unchanged.
-**Alternatives:** Invent a principles capability delta (unnecessary noise).
+- Re-state `[lint.per-file-ignores]` (extend **replaces** that table): shared
+  `middleware/*/tests` + `scripts/ai` entries, and product **`D103`** on tests.
+- `[lint].ignore` for preview rules not yet green on this middleware tree
+  (`PLR6301`, `PLR6201`, `D421`, `PLR1702`, `PLR0904`) until a dedicated cleanup
+  or upstream fragment tweak.
+- Remove all `[tool.ruff*]` from `pyproject.toml`; point IDE/pre-commit at
+  `ruff.toml`.
+
+**Reason:** scripts/ai ignores live in the shared fragment; Wave A pulls
+`scripts/ai` into the pre-commit ruff surface. Blind single-file `ruff.toml`
+sync is not green here (preview + missing test `D103`). Extend keeps SoT syncable
+without forking the whole rule set.
+**Alternatives:** Only product `per-file-ignores` in pyproject (no shared
+fragment); full middleware cleanup to raw shared `ruff.toml` in this PR (too
+large).
 
 ## Risks / Trade-offs
 
