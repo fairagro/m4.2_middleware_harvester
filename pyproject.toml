@@ -53,71 +53,7 @@ override-dependencies = [
   "requests>=2.33.0",
 ]
 
-[tool.ruff]
-# Exclude directories from linting and formatting
-exclude = [
-  ".venv",
-  "venv",
-  ".git",
-  "__pycache__",
-  "*.egg-info",
-  ".pytest_cache",
-  ".mypy_cache",
-  ".ruff_cache",
-  "dev_environment",
-  "build",
-  "dist",
-  "py.typed"
-]
-
-# Welche Regel-Sets aktiviert sind:
-lint.select = [
-  "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings
-  "F",   # pyflakes
-  "I",   # isort (import sorting)
-  "C90", # mccabe (Komplexität)
-  "N",   # pep8-naming
-  "D",   # pydocstyle (Docstrings)
-  "UP",  # pyupgrade
-  "B",   # bugbear
-  "SIM", # flake8-simplify
-  "A",   # flake8-builtins
-  "ARG", # flake8-unused-arguments
-  "BLE", # flake8-blind-except (fängt zu generische Exceptions ab)
-  "PLR", # Pylint Refactor (inkl. complexity rules wie too-many-return-statements)
-  "SLF", # flake8-self (Private member access)
-  "PIE", # flake8-pie (u.a. PIE790: unnötiges `...`/`pass` nach Docstring)
-]
-
-# Maximale Zeilenlänge wie in pylint (Standard: 100)
-line-length = 120
-
-# Formatierungs-Einstellungen (konsistent mit Black)
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "lf"
-
-# Für cyclomatic complexity, entspricht pylint's R1260 etc.
-[tool.ruff.lint.mccabe]
-max-complexity = 10
-
-# Import sorting (replaces isort)
-[tool.ruff.lint.isort]
-known-first-party = ["middleware"]
-force-single-line = false
-combine-as-imports = true
-
-# Per-file-ignores for test directories
-[tool.ruff.lint.per-file-ignores]
-"**/tests/**" = [
-  "D103",  # missing-function-docstring in test files
-  "PLR2004",  # magic-value-comparison; literals in asserts are intentional
-]
-
-# Black and isort replaced by ruff format - configurations removed to avoid conflicts
+# Ruff: root `ruff.toml` extends synced `ruff.global.toml` (no [tool.ruff] here).
 
 [tool.mypy]
 python_version = "3.12"
@@ -165,10 +101,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "arctrl"
 ignore_missing_imports = true
-
-# Docstring-Regeln aktivieren, damit es wie pylint C0114/15/16 meckert
-[tool.ruff.lint.pydocstyle]
-convention = "pep257" # oder "numpy", oder "google"
 
 [tool.pytest.ini_options]
 # Test discovery

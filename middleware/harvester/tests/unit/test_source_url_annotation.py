@@ -20,12 +20,10 @@ def test_format_source_url_annotation_repeated_same_url() -> None:
 
 
 def test_format_source_url_annotation_multiple_urls_with_counts() -> None:
-    annotation = format_source_url_annotation(
-        {
-            "https://example.org/a": 2,
-            "https://example.org/b": 1,
-        }
-    )
+    annotation = format_source_url_annotation({
+        "https://example.org/a": 2,
+        "https://example.org/b": 1,
+    })
     assert annotation == "source URLs: https://example.org/a (×2), https://example.org/b"
 
 

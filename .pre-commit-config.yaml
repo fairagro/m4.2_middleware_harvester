@@ -31,7 +31,7 @@ repos:
         language: system
         pass_filenames: false
 
-      # Ruff - Linting (same as CI: uv run ruff check)
+      # Ruff - Linting (same as CI: uv run ruff check; config: ruff.toml)
       - id: ruff
         name: ruff lint
         entry: uv run ruff check --no-fix
@@ -39,7 +39,7 @@ repos:
         types: [python]
 
       # Ruff - Formatting (same as CI: uv run ruff format --check --diff)
-      # IDE: formatOnSave via .venv/bin/ruff + pyproject.toml (same lockfile binary).
+      # IDE: formatOnSave via .venv/bin/ruff + ruff.toml (same lockfile binary).
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format --check --diff

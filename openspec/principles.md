@@ -1,45 +1,24 @@
 # Project Principles
 
-## Purpose
+This repository extends the shared foundation in
+[`principles.global.md`](principles.global.md). Read that file first for Values,
+Supported development environment, Type Safety, Configuration, Code Quality,
+Testing, Security, Spec/Code naming, Python tooling, and Branch strategy.
 
-Authoritative project principles and foundation contract for the FAIRagro Middleware Harvester. All feature specs assume this document as given.
+Do **not** redefine or weaken Supported development environment or Type Safety
+here — those sections are owned by `principles.global.md`.
 
-## Requirements
+Product stack, plugin contract, module graph, and harvester-specific constraints
+live below. Surface-bar path rows for this product belong in
+[`docs/surface-quality-bar.md`](../docs/surface-quality-bar.md) (not here).
 
-### Requirement: Follow the foundation contract
-All harvesting plugins SHALL treat the mapping documents linked from the principles as the authoritative source→ARC contract, and feature specs SHALL reference those documents instead of restating mapping rules.
-
-#### Scenario: Feature specs reference mapping docs
-- **WHEN** a feature spec needs to cite a mapped field or constraint
-- **THEN** it references the relevant mapping spec instead of restating rules
-
-### Requirement: Honour project values and constraints
-Implementations SHALL honour the Values, Constraints, and Module Dependency Graph documented in the project principles.
-
-#### Scenario: Code changes respect principles
-- **WHEN** code is added or modified
-- **THEN** it complies with the Values, Constraints, and dependency rules in the principles document
-
-### Requirement: Separate domain logic from technical plumbing
-Plugin packages SHALL keep harvest domain logic (discovery semantics, mapping, and record-level error meaning) in domain-oriented modules, and SHALL place concurrency, backpressure, retry, cancellation, and similar mechanics in dedicated infrastructure modules composed by the plugin entrypoint. Plugin entrypoints MAY wire domain callbacks into plumbing modules but MUST NOT embed large asyncio lifecycle, queue, or cancellation blocks alongside mapping rules. Implementations MUST NOT introduce harvester-wide generic frameworks for such plumbing until a second plugin requires the same mechanism.
-
-#### Scenario: Substantial plumbing mixed with domain rules is extracted
-- **WHEN** a change adds substantial asyncio queue, semaphore, TaskGroup, or cancellation lifecycle logic in the same module as mapping or dataset-construction rules
-- **THEN** that plumbing MUST be moved to a dedicated infrastructure module (or an existing one) and composed through a narrow callback or port interface
-
-#### Scenario: Package-local plumbing until a second consumer exists
-- **WHEN** only one plugin needs a given plumbing pattern
-- **THEN** the pattern MUST remain inside that plugin package and MUST NOT be promoted to `middleware/harvester` solely for speculative reuse
-
-## Full Principles
-
-# FAIRagro Middleware Harvester — Principles
+---
 
 ## Foundation Contract
 
 The authoritative contract for each harvesting plugin is the mapping domain
 under `openspec/specs/` (e.g.
-[inspire-to-arc-mapping](../inspire-to-arc-mapping/)).
+[inspire-to-arc-mapping](specs/inspire-to-arc-mapping/)).
 Each document defines the source metadata fields, how they map to ARC concepts,
 and required/optional semantics. **All feature specs assume these documents as
 given.** Feature specs do not restate mapping rules; they reference the relevant
@@ -49,19 +28,47 @@ The central orchestrator (`middleware/harvester`) never parses source-format
 records directly. Each plugin owns its own parsing, modelling, and mapping logic
 entirely.
 
+Feature specs SHALL treat the mapping documents linked from these principles as
+the authoritative source→ARC contract, and SHALL reference those documents
+instead of restating mapping rules. Implementations SHALL honour the Values,
+Constraints, and Module Dependency Graph documented here and in
+`principles.global.md`.
+
+---
+
 ## Purpose
 
 Harvest metadata from heterogeneous external sources, translate the records into
 the Annotated Research Context (ARC) format, and publish the results to the
 FAIRagro Middleware API.
 
-The system is built around a **plugin architecture**: each input format (currently
-INSPIRE/CSW) is implemented as a self-contained async-generator plugin. The
-central orchestrator loads a unified configuration, dispatches to the appropriate
-plugins, consumes their ARC output, and uploads it to the API. Adding a new input
-format means adding a new plugin — the orchestrator requires no changes.
+The system is built around a **plugin architecture**: each input format is
+implemented as a self-contained async-generator plugin. The central orchestrator
+loads a unified configuration, dispatches to the appropriate plugins, consumes
+their ARC output, and uploads it to the API. Adding a new input format means
+adding a new plugin — the orchestrator requires no changes.
 
-## Values
+---
+
+## Technology Stack
+
+| Technology | Role |
+| ---------- | ---- |
+| **Python 3.12+** | Primary language |
+| **uv** | Package manager / runner (never pip directly) |
+| **arctrl** | ARC object model and RO-Crate JSON-LD serialization |
+| **owslib** | CSW 2.0.2 client (INSPIRE plugin) |
+| **rdflib** | RDF graphs for linked-data plugins |
+| **Docker** | Containerization / deployment |
+
+Package manager: always `uv` (never pip/poetry directly). See also Python
+tooling in `principles.global.md`.
+
+---
+
+## Values (product)
+
+Shared values are in `principles.global.md`. This repo additionally emphasises:
 
 **Correctness over speed** — Valid ARC output matters more than throughput.
 If a record cannot be mapped cleanly it must fail with a clear error, not produce
@@ -90,11 +97,13 @@ wired via narrow callbacks or ports — not mixed into the same methods that enc
 what a source means. Extract plumbing when it obscures the harvest steps; do not
 extract every trivial `asyncio` call.
 
-## Constraints
+---
 
-- Python 3.12. No type-unsafe workarounds; all public APIs are fully typed.
-- `uv` for dependency management. Never call `pip` directly in production code.
-- `os.environ` must never be accessed directly; use `Config` / `ConfigWrapper`.
+## Constraints (product)
+
+Shared Type Safety, Configuration, and quality-tool identity rules are in
+`principles.global.md`. In this repo:
+
 - Each plugin owns its source-format access exclusively. The orchestrator and
   other plugins must not reach into another plugin's internals.
 - The plugin `AsyncGenerator` contract is
@@ -106,24 +115,9 @@ extract every trivial `asyncio` call.
   (defined in `middleware.harvester.errors`).
 - Code quality gates: Ruff (lint + format), mypy, pylint, bandit, pytest —
   all must pass before merge. Every new feature requires matching tests.
-- **All quality tool invocations (VS Code / Cursor, pre-commit, CI) must produce
-  identical results.** This is achieved by having each tool read its configuration
-  exclusively from a single shared config file — normally `pyproject.toml`
-  (`[tool.ruff]`, `[tool.mypy]`, `[tool.pylint.*]`). Tools that cannot be configured
-  via `pyproject.toml` (e.g. bandit) must have a dedicated config file (e.g. `.bandit`)
-  shared by all invocations. Individual invocations must contain no extra CLI flags
-  that override shared config; the only acceptable flags are those that cannot be
-  expressed in a config file. The tool version used in every context must be the one
-  locked in `uv.lock` — use `uv run <tool>` everywhere.
-  For type checking specifically: the merge gate is **mypy**
-  (`uv run mypy --config-file pyproject.toml`). The checked tree and all
-  overrides live only in `[tool.mypy]` / `[[tool.mypy.overrides]]`
-  (`files = ["middleware"]`, `mypy_path`, third-party `ignore_missing_imports`).
-  The IDE must run the same via `ms-python.mypy-type-checker`
-  (see `.vscode/settings.json`: `uv run mypy`, same `--config-file`,
-  `reportingScope=custom` so Problems use the same `files` list as CI).
-  cursorpyright / Pylance diagnostics are not a substitute and must not be treated
-  as “type check passed”.
+  Tool invocations (IDE, pre-commit, CI) must produce identical results via
+  shared config (`pyproject.toml` / `.bandit`) and `uv run` / locked versions.
+  The merge type-check gate is **mypy** (`uv run mypy --config-file pyproject.toml`).
 - No `noqa` / `type: ignore` suppressions unless technically unavoidable.
 - Validation belongs in Pydantic models where possible. Use `Literal` types or
   `@field_validator` to enforce valid values — a `ValidationError` triggers the
@@ -136,6 +130,13 @@ extract every trivial `asyncio` call.
   cancellation logic alongside mapping rules. Prefer extracting plumbing when it
   obscures the harvest steps. Do not invent harvester-wide generic frameworks
   until a second plugin needs the same mechanism (YAGNI).
+
+Plugin packages SHALL keep harvest domain logic in domain-oriented modules and
+SHALL place substantial concurrency / backpressure / retry / cancellation
+mechanics in dedicated infrastructure modules. Package-local plumbing MUST NOT
+be promoted to `middleware/harvester` solely for speculative reuse.
+
+---
 
 ## Module Dependency Graph
 
@@ -172,6 +173,22 @@ Circular imports are forbidden. Within a plugin, the mapper must not import the
 source client and vice versa. Plugins must not import each other. Infrastructure
 modules MUST NOT import mappers or execute mapping logic.
 
+---
+
+## Configuration (product)
+
+Shared rules are in `principles.global.md`. In this repo:
+
+- Runtime configuration is read from YAML via `ConfigWrapper` /
+  product `Config` models (`middleware.shared` + harvester/plugin configs).
+- **No `os.environ` calls in application code.** Environment variables are
+  resolved by the config layer only.
+- Every configurable value must have a Pydantic field with a `description`.
+- Defaults belong in `Config`, not in application code.
+- See the `config-wrapper` skill for the full pattern.
+
+---
+
 ## Extension Points
 
 | Need | Where to change |
@@ -181,3 +198,14 @@ modules MUST NOT import mappers or execute mapping logic.
 | New config value (plugin) | Extend the plugin's `Config` class in its own `config.py` |
 | New source field (existing plugin) | Add field to the plugin's record model, extract in client, map in mapper |
 | New ARC structure | Add helper method to the plugin's mapper; reference arctrl skill |
+
+---
+
+## Spec / Code Naming (product)
+
+- Capability specs live under `openspec/specs/<domain>/` with kebab-case domain
+  names.
+- Behaviour-oriented domains need not map 1:1 to a class.
+- Stable architecture notes may live as `openspec/specs/<domain>/design.md`.
+- Shared foundation: `openspec/principles.global.md` (synced). Product overlay:
+  this file.
