@@ -36,7 +36,8 @@ jobs:
     name: Check
     needs: build
     if: always() && needs.build.result == 'success'
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-check.yml@main
+    # Local until Devinfra #74: omit Trivy licence-check (Alpine GPL noise).
+    uses: ./.github/workflows/reusable-check-local.yml
     with:
       version: ${{ needs.build.outputs.version }}
       components: '["harvester"]'
