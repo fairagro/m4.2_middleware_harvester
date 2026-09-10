@@ -35,7 +35,7 @@ docs/
 ├── ai_review_policy.md    # Shared AI review policy (synced)
 ├── surface-quality-bar.global.md  # Default path→surface map (synced)
 ├── surface-quality-bar.md # Product path→surface overlay
-└── synced-paths.global.md # Devinfra sync allowlist (synced; do not hand-edit listed paths)
+└── synced-paths.yaml      # Devinfra sync allowlist (synced; do not hand-edit listed paths)
 
 middleware/
 ├── harvester/             # Central orchestrator and configuration
@@ -128,7 +128,7 @@ harvester plugin contract, module dependency rules, values, and constraints. Do 
 restate what is there. For AI review triage path maps, see
 [`docs/surface-quality-bar.global.md`](docs/surface-quality-bar.global.md) and the
 product overlay [`docs/surface-quality-bar.md`](docs/surface-quality-bar.md).
-Synced Devinfra allowlist: [`docs/synced-paths.global.md`](docs/synced-paths.global.md)
+Synced Devinfra allowlist: [`docs/synced-paths.yaml`](docs/synced-paths.yaml)
 (do not hand-edit those paths — fix upstream).
 
 Before generating or modifying code, read the relevant OpenSpec domains under `openspec/specs/`.
