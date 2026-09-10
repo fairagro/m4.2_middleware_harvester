@@ -11,6 +11,11 @@ fileExistenceTests:
     shouldExist: true
     permissions: '-rwxr-xr-x'  # Executable
 
+  - name: 'Healthcheck executable'
+    path: '/middleware/harvester/healthcheck'
+    shouldExist: true
+    permissions: '-rwxr-xr-x'
+
   - name: 'No Python wheels in final image'
     path: '/tmp/wheels'
     shouldExist: false  # Wheels should not leak into runtime

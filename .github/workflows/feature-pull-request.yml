@@ -16,23 +16,27 @@ on:
 jobs:
   code-quality:
     name: Code Quality
-    uses: ./.github/workflows/reusable-code-quality.yml
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@main
     with:
+      python_package_root: middleware
       components: '["harvester"]'
     secrets: inherit
 
   build:
     name: Build
-    uses: ./.github/workflows/reusable-build.yml
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
     with:
       components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
     secrets: inherit
 
   check:
     name: Check
     needs: build
-    uses: ./.github/workflows/reusable-check.yml
+    if: always() && needs.build.result == 'success'
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-check.yml@main
     with:
       version: ${{ needs.build.outputs.version }}
       components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
     secrets: inherit
