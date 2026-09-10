@@ -1,102 +1,43 @@
-# ---- Package Build Stage ----
-FROM python:3.12.13-alpine3.23 AS package-builder
+# syntax=docker/dockerfile:1.4
+# Product-local last stage for harvester (NOT synced). Bake wires context
+# `export_bins` → shared base `export-binaries` and `healthcheck_bins` →
+# product-local healthcheck export (see docker-bake.hcl).
+#
+# Runtime layout is fixed (CST / Helm / liveness): /middleware/harvester/…
+# BINARY_NAME is only the export artifact name from PyInstaller (Bake must match).
+#
+# Pins: ALPINE_VERSION from versions.env (no literal pin here).
 
-WORKDIR /build
+ARG ALPINE_VERSION
+FROM alpine:${ALPINE_VERSION}
 
-# Copy project files needed for package build
-COPY pyproject.toml uv.lock README.md LICENSE ./
-COPY middleware ./middleware
-
-# Upgrade pip and install uv
-RUN pip install --no-cache-dir --upgrade pip==26.2 uv==0.12.0
-
-# Declare build argument for versioning
-ARG APP_VERSION=0.0.0
-# Pretend version for hatch-vcs (used during uv build of inspire wheel)
-ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
-
-RUN uv build --package inspire --wheel && uv build --package harvester --wheel && uv build --package linked_data --wheel
-
-
-# ---- Binary Build Stage ----
-FROM python:3.12.13-alpine3.23 AS binary-builder
-
-# Install build tools for PyInstaller.
-# libcrypto3/libssl3 must match openssl-dev: the python base image ships older
-# runtime libs (3.5.6) while Alpine main may only offer openssl-dev 3.5.7+.
-RUN apk add --no-cache \
-    build-base=0.5-r3 \
-    python3-dev=3.12.14-r0 \
-    libffi-dev=3.5.2-r0 \
-    libcrypto3=3.5.8-r0 \
-    libssl3=3.5.8-r0 \
-    openssl-dev=3.5.8-r0 \
-    cargo=1.91.1-r2 \
-    git=2.52.0-r0
-
-WORKDIR /build
-
-# Install uv core tool
-RUN pip install --no-cache-dir --upgrade pip==26.2 uv==0.12.0
-
-# Declare build argument for versioning
-ARG APP_VERSION=0.0.0
-# Root pyproject uses hatch-vcs; Docker build context has no .git directory.
-ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
-
-# Bring in the pre-built wheel and project metadata
-COPY --from=package-builder /build/dist/*.whl /tmp/wheels/
-COPY pyproject.toml uv.lock README.md LICENSE ./
-
-# We still need the source code because uv sync requires all workspace members (e.g., middleware/inspire)
-# to be physically present to validate the environment against the lockfile.
-COPY middleware ./middleware
-
-# Dependency Resolution Strategy:
-# 1. We use 'uv sync' to create a virtual environment (.venv) and resolve all
-#    dependencies exactly as specified in the uv.lock.
-# 2. We skip workspace installation here to avoid editable builds of the root package,
-#    which can fail in shallow/branch builds when hatch-vcs parses non-PEP440 refs.
-# 3. The api_client and shared packages are now installed from PyPI releases.
-# 4. Install the application wheel and PyInstaller (replaces editable workspace installs).
-# 5. Build healthcheck (onefile) and harvester (onedir) binaries via PyInstaller.
-#    --copy-metadata is needed because the code checks its own version at runtime.
-RUN uv sync --no-dev --no-install-workspace && \
-    uv pip install /tmp/wheels/*.whl pyinstaller && \
-    .venv/bin/python -m PyInstaller --onefile \
-    --name healthcheck \
-    .venv/lib/python3.12/site-packages/middleware/harvester/healthcheck.py && \
-    .venv/bin/python -m PyInstaller --onedir \
-    --name harvester \
-    --copy-metadata harvester \
-    --copy-metadata inspire \
-    --copy-metadata fairagro-middleware-api-client \
-    --copy-metadata fairagro-middleware-shared \
-    .venv/lib/python3.12/site-packages/middleware/harvester/main.py
-
-
-# ---- Runtime Stage ----
-FROM alpine:3.23.4
+ARG BINARY_NAME=harvester
+ARG RUNTIME_USER=harvester
+ARG RUNTIME_UID=65532
+ARG RUNTIME_GID=65532
 
 WORKDIR /middleware
 
-# Create non-root user and group with a fixed numeric UID/GID.
-# A numeric UID is required for Kubernetes runAsNonRoot verification;
-# named-only users cause: "cannot verify user is non-root".
-# UID/GID 65532 follows the distroless/Chainguard "nonroot" convention and
-# avoids colliding with typical desktop-user accounts (commonly 1000).
-RUN apk add --no-cache --upgrade \
+# hadolint ignore=DL3018
+# Pin apk versions for reproducible builds (bump via scripts/update-apk-dependencies.sh).
+# Explicit libssl3/libcrypto3 pins pull security fixes when alpine:${ALPINE_VERSION} lags the repo.
+RUN apk add --no-cache \
     ca-certificates=20260611-r0 \
-    zlib=1.3.2-r0 && \
-    addgroup -S -g 65532 harvester && \
-    adduser -S -u 65532 -H -G harvester harvester
+    zlib=1.3.2-r0 \
+    libcrypto3=3.5.8-r0 \
+    libssl3=3.5.8-r0 \
+    && addgroup -S -g "${RUNTIME_GID}" "${RUNTIME_USER}" \
+    && adduser -S -u "${RUNTIME_UID}" -H -G "${RUNTIME_USER}" "${RUNTIME_USER}" \
+    && chown "${RUNTIME_USER}:${RUNTIME_USER}" /middleware
 
-# Copy the entire directory created by --onedir with correct ownership
-COPY --chown=harvester:harvester --from=binary-builder /build/dist/harvester /middleware/harvester
-# Copy the standalone healthcheck binary
-COPY --chown=harvester:harvester --from=binary-builder /build/dist/healthcheck /middleware/harvester/healthcheck
+# Primary onedir from shared product-app.base export-binaries
+# hadolint ignore=DL3022
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} /middleware/harvester
 
-USER harvester
+# Standalone liveness binary (product-local Bake target; see openspec design D-healthcheck)
+# hadolint ignore=DL3022
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=healthcheck_bins /dist/healthcheck /middleware/harvester/healthcheck
 
-# Execute the binary inside the directory
+USER ${RUNTIME_USER}
+
 ENTRYPOINT ["/middleware/harvester/harvester"]

@@ -2,6 +2,7 @@ name: Feature Pull Request
 
 permissions:
   contents: read
+  pull-requests: read
   security-events: write
 
 env:
@@ -14,25 +15,70 @@ on:
       - 'main'
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'middleware/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'docker/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+              - 'docker-bake.hcl'
+              - 'versions.env'
+              - 'ruff.toml'
+              - 'mypy.ini'
+              - '.pylintrc'
+              - '.pre-commit-config.yaml'
+              - '.bandit'
+
   code-quality:
     name: Code Quality
-    uses: ./.github/workflows/reusable-code-quality.yml
+    needs: detect-changes
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@a061d6fb85afc8dfd54083ff58bf788744dcdca8
     with:
+      python_package_root: middleware
       components: '["harvester"]'
+      mypy_path: stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit
+      pylint_source_roots: middleware/linked_data/tests/unit,middleware/inspire/tests/unit
+      skip: ${{ needs.detect-changes.outputs.code != 'true' }}
     secrets: inherit
 
   build:
     name: Build
-    uses: ./.github/workflows/reusable-build.yml
+    needs: detect-changes
+    if: needs.detect-changes.outputs.code == 'true'
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
     with:
       components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
     secrets: inherit
 
   check:
     name: Check
-    needs: build
-    uses: ./.github/workflows/reusable-check.yml
+    needs: [detect-changes, build]
+    # Docs-only: build is skipped → still run check with skip=true (required checks).
+    # Code PR: only run check when build succeeded (avoid empty-version secondary failure).
+    if: >-
+      always()
+      && needs.detect-changes.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    # Local until Devinfra #74: omit Trivy licence-check (Alpine GPL noise).
+    uses: ./.github/workflows/reusable-check-local.yml
     with:
-      version: ${{ needs.build.outputs.version }}
+      # toJSON/fromJSON avoids Actions LS false positive on needs.build.outputs.version
+      # when the build job is conditional (docs-only skip path).
+      version: ${{ fromJSON(toJSON(needs.build)).outputs.version || '' }}
       components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
+      skip: ${{ needs.detect-changes.outputs.code != 'true' }}
     secrets: inherit

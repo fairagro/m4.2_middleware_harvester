@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.4
+# Product-local healthcheck onefile builder (NOT synced).
+# Why separate: synced docker/Dockerfile.product-app.base builds one primary
+# onedir binary only. Harvester also ships a PyInstaller --onefile healthcheck
+# for K8s liveness (openspec/specs/liveness-probe). Golden rule: do not patch
+# the synced base — keep this product-local until Devinfra supports a secondary
+# binary generically (follow-up issue).
+#
+# Bake wires context `wheels` to target:harvester-wheels (package-builder stage
+# of Dockerfile.product-app.base).
+
+ARG PYTHON_VERSION
+ARG ALPINE_MINOR
+ARG PIP_VERSION
+ARG UV_VERSION
+ARG PYINSTALLER_VERSION
+
+FROM python:${PYTHON_VERSION}-alpine${ALPINE_MINOR} AS healthcheck-builder
+
+ARG PIP_VERSION
+ARG UV_VERSION
+ARG PYINSTALLER_VERSION
+ARG APP_VERSION=0.0.0
+
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${APP_VERSION}
+
+# hadolint ignore=DL3018
+RUN apk add --no-cache build-base libffi-dev openssl-dev cargo musl-utils libssl3
+
+WORKDIR /build
+
+RUN pip install --no-cache-dir --upgrade \
+    "pip==${PIP_VERSION}" \
+    "uv==${UV_VERSION}"
+
+# Wheels from shared package-builder (Bake context)
+# hadolint ignore=DL3022
+COPY --from=wheels /build/dist/*.whl /tmp/wheels/
+
+RUN set -eu; \
+    uv pip install --system /tmp/wheels/*.whl; \
+    uv pip install --system "pyinstaller==${PYINSTALLER_VERSION}"; \
+    ENTRY="$(python -c "import importlib, pathlib; m = importlib.import_module('middleware.harvester'); print(pathlib.Path(m.__file__).resolve().with_name('healthcheck.py'))")"; \
+    pyinstaller --onefile --name healthcheck "${ENTRY}"
+
+FROM scratch AS export-healthcheck
+COPY --from=healthcheck-builder /build/dist/healthcheck /dist/healthcheck
