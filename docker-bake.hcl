@@ -80,10 +80,9 @@ target "harvester" {
     healthcheck_bins  = "target:harvester-healthcheck"
   }
   args = {
-    ALPINE_VERSION  = ALPINE_VERSION
-    BINARY_NAME     = "harvester"
-    RUNTIME_USER    = "harvester"
-    RUNTIME_WORKDIR = "/middleware"
+    ALPINE_VERSION = ALPINE_VERSION
+    BINARY_NAME    = "harvester"
+    RUNTIME_USER   = "harvester"
   }
   tags      = [IMAGE_TAG]
   platforms = ["linux/amd64"]

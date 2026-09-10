@@ -3,6 +3,9 @@
 # `export_bins` → shared base `export-binaries` and `healthcheck_bins` →
 # product-local healthcheck export (see docker-bake.hcl).
 #
+# Runtime layout is fixed (CST / Helm / liveness): /middleware/harvester/…
+# BINARY_NAME is only the export artifact name from PyInstaller (Bake must match).
+#
 # Pins: ALPINE_VERSION from versions.env (no literal pin here).
 
 ARG ALPINE_VERSION
@@ -12,11 +15,8 @@ ARG BINARY_NAME=harvester
 ARG RUNTIME_USER=harvester
 ARG RUNTIME_UID=65532
 ARG RUNTIME_GID=65532
-ARG RUNTIME_WORKDIR=/middleware
 
-ENV BINARY_NAME=${BINARY_NAME}
-
-WORKDIR ${RUNTIME_WORKDIR}
+WORKDIR /middleware
 
 # hadolint ignore=DL3018
 # Pin apk versions for reproducible builds (bump via scripts/update-apk-dependencies.sh).
@@ -28,15 +28,15 @@ RUN apk add --no-cache \
     libssl3=3.5.8-r0 \
     && addgroup -S -g "${RUNTIME_GID}" "${RUNTIME_USER}" \
     && adduser -S -u "${RUNTIME_UID}" -H -G "${RUNTIME_USER}" "${RUNTIME_USER}" \
-    && chown "${RUNTIME_USER}:${RUNTIME_USER}" "${RUNTIME_WORKDIR}"
+    && chown "${RUNTIME_USER}:${RUNTIME_USER}" /middleware
 
 # Primary onedir from shared product-app.base export-binaries
 # hadolint ignore=DL3022
-COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} ${RUNTIME_WORKDIR}/${BINARY_NAME}
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=export_bins /dist/${BINARY_NAME} /middleware/harvester
 
 # Standalone liveness binary (product-local Bake target; see openspec design D-healthcheck)
 # hadolint ignore=DL3022
-COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=healthcheck_bins /dist/healthcheck ${RUNTIME_WORKDIR}/${BINARY_NAME}/healthcheck
+COPY --chown=${RUNTIME_USER}:${RUNTIME_USER} --from=healthcheck_bins /dist/healthcheck /middleware/harvester/healthcheck
 
 USER ${RUNTIME_USER}
 
