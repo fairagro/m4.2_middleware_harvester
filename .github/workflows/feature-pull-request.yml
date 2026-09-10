@@ -59,7 +59,12 @@ jobs:
   check:
     name: Check
     needs: [detect-changes, build]
-    if: always() && needs.detect-changes.result == 'success'
+    # Docs-only: build is skipped → still run check with skip=true (required checks).
+    # Code PR: only run check when build succeeded (avoid empty-version secondary failure).
+    if: >-
+      always()
+      && needs.detect-changes.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
     # Local until Devinfra #74: omit Trivy licence-check (Alpine GPL noise).
     uses: ./.github/workflows/reusable-check-local.yml
     with:
