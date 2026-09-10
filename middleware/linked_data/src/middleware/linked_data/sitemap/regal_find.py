@@ -34,7 +34,7 @@ class RegalFindSitemap(Sitemap):
         super().__init__(config, client)
         self._page_size = self._resolve_page_size(config.sitemap_url, config.page_size)
 
-    async def get_expected_count(self) -> int | None:
+    async def get_expected_count(self) -> int | None:  # noqa: PLR6301
         """Return None; Regal `/find` does not expose a total hit count."""
         return None
 

@@ -15,7 +15,7 @@ Research Context (ARC) objects, and transmit them to the central FAIRagro Middle
 | `docs/` | Architectural design, mapping specifications, and AI workflow. |
 | `openspec/` | OpenSpec specs (current behaviour) and in-flight changes. |
 | `dev_environment/` | Docker-based local development setup (Mock API, Harvester). |
-| `scripts/` | Tooling for quality checks, environment setup, and Git LFS. |
+| `scripts/` | Tooling for quality checks, Dev Container helpers, and hooks. |
 | `docker/` | Dockerfiles and container structure tests. |
 
 ## 🌟 Quick Start (Full Local Demo)
@@ -33,21 +33,23 @@ Note: Generated ARCs will be saved to `dev_environment/demo_output/`.
 
 The preferred method for working with this repository is using a **Dev Container** (VS Code or Cursor).
 
-- Config: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) — see [`.devcontainer/README.md`](.devcontainer/README.md) for setup notes
+- Config: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) — see [`docs/devcontainer.md`](docs/devcontainer.md) for setup notes
 
 ### 1. Prerequisites (for manual setups only)
 
-- Python 3.12+
+- Python 3.12+ (pin in `versions.env` / `.python-version`)
 - [uv](https://github.com/astral-sh/uv) (Dependency Management & Workspace Orchestration)
 - Docker & Docker Compose
-- Git LFS (installed via `./scripts/setup-git-lfs.sh`)
+- Node.js 22+ (for `npm run lint:md` on host clones; installed in the Dev Container)
 
 ### 2. Environment Setup
 
 Clone the repository and install all workspace dependencies:
 
 ```bash
-uv sync --all-packages
+uv sync --dev --all-packages
+./scripts/setup-git-hooks.sh
+uv run pre-commit install --hook-type pre-commit
 ```
 
 ### 3. Start Local Development Environment

@@ -41,11 +41,16 @@ jobs:
         run: uv sync --dev --all-packages
 
       - name: Code formatting and linting
+        env:
+          MYPYPATH: stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit
         run: |
-          uv run ruff format --check --diff middleware/
-          uv run ruff check middleware/
-          uv run pylint middleware/inspire middleware/linked_data middleware/harvester
-          uv run mypy --config-file pyproject.toml
+          uv run ruff format --check --diff --config ruff.toml middleware/
+          uv run ruff check --config ruff.toml middleware/
+          uv run pylint --rcfile .pylintrc \
+            --extension-pkg-allow-list=lxml \
+            --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit \
+            middleware/inspire middleware/linked_data middleware/harvester
+          uv run mypy --config-file mypy.ini middleware/
 
       - name: Security check with bandit
         run: uv run bandit -r middleware/ -c .bandit -ll

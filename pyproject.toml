@@ -53,54 +53,8 @@ override-dependencies = [
   "requests>=2.33.0",
 ]
 
-# Ruff: root `ruff.toml` extends synced `ruff.global.toml` (no [tool.ruff] here).
-
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-explicit_package_bases = true
-namespace_packages = true
-# Single source of truth for what CI / pre-commit / IDE type-check.
-# Invocations: `uv run mypy --config-file pyproject.toml` (no extra path args).
-files = [
-  "middleware",
-]
-mypy_path = [
-  "middleware/inspire/src",
-  "middleware/harvester/src",
-  "middleware/linked_data/src",
-  "middleware/linked_data/tests/unit",
-  "middleware/inspire/tests/unit",
-]
-
-# Exclude directories from type checking
-exclude = [
-  ".venv",
-  "venv",
-  ".git",
-  "__pycache__",
-  "build",
-  "dist",
-  ".pytest_cache",
-  ".mypy_cache",
-  ".ruff_cache",
-  "dev_environment",
-]
-
-[[tool.mypy.overrides]]
-module = "owslib.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "arctrl.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "arctrl"
-ignore_missing_imports = true
+# Ruff / Mypy / Pylint: synced ruff.toml, mypy.ini, .pylintrc (no product ruff overlay).
+# Path overlays: MYPYPATH / pylint --source-roots / stubs/ — not in pyproject.
 
 [tool.pytest.ini_options]
 # Test discovery
@@ -183,91 +137,6 @@ exclude_lines = [
 [tool.coverage.html]
 directory = "htmlcov"
 
-[tool.pylint.format]
-max-line-length = 120
-
-[tool.pylint.master]
-# Ignore directories
-ignore = [".venv", "venv", ".git", "__pycache__", "build", "dist"]
-# Allow pylint to introspect C extensions at runtime (e.g. lxml.etree.XMLSyntaxError)
-extension-pkg-allow-list = ["lxml"]
-ignore-patterns = ["^\\..*", ".*\\.egg-info"]
-# Fail if the score is below 8.0
-fail-under = 8.0
-# Same-directory helpers for unit tests (`from fakes import …`, `from csw_client_helpers import …`).
-# Invoke pylint on package dirs (middleware/inspire …), not middleware/ — a parent path makes
-# discover_package_path pick the wrong source-root and bare helper imports fail (E0401).
-source-roots = ["middleware/linked_data/tests/unit", "middleware/inspire/tests/unit"]
-
-[tool.pylint.messages_control]
-# Disable checks that are already covered by ruff
-disable = [
-    # Docstring checks (covered by ruff pydocstyle D-series)
-    "C0114",  # missing-module-docstring -> ruff D100
-    "C0115",  # missing-class-docstring -> ruff D101
-    "C0116",  # missing-function-docstring -> ruff D103
-
-    # Import checks (covered by ruff pyflakes F, isort I)
-    "C0411",  # wrong-import-order -> ruff I001
-    "C0412",  # ungrouped-imports -> ruff I001
-    "C0413",  # wrong-import-position -> ruff E402
-    "W0611",  # unused-import -> ruff F401
-    "W0614",  # unused-wildcard-import -> ruff F403, F405
-
-    # Code style checks (covered by ruff pycodestyle E/W)
-    "C0303",  # trailing-whitespace -> ruff W291
-    "C0304",  # missing-final-newline -> ruff W292
-    "C0305",  # trailing-newlines -> ruff W391
-    "C0321",  # multiple-statements -> ruff E701, E702
-    "C0325",  # superfluous-parens -> ruff UP034
-    "W0311",  # bad-indentation -> ruff E111, E117
-    "W0301",  # unnecessary-semicolon -> ruff E703
-
-    # Naming checks (covered by ruff pep8-naming N-series)
-    "C0103",  # invalid-name -> ruff N801-N807
-
-    # Complexity checks (covered by ruff mccabe C90)
-    "R0912",  # too-many-branches -> ruff C901
-    "R0915",  # too-many-statements -> ruff C901
-
-    # Bugbear/pyflakes checks (covered by ruff bugbear B, pyflakes F)
-    "W0101",  # unreachable -> ruff F401
-    "W0102",  # dangerous-default-value -> ruff B006
-    "W0107",  # unnecessary-pass -> ruff PIE790
-    "W0125",  # using-constant-test -> ruff B015
-    "W0511",  # TODO comment found
-    "W0612",  # unused-variable -> ruff F841
-    "W0613",  # unused-argument -> ruff ARG001-005
-    "W0621",  # redefined-outer-name -> ruff F811
-    "W0622",  # redefined-builtin -> ruff A001-A003
-
-    # Simplification checks (covered by ruff flake8-simplify SIM)
-    "R1705",  # no-else-return -> ruff SIM103
-    "R1714",  # consider-using-in -> ruff SIM118
-    "R1715",  # consider-using-get -> ruff SIM401
-    "R1720",  # no-else-raise -> ruff SIM102
-    "R1724",  # no-else-continue -> ruff SIM114
-    "R1728",  # consider-using-generator -> ruff C417
-
-    # Pyupgrade checks (covered by ruff pyupgrade UP)
-    "R1711",  # useless-return -> ruff UP034
-    "C0206",  # consider-using-dict-items -> ruff UP015
-
-    # Additional opinionated/style checks often handled by formatters
-    "R0903",  # too-few-public-methods (opinionated, often not relevant)
-    "R0913",  # too-many-arguments (opinionated, case-by-case basis)
-    "R0917",  # too-many-positional-arguments (handled by ruff PLR0917)
-    "C0301",  # line-too-long (handled by ruff formatter)
-    "R0801",  # duplicate-code (can be noisy in tests)
-    "R0914",  # too-many-locals (handled by ruff PLR0914)
-
-    # Exception checks (covered by ruff BLE001)
-    "W0718",  # broad-exception-caught
-    "W0703",  # broad-except
-
-    # Private member access
-    "W0212",  # protected-access
-]
 
 [tool.hatch.version]
 source = "vcs"

@@ -1,112 +1,74 @@
 {
-  // GitHub Copilot Configuration
-  // For AI assistant instructions, see: copilot-instructions.md
-  // For detailed project context, see: AGENTS.md
-  //
-  // Quality tools: Ruff uses synced root `ruff.toml`; mypy/pylint still use
-  // `pyproject.toml` until those fragments are adopted. CI / pre-commit / IDE
-  // must invoke the uv.lock binaries from .venv (or `uv run`).
-  // See openspec/principles.md (identical results requirement).
+  // Shared Cursor / VS Code workspace settings for m4.2 Devinfra (and a sync template for products).
+  // Interpreter + tool binaries must match `uv sync` / pre-commit / CI (root `.venv`, root `pyproject.toml`).
+  // Product repos add middleware package `extraPaths` and Helm/SOPS associations locally — do not invent
+  // product paths here. See docs/quality.md and scripts/ai/README.md.
 
-  "python.testing.pytestEnabled": true,
-  "python.testing.autoTestDiscoverOnSaveEnabled": true,
-  "python.testing.pytestPath": ".venv/bin/pytest",
-  "python.testing.cwd": "${workspaceFolder}",
-  "python.testing.pytestArgs": [],
-  "python.testing.unittestEnabled": false,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python-envs.defaultEnvManager": "ms-python.python:venv",
 
-  // Code formatting - use ruff for both linting and formatting
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
-      "source.fixAll.ruff": "explicit"
-    }
-  },
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-
-  // Mypy — same as CI / pre-commit: `uv run mypy --config-file pyproject.toml`
-  // Use the lockfile binary (like ruff/pylint). Do NOT put `uv run` in path —
-  // the extension's own LSP server must start independently; path is only the
-  // mypy CLI it shells out to.
-  // reportingScope=custom: Problems use [tool.mypy] files = ["middleware"].
-  // cursorpyright / Pylance are NOT the merge gate.
-  // If Problems stay empty: Output → "Mypy Type Checker". A crash like
-  // ModuleNotFoundError: vscode_common_python_lsp means the extension package
-  // is broken — update ms-python.mypy-type-checker (settings alone cannot fix it).
-  // Note: mypy-type-checker.showNotifications is machine-scoped (user settings only).
-  "mypy-type-checker.importStrategy": "fromEnvironment",
-  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
-  "mypy-type-checker.interpreter": ["${workspaceFolder}/.venv/bin/python"],
-  "mypy-type-checker.cwd": "${workspaceFolder}",
-  "mypy-type-checker.reportingScope": "custom",
-  "mypy-type-checker.preferDaemon": false,
-  "mypy-type-checker.args": [
-    "--config-file",
-    "pyproject.toml"
-  ],
-
-  // Ruff: same binary as `uv run ruff` / pre-commit (project .venv).
-  // Config SoT is synced root `ruff.toml` (not [tool.ruff] in pyproject).
-  // ruff.path must be ruff executables only — NOT ["uv","run","ruff"]
-  // (that would pick `uv` as the binary and break formatOnSave silently).
-  "ruff.enable": true,
-  "ruff.configuration": "${workspaceFolder}/ruff.toml",
-  "ruff.configurationPreference": "editorOnly",
-  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
-  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
-  "ruff.importStrategy": "fromEnvironment",
-  "ruff.nativeServer": "on",
-  "ruff.lint.enable": true,
-
-  // Keep in sync with [tool.mypy] mypy_path package roots in pyproject.toml
-  "python.analysis.extraPaths": [
-    "middleware/inspire/src",
-    "middleware/harvester/src",
-    "middleware/linked_data/src"
-  ],
-
+  // Workspace member `scripts/ai` is editable via uv; extraPaths keeps analysis working before/without
+  // a selected interpreter that already sees the install.
+  "python.analysis.extraPaths": ["${workspaceFolder}/scripts/ai/src"],
   "python.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/.venv",
-    "**/venv",
-    "dev_environment"
+    "**/venv"
   ],
 
-  // Pylint — same rcfile as pre-commit / CI (pyproject.toml).
-  // Default extension maps convention→Information and refactor→Hint; Cursor's
-  // Problems filter often hides those, so CI-visible C*/R* never appear on save.
-  // Map them to Warning so open+save matches what `uv run pylint …` prints.
-  "pylint.args": [
-    "--rcfile=${workspaceFolder}/pyproject.toml"
-  ],
-  "pylint.path": ["${workspaceFolder}/.venv/bin/pylint"],
-  "pylint.interpreter": ["${workspaceFolder}/.venv/bin/python"],
-  "pylint.importStrategy": "fromEnvironment",
-  "pylint.severity": {
-    "convention": "Warning",
-    "refactor": "Warning",
-    "warning": "Warning",
-    "error": "Error",
-    "fatal": "Error",
-    "info": "Information"
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
+  "python.testing.pytestArgs": ["scripts/ai/tests"],
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
   },
 
+  // Same binary + root ruff.toml as `uv run ruff --config ruff.toml` / pre-commit.
+  "ruff.enable": true,
+  "ruff.nativeServer": "on",
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
+  "ruff.configuration": "${workspaceFolder}/ruff.toml",
+  "ruff.configurationPreference": "editorOnly",
+  "ruff.importStrategy": "fromEnvironment",
+  "ruff.lint.enable": true,
+
+  "editor.formatOnSave": true,
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[mdc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "cursorpyright.analysis.exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "**/.venv",
-    "**/venv",
-    "dev_environment"
+    "**/venv"
   ],
   "cursorpyright.analysis.extraPaths": [
-    "middleware/inspire/src",
-    "middleware/harvester/src",
-    "middleware/linked_data/src"
+    "${workspaceFolder}/scripts/ai/src"
   ]
 }

@@ -52,7 +52,7 @@ class FakeDataset:
 
     @property
     def identifier(self) -> str:
-        """Return the dataset identifier for the fake dataset."""
+        """The dataset identifier for the fake dataset."""
         return self._url
 
     @classmethod

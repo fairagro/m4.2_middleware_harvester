@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar, cast
 
 from rdflib import Graph
 
@@ -42,7 +41,7 @@ class UrlDiscoveryResult(DiscoveryResult):
 
     @property
     def url(self) -> str:
-        """Return the discovered dataset URL (alias for ``identifier``)."""
+        """The discovered dataset URL (alias for ``identifier``)."""
         return self.identifier
 
 
@@ -53,28 +52,20 @@ class JsonLdDiscoveryResult(DiscoveryResult):
     payload: dict[str, object]
 
 
-T = TypeVar("T", bound="Dataset")
-
-
 class Dataset(ABC):
     """Abstract wrapper around a Linked Data dataset payload."""
 
     registry: Registry[DatasetType, Dataset] = Registry()
 
     @classmethod
-    def register(cls, dataset_type: DatasetType) -> Callable[[type[T]], type[T]]:
+    def register(cls, dataset_type: DatasetType) -> Callable[[type[Dataset]], type[Dataset]]:
         """Register a concrete Dataset implementation for the given dataset type."""
-
-        def decorator(subclass: type[T]) -> type[T]:
-            cls.registry[dataset_type] = cast(type[Dataset], subclass)
-            return subclass
-
-        return decorator
+        return cls.registry.register(dataset_type)
 
     @property
     @abstractmethod
     def identifier(self) -> str:
-        """Return the stable identifier for this dataset."""
+        """The stable identifier for this dataset."""
         raise NotImplementedError
 
     @abstractmethod

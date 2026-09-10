@@ -1,65 +1,84 @@
+// PRODUCT-OWNED overlay (not a Devinfra sync overwrite target).
+// Inspired by m4.2_middleware_devinfra `.devcontainer/devcontainer.json`.
+// Fleet contract: https://github.com/fairagro/m4.2_middleware_devinfra/issues/65
+// (verbatim-generic Devinfra file, or explicit .global/local / product-owned split).
+// Local deltas: name, workspaceFolder, volume names, postStartCommand, updateRemoteUserUID.
 {
-	"name": "Middleware Harvester (DinD)",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": "."
-	},
-	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:4": {
-			"moby": false,
-			"disableIp6tables": true,
-			"iptablesSwitchAtRuntime": false,
-			"version": "28.5.1"
-		}
-	},
-	"containerEnv": {
-		"UV_LINK_MODE": "copy"
-	},
-	"remoteEnv": {
-		"PATH": "${containerWorkspaceFolder}/scripts/bin:${containerEnv:PATH}"
-	},
-	"mounts": [
-		"source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume",
-		"source=middleware-harvester-bashhistory,target=/commandhistory,type=volume"
-	],
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"jeff-hykin.better-dockerfile-syntax",
-				"ms-azuretools.vscode-docker",
-				"formulahendry.docker-explorer",
-				"shipitsmarter.sops-edit",
-				"davidanson.vscode-markdownlint",
-				"samuelcolvin.jinjahtml",
-				"tamasfe.even-better-toml",
-				"ms-python.python",
-				"ms-python.vscode-pylance",
-				"ms-python.debugpy",
-				"ms-python.autopep8",
-				"ms-python.vscode-python-envs",
-				"ms-python.pylint",
-				"ms-python.mypy-type-checker",
-				"mhutchie.git-graph",
-				"donjayamanne.githistory",
-				"codezombiech.gitignore",
-				"github.copilot-chat",
-				"charliermarsh.ruff",
-				"tim-koehler.helm-intellisense",
-				"vadzimnestsiarenka.helm-template-preview-and-more",
-				"jebbs.plantuml"
-			]
-		}
-	},
-	"postCreateCommand": {
-		"fix commandhistory permissions": "sudo chown -R vscode:vscode /commandhistory",
-		"fix gh config permissions": "sudo mkdir -p /home/vscode/.config/gh && sudo chown -R vscode:vscode /home/vscode/.config/gh",
-		"install dependencies": "bash ${containerWorkspaceFolder}/scripts/uv-sync-dev.sh",
-		"install dev hooks": "bash ${containerWorkspaceFolder}/scripts/install-dev-hooks.sh",
-		"import public gpg keys": "bash ${containerWorkspaceFolder}/scripts/import-public-gpg-keys.sh"
-	},
-	"postStartCommand": {
-		"setup bashrc": "bash ${containerWorkspaceFolder}/scripts/setup-bashrc-load-env.sh"
-	},
-	"remoteUser": "vscode",
-	"updateRemoteUserUID": false
+  "name": "Middleware Harvester (DinD)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/m4.2_middleware_harvester-cursor",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {
+      "moby": false,
+      "disableIp6tables": true,
+      "version": "28.5.1"
+    }
+  },
+  "mounts": [
+    "source=middleware-harvester-bashhistory,target=/commandhistory,type=volume",
+    "source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume"
+  ],
+  "containerEnv": {
+    "UV_LINK_MODE": "copy"
+  },
+  "remoteEnv": {
+    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "jeff-hykin.better-dockerfile-syntax",
+        "ms-azuretools.vscode-docker",
+        "formulahendry.docker-explorer",
+        "exiasr.hadolint",
+        "esbenp.prettier-vscode",
+        "davidanson.vscode-markdownlint",
+        "signageos.signageos-vscode-sops",
+        "samuelcolvin.jinjahtml",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "ms-python.pylint",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        "codezombiech.gitignore",
+        "github.copilot-chat",
+        "github.vscode-github-actions",
+        "tim-koehler.helm-intellisense",
+        "vadzimnestsiarenka.helm-template-preview-and-more",
+        "jebbs.plantuml"
+      ],
+      "settings": {
+        "hadolint.hadolintPath": "/usr/local/bin/hadolint",
+        "editor.formatOnSave": true,
+        "[markdown]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[mdc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[yaml]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        }
+      }
+    }
+  },
+  "postCreateCommand": ["bash", "scripts/devcontainer-post-create.sh"],
+  "postStartCommand": {
+    "setup bashrc": "bash ${workspaceFolder}/scripts/setup-bashrc-load-env.sh"
+  },
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": false
 }

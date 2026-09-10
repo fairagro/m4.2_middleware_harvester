@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
-from typing import TypeVar, cast
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
@@ -12,8 +11,6 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from ..config import Config, SitemapType
 from ..dataset import DiscoveryResult, UrlDiscoveryResult
 from ..registry import Registry
-
-S = TypeVar("S", bound="Sitemap")
 
 # Payload carriers plus shared harvester signals (inspire-style).
 type SitemapYield = DiscoveryResult | RecordProcessingError | SkippedRecord
@@ -52,7 +49,7 @@ class Sitemap(ABC):
             seen.add(result.identifier)
             yield result
 
-    async def get_expected_count(self) -> int | None:
+    async def get_expected_count(self) -> int | None:  # noqa: PLR6301
         """Return the expected number of discovery results, if known."""
         return None
 
@@ -64,11 +61,6 @@ class Sitemap(ABC):
         raise NotImplementedError
 
     @classmethod
-    def register(cls, sitemap_type: SitemapType) -> Callable[[type[S]], type[S]]:
+    def register(cls, sitemap_type: SitemapType) -> Callable[[type[Sitemap]], type[Sitemap]]:
         """Register a concrete Sitemap implementation for the given sitemap type."""
-
-        def decorator(subclass: type[S]) -> type[S]:
-            cls.registry[sitemap_type] = cast(type[Sitemap], subclass)
-            return subclass
-
-        return decorator
+        return cls.registry.register(sitemap_type)

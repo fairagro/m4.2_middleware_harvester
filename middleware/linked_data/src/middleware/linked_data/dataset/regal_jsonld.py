@@ -29,7 +29,7 @@ class RegalJsonLdDataset(Dataset):
 
     @property
     def identifier(self) -> str:
-        """Return the stable Regal record identifier."""
+        """The stable Regal record identifier."""
         return self._identifier
 
     @classmethod

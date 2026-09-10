@@ -15,6 +15,11 @@ if [[ ! -f "$DOCKERFILE" ]]; then
   exit 1
 fi
 
+if ! command -v uv >/dev/null 2>&1; then
+  echo "❌ uv not found on PATH (required to query PyPI)." >&2
+  exit 1
+fi
+
 # Extract Alpine version dynamically from the base image in the Dockerfile
 # Matches e.g. "FROM python:3.12.12-alpine3.23" → "3.23"
 ALPINE_VERSION=$(grep -m1 '^FROM ' "$DOCKERFILE" | grep -oE 'alpine([0-9]+\.[0-9]+)' | grep -oE '[0-9]+\.[0-9]+')
@@ -89,16 +94,29 @@ done < <(grep -oE '[a-z0-9][a-z0-9_-]*=[0-9][a-z0-9._]+-r[0-9]+' "$DOCKERFILE" |
 # --- Update pip-installed Python packages (PEP 440: name==X.Y.Z) ---
 echo "🐍 Updating pip-pinned packages..."
 
+pypi_latest() {
+  local pkg="$1"
+  local json
+  if ! json="$(curl -sf "https://pypi.org/pypi/${pkg}/json")"; then
+    return 1
+  fi
+  # Spec: uv only — do not call bare python3/python.
+  printf '%s' "$json" | uv run --directory "$PROJECT_DIR" python -c \
+    "import sys, json; print(json.load(sys.stdin)['info']['version'])"
+}
+
 while IFS= read -r match; do
   [[ "$match" =~ ^([a-zA-Z0-9][a-zA-Z0-9_-]*)==([0-9][a-z0-9._]*)$ ]] || continue
 
   pkg="${BASH_REMATCH[1]}"
   current="${BASH_REMATCH[2]}"
 
-  latest=$(curl -sf "https://pypi.org/pypi/${pkg}/json" | python3 -c "import sys,json; print(json.load(sys.stdin)['info']['version'])" 2>/dev/null || true)
-
+  if ! latest="$(pypi_latest "$pkg")"; then
+    echo "⚠️  $pkg: failed to fetch or parse PyPI metadata"
+    continue
+  fi
   if [[ -z "$latest" ]]; then
-    echo "⚠️  $pkg not found on PyPI"
+    echo "⚠️  $pkg: empty version from PyPI response"
     continue
   fi
 
@@ -115,4 +133,3 @@ while IFS= read -r match; do
 done < <(grep -oE '[a-zA-Z0-9][a-zA-Z0-9_-]*==[0-9][a-z0-9._]*' "$DOCKERFILE" || true)
 
 echo "✅ Done. Backup at ${DOCKERFILE}.bak"
-rm -rf "$TMP_DIR"

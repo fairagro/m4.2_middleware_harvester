@@ -6,7 +6,7 @@ import json
 import re
 from collections.abc import Iterable
 
-from arctrl import ARC  # type: ignore[import-untyped]
+from arctrl import ARC
 from rdflib import Graph
 
 from middleware.harvester.plugin_base import HarvestedArc
@@ -142,7 +142,7 @@ def investigation_description(arc_json: str) -> str:
             if desc:
                 return desc
     for item in payload.get("@graph", []):
-        if item.get("@type") in (None, "Comment"):
+        if item.get("@type") in {None, "Comment"}:
             continue
         desc = rocrate_prop(item, "description")
         if desc:

@@ -57,13 +57,13 @@ class RepositoryConfig(BaseModel):
 
     @property
     def plugin_type(self) -> str:
-        """Return the active plugin type name (derived dynamically from model_fields)."""
+        """The active plugin type name (derived dynamically from model_fields)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
         return next(f for f in all_field_names if f != "rdi" and getattr(self, f) is not None)
 
     @property
     def plugin_config(self) -> PluginConfig:
-        """Return the active plugin configuration object."""
+        """The active plugin configuration object."""
         cfg: PluginConfig | None = getattr(self, self.plugin_type)
         if cfg is None:  # pragma: no cover
             raise RuntimeError("No plugin config set — did model validation run?")
@@ -71,7 +71,7 @@ class RepositoryConfig(BaseModel):
 
     @property
     def source_url(self) -> str | None:
-        """Return the primary entry-point URL for this plugin."""
+        """The primary entry-point URL for this plugin."""
         cfg = self.plugin_config
         return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None)
 

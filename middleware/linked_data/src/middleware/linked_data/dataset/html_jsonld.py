@@ -63,7 +63,7 @@ class HtmlJsonLdDataset(Dataset):
 
     @property
     def identifier(self) -> str:
-        """Return the page URL as the stable dataset identifier."""
+        """The page URL as the stable dataset identifier."""
         return self._url
 
     @classmethod
