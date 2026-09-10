@@ -2,6 +2,7 @@ name: Feature Pull Request
 
 permissions:
   contents: read
+  pull-requests: read
   security-events: write
 
 env:
@@ -28,11 +29,17 @@ jobs:
             code:
               - 'middleware/**'
               - 'pyproject.toml'
+              - 'uv.lock'
               - 'docker/**'
               - 'scripts/**'
               - '.github/workflows/**'
               - 'docker-bake.hcl'
               - 'versions.env'
+              - 'ruff.toml'
+              - 'mypy.ini'
+              - '.pylintrc'
+              - '.pre-commit-config.yaml'
+              - '.bandit'
 
   code-quality:
     name: Code Quality
