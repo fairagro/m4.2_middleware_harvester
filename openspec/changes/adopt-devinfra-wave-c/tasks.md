@@ -33,4 +33,4 @@
 - [x] 5.1 Devinfra follow-up for secondary binary:
       https://github.com/fairagro/m4.2_middleware_devinfra/issues/71
 - [x] 5.2 `openspec validate --changes`
-- [ ] 5.3 Pause for user commit/push; draft PR with `Fixes #169`
+- [x] 5.3 Pause for user commit/push; draft PR with `Fixes #169`
