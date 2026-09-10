@@ -218,12 +218,12 @@ class NiceHttpClient:
 
     @property
     def client(self) -> httpx.AsyncClient:
-        """Return the underlying httpx.AsyncClient instance."""
+        """The underlying httpx.AsyncClient instance."""
         assert self._client is not None, "NiceHttpClient must be used as an async context manager"
         return self._client
 
     async def is_allowed(self, url: str) -> bool:
-        """Return whether the URL is allowed by robots.txt for this client configuration."""
+        """Whether the URL is allowed by robots.txt for this client configuration."""
         if not self._config.respect_robots_txt:
             return True
         return await self._robots.is_allowed(url, self.client, self._config)

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import override
 from urllib.parse import quote, urlparse
 
-from arctrl import (  # type: ignore[import-untyped]
+from arctrl import (
     ARC,
     ArcAssay,
     ArcInvestigation,
@@ -99,7 +99,8 @@ class RegalMapper(LinkedDataMapper):
         return cls(config.effective_resource_base_url)
 
     @override
-    def _stable_wrap(self, graph: Graph) -> StableGraph:
+    @staticmethod
+    def _stable_wrap(graph: Graph) -> StableGraph:
         """Wrap with ``skos:prefLabel`` as the Regal labelled-node policy."""
         return StableGraph.wrap(graph, label_predicates=(SKOS.prefLabel,))
 
@@ -115,7 +116,8 @@ class RegalMapper(LinkedDataMapper):
         arc = _RegalRun(self, stable, self._resource_base_url).map_arc(subject)
         return [HarvestedArc.from_arctrl(arc)]
 
-    def _find_research_data_subject(self, stable: StableGraph) -> Node | None:
+    @staticmethod
+    def _find_research_data_subject(stable: StableGraph) -> Node | None:
         """Pick the ResearchData subject (stable order when several exist)."""
         typed = stable.subjects_of_type(RESEARCH_DATA_TYPE)
         if typed:
@@ -580,7 +582,8 @@ class _RegalRun:
         for _, pred_name, text in opaque:
             inv.Comments.append(Comment.create(pred_name, text))
 
-    def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
+    @staticmethod
+    def _add_ontology_sources(inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
             OntologySourceReference.create(
                 name="REGAL",

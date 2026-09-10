@@ -143,6 +143,26 @@ def _ensure_gather_failure_recorded(
     scope.close()
 
 
+async def _gather_repositories(
+    config: Config,
+    client: ApiClient,
+    tracer: trace.Tracer,
+    report: HarvestReport,
+) -> None:
+    """Run all repository tasks under one harvest span and record gather escapes."""
+    with tracer.start_as_current_span(
+        "harvest_run",
+        attributes={"harvester.repository_count": len(config.repositories)},
+    ):
+        tasks = [asyncio.create_task(run_repository(repo, client, tracer, report)) for repo in config.repositories]
+        if not tasks:
+            return
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for repo, result in zip(config.repositories, results, strict=True):
+            if isinstance(result, BaseException):
+                _ensure_gather_failure_recorded(report, repo, result)
+
+
 async def run_orchestrator(config: Config) -> HarvestReport:
     """Execute the core harvester loop across all configured repositories."""
     tracer = trace.get_tracer(__name__)
@@ -151,18 +171,7 @@ async def run_orchestrator(config: Config) -> HarvestReport:
 
     try:
         async with ApiClient(config.api_client) as client:
-            with tracer.start_as_current_span(
-                "harvest_run",
-                attributes={"harvester.repository_count": len(config.repositories)},
-            ):
-                tasks = [
-                    asyncio.create_task(run_repository(repo, client, tracer, report)) for repo in config.repositories
-                ]
-                if tasks:
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    for repo, result in zip(config.repositories, results, strict=True):
-                        if isinstance(result, BaseException):
-                            _ensure_gather_failure_recorded(report, repo, result)
+            await _gather_repositories(config, client, tracer, report)
     finally:
         heartbeat_task.cancel()
         report.finish()

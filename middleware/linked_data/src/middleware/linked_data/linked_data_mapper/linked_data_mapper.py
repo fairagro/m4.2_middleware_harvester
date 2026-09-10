@@ -6,7 +6,6 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import TypeVar, cast
 
 from rdflib import Graph
 
@@ -15,8 +14,6 @@ from middleware.harvester.plugin_base import HarvestedArc
 from ..config import Config, PayloadType
 from ..registry import Registry
 from .stable_graph import StableGraph
-
-M = TypeVar("M", bound="LinkedDataMapper")
 
 
 @dataclass(frozen=True)
@@ -45,14 +42,9 @@ class LinkedDataMapper(ABC):
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
     @classmethod
-    def register(cls, payload_type: PayloadType) -> Callable[[type[M]], type[M]]:
+    def register(cls, payload_type: PayloadType) -> Callable[[type[LinkedDataMapper]], type[LinkedDataMapper]]:
         """Register a concrete LinkedDataMapper implementation for the given payload type."""
-
-        def decorator(subclass: type[M]) -> type[M]:
-            cls.registry[payload_type] = cast(type[LinkedDataMapper], subclass)
-            return subclass
-
-        return decorator
+        return cls.registry.register(payload_type)
 
     @classmethod
     def from_config(cls, config: Config) -> LinkedDataMapper:
@@ -94,7 +86,8 @@ class LinkedDataMapper(ABC):
         """Map ``graph`` using the caller-provided ``stable`` wrap (see :meth:`map_graph`)."""
         raise NotImplementedError
 
-    def _stable_wrap(self, graph: Graph) -> StableGraph:
+    @staticmethod
+    def _stable_wrap(graph: Graph) -> StableGraph:
         """Wrap ``graph`` for this mapper. Override for vocabulary-specific policy."""
         return StableGraph.wrap(graph)
 

@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-10
+# Tooling/Dev DX adopt of shared Devinfra Wave B — no product domain requirement deltas.
+# Retrospective change: implementation landed via issue-fixer on #168 / PR #180 before
+# this OpenSpec folder existed; artifacts document the locked adopt decisions.
+skip_specs: true

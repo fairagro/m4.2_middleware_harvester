@@ -4,7 +4,7 @@ import contextlib
 import logging
 from typing import cast
 
-from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
+from owslib.iso import MD_DataIdentification, MD_Metadata
 
 from .errors import SemanticError
 from .models import (
@@ -92,7 +92,8 @@ class IsoParser:
             raw_xml=getattr(iso, "xml", None),
         )
 
-    def _extract_identification(self, iso: MD_Metadata) -> MD_DataIdentification | None:
+    @staticmethod
+    def _extract_identification(iso: MD_Metadata) -> MD_DataIdentification | None:
         """Extract identification info from ISO record."""
         if isinstance(iso.identification, list) and iso.identification:
             return cast(MD_DataIdentification, iso.identification[0])
@@ -100,7 +101,8 @@ class IsoParser:
             return cast(MD_DataIdentification, iso.identification)
         return None
 
-    def _extract_title(self, identification: MD_DataIdentification | None) -> str:
+    @staticmethod
+    def _extract_title(identification: MD_DataIdentification | None) -> str:
         """Extract title from ISO record."""
         if identification is None or getattr(identification, "title", None) is None:
             raise SemanticError("Record is missing a title in its identification section.")
@@ -108,7 +110,8 @@ class IsoParser:
             raise SemanticError("Record title is not a string.")
         return identification.title
 
-    def _extract_abstract(self, identification: MD_DataIdentification | None) -> str:
+    @staticmethod
+    def _extract_abstract(identification: MD_DataIdentification | None) -> str:
         """Extract abstract from ISO record."""
         if identification is None or getattr(identification, "abstract", None) is None:
             raise SemanticError("Record is missing an abstract in its identification section.")
@@ -116,7 +119,8 @@ class IsoParser:
             raise SemanticError("Record abstract is not a string.")
         return identification.abstract
 
-    def _extract_identification_str(self, item: str, identification: MD_DataIdentification | None) -> str | None:
+    @staticmethod
+    def _extract_identification_str(item: str, identification: MD_DataIdentification | None) -> str | None:
         """Extract a string attribute from ISO record."""
         if identification is None:
             return None
@@ -126,7 +130,8 @@ class IsoParser:
             return value  # type: ignore[no-any-return]
         return None
 
-    def _extract_identification_list(self, item: str, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_identification_list(item: str, identification: MD_DataIdentification | None) -> list[str]:
         """Extract a list attribute from ISO record."""
         result: list[str] = []
         if identification is None:
@@ -149,7 +154,8 @@ class IsoParser:
             contacts.extend(self._format_contacts(identification.contact, "resource"))
         return contacts
 
-    def _format_contacts(self, contact_list: list, contact_type: str) -> list[Contact]:
+    @staticmethod
+    def _format_contacts(contact_list: list, contact_type: str) -> list[Contact]:
         """Format contact list."""
         return [
             Contact(
@@ -162,7 +168,8 @@ class IsoParser:
             for c in contact_list
         ]
 
-    def _extract_lineage(self, iso: MD_Metadata) -> str | None:
+    @staticmethod
+    def _extract_lineage(iso: MD_Metadata) -> str | None:
         """Extract lineage from ISO record."""
         if iso.dataquality and iso.dataquality.lineage:
             lineage = iso.dataquality.lineage
@@ -220,7 +227,8 @@ class IsoParser:
 
     # === Extended INSPIRE Field Extraction ===
 
-    def _extract_resource_identifiers(self, identification: MD_DataIdentification | None) -> list[ResourceIdentifier]:
+    @staticmethod
+    def _extract_resource_identifiers(identification: MD_DataIdentification | None) -> list[ResourceIdentifier]:
         """Extract resource identifiers (DOI, ISBN, etc.) from citation/identifier."""
         identifiers: list[ResourceIdentifier] = []
         if identification is None:
@@ -241,7 +249,8 @@ class IsoParser:
                 )
         return identifiers
 
-    def _extract_dates(self, identification: MD_DataIdentification | None) -> list[InspireDate]:
+    @staticmethod
+    def _extract_dates(identification: MD_DataIdentification | None) -> list[InspireDate]:
         """Extract citation dates with types (creation, publication, revision)."""
         dates: list[InspireDate] = []
         if identification is None:
@@ -253,7 +262,8 @@ class IsoParser:
                 dates.append(InspireDate(date=ci_date.date, datetype=ci_date.type))
         return dates
 
-    def _extract_resource_language(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_resource_language(identification: MD_DataIdentification | None) -> list[str]:
         """Extract resource language(s)."""
         langs: list[str] = []
         if identification is None:
@@ -264,22 +274,25 @@ class IsoParser:
         langs.extend(getattr(identification, "resourcelanguage", []))
         return [lang for lang in langs if lang]  # Filter out None/empty
 
-    def _extract_graphic_overviews(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_graphic_overviews(identification: MD_DataIdentification | None) -> list[str]:
         """Extract thumbnail/preview image URLs."""
         if identification is None:
             return []
         urls = getattr(identification, "graphicoverview", [])
         return [str(u) for u in urls if u]
 
-    def _extract_resolution_denominators(self, identification: MD_DataIdentification | None) -> list[int]:
+    @staticmethod
+    def _extract_resolution_denominators(identification: MD_DataIdentification | None) -> list[int]:
         """Extract spatial resolution as scale denominators."""
         if identification is None:
             return []
         denoms = getattr(identification, "denominators", [])
         return [int(d) for d in denoms if d]
 
+    @staticmethod
     def _extract_resolution_distances(
-        self, identification: MD_DataIdentification | None
+        identification: MD_DataIdentification | None,
     ) -> list[SpatialResolutionDistance]:
         """Extract spatial resolution as distances with units."""
         if identification is None:
@@ -314,42 +327,48 @@ class IsoParser:
 
         return self._format_contacts(contact_list, "resource")
 
-    def _extract_access_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_access_constraints(identification: MD_DataIdentification | None) -> list[str]:
         """Extract access constraints."""
         if identification is None:
             return []
         constraints = getattr(identification, "accessconstraints", [])
         return [str(c) for c in constraints if c]
 
-    def _extract_use_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_use_constraints(identification: MD_DataIdentification | None) -> list[str]:
         """Extract use constraints."""
         if identification is None:
             return []
         constraints = getattr(identification, "useconstraints", [])
         return [str(c) for c in constraints if c]
 
-    def _extract_classification(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_classification(identification: MD_DataIdentification | None) -> list[str]:
         """Extract classification constraints."""
         if identification is None:
             return []
         constraints = getattr(identification, "classification", [])
         return [str(c) for c in constraints if c]
 
-    def _extract_other_constraints(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_other_constraints(identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints text."""
         if identification is None:
             return []
         constraints = getattr(identification, "otherconstraints", [])
         return [str(c) for c in constraints if c]
 
-    def _extract_other_constraints_url(self, identification: MD_DataIdentification | None) -> list[str]:
+    @staticmethod
+    def _extract_other_constraints_url(identification: MD_DataIdentification | None) -> list[str]:
         """Extract other constraints URLs."""
         if identification is None:
             return []
         urls = getattr(identification, "otherconstraints_url", [])
         return [str(u) for u in urls if u]
 
-    def _extract_distribution_formats(self, iso: MD_Metadata) -> list[DistributionFormat]:
+    @staticmethod
+    def _extract_distribution_formats(iso: MD_Metadata) -> list[DistributionFormat]:
         """Extract distribution format information."""
         formats: list[DistributionFormat] = []
         dist = getattr(iso, "distribution", None)
@@ -369,7 +388,8 @@ class IsoParser:
             )
         return formats
 
-    def _extract_online_resources(self, iso: MD_Metadata) -> list[OnlineResource]:
+    @staticmethod
+    def _extract_online_resources(iso: MD_Metadata) -> list[OnlineResource]:
         """Extract online resources (download links, service endpoints)."""
         resources: list[OnlineResource] = []
         dist = getattr(iso, "distribution", None)
@@ -393,7 +413,8 @@ class IsoParser:
                 )
         return resources
 
-    def _extract_conformance_results(self, iso: MD_Metadata) -> list[ConformanceResult]:
+    @staticmethod
+    def _extract_conformance_results(iso: MD_Metadata) -> list[ConformanceResult]:
         """Extract data quality conformance results."""
         results: list[ConformanceResult] = []
         dq = getattr(iso, "dataquality", None)
@@ -421,7 +442,8 @@ class IsoParser:
                 )
         return results
 
-    def _extract_lineage_url(self, iso: MD_Metadata) -> str | None:
+    @staticmethod
+    def _extract_lineage_url(iso: MD_Metadata) -> str | None:
         """Extract lineage URL if lineage uses gmx:Anchor."""
         dq = getattr(iso, "dataquality", None)
         if dq is None:
@@ -432,7 +454,8 @@ class IsoParser:
             return value  # type: ignore[no-any-return]
         return None
 
-    def _extract_reference_systems(self, iso: MD_Metadata) -> list[ReferenceSystem]:
+    @staticmethod
+    def _extract_reference_systems(iso: MD_Metadata) -> list[ReferenceSystem]:
         """Extract coordinate reference system(s)."""
         systems: list[ReferenceSystem] = []
         rs = getattr(iso, "referencesystem", None)

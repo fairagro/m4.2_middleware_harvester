@@ -6,7 +6,7 @@ to ARC Investigation, Study, Assay, and related objects.
 
 import re
 
-from arctrl import (  # type: ignore[import-untyped]
+from arctrl import (
     ARC,
     ArcAssay,
     ArcInvestigation,
@@ -20,7 +20,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Person,
     Publication,
 )
-from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.person_names import split_display_name
@@ -63,7 +63,8 @@ class InspireMapper:
         # 4. Wrap in ARC
         return ARC.from_arc_investigation(investigation)
 
-    def _to_identifier_slug(self, title: str) -> str:
+    @staticmethod
+    def _to_identifier_slug(title: str) -> str:
         """Convert a title to a machine-readable identifier slug."""
         if not title:
             return "untitled"
@@ -107,12 +108,14 @@ class InspireMapper:
 
         return person
 
-    def _split_name(self, name: str) -> tuple[str, str]:
+    @staticmethod
+    def _split_name(name: str) -> tuple[str, str]:
         """Split full name into first name and last name via shared helper."""
         parts = split_display_name(name)
         return parts.given or "", parts.family
 
-    def _contact_role_label(self, contact: Contact) -> str:
+    @staticmethod
+    def _contact_role_label(contact: Contact) -> str:
         """Human-readable role label for Person roles or Investigation comments."""
         if not contact.role:
             return "Contact"
@@ -121,7 +124,8 @@ class InspireMapper:
             return mapped[0]
         return contact.role
 
-    def _format_address(self, contact: Contact) -> str | None:
+    @staticmethod
+    def _format_address(contact: Contact) -> str | None:
         """Format full address from contact components."""
         address_parts = []
         if contact.address:
@@ -136,7 +140,8 @@ class InspireMapper:
             address_parts.append(contact.country)
         return ", ".join(address_parts) if address_parts else None
 
-    def _add_role(self, person: Person, contact: Contact) -> None:
+    @staticmethod
+    def _add_role(person: Person, contact: Contact) -> None:
         """Add role to person with ontology mapping if available."""
         if not contact.role:
             return
@@ -149,7 +154,8 @@ class InspireMapper:
         else:
             person.Roles.append(OntologyAnnotation(name=role_name))
 
-    def _add_person_comments(self, person: Person, contact: Contact) -> None:
+    @staticmethod
+    def _add_person_comments(person: Person, contact: Contact) -> None:
         """Add comments to person from position and online resources."""
         if contact.position:
             person.Comments.append(Comment.create("Position", contact.position))
@@ -180,7 +186,8 @@ class InspireMapper:
 
         return inv
 
-    def _add_ontology_sources(self, inv: ArcInvestigation, record: InspireRecord) -> None:
+    @staticmethod
+    def _add_ontology_sources(inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add ontology source references from metadata standard and common ontologies."""
         # Add metadata standard as ontology source
         if record.metadata_standard_name:
@@ -232,7 +239,8 @@ class InspireMapper:
             if person:
                 inv.Contacts.append(person)
 
-    def _add_publications(self, inv: ArcInvestigation, record: InspireRecord) -> None:
+    @staticmethod
+    def _add_publications(inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add publications from resource_identifiers, enriching with investigation metadata."""
         # Get authors from the investigation's contacts and format them as a string
         authors_list = [
@@ -286,20 +294,22 @@ class InspireMapper:
         self._add_constraint_comments(comments, record)
         return comments
 
-    def _add_hierarchy_comments(self, comments: list[Comment], record: InspireRecord) -> None:
+    @staticmethod
+    def _add_hierarchy_comments(comments: list[Comment], record: InspireRecord) -> None:
         """Add hierarchy level information as comments if not standard dataset."""
         if not record.hierarchy:
             return
 
         # Ignore standard dataset types
         hierarchy_lower = record.hierarchy.lower()
-        if hierarchy_lower in ["dataset", "nongeographicdataset"]:
+        if hierarchy_lower in {"dataset", "nongeographicdataset"}:
             return
 
         # Document non-standard hierarchy levels
         comments.append(Comment.create("Hierarchy Level", record.hierarchy))
 
-    def _add_constraint_comments(self, comments: list[Comment], record: InspireRecord) -> None:
+    @staticmethod
+    def _add_constraint_comments(comments: list[Comment], record: InspireRecord) -> None:
         """Add constraint-related comments."""
         if record.access_constraints:
             comments.append(Comment.create("Access Constraints", ", ".join(record.access_constraints)))
@@ -349,7 +359,8 @@ class InspireMapper:
 
         return study
 
-    def _create_spatial_sampling_protocol(self, record: InspireRecord) -> ArcTable | None:
+    @staticmethod
+    def _create_spatial_sampling_protocol(record: InspireRecord) -> ArcTable | None:
         """Create Spatial Sampling protocol if spatial information is available.
 
         Represents: Selection of geographic location(s) for data collection.
@@ -417,7 +428,8 @@ class InspireMapper:
             return table
         return None
 
-    def _create_data_acquisition_protocol(self, record: InspireRecord) -> ArcTable | None:
+    @staticmethod
+    def _create_data_acquisition_protocol(record: InspireRecord) -> ArcTable | None:
         """Create Data Acquisition protocol if temporal/acquisition metadata available.
 
         Represents: Actual data collection/sensing process.
@@ -494,7 +506,8 @@ class InspireMapper:
 
         return headers, cells
 
-    def _add_lineage_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    @staticmethod
+    def _add_lineage_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
         """Add lineage-related columns to processing protocol."""
         if record.lineage:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")))
@@ -516,15 +529,17 @@ class InspireMapper:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Conformance")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=conf_str)))
 
-    def _format_conformance_status(self, degree: str | None) -> str:
+    @staticmethod
+    def _format_conformance_status(degree: str | None) -> str:
         """Format conformance degree to PASS/FAIL/Unknown."""
-        if degree and degree.lower() in ["true", "pass"]:
+        if degree and degree.lower() in {"true", "pass"}:
             return "PASS"
         if degree:
             return "FAIL"
         return "Unknown"
 
-    def _add_format_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    @staticmethod
+    def _add_format_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
         """Add data format columns to processing protocol."""
         if not record.distribution_formats:
             return
@@ -534,9 +549,10 @@ class InspireMapper:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Output Format")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=fmt_str)))
 
-    def _add_date_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    @staticmethod
+    def _add_date_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
         """Add processing date columns to processing protocol."""
-        pub_dates = [d.date for d in record.dates if d.datetype in ["publication", "revision"]]
+        pub_dates = [d.date for d in record.dates if d.datetype in {"publication", "revision"}]
         if not pub_dates:
             return
 
@@ -544,7 +560,8 @@ class InspireMapper:
         headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Date")))
         cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
 
-    def _assemble_processing_table_with_headers(self, headers: list[CompositeHeader], cells: list) -> ArcTable:
+    @staticmethod
+    def _assemble_processing_table_with_headers(headers: list[CompositeHeader], cells: list) -> ArcTable:
         """Assemble processing table with input, parameter, and output columns."""
         table = ArcTable.init("Data Processing")
         table.AddColumn(
@@ -559,7 +576,8 @@ class InspireMapper:
         )
         return table
 
-    def _create_minimal_processing_table(self) -> ArcTable:
+    @staticmethod
+    def _create_minimal_processing_table() -> ArcTable:
         """Create minimal processing table with just a note."""
         table = ArcTable.init("Data Processing")
         table.AddColumn(
@@ -673,7 +691,8 @@ class InspireMapper:
 
         return table
 
-    def _get_measurement_type(self, record: InspireRecord) -> OntologyAnnotation:
+    @staticmethod
+    def _get_measurement_type(record: InspireRecord) -> OntologyAnnotation:
         """Get measurement type from topic category with ontology mapping."""
         # Topic category to ontology mapping
         topic_mapping = {

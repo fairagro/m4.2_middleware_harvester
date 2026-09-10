@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from arctrl import ArcInvestigation  # type: ignore[import-untyped]
+from arctrl import ArcInvestigation
 
 
 def require_nonempty_person_given_names(investigation: ArcInvestigation) -> None:

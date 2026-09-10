@@ -140,7 +140,7 @@ class StableGraph:
         return self.view(node).object_text()
 
 
-class ResourceView:  # pylint: disable=too-many-public-methods
+class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
     """Opaque handle for a subject; ``iri`` is None for blank nodes.
 
     Many small accessors are intentional (RDF access facade / DSL surface).

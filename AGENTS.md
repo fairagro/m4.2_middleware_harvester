@@ -71,12 +71,15 @@ middleware/
 # Run tests
 uv run pytest middleware/ -v
 
-# Quality checks (Ruff: root `ruff.toml` extends synced `ruff.global.toml`;
-# mypy/pylint: pyproject.toml — see openspec/principles.md)
-uv run ruff format --check middleware/
-uv run ruff check middleware/
-uv run mypy --config-file pyproject.toml
-uv run pylint middleware/inspire middleware/linked_data middleware/harvester
+# Quality checks (synced: ruff.toml, mypy.ini, .pylintrc — see docs/quality.md)
+uv run ruff format --check --config ruff.toml middleware/
+uv run ruff check --config ruff.toml middleware/
+MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit \
+  uv run mypy --config-file mypy.ini middleware/
+uv run pylint --rcfile .pylintrc \
+  --extension-pkg-allow-list=lxml \
+  --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit \
+  middleware/inspire middleware/linked_data middleware/harvester
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:
@@ -86,7 +89,7 @@ uv run bandit -r middleware/ -c .bandit -ll
 # Install/Update all dependencies
 uv sync --dev --all-packages
 
-# Agent GitHub CLI (Wave A) — not part of the root uv workspace
+# Agent GitHub CLI — not part of the root uv workspace
 uv run --project scripts/ai m42-ai --help
 ```
 

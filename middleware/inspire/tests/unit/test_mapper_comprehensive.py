@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person  # type: ignore[import]
-from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import]
-from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
+from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person
+from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async
+from fable_library.async_ import run_synchronously
 
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (

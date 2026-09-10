@@ -11,7 +11,7 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import override
 
-from arctrl import (  # type: ignore[import-untyped]
+from arctrl import (
     ARC,
     ArcAssay,
     ArcInvestigation,
@@ -26,7 +26,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import Graph, Literal, Namespace, URIRef  # type: ignore[import-untyped]
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.term import Node
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
@@ -61,7 +61,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     ]
 
     @override
-    def _stable_wrap(self, graph: Graph) -> StableGraph:
+    @staticmethod
+    def _stable_wrap(graph: Graph) -> StableGraph:
         """Wrap with Schema.org http/https term aliases and ``schema:name`` labels."""
         return StableGraph.wrap(
             graph,
@@ -214,7 +215,8 @@ class _SchemaOrgRun:
         for doi in alternate_dois:
             inv.Comments.append(Comment.create("Alternate Identifier", doi))
 
-    def _add_ontology_sources(self, inv: ArcInvestigation) -> None:
+    @staticmethod
+    def _add_ontology_sources(inv: ArcInvestigation) -> None:
         inv.OntologySourceReferences.append(
             OntologySourceReference.create(
                 name="SCHEMAORG",

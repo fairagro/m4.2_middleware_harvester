@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
+from owslib.iso import MD_Metadata
 
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient

@@ -42,7 +42,7 @@ class BadFakeDataset:
 
     @property
     def identifier(self) -> str:
-        """Return the dataset identifier."""
+        """The dataset identifier."""
         return self._url
 
     @classmethod
@@ -72,7 +72,7 @@ class GoodFakeDataset:
 
     @property
     def identifier(self) -> str:
-        """Return the dataset identifier."""
+        """The dataset identifier."""
         return self._url
 
     @classmethod

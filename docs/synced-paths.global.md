@@ -29,6 +29,8 @@ Until sync automation owns the manifest, keep this list aligned with Wave A / sy
 | `scripts/dev-tokens.sh`, `scripts/set-dev-tokens.sh`                  | Personal token helpers                      |
 | `scripts/bin/gh`, `scripts/bin/git`                                   | Auth PATH wrappers                          |
 | `openspec/principles.global.md`                                       | Shared principles base                      |
+| `renovate.json`                                                       | Shared Renovate config                      |
+| `.github/workflows/renovate.yml`                                      | Self-hosted Renovate workflow               |
 | `docker/Dockerfile.product-app.base`                                  | Shared product-app image base (when synced) |
 | Shared quality / hooks / Dev Container fragments shipped by sync      | As listed in sync PRs / Wave docs           |
 

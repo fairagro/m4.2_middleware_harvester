@@ -12,10 +12,10 @@ from typing import TypeVar
 from urllib.parse import urlencode
 
 import lxml.etree  # type: ignore[import-untyped]
-from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
-from owslib.fes import OgcExpression  # type: ignore[import-untyped]
-from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
-from owslib.util import Authentication  # type: ignore[import-untyped]
+from owslib.catalogue.csw2 import CatalogueServiceWeb
+from owslib.fes import OgcExpression
+from owslib.iso import MD_Metadata
+from owslib.util import Authentication
 
 from middleware.harvester.errors import RecordProcessingError
 
@@ -332,7 +332,8 @@ class CSWClient:
         logger.info("Using CQL query for harvesting: %s", cql_query)
         yield from self._get_records_paged(chunk_size, cql_query, None, max_records)
 
-    def _normalize_xml_query(self, xml_query: str | bytes) -> str | bytes:
+    @staticmethod
+    def _normalize_xml_query(xml_query: str | bytes) -> str | bytes:
         """Normalize raw XML queries for OWSLib compatibility."""
         if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
             return xml_query.encode("utf-8")
@@ -599,7 +600,8 @@ class CSWClient:
             raise TypeError("expected str from lxml.etree.tostring")
         return payload
 
-    def _apply_xml_paging_attrs(self, root: lxml.etree._Element, batch_size: int, start_position: int) -> None:
+    @staticmethod
+    def _apply_xml_paging_attrs(root: lxml.etree._Element, batch_size: int, start_position: int) -> None:
         """Set CSW paging attributes on a GetRecords root (in-place)."""
         root.set("startPosition", str(start_position))
         root.set("maxRecords", str(batch_size))
@@ -735,8 +737,8 @@ class CSWClient:
                 count += 1
         return results, errors_without_id, count
 
+    @staticmethod
     def _apply_dc_fallback(
-        self,
         results: list[InspireRecord | RecordProcessingError],
         errors_without_id: list[tuple[int, RecordProcessingError]],
         dc_ids: list[str],

@@ -103,12 +103,12 @@ class Config(BaseModel):
 
     @property
     def effective_worker_tasks(self) -> int:
-        """Return configured worker tasks or fall back to the HTTP client's max connections."""
+        """Configured worker tasks or fall back to the HTTP client's max connections."""
         return self.worker_tasks or self.http.max_connections
 
     @property
     def effective_resource_base_url(self) -> str:
-        """Return configured resource base URL or derive it from ``sitemap_url``."""
+        """Configured resource base URL or derive it from ``sitemap_url``."""
         if self.resource_base_url is not None and self.resource_base_url.strip():
             return self._normalize_resource_base_url(self.resource_base_url)
         return self._resource_base_url_from_sitemap(self.sitemap_url)
