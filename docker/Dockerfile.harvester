@@ -19,7 +19,13 @@ ENV BINARY_NAME=${BINARY_NAME}
 WORKDIR ${RUNTIME_WORKDIR}
 
 # hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates zlib \
+# Pin apk versions for reproducible builds (bump via scripts/update-apk-dependencies.sh).
+# Explicit libssl3/libcrypto3 pins pull security fixes when alpine:${ALPINE_VERSION} lags the repo.
+RUN apk add --no-cache \
+    ca-certificates=20260611-r0 \
+    zlib=1.3.2-r0 \
+    libcrypto3=3.5.8-r0 \
+    libssl3=3.5.8-r0 \
     && addgroup -S -g "${RUNTIME_GID}" "${RUNTIME_USER}" \
     && adduser -S -u "${RUNTIME_UID}" -H -G "${RUNTIME_USER}" "${RUNTIME_USER}" \
     && chown "${RUNTIME_USER}:${RUNTIME_USER}" "${RUNTIME_WORKDIR}"
