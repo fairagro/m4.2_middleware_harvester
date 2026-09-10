@@ -102,7 +102,9 @@ repos:
           "!.github/prompts/opsx-*"
           "!.github/skills/openspec-*/**"'
         language: system
-        files: \.(md|mdc)$
+        # CLI only lints **/*.md (OpenSpec .mdc ignored via globs / Devinfra #59).
+        # Do not match .mdc in `files` or the hook fires without linting those paths.
+        files: \.md$
         pass_filenames: false
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
 
