@@ -1,7 +1,7 @@
 # Personal GH_TOKEN / GITGUARDIAN_API_KEY. Source this file.
 # Environment: Linux Dev Container only (requires /commandhistory).
 # Empty prompt = skip (remembered). To set later: source ./scripts/set-dev-tokens.sh
-# Store: /commandhistory/tokens.env
+# Store: /commandhistory/tokens.env (sole source — process env does not override it).
 
 if [ "${BASH_SOURCE[0]-}" = "${0-}" ]; then
   echo "dev-tokens: source this file (do not execute it directly)" >&2
@@ -10,6 +10,11 @@ if [ "${BASH_SOURCE[0]-}" = "${0-}" ]; then
 fi
 
 _dev_tokens_file() {
+  # Test/smoke only: absolute path override (do not use for normal interactive work).
+  if [ -n "${DEV_TOKENS_FILE:-}" ]; then
+    printf '%s\n' "${DEV_TOKENS_FILE}"
+    return 0
+  fi
   if [ -d /commandhistory ]; then
     echo /commandhistory/tokens.env
     return 0
@@ -48,8 +53,7 @@ _dev_tokens_get_stored() {
 _DEV_TOKENS_FILE="$(_dev_tokens_file)" || return 1
 
 # If the environment already holds a store-encoded value (e.g. someone ran
-# `source /commandhistory/tokens.env`), decode it in place. Otherwise a later
-# "already set → keep" skip would leave GH_TOKEN=b64:… and break gh auth.
+# `source /commandhistory/tokens.env`), decode it in place before applying the store.
 for _dev_tokens_var in GH_TOKEN GITGUARDIAN_API_KEY; do
   _dev_tokens_cur="${!_dev_tokens_var-}"
   if [ -n "${_dev_tokens_cur}" ] && [ "${_dev_tokens_cur#b64:}" != "${_dev_tokens_cur}" ]; then
@@ -62,33 +66,48 @@ for _dev_tokens_var in GH_TOKEN GITGUARDIAN_API_KEY; do
 done
 unset _dev_tokens_var _dev_tokens_cur _dev_tokens_val
 
-# Apply stored tokens without clobbering a caller-set *decoded* value, and without
-# exporting empty "skip" markers (GH_TOKEN='') over a live environment.
+# Store is the sole source for known keys. Process env never overrides the store:
+# missing key → unset; empty skip marker → unset; non-empty → export store value.
 if [ -f "${_DEV_TOKENS_FILE}" ]; then
   for _dev_tokens_var in GH_TOKEN GITGUARDIAN_API_KEY; do
-    if [ -n "${!_dev_tokens_var-}" ]; then
-      continue
-    fi
-    _dev_tokens_val="$(_dev_tokens_get_stored "${_dev_tokens_var}")"
-    if [ -n "${_dev_tokens_val}" ]; then
-      export "${_dev_tokens_var}=${_dev_tokens_val}"
+    if grep -q "^${_dev_tokens_var}=" "${_DEV_TOKENS_FILE}" 2>/dev/null; then
+      _dev_tokens_val="$(_dev_tokens_get_stored "${_dev_tokens_var}")"
+      if [ -n "${_dev_tokens_val}" ]; then
+        export "${_dev_tokens_var}=${_dev_tokens_val}"
+      else
+        unset "${_dev_tokens_var}"
+      fi
+    else
+      unset "${_dev_tokens_var}"
     fi
   done
   unset _dev_tokens_var _dev_tokens_val
+else
+  unset GH_TOKEN GITGUARDIAN_API_KEY
 fi
 
 _dev_tokens_write() {
   local var=$1 val=$2 b64 tmp
   (
+    set -euo pipefail
     umask 077
     touch "${_DEV_TOKENS_FILE}"
     chmod 600 "${_DEV_TOKENS_FILE}"
-    tmp="$(mktemp "${_DEV_TOKENS_FILE}.XXXXXX")"
+    # Bash may not trip `set -e` on a failing command-substitution assignment — check explicitly.
+    tmp="$(mktemp "${_DEV_TOKENS_FILE}.XXXXXX")" || exit 1
     # Remove temp (may hold encoded secrets) if we exit before a successful rename.
     trap 'rm -f "${tmp}"' EXIT
-    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || true
+    # grep exit 1 = no remaining lines (empty or only this var) — OK; other statuses abort.
+    # Capture status before `case` — bash sets $? to 0 when a case arm matches.
+    grep -v "^${var}=" "${_DEV_TOKENS_FILE}" >"${tmp}" 2>/dev/null || {
+      _grep_st=$?
+      case ${_grep_st} in
+        1) ;;
+        *) exit "${_grep_st}" ;;
+      esac
+    }
     # GNU coreutils in the Dev Container (no BSD wrap fallback).
-    b64="$(printf '%s' "${val}" | base64 -w0)"
+    b64="$(printf '%s' "${val}" | base64 -w0)" || exit 1
     printf '%s=b64:%s\n' "${var}" "${b64}" >>"${tmp}"
     # Atomic replace: do not truncate the live store via redirect.
     chmod 600 "${tmp}"
@@ -98,19 +117,21 @@ _dev_tokens_write() {
 }
 
 _dev_tokens_ask() {
-  local var=$1 hint=$2 val cur
-  cur="${!var-}"
+  local var=$1 hint=$2 val
   if [ -z "${DEV_TOKENS_FORCE:-}" ]; then
-    [ -n "${cur}" ] && return 0
     grep -q "^${var}=" "${_DEV_TOKENS_FILE}" 2>/dev/null && return 0
   fi
   { printf '' >/dev/tty; } 2>/dev/null || return 0
   printf '%s — %s (empty skips until set-dev-tokens.sh)\n> ' "${var}" "${hint}" >/dev/tty
   IFS= read -r -s val </dev/tty || true
   printf '\n' >/dev/tty
-  _dev_tokens_write "${var}" "${val}"
+  if ! _dev_tokens_write "${var}" "${val}"; then
+    echo "dev-tokens: failed to persist ${var}; value kept for this shell only (re-run: source ./scripts/set-dev-tokens.sh)" >&2
+  fi
   if [ -n "${val}" ]; then
     export "${var}=${val}"
+  else
+    unset "${var}"
   fi
   return 0
 }
