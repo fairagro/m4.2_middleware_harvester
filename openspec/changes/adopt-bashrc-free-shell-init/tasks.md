@@ -18,4 +18,4 @@
 - [x] 3.1 Confirm `scripts/bin/{k,d,gh,git}` present from sync
 - [x] 3.2 Spot-check: `uv run pre-commit run mypy --all-files` with `product.env` / `MYPYPATH` available
 - [x] 3.3 `openspec validate --changes`
-- [ ] 3.4 Pause for user commit/push; draft PR with `Fixes #207`
+- [x] 3.4 Pause for user commit/push; draft PR with `Fixes #207`
