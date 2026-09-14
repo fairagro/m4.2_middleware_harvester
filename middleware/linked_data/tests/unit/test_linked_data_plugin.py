@@ -66,7 +66,7 @@ class FakeDataset:
         del client, config
         return cls(discovery_result.url)
 
-    async def to_graph(self) -> Graph:
+    async def to_graph(self) -> Graph:  # noqa: PLR6301
         """Return an empty rdflib Graph, matching Dataset.to_graph()."""
         await asyncio.sleep(0)
         return Graph()
@@ -120,13 +120,13 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
     )
 
     class FakeSitemapWithCatalogId:
-        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:
+        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:  # noqa: PLR6301
             yield UrlDiscoveryResult(
                 "https://www.openagrar.de/receive/openagrar_mods_00107322",
                 harvest_source_id="openagrar_mods_00107322",
             )
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return 1
 
     mock_mapper = MagicMock()
@@ -306,13 +306,13 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
     )
 
     class FailingSitemap:
-        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:
+        async def discover(self) -> AsyncGenerator[UrlDiscoveryResult, None]:  # noqa: PLR6301
             raise RobotsTxtDisallowedError(
                 "URL disallowed by robots.txt: https://frl.publisso.de/find?q=contentType:researchData"
             )
             yield  # pragma: no cover — make this an async generator
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return None
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FailingSitemap:

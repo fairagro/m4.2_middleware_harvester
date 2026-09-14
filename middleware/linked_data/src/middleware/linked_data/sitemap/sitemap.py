@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
+from typing import TypeVar
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
@@ -14,6 +15,8 @@ from ..registry import Registry
 
 # Payload carriers plus shared harvester signals (inspire-style).
 type SitemapYield = DiscoveryResult | RecordProcessingError | SkippedRecord
+
+TSitemap = TypeVar("TSitemap", bound="Sitemap")
 
 
 class Sitemap(ABC):
@@ -61,6 +64,6 @@ class Sitemap(ABC):
         raise NotImplementedError
 
     @classmethod
-    def register(cls, sitemap_type: SitemapType) -> Callable[[type[Sitemap]], type[Sitemap]]:
+    def register(cls, sitemap_type: SitemapType) -> Callable[[type[TSitemap]], type[TSitemap]]:
         """Register a concrete Sitemap implementation for the given sitemap type."""
         return cls.registry.register(sitemap_type)

@@ -66,7 +66,7 @@ async def test_linked_data_plugin_get_expected_datasets_returns_none_on_failure(
         def __init__(self, config: Config, client: NiceHttpClient) -> None:
             pass
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             raise RuntimeError("failed")
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient) -> FakeSitemapFailure:
@@ -95,7 +95,7 @@ async def test_linked_data_plugin_get_expected_datasets_returns_count() -> None:
         def __init__(self, config: Config, client: NiceHttpClient) -> None:
             pass
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return 5
 
     def fake_create_sitemap(_config: Config, client: NiceHttpClient) -> FakeSitemapCount:
@@ -200,13 +200,13 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
         def __init__(self, config: Config, client: NiceHttpClient) -> None:
             del config, client
 
-        async def discover(self) -> AsyncGenerator[SkippedRecord, None]:
+        async def discover(self) -> AsyncGenerator[SkippedRecord, None]:  # noqa: PLR6301
             yield SkippedRecord(
                 "Duplicate discovery entry skipped: https://example.org/dataset/dup",
                 "https://example.org/dataset/dup",
             )
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return 1
 
     def create_duplicate_sitemap(_config: Config, client: NiceHttpClient) -> DuplicateSitemap:
@@ -249,13 +249,13 @@ async def test_linked_data_plugin_run_plugin_forwards_discovery_record_processin
         def __init__(self, config: Config, client: NiceHttpClient) -> None:
             del config, client
 
-        async def discover(self) -> AsyncGenerator[RecordProcessingError, None]:
+        async def discover(self) -> AsyncGenerator[RecordProcessingError, None]:  # noqa: PLR6301
             yield RecordProcessingError(
                 "Regal /find record at from=0 index=1 is missing @id",
                 "regal_find:from=0:index=1",
             )
 
-        async def get_expected_count(self) -> int | None:
+        async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return 1
 
     def create_failed_sitemap(_config: Config, client: NiceHttpClient) -> FailedDiscoverySitemap:
