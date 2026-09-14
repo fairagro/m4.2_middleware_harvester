@@ -23,7 +23,10 @@
     "UV_LINK_MODE": "copy"
   },
   "remoteEnv": {
-    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"
+    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}",
+    // Path overlays for verbatim synced pre-commit (docs/quality.md) — not hook YAML patches.
+    "MYPYPATH": "stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit",
+    "CST_BAKE_TARGET": "harvester"
   },
   "customizations": {
     "vscode": {
