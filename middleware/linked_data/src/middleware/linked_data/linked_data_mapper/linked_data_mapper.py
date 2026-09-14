@@ -6,6 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from rdflib import Graph
 
@@ -14,6 +15,8 @@ from middleware.harvester.plugin_base import HarvestedArc
 from ..config import Config, PayloadType
 from ..registry import Registry
 from .stable_graph import StableGraph
+
+TLinkedDataMapper = TypeVar("TLinkedDataMapper", bound="LinkedDataMapper")
 
 
 @dataclass(frozen=True)
@@ -42,7 +45,7 @@ class LinkedDataMapper(ABC):
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
     @classmethod
-    def register(cls, payload_type: PayloadType) -> Callable[[type[LinkedDataMapper]], type[LinkedDataMapper]]:
+    def register(cls, payload_type: PayloadType) -> Callable[[type[TLinkedDataMapper]], type[TLinkedDataMapper]]:
         """Register a concrete LinkedDataMapper implementation for the given payload type."""
         return cls.registry.register(payload_type)
 

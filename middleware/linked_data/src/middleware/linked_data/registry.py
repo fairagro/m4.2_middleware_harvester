@@ -7,6 +7,7 @@ from typing import Generic, TypeVar, cast
 
 K = TypeVar("K")
 V = TypeVar("V")
+T = TypeVar("T")
 
 
 class Registry(Generic[K, V]):  # noqa: UP046
@@ -16,14 +17,20 @@ class Registry(Generic[K, V]):  # noqa: UP046
         """Initialize an empty registry."""
         self._registry: dict[K, type[V]] = {}
 
-    def register(self, key: K) -> Callable[[type[V]], type[V]]:
-        """Return a decorator to register a concrete implementation for the given key."""
+    def register(self, key: K) -> Callable[[type[T]], type[T]]:
+        """Return a decorator to register a concrete implementation for the given key.
+
+        ``T`` is independent of ``V`` so decorated subclasses keep their own
+        constructor signatures (``Callable[[type[V]], type[V]]`` would erase them
+        to the registry value type). The nested function avoids annotating with
+        method-scoped ``T`` (basedpyright forbids that on instance attributes).
+        """
 
         def decorator(subclass: type[V]) -> type[V]:
             self._registry[key] = subclass
             return subclass
 
-        return decorator
+        return cast(Callable[[type[T]], type[T]], decorator)
 
     def __getitem__(self, key: K) -> type[V]:
         """Return the registered implementation for the given key."""

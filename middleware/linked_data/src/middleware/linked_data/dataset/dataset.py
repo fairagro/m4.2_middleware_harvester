@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from rdflib import Graph
 
@@ -13,6 +14,8 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from ..config import Config, DatasetType
 from ..errors import LinkedDataDatasetError
 from ..registry import Registry
+
+TDataset = TypeVar("TDataset", bound="Dataset")
 
 
 @dataclass
@@ -58,7 +61,7 @@ class Dataset(ABC):
     registry: Registry[DatasetType, Dataset] = Registry()
 
     @classmethod
-    def register(cls, dataset_type: DatasetType) -> Callable[[type[Dataset]], type[Dataset]]:
+    def register(cls, dataset_type: DatasetType) -> Callable[[type[TDataset]], type[TDataset]]:
         """Register a concrete Dataset implementation for the given dataset type."""
         return cls.registry.register(dataset_type)
 

@@ -57,7 +57,7 @@ class BadFakeDataset:
             del client, config
         raise LinkedDataError("bad dataset")
 
-    async def to_graph(self) -> Graph:
+    async def to_graph(self) -> Graph:  # noqa: PLR6301
         """Simulate dataset graph conversion (unreachable when from_discovery_result fails)."""
         await asyncio.sleep(0)
         return Graph()
@@ -87,7 +87,7 @@ class GoodFakeDataset:
             del client, config
         return cls(discovery_result.url)
 
-    async def to_graph(self) -> Graph:
+    async def to_graph(self) -> Graph:  # noqa: PLR6301
         """Return an empty rdflib Graph, matching Dataset.to_graph()."""
         await asyncio.sleep(0)
         return Graph()
