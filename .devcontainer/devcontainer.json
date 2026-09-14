@@ -1,13 +1,8 @@
-// PRODUCT-OWNED overlay (not a Devinfra sync overwrite target).
-// Inspired by m4.2_middleware_devinfra `.devcontainer/devcontainer.json`.
-// Fleet contract: https://github.com/fairagro/m4.2_middleware_devinfra/issues/65
-// (verbatim-generic Devinfra file, or explicit .global/local / product-owned split).
-// Local deltas: name, workspaceFolder, volume names, postStartCommand, updateRemoteUserUID.
 {
-  "name": "Middleware Harvester (DinD)",
+  "name": "${localWorkspaceFolderBasename}",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
-  "workspaceFolder": "/workspaces/m4.2_middleware_harvester-cursor",
+  "workspaceFolder": "/workspace",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:4": {
       "moby": false,
@@ -16,17 +11,14 @@
     }
   },
   "mounts": [
-    "source=middleware-harvester-bashhistory,target=/commandhistory,type=volume",
-    "source=middleware-harvester-gh-config,target=/home/vscode/.config/gh,type=volume"
+    "source=${localWorkspaceFolderBasename}-bashhistory,target=/commandhistory,type=volume",
+    "source=${localWorkspaceFolderBasename}-gh-config,target=/home/vscode/.config/gh,type=volume"
   ],
   "containerEnv": {
     "UV_LINK_MODE": "copy"
   },
   "remoteEnv": {
-    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}",
-    // Path overlays for verbatim synced pre-commit (docs/quality.md) — not hook YAML patches.
-    "MYPYPATH": "stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit",
-    "CST_BAKE_TARGET": "harvester"
+    "PATH": "${workspaceFolder}/scripts/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
@@ -79,9 +71,5 @@
     }
   },
   "postCreateCommand": ["bash", "scripts/devcontainer-post-create.sh"],
-  "postStartCommand": {
-    "setup bashrc": "bash ${workspaceFolder}/scripts/setup-bashrc-load-env.sh"
-  },
-  "remoteUser": "vscode",
-  "updateRemoteUserUID": false
+  "remoteUser": "vscode"
 }
