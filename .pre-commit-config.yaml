@@ -1,10 +1,11 @@
-# Pre-commit configuration — PRODUCT-OWNED (not a Devinfra sync overwrite target).
-# Inspired by m4.2_middleware_devinfra `.pre-commit-config.yaml`, but do not treat this
-# file as a synced blob that is re-patched after sync. Fleet contract pending:
-# https://github.com/fairagro/m4.2_middleware_devinfra/issues/63
-# (verbatim-generic Devinfra config, or explicit .global/local / product-owned split).
-# Local deltas today: MYPYPATH, pylint package dirs + source-roots, helm YAML exclude,
-# markdownlint OpenSpec globs (until Devinfra #59), unit-test pre-push scope, CST Bake.
+# Pre-commit configuration (shared Devinfra skeleton for product sync).
+# See https://pre-commit.com
+#
+# Commit stage: fast checks / autofixes.
+# Pre-push: pytest + container-structure-test (git hook install is issue #9).
+#
+# Python hooks target middleware/ (path conventions). This Devinfra repo has no
+# product middleware/ packages — those hooks no-op until synced to a product.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -15,11 +16,7 @@ repos:
       - id: end-of-file-fixer
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-yaml
-        exclude: |
-          (?x)^(
-            \.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
-            | helm/[^/]+/templates/.*\.ya?ml$
-          )
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-added-large-files
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-merge-conflict
@@ -60,13 +57,11 @@ repos:
 
       - id: mypy
         name: mypy type check
-        # Product path overlay via MYPYPATH (hook `env:` unsupported on this pre-commit).
-        entry: >-
-          bash -c 'export MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit;
-          uv run mypy --config-file mypy.ini middleware/'
+        entry: uv run mypy middleware/
         language: system
         files: ^middleware/
         pass_filenames: false
+        args: [--config-file, mypy.ini]
 
       - id: bandit
         name: bandit security scan
@@ -78,39 +73,22 @@ repos:
 
       - id: pylint
         name: pylint
-        # Package dirs (not middleware/) so source-roots resolve same-dir test helpers.
-        entry: >-
-          uv run pylint --rcfile .pylintrc
-          --extension-pkg-allow-list=lxml
-          --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit
-          middleware/inspire middleware/linked_data middleware/harvester
+        entry: uv run pylint --rcfile .pylintrc middleware/
         language: system
         files: ^middleware/
         pass_filenames: false
 
       - id: markdownlint
         name: markdownlint-cli2
-        # Synced .markdownlint-cli2.jsonc stays verbatim. OpenSpec ignores belong in
-        # Devinfra (m4.2_middleware_devinfra#59); until sync, pass negated globs here
-        # (product pre-commit overlay — call cli2 directly; `npm run lint:md --` mangles args).
-        entry: >-
-          bash -c 'markdownlint-cli2 "**/*.md"
-          "!openspec/**"
-          "!.cursor/commands/opsx-*.md"
-          "!.cursor/skills/openspec-*/**"
-          "!.cursor/rules/openspec-*.mdc"
-          "!.github/prompts/opsx-*"
-          "!.github/skills/openspec-*/**"'
+        entry: npm run lint:md
         language: system
-        # CLI only lints **/*.md (OpenSpec .mdc ignored via globs / Devinfra #59).
-        # Do not match .mdc in `files` or the hook fires without linting those paths.
-        files: \.md$
+        files: \.(md|mdc)$
         pass_filenames: false
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
 
       - id: pytest
-        name: pytest unit tests
-        entry: bash -c "uv run pytest middleware/*/tests/unit/"
+        name: pytest
+        entry: bash -c "uv run pytest"
         language: system
         pass_filenames: false
         always_run: true
@@ -118,7 +96,7 @@ repos:
 
       - id: container-structure-test
         name: container structure test
-        entry: bash -c 'CST_BAKE_TARGET=harvester CST_IMAGE_TAG=inspire-to-arc:test bash scripts/run-container-structure-test.sh'
+        entry: bash scripts/run-container-structure-test.sh
         language: system
         pass_filenames: false
         always_run: true
