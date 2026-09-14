@@ -47,11 +47,11 @@ class SuccessPlugin:
         """Initialize the success plugin with its configuration."""
         self._config = config
 
-    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
         """Yield one valid ARC payload."""
         yield HarvestedArc(arc_json="arc-json")
 
-    async def get_expected_datasets(self) -> int | None:
+    async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
         """Return the expected dataset count for this plugin."""
         return None
 
@@ -63,12 +63,12 @@ class FailingPlugin:
         """Initialize the failing plugin with its configuration."""
         self._config = config
 
-    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+    async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
         """Yield a generator that immediately raises during iteration."""
         raise RuntimeError("harvest failure")
         yield  # pragma: no cover
 
-    async def get_expected_datasets(self) -> int | None:
+    async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
         """Return the expected dataset count for this plugin."""
         return None
 
@@ -108,10 +108,10 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
                 raise ConnectionError("CSW endpoint unreachable")
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             yield HarvestedArc(arc_json="arc-json")
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return None
 
     mock_client = _make_mock_client()
@@ -142,10 +142,10 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             yield HarvestedArc(arc_json="arc-json")
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return None
 
     harvest_result = MagicMock()
@@ -188,10 +188,10 @@ async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url()
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             yield HarvestedArc(arc_json="arc-json")
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return None
 
     request = httpx.Request(
@@ -228,11 +228,11 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             yield HarvesterError("record failed")
             yield HarvestedArc(arc_json="arc-json")
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return None
 
     mock_client = _make_mock_client()
@@ -274,11 +274,11 @@ async def test_skipped_record_items_are_counted_and_not_uploaded() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:  # noqa: PLR6301
             yield SkippedRecord("Duplicate sitemap entry skipped", "https://example.org/dup")
             yield HarvestedArc(arc_json="arc-json")
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return None
 
     mock_client = _make_mock_client()
@@ -383,7 +383,7 @@ def test_emit_report_logs_warning_on_serialisation_failure(
     report.finish(end_time=datetime(2026, 1, 1, 0, 1, tzinfo=UTC))
 
     class BrokenSerializer:
-        def render(self, _: HarvestReport) -> str:
+        def render(self, _: HarvestReport) -> str:  # noqa: PLR6301
             raise TypeError("boom")
 
     monkeypatch.setattr(
@@ -422,11 +422,11 @@ async def test_run_repository_sums_studies_and_assays_from_harvested_arcs() -> N
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             yield HarvestedArc(arc_json="{}", studies=1, assays=1)
             yield HarvestedArc(arc_json="{}", studies=1, assays=1)
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             return 2
 
     mock_client = _make_mock_client()
@@ -517,12 +517,12 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
         def __init__(self, config: object) -> None:
             self._config = config
 
-        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:
+        async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
             if False:  # pragma: no cover - required for AsyncGenerator typing
                 yield HarvestedArc(arc_json="{}")
             raise asyncio.CancelledError
 
-        async def get_expected_datasets(self) -> int | None:
+        async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
             raise asyncio.CancelledError
 
     with (
