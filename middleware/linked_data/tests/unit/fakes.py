@@ -92,6 +92,11 @@ class GoodFakeDataset:
         await asyncio.sleep(0)
         return Graph()
 
+    async def title_hint(self) -> str | None:  # noqa: PLR6301
+        """No page-title hint, matching Dataset.title_hint()."""
+        await asyncio.sleep(0)
+        return None
+
 
 _MINIMAL_CONFIG = Config(
     sitemap_url="https://example.org/sitemap.xml",
@@ -130,6 +135,39 @@ MULTI_BLOCK_HTML = """<!DOCTYPE html>
 </html>"""
 
 NO_JSONLD_HTML = """<!DOCTYPE html><html><head></head><body><p>No JSON-LD here.</p></body></html>"""
+
+CITATION_TITLE_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Page Title</title>
+  <meta name="citation_title" content="Citation Title">
+  <script type="application/ld+json">
+  {"@context": "https://schema.org", "@type": "Dataset", "name": "My Dataset"}
+  </script>
+</head>
+<body></body>
+</html>"""
+
+TITLE_ONLY_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Page Title Only</title>
+  <script type="application/ld+json">
+  {"@context": "https://schema.org", "@type": "Dataset", "name": "My Dataset"}
+  </script>
+</head>
+<body></body>
+</html>"""
+
+NO_TITLE_HINT_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <script type="application/ld+json">
+  {"@context": "https://schema.org", "@type": "Dataset", "name": "My Dataset"}
+  </script>
+</head>
+<body></body>
+</html>"""
 
 BAD_JSON_HTML = """<!DOCTYPE html>
 <html><head>
