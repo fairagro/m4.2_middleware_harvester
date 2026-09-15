@@ -76,6 +76,15 @@ class Dataset(ABC):
         """Return the dataset payload as an RDF graph."""
         raise NotImplementedError
 
+    async def title_hint(self) -> str | None:  # noqa: PLR6301
+        """Best-effort title recovered from the raw payload, outside the RDF graph.
+
+        Default ``None``. Overridden by dataset kinds that fetch a page whose
+        markup carries a title the embedded JSON-LD itself may omit (e.g.
+        ``html_jsonld``'s ``<title>``/``citation_title``).
+        """
+        return None
+
     @staticmethod
     async def _fetch_html(url: str, client: NiceHttpClient) -> str:
         """Fetch an HTML payload with harvesting policy (robots, rate limit, retry)."""

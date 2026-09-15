@@ -44,6 +44,45 @@ class _JsonLdScriptParser(HTMLParser):
             self._current_block.append(data)
 
 
+class _TitleHintParser(HTMLParser):
+    """Collects ``<meta name="citation_title">`` content and ``<title>`` text."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.citation_title: str | None = None
+        self.title: str | None = None
+        self._in_title: bool = False
+        self._title_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "title":
+            self._in_title = True
+            self._title_parts = []
+            return
+        if tag == "meta" and self.citation_title is None:
+            attr_map = dict(attrs)
+            if (attr_map.get("name") or "").strip().lower() == "citation_title":
+                content = (attr_map.get("content") or "").strip()
+                if content:
+                    self.citation_title = content
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "title" and self._in_title:
+            self._in_title = False
+            self.title = "".join(self._title_parts).strip() or None
+
+    def handle_data(self, data: str) -> None:
+        if self._in_title:
+            self._title_parts.append(data)
+
+
+def _extract_title_hint(html: str) -> str | None:
+    """Best-effort page title: ``citation_title`` meta content, else ``<title>``."""
+    parser = _TitleHintParser()
+    parser.feed(html)
+    return parser.citation_title or parser.title
+
+
 @Dataset.register(DatasetType.html_jsonld)
 class HtmlJsonLdDataset(Dataset):
     """Dataset that fetches an HTML page and extracts embedded JSON-LD markup."""
@@ -60,6 +99,7 @@ class HtmlJsonLdDataset(Dataset):
         self._config = config
         self._jsonld_parse_threshold_bytes = config.jsonld_parse_threshold_bytes
         self._jsonld_blocks: list[str] | None = None
+        self._html_text: str | None = None
 
     @property
     def identifier(self) -> str:
@@ -91,6 +131,7 @@ class HtmlJsonLdDataset(Dataset):
             return self._jsonld_blocks
 
         html_text = await self._fetch_html(self._url, self._client)
+        self._html_text = html_text
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
 
@@ -134,6 +175,12 @@ class HtmlJsonLdDataset(Dataset):
             merged += block_graph
 
         return merged
+
+    async def title_hint(self) -> str | None:
+        """``citation_title`` meta content, else ``<title>`` text, from the fetched page."""
+        if self._html_text is None:
+            self._html_text = await self._fetch_html(self._url, self._client)
+        return _extract_title_hint(self._html_text)
 
     def _parse_jsonld_block(self, block: str) -> Graph:
         graph = Graph()
