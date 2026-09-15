@@ -7,6 +7,7 @@ from mapper_test_helpers import (
     OPENAGRAR_PROPERTYVALUE_DOI,
     alternate_identifier_values,
     dual_doi_payload,
+    edal_pgp_replicate_payload,
     first_harvest,
     pangaea_doi_graph,
     parse_jsonld,
@@ -427,6 +428,35 @@ def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> 
     identifiers = [root_identifier(item.arc_json) for item in harvested]
     assert identifiers == ["example_org_dataset_alpha", "example_org_dataset_beta"]
     assert "catalog_page_1" not in identifiers
+
+
+def test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug() -> None:
+    """Regression for issue #125.
+
+    Three e!DAL-PGP DOIs share an 80+ char title
+    differing only in a trailing "Replikat N" suffix, and expose no
+    schema:identifier/url/sameAs. A title-derived identifier (truncated to 80
+    chars) would collide across all three; the harvest-source-id/source-url
+    cascade must not.
+    """
+    mapper = GeneralSchemaOrgMapper()
+    identifiers = [
+        root_identifier(
+            first_harvest(
+                mapper.map_graph(
+                    parse_jsonld(edal_pgp_replicate_payload(n)),
+                    MappingContext(source_url=f"https://doi.org/10.5447/ipk/2012/{n}"),
+                )
+            ).arc_json
+        )
+        for n in (1, 2, 3)
+    ]
+    assert len(set(identifiers)) == 3
+    assert identifiers == [
+        "doi_org_10_5447_ipk_2012_1",
+        "doi_org_10_5447_ipk_2012_2",
+        "doi_org_10_5447_ipk_2012_3",
+    ]
 
 
 def test_multi_dataset_yield_order_is_deterministic() -> None:
