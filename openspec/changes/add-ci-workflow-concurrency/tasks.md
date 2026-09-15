@@ -15,4 +15,4 @@
 
 - [x] 3.1 Spot-check YAML against API/sql_to_arc sibling snippets
 - [x] 3.2 `openspec validate --changes` (or equivalent if change was hand-scaffolded)
-- [ ] 3.3 Pause for user commit/push; draft PR with `Fixes #182`
+- [x] 3.3 Pause for user commit/push; draft PR with `Fixes #182`
