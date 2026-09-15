@@ -1,8 +1,8 @@
-"""Unit tests for the reusable linked_data registry implementation."""
+"""Unit tests for the shared ``middleware.payload.registry.Registry``."""
 
 import pytest
 
-from middleware.linked_data.registry import Registry
+from middleware.payload.registry import Registry
 
 
 def test_registry_register_and_getitem() -> None:

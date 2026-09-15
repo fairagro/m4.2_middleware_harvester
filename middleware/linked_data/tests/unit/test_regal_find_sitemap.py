@@ -7,7 +7,7 @@ import pytest
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import JsonLdDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
@@ -22,7 +22,6 @@ def _config(
         sitemap_url=url,
         sitemap_type=SitemapType.regal_find,
         dataset_type=DatasetType.regal_jsonld,
-        payload_type=PayloadType.regal_general,
         page_size=page_size,
         http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
     )
@@ -133,7 +132,6 @@ async def test_regal_find_sitemap_uses_config_default_page_size() -> None:
         sitemap_url="https://frl.publisso.de/find",
         sitemap_type=SitemapType.regal_find,
         dataset_type=DatasetType.regal_jsonld,
-        payload_type=PayloadType.regal_general,
         http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
     )
     assert config.page_size == 200

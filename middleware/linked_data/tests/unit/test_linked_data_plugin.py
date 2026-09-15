@@ -16,7 +16,6 @@ from middleware.linked_data.config import (
     Config,
     DatasetType,
     NiceHttpClientConfig as LinkedDataNiceHttpClientConfig,
-    PayloadType,
     SitemapType,
 )
 from middleware.linked_data.dataset import UrlDiscoveryResult
@@ -24,6 +23,7 @@ from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import Sitemap
+from middleware.payload.mapper_config import MapperConfig, MapperType
 
 
 class FakeSitemap:
@@ -78,7 +78,6 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -96,11 +95,11 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: FakeDataset})
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert results == [HarvestedArc(arc_json="mapped:graph", source_url="https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
@@ -115,7 +114,6 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -143,11 +141,11 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: FakeDataset})
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     mock_mapper.map_graph.assert_called_once()
@@ -163,7 +161,6 @@ async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failu
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -189,7 +186,7 @@ async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failu
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: BadDataset})
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -203,7 +200,6 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=2),
     )
 
@@ -225,7 +221,9 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
         staticmethod(
-            lambda _config: MagicMock(map_graph=MagicMock(return_value=[HarvestedArc(arc_json="mapped:graph")]))
+            lambda _config, _mapper_config=None: MagicMock(
+                map_graph=MagicMock(return_value=[HarvestedArc(arc_json="mapped:graph")])
+            )
         ),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
@@ -249,7 +247,7 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     loop.set_exception_handler(handle_exception)
 
     try:
-        agen = LinkedDataPlugin(config).run()
+        agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
         first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         assert first_result.arc_json == "mapped:graph"
@@ -267,7 +265,6 @@ async def test_linked_data_plugin_run_yields_error_when_robots_disallows_url(mon
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -286,7 +283,7 @@ async def test_linked_data_plugin_run_yields_error_when_robots_disallows_url(mon
         ),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -301,7 +298,6 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
         sitemap_url="https://frl.publisso.de/find",
         sitemap_type=SitemapType.regal_find,
         dataset_type=DatasetType.regal_jsonld,
-        payload_type=PayloadType.regal_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
 
@@ -324,7 +320,7 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
         staticmethod(fake_create_sitemap),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], LinkedDataSitemapError)
@@ -356,7 +352,7 @@ def _install_plugin_fakes(
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.wait_for_host", AsyncMock(return_value=None))
@@ -475,14 +471,15 @@ async def test_linked_data_plugin_bounds_pipeline_under_slow_consumer(monkeypatc
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=worker_tasks),
     )
     urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
     _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap(urls))
     metrics = _install_pipeline_tracking(monkeypatch, worker_tasks)
 
-    collected = await _drain_with_slow_consumer(LinkedDataPlugin(config).run(), catalog_size, item_delay=0.03)
+    collected = await _drain_with_slow_consumer(
+        LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run(), catalog_size, item_delay=0.03
+    )
 
     assert len(collected) == catalog_size
     assert metrics.results_queue is not None
@@ -497,13 +494,12 @@ async def test_linked_data_plugin_empty_sitemap_exits_cleanly(monkeypatch: pytes
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=2),
     )
     _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap([]))
 
     async def collect() -> list[PipelineResult]:
-        return [item async for item in LinkedDataPlugin(config).run()]
+        return [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     collected = await asyncio.wait_for(collect(), timeout=2.0)
     assert collected == []
@@ -517,7 +513,6 @@ async def test_linked_data_plugin_early_aclose_stops_mapping(monkeypatch: pytest
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=4),
     )
     urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
@@ -555,7 +550,7 @@ async def test_linked_data_plugin_early_aclose_stops_mapping(monkeypatch: pytest
     loop.set_exception_handler(handle_exception)
 
     try:
-        agen = LinkedDataPlugin(config).run()
+        agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
         first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         await agen.aclose()
@@ -578,7 +573,6 @@ async def test_linked_data_plugin_preserves_arrival_order_under_backpressure(
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(max_connections=worker_tasks),
     )
     urls = [f"https://example.org/dataset/{index}" for index in range(catalog_size)]
@@ -595,7 +589,7 @@ async def test_linked_data_plugin_preserves_arrival_order_under_backpressure(
 
     monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
 
-    agen = LinkedDataPlugin(config).run()
+    agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
     collected: list[str] = []
     try:
         for _ in range(catalog_size):

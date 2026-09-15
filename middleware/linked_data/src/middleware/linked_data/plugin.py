@@ -10,13 +10,18 @@ import httpx
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.linked_data_mapper import (
+    LinkedDataMapper,
+    MappingContext,
+    register_builtin_mappers,
+)
+from middleware.payload.mapper_config import MapperConfig
 
 from .config import Config
 from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
 from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
 from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
 from .errors import LinkedDataError, LinkedDataSitemapError
-from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from .sitemap import Sitemap
 
@@ -26,10 +31,10 @@ logger = logging.getLogger(__name__)
 class LinkedDataPlugin:
     """Stateful Linked Data plugin implementation (structurally satisfies ``Plugin``)."""
 
-    def __init__(self, config: Config) -> None:
-        """Initialize the plugin with its parsed configuration."""
+    def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
+        """Initialize the plugin with plugin + repository mapper configuration."""
         self._config: Config = config
-        self._mapper: LinkedDataMapper = self.create_mapper(config)
+        self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
         self._dataset_cls: type[Dataset] = self.create_dataset_class(config)
 
     @staticmethod
@@ -43,14 +48,16 @@ class LinkedDataPlugin:
         return sitemap_cls(config, client)
 
     @staticmethod
-    def create_mapper(config: Config) -> LinkedDataMapper:
-        """Create the mapper implementation for the configured payload type."""
+    def create_mapper(config: Config, mapper_config: MapperConfig) -> LinkedDataMapper:
+        """Create the mapper from repository ``mapper`` config (shared registry)."""
+        register_builtin_mappers()
         try:
-            mapper_cls = LinkedDataMapper.registry[config.payload_type]
+            mapper_cls = LinkedDataMapper.registry[mapper_config.type]
         except KeyError as exc:
-            raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
+            raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
 
-        return mapper_cls.from_config(config)
+        fallback = config.effective_resource_base_url
+        return mapper_cls.from_config(mapper_config, resource_base_url=fallback)
 
     @staticmethod
     def create_dataset_class(config: Config) -> type[Dataset]:

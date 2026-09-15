@@ -273,8 +273,6 @@ config:
         sitemap_type: xml
         # -- Provider-specific dataset page format. Allowed: html_jsonld
         dataset_type: html_jsonld
-        # -- Expected JSON-LD payload shape. Allowed: schema_org_general
-        payload_type: schema_org_general
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -303,6 +301,9 @@ config:
     # -------------------------------------------------------------------------
     # Example 3: Schema.org via MyCoRe Solr discovery source
     # -------------------------------------------------------------------------
+      mapper:
+        type: schema_org_general
+
     - rdi: "example-schemaorg-mycore-solr"
       linked_data:
         # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
@@ -312,7 +313,6 @@ config:
         sitemap_url: "https://www.openagrar.de/servlets/solr/select"
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
-        payload_type: schema_org_general
         # -- Optional page size (default 200). Used as Solr `rows` only when
         # -- sitemap_url has no `rows` parameter; URL `rows` wins when present.
         page_size: 100
@@ -329,6 +329,9 @@ config:
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
     # -------------------------------------------------------------------------
+      mapper:
+        type: schema_org_general
+
     - rdi: "example-publisso-regal"
       linked_data:
         # -- Regal /find endpoint (query-free is fine). Defaults fill
@@ -340,8 +343,6 @@ config:
         sitemap_type: regal_find
         # -- Allowed: html_jsonld | regal_jsonld
         dataset_type: regal_jsonld
-        # -- Allowed: schema_org_general | regal_general
-        payload_type: regal_general
         # -- Page size for /find `until` (default 200). URL `until` overrides
         # -- this value (same role as Solr `rows`).
         page_size: 200
@@ -358,6 +359,8 @@ config:
           # -- FRL robots.txt is Disallow: / for all agents; /find is still a
           # -- public machine API. Set false for this RDI or discovery fails.
           respect_robots_txt: false
+      mapper:
+        type: regal_general
 
 # =============================================================================
 # Pod scheduling

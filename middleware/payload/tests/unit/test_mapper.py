@@ -29,8 +29,8 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper
-from middleware.linked_data.linked_data_mapper.stable_graph import (
+from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
     StableGraph,
     _stable_term_token,

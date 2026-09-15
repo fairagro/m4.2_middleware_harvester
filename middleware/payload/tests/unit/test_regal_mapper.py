@@ -12,7 +12,7 @@ from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 
-from middleware.linked_data.linked_data_mapper.regal_mapper import (
+from middleware.payload.linked_data_mapper.regal_mapper import (
     DBO,
     REGAL,
     RESEARCH_DATA_TYPE,

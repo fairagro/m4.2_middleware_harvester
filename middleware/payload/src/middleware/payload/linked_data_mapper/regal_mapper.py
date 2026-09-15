@@ -30,8 +30,8 @@ from rdflib.term import Node
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.mapper_config import MapperConfig, MapperType
 
-from ..config import Config, PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .stable_graph import LabelledNode, ResourceView, StableGraph
 
@@ -80,7 +80,7 @@ _KNOWN_PREDICATES = {
 }
 
 
-@LinkedDataMapper.register(PayloadType.regal_general)
+@LinkedDataMapper.register(MapperType.regal_general)
 class RegalMapper(LinkedDataMapper):
     """Maps a Regal ResearchData RDF graph to ARC objects.
 
@@ -94,9 +94,14 @@ class RegalMapper(LinkedDataMapper):
 
     @classmethod
     @override
-    def from_config(cls, config: Config) -> RegalMapper:
-        """Construct a mapper using ``config.effective_resource_base_url``."""
-        return cls(config.effective_resource_base_url)
+    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> RegalMapper:
+        """Construct a mapper using mapper config or a caller-supplied base URL."""
+        base = config.normalize_resource_base_url() or (
+            resource_base_url.rstrip("/") + "/" if resource_base_url and resource_base_url.strip() else None
+        )
+        if base is None:
+            raise ValueError("Regal mapper requires resource_base_url on mapper config or a derived fallback")
+        return cls(base)
 
     @override
     @staticmethod

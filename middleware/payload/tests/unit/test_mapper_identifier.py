@@ -16,7 +16,8 @@ from mapper_test_helpers import (
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper, LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 
 
 def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> None:

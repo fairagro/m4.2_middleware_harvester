@@ -11,6 +11,7 @@ dependencies = [
     "nameparser>=2.1.0",
     "inspire",
     "linked_data",
+    "payload",
 ]
 
 [build-system]
