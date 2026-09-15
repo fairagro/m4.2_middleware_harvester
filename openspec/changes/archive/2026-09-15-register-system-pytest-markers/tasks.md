@@ -15,4 +15,4 @@
       `-m "not system_external and not system_local"` succeeds under `--strict-markers`
 - [x] 3.2 `openspec validate --changes`
 - [x] 3.3 Pause for user commit/push; draft PR with `Fixes #222`
-- [ ] 3.4 After merge (or with PR): comment on Devinfra #120 that harvester registered the markers
+- [x] 3.4 After merge (or with PR): comment on Devinfra #120 that harvester registered the markers
