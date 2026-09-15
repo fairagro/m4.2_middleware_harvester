@@ -71,6 +71,11 @@ class FakeDataset:
         await asyncio.sleep(0)
         return Graph()
 
+    async def title_hint(self) -> str | None:  # noqa: PLR6301
+        """No page-title hint, matching Dataset.title_hint()."""
+        await asyncio.sleep(0)
+        return None
+
 
 @pytest.mark.asyncio
 async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.MonkeyPatch) -> None:

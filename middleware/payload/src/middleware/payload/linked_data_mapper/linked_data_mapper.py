@@ -24,6 +24,7 @@ class MappingContext:
 
     source_url: str | None = None
     harvest_source_id: str | None = None
+    html_title: str | None = None
 
 
 class LinkedDataMapper(DataMapper[MappingContext]):
