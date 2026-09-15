@@ -12,9 +12,8 @@ repositories:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
       sitemap_type: xml
       dataset_type: html_jsonld
-      payload_type: schema_org_general
-
-
+    mapper:
+      type: schema_org_general
 api_client:
   api_url: "https://middleware-test.fairagro.net"
   timeout: 60.0

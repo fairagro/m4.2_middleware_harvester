@@ -5,11 +5,11 @@ from __future__ import annotations
 import pytest
 from rdflib.namespace import DCTERMS, RDF
 
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.linked_data.dataset.regal_jsonld import RegalJsonLdDataset
 from middleware.linked_data.errors import LinkedDataDatasetError
-from middleware.linked_data.linked_data_mapper.regal_mapper import RESEARCH_DATA_TYPE
+from middleware.payload.linked_data_mapper.regal_mapper import RESEARCH_DATA_TYPE
 
 _MINIMAL_CONTEXT = {
     "@vocab": "http://hbz-nrw.de/regal#",
@@ -26,7 +26,6 @@ def _config() -> Config:
         sitemap_url="https://frl.publisso.de/find",
         sitemap_type=SitemapType.regal_find,
         dataset_type=DatasetType.regal_jsonld,
-        payload_type=PayloadType.regal_general,
         http=NiceHttpClientConfig(respect_robots_txt=False),
     )
 
@@ -63,7 +62,6 @@ async def test_regal_jsonld_dataset_uses_configured_resource_base_url() -> None:
         sitemap_url="https://frl.publisso.de/find",
         sitemap_type=SitemapType.regal_find,
         dataset_type=DatasetType.regal_jsonld,
-        payload_type=PayloadType.regal_general,
         resource_base_url="https://repository.publisso.de/resource/",
         http=NiceHttpClientConfig(respect_robots_txt=False),
     )

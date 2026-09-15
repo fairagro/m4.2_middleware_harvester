@@ -10,7 +10,7 @@ from arctrl import ARC
 from rdflib import Graph
 
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.linked_data.linked_data_mapper import MappingContext
+from middleware.payload.linked_data_mapper import MappingContext
 
 BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
 

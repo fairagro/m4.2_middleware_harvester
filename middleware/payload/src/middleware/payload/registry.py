@@ -1,23 +1,23 @@
-"""Reusable registry implementation for Linked Data plugin components."""
+"""Reusable registry for mapping keys to concrete implementation types.
+
+Shared by ``middleware.payload`` (DataMappers) and protocol plugins
+(e.g. linked_data Sitemap/Dataset registries).
+"""
 
 from __future__ import annotations
 
 from collections.abc import Callable, ItemsView
-from typing import Generic, TypeVar, cast
-
-K = TypeVar("K")
-V = TypeVar("V")
-T = TypeVar("T")
+from typing import cast
 
 
-class Registry(Generic[K, V]):  # noqa: UP046
+class Registry[K, V]:
     """Registry for mapping keys to concrete implementation types."""
 
     def __init__(self) -> None:
         """Initialize an empty registry."""
         self._registry: dict[K, type[V]] = {}
 
-    def register(self, key: K) -> Callable[[type[T]], type[T]]:
+    def register[T](self, key: K) -> Callable[[type[T]], type[T]]:
         """Return a decorator to register a concrete implementation for the given key.
 
         ``T`` is independent of ``V`` so decorated subclasses keep their own

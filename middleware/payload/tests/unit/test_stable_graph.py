@@ -5,7 +5,7 @@ from __future__ import annotations
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from middleware.linked_data.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph
+from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph
 
 SCHEMA = Namespace("https://schema.org/")
 SCHEMA_HTTP = Namespace("http://schema.org/")

@@ -11,8 +11,8 @@ repositories:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
       sitemap_type: xml
       dataset_type: html_jsonld
-      payload_type: schema_org_general
-
+    mapper:
+      type: schema_org_general
 # repositories:
 #   - rdi: "dwd"
 #     inspire:
@@ -114,3 +114,4 @@ api_client:
   verify_ssl: true
   max_retries: 3
   retry_backoff_factor: 1.0
+

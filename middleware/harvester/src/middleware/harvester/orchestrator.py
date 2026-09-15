@@ -30,6 +30,15 @@ PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
 }
 
 
+def _create_plugin(repo: RepositoryConfig) -> Plugin:
+    """Instantiate the plugin for ``repo``, passing mapper config when required."""
+    if repo.linked_data is not None:
+        if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
+            raise ValueError("linked_data repositories require mapper config")
+        return LinkedDataPlugin(repo.linked_data, repo.mapper)
+    return PLUGIN_FACTORIES[repo.plugin_type](repo.plugin_config)
+
+
 async def heartbeat_loop(path: Path, interval: int) -> None:
     """Touch *path* every *interval* seconds to signal liveness."""
     while True:
@@ -59,7 +68,7 @@ async def run_repository(
             return
 
         logger.debug("Initializing plugin for repository %s (%s)", repo.rdi, repo.plugin_type)
-        plugin_instance = plugin_factory(repo.plugin_config)
+        plugin_instance = _create_plugin(repo)
         plugin_gen = plugin_instance.run()
         try:
             logger.debug("Getting expected datasets for repository %s (%s)", repo.rdi, repo.plugin_type)

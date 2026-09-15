@@ -8,6 +8,7 @@ dependencies = [
   "inspire",
   "harvester",
   "linked_data",
+  "payload",
 ]
 
 [dependency-groups]
@@ -35,12 +36,14 @@ dev = [
 inspire = { workspace = true }
 harvester = { workspace = true }
 linked_data = { workspace = true }
+payload = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "middleware/inspire",
     "middleware/harvester",
     "middleware/linked_data",
+    "middleware/payload",
 ]
 
 # ggshield 1.51.0 pins old transitive deps; override until upstream bumps.
@@ -61,14 +64,17 @@ override-dependencies = [
 testpaths = [
     "middleware/inspire/tests",
     "middleware/harvester/tests",
-    "middleware/linked_data/tests"
+    "middleware/linked_data/tests",
+    "middleware/payload/tests",
 ]
 pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
     "middleware/linked_data/src",
+    "middleware/payload/src",
     "middleware/linked_data/tests/unit",
     "middleware/inspire/tests/unit",
+    "middleware/payload/tests/unit",
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -106,7 +112,8 @@ filterwarnings = [
 source = [
     "middleware/inspire/src/middleware/inspire",
     "middleware/harvester/src/middleware/harvester",
-    "middleware/linked_data/src/middleware/linked_data"
+    "middleware/linked_data/src/middleware/linked_data",
+    "middleware/payload/src/middleware/payload",
 ]
 omit = [
     "*/tests/*",

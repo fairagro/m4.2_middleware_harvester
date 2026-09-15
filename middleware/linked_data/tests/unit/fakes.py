@@ -6,9 +6,10 @@ from collections.abc import AsyncGenerator
 import httpx
 from rdflib import Graph
 
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataError
+from middleware.payload.mapper_config import MapperConfig, MapperType
 
 DEFAULT_CONNECT_TIMEOUT = 5.0
 DEFAULT_READ_TIMEOUT = 15.0
@@ -97,9 +98,11 @@ _MINIMAL_CONFIG = Config(
     sitemap_url="https://example.org/sitemap.xml",
     sitemap_type=SitemapType.xml,
     dataset_type=DatasetType.html_jsonld,
-    payload_type=PayloadType.schema_org_general,
     http=NiceHttpClientConfig(),
 )
+
+_MINIMAL_MAPPER = MapperConfig(type=MapperType.schema_org_general)
+
 
 SIMPLE_HTML = """<!DOCTYPE html>
 <html>

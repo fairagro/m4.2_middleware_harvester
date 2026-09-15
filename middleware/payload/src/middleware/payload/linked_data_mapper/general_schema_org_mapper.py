@@ -32,8 +32,8 @@ from rdflib.term import Node
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
 from middleware.harvester.person_names import split_display_name
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.mapper_config import MapperType
 
-from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .stable_graph import SCHEMA_ORG_NAMESPACES, ResourceView, StableGraph, http_iri
 
@@ -47,7 +47,7 @@ class _IdentifierPlan:
     alternate_dois: tuple[str, ...]
 
 
-@LinkedDataMapper.register(PayloadType.schema_org_general)
+@LinkedDataMapper.register(MapperType.schema_org_general)
 class GeneralSchemaOrgMapper(LinkedDataMapper):
     """Maps a Schema.org RDF graph to ARC objects.
 

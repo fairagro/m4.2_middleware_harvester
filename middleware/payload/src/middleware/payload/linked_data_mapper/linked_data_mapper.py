@@ -3,20 +3,21 @@
 from __future__ import annotations
 
 import re
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable
+from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, override
 
 from rdflib import Graph
 
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.kinds import PayloadKind
+from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.parsed_payload import ParsedPayload
+from middleware.payload.registry import Registry
 
-from ..config import Config, PayloadType
-from ..registry import Registry
 from .stable_graph import StableGraph
-
-TLinkedDataMapper = TypeVar("TLinkedDataMapper", bound="LinkedDataMapper")
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class MappingContext:
     harvest_source_id: str | None = None
 
 
-class LinkedDataMapper(ABC):
+class LinkedDataMapper(DataMapper):
     """Maps a parsed Linked Data RDF graph to ARC RO-Crate JSON-LD.
 
     ``map_graph`` wraps the graph via :meth:`_stable_wrap`, then passes the
@@ -40,23 +41,32 @@ class LinkedDataMapper(ABC):
     LinkedDataMapper boundary (Faustregel).
     """
 
-    registry: Registry[PayloadType, LinkedDataMapper] = Registry()
+    accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+    # Reuse DataMapper.registry; keep a typed alias for RDF mappers.
+    registry: Registry[MapperType, LinkedDataMapper] = DataMapper.registry  # type: ignore[assignment]
 
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
     @classmethod
-    def register(cls, payload_type: PayloadType) -> Callable[[type[TLinkedDataMapper]], type[TLinkedDataMapper]]:
-        """Register a concrete LinkedDataMapper implementation for the given payload type."""
-        return cls.registry.register(payload_type)
-
-    @classmethod
-    def from_config(cls, config: Config) -> LinkedDataMapper:
-        """Construct a mapper from plugin configuration.
+    @override
+    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> LinkedDataMapper:
+        """Construct a mapper from repository mapper configuration.
 
         Subclasses that need config fields (e.g. resource base URL) override this.
         """
-        _ = config
+        _ = config, resource_base_url
         return cls()
+
+    @override
+    def map(self, payload: ParsedPayload, context: object) -> Iterable[HarvestedArc]:
+        """Map an ``rdf_graph`` ``ParsedPayload`` using ``MappingContext``."""
+        if payload.kind != PayloadKind.rdf_graph:
+            raise ValueError(f"LinkedDataMapper accepts {PayloadKind.rdf_graph}, got {payload.kind}")
+        if not isinstance(payload.value, Graph):
+            raise TypeError(f"rdf_graph payload value must be rdflib.Graph, got {type(payload.value)!r}")
+        if not isinstance(context, MappingContext):
+            raise TypeError(f"context must be MappingContext, got {type(context)!r}")
+        return self.map_graph(payload.value, context)
 
     def map_graph(self, graph: Graph, context: MappingContext) -> Iterable[HarvestedArc]:
         """Return harvested ARCs (JSON + composition counts) for the given graph.
@@ -65,22 +75,6 @@ class LinkedDataMapper(ABC):
 
         ``context`` is required. Callers without discovery data pass
         ``MappingContext()`` (fields default to ``None``).
-
-        ``context.harvest_source_id`` is an optional RDI-native catalog id from the
-        sitemap/discovery layer (e.g. MyCoRe Solr ``id``). When supplied, Schema.org
-        mappers use it as the primary harvest-stable ``Investigation.identifier``,
-        even when the graph contains DOIs.
-
-        ``context.source_url`` is the discovered landing/page URL. When no
-        ``harvest_source_id`` is supplied, Schema.org mappers may use a sanitized
-        ``source_url`` as the primary harvest-stable identifier before graph URL or
-        DOI fallbacks.
-
-        Returns an iterable of HarvestedArc objects. Mappers that handle a single
-        entity per graph yield an iterable with exactly one element. Mappers that
-        handle multiple entities (e.g. multiple Schema.org Datasets) yield multiple
-        elements. Callers that need a concrete sequence should materialize with
-        ``list(...)``.
         """
         return self._map_graph(graph, context, self._stable_wrap(graph))
 
@@ -96,23 +90,14 @@ class LinkedDataMapper(ABC):
 
     @classmethod
     def sanitize_identifier(cls, raw: str) -> str:
-        """Make *raw* safe for arctrl ``Investigation.identifier``.
-
-        Strips a leading ``http(s)://``, replaces characters outside
-        ``[A-Za-z0-9 _-]`` with ``_``, collapses repeats, and trims underscores.
-        """
+        """Make *raw* safe for arctrl ``Investigation.identifier``."""
         stripped = re.sub(r"^https?://", "", raw)
         sanitized = cls._FORBIDDEN_ID_CHARS.sub("_", stripped)
         return re.sub(r"_{2,}", "_", sanitized).strip("_")
 
     @staticmethod
     def to_identifier_slug(title: str) -> str | None:
-        """Slugify a non-empty title for ARC identifiers (max 80 chars).
-
-        Returns ``None`` when ``title`` is blank or sanitizes to an empty slug.
-        Callers that invent display titles (e.g. Regal ``Untitled``) must supply
-        that policy themselves; Schema.org refuses missing ``schema:name``.
-        """
+        """Slugify a non-empty title for ARC identifiers (max 80 chars)."""
         if not title or not title.strip():
             return None
         slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
