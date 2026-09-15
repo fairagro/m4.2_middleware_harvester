@@ -431,7 +431,9 @@ def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> 
 
 
 def test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug() -> None:
-    """Regression for issue #125: three e!DAL-PGP DOIs share an 80+ char title
+    """Regression for issue #125.
+
+    Three e!DAL-PGP DOIs share an 80+ char title
     differing only in a trailing "Replikat N" suffix, and expose no
     schema:identifier/url/sameAs. A title-derived identifier (truncated to 80
     chars) would collide across all three; the harvest-source-id/source-url

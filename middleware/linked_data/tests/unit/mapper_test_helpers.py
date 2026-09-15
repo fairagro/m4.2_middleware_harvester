@@ -87,12 +87,17 @@ OPENAGRAR_DUAL_DOI_TEMPLATE = """
 # DOI string in "@id" (not an absolute IRI). Sibling replicates share an
 # 80+ char title differing only in a trailing "Replikat N" suffix, which used
 # to collide once truncated by a title-derived identifier slug.
+_EDAL_PGP_TITLE_PREFIX = (
+    "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. "
+    "Average Normalised Abundances."
+)
+
 EDAL_PGP_REPLICATE_TEMPLATE = """
 {{
   "@context": "http://schema.org",
   "@type": "Dataset",
   "@id": "10.5447/ipk/2012/{replicate}",
-  "name": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat {replicate}",
+  "name": "{title} Replikat {replicate}",
   "publisher": {{
     "@type": "Organization",
     "name": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben"
@@ -108,7 +113,7 @@ EDAL_PGP_REPLICATE_TEMPLATE = """
 
 
 def edal_pgp_replicate_payload(replicate: int) -> str:
-    return EDAL_PGP_REPLICATE_TEMPLATE.format(replicate=replicate)
+    return EDAL_PGP_REPLICATE_TEMPLATE.format(replicate=replicate, title=_EDAL_PGP_TITLE_PREFIX)
 
 
 def parse_jsonld(payload: str) -> Graph:
