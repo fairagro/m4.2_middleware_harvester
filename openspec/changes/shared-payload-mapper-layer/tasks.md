@@ -37,4 +37,4 @@
 - [x] 6.1 `uv run ruff format` / `ruff check` on affected packages
 - [x] 6.2 `uv run pytest` for `middleware/payload`, `middleware/linked_data`, harvester config tests
 - [x] 6.3 `openspec validate --change shared-payload-mapper-layer`
-- [ ] 6.4 Pause for user commit/push; draft PR with `Fixes #140`
+- [x] 6.4 Pause for user commit/push; draft PR with `Fixes #140`
