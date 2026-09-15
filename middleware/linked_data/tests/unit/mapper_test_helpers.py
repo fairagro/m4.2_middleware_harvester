@@ -81,6 +81,36 @@ OPENAGRAR_DUAL_DOI_TEMPLATE = """
 """
 
 
+# Real e!DAL-PGP (IPK Gatersleben) markup, from DOIs 10.5447/ipk/2012/{1,2,3}
+# (fetched 2026-09-15; see issue #125). No schema:identifier, schema:url, or
+# schema:sameAs — the Dataset's only "id-shaped" field is a bare, schemeless
+# DOI string in "@id" (not an absolute IRI). Sibling replicates share an
+# 80+ char title differing only in a trailing "Replikat N" suffix, which used
+# to collide once truncated by a title-derived identifier slug.
+EDAL_PGP_REPLICATE_TEMPLATE = """
+{{
+  "@context": "http://schema.org",
+  "@type": "Dataset",
+  "@id": "10.5447/ipk/2012/{replicate}",
+  "name": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat {replicate}",
+  "publisher": {{
+    "@type": "Organization",
+    "name": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben"
+  }},
+  "author": [{{
+    "@type": "Person",
+    "name": "Rico Lippmann",
+    "givenName": "Rico",
+    "familyName": "Lippmann"
+  }}]
+}}
+"""
+
+
+def edal_pgp_replicate_payload(replicate: int) -> str:
+    return EDAL_PGP_REPLICATE_TEMPLATE.format(replicate=replicate)
+
+
 def parse_jsonld(payload: str) -> Graph:
     graph = Graph()
     graph.parse(data=payload, format="json-ld")
