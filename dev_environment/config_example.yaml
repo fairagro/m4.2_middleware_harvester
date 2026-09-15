@@ -147,4 +147,3 @@ api_client:
   verify_ssl: true
   max_retries: 3
   retry_backoff_factor: 1.0
-
