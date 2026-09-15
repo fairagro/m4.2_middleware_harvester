@@ -32,11 +32,12 @@ PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
 
 def _create_plugin(repo: RepositoryConfig) -> Plugin:
     """Instantiate the plugin for ``repo``, passing mapper config when required."""
-    if repo.linked_data is not None:
+    factory = PLUGIN_FACTORIES[repo.plugin_type]
+    if repo.plugin_type == "linked_data":
         if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
             raise ValueError("linked_data repositories require mapper config")
-        return LinkedDataPlugin(repo.linked_data, repo.mapper)
-    return PLUGIN_FACTORIES[repo.plugin_type](repo.plugin_config)
+        return factory(repo.plugin_config, repo.mapper)
+    return factory(repo.plugin_config)
 
 
 async def heartbeat_loop(path: Path, interval: int) -> None:
