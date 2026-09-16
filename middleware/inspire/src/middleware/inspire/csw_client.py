@@ -12,10 +12,10 @@ from typing import TypeVar
 from urllib.parse import urlencode
 
 import lxml.etree  # type: ignore[import-untyped]
-from owslib.catalogue.csw2 import CatalogueServiceWeb
-from owslib.fes import OgcExpression
-from owslib.iso import MD_Metadata
-from owslib.util import Authentication
+from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
+from owslib.fes import OgcExpression  # type: ignore[import-untyped]
+from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
+from owslib.util import Authentication  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config

@@ -66,10 +66,19 @@ def test_regal_from_config_uses_fallback() -> None:
 
 
 def test_mapper_config_resource_base_url_requires_http_scheme() -> None:
-    cfg = MapperConfig(type=MapperType.regal_general, resource_base_url="https://example.org/resource")
+    cfg = MapperConfig.model_validate({
+        "type": MapperType.regal_general,
+        "resource_base_url": "https://example.org/resource",
+    })
     assert cfg.normalize_resource_base_url() == "https://example.org/resource/"
-    assert MapperConfig(type=MapperType.regal_general, resource_base_url="  ").resource_base_url is None
+    assert (
+        MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "  "}).resource_base_url
+        is None
+    )
     with pytest.raises(ValidationError):
-        MapperConfig(type=MapperType.regal_general, resource_base_url="ftp://example.org/resource")
+        MapperConfig.model_validate({
+            "type": MapperType.regal_general,
+            "resource_base_url": "ftp://example.org/resource",
+        })
     with pytest.raises(ValidationError):
-        MapperConfig(type=MapperType.regal_general, resource_base_url="not-a-url")
+        MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "not-a-url"})
