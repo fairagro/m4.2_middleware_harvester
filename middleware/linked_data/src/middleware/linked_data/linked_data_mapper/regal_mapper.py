@@ -99,8 +99,7 @@ class RegalMapper(LinkedDataMapper):
         return cls(config.effective_resource_base_url)
 
     @override
-    @staticmethod
-    def _stable_wrap(graph: Graph) -> StableGraph:
+    def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap with ``skos:prefLabel`` as the Regal labelled-node policy."""
         return StableGraph.wrap(graph, label_predicates=(SKOS.prefLabel,))
 

@@ -17,6 +17,7 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper, LinkedDataMapper, MappingContext
+from middleware.linked_data.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES
 
 
 def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> None:
@@ -45,7 +46,7 @@ def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:
 def test_openagrar_propertyvalue_doi_is_investigation_identifier_when_no_source_url() -> None:
     graph = parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI)
     subject = None
-    for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
+    for schema in SCHEMA_ORG_NAMESPACES:
         subjects = list(graph.subjects(RDF.type, schema.Dataset))
         if subjects:
             subject = subjects[0]
@@ -438,6 +439,9 @@ def test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug() -
     schema:identifier/url/sameAs. A title-derived identifier (truncated to 80
     chars) would collide across all three; the harvest-source-id/source-url
     cascade must not.
+
+    Runs against ``GeneralSchemaOrgMapper`` directly: the identifier cascade is
+    RDI-agnostic (see #227 design decision 5) and e!DAL has no overlay mapper.
     """
     mapper = GeneralSchemaOrgMapper()
     identifiers = [

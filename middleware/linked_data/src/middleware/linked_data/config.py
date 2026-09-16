@@ -53,6 +53,17 @@ class Config(BaseModel):
     sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
     payload_type: Annotated[PayloadType, Field(description="Expected dataset payload type.")]
+    mapper: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Optional per-RDI mapper overlay name, selected on top of "
+                "`payload_type`. If unset, the mapper registered for `payload_type` "
+                "is used unchanged. If set, must name an overlay registered whose "
+                "declared base payload format matches `payload_type`."
+            ),
+        ),
+    ] = None
     http: Annotated[
         NiceHttpClientConfig,
         Field(

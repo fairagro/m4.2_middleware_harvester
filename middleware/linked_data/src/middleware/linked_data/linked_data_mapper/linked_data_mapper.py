@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, TypeVar
 
 from rdflib import Graph
 
@@ -42,6 +42,10 @@ class LinkedDataMapper(ABC):
     """
 
     registry: Registry[PayloadType, LinkedDataMapper] = Registry()
+    overlay_registry: Registry[str, LinkedDataMapper] = Registry()
+
+    #: Payload format an overlay mapper builds on. ``None`` for base format mappers.
+    BUILDS_ON: ClassVar[PayloadType | None] = None
 
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
@@ -49,6 +53,11 @@ class LinkedDataMapper(ABC):
     def register(cls, payload_type: PayloadType) -> Callable[[type[TLinkedDataMapper]], type[TLinkedDataMapper]]:
         """Register a concrete LinkedDataMapper implementation for the given payload type."""
         return cls.registry.register(payload_type)
+
+    @classmethod
+    def register_overlay(cls, name: str) -> Callable[[type[TLinkedDataMapper]], type[TLinkedDataMapper]]:
+        """Register a per-RDI overlay mapper under ``name`` for the config `mapper` field."""
+        return cls.overlay_registry.register(name)
 
     @classmethod
     def from_config(cls, config: Config) -> LinkedDataMapper:
@@ -95,8 +104,7 @@ class LinkedDataMapper(ABC):
         """Map ``graph`` using the caller-provided ``stable`` wrap (see :meth:`map_graph`)."""
         raise NotImplementedError
 
-    @staticmethod
-    def _stable_wrap(graph: Graph) -> StableGraph:
+    def _stable_wrap(self, graph: Graph) -> StableGraph:  # noqa: PLR6301
         """Wrap ``graph`` for this mapper. Override for vocabulary-specific policy."""
         return StableGraph.wrap(graph)
 

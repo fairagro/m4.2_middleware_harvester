@@ -13,28 +13,57 @@ from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper
+from middleware.linked_data.linked_data_mapper.openagrar_schema_org_mapper import OpenAgrarSchemaOrgMapper
 from middleware.linked_data.plugin import LinkedDataPlugin
 
 EXPECTED_DATASET_COUNT = 5
 
 
+def _config(**overrides: object) -> Config:
+    defaults: dict[str, object] = {
+        "sitemap_url": "https://example.org/sitemap.xml",
+        "sitemap_type": SitemapType.xml,
+        "dataset_type": DatasetType.html_jsonld,
+        "payload_type": PayloadType.schema_org_general,
+        "http": NiceHttpClientConfig(),
+    }
+    defaults.update(overrides)
+    return Config(**defaults)
+
+
 def test_create_mapper_from_config() -> None:
-    config = Config(
-        sitemap_url="https://example.org/sitemap.xml",
-        sitemap_type=SitemapType.xml,
-        dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
-        http=NiceHttpClientConfig(),
-    )
-    mapper = LinkedDataPlugin.create_mapper(config)
+    mapper = LinkedDataPlugin.create_mapper(_config())
     assert mapper is not None
 
 
 def test_create_mapper_rejects_unknown_payload_type() -> None:
-    config = cast(Config, SimpleNamespace(payload_type="bad"))
+    config = cast(Config, SimpleNamespace(payload_type="bad", mapper=None))
 
     with pytest.raises(ValueError, match="Unsupported payload type"):
         LinkedDataPlugin.create_mapper(config)
+
+
+def test_create_mapper_without_mapper_field_uses_payload_type_mapper() -> None:
+    mapper = LinkedDataPlugin.create_mapper(_config())
+    # Exact-type check: OpenAgrarSchemaOrgMapper is-a GeneralSchemaOrgMapper, so
+    # isinstance() would not distinguish "no overlay applied" from "overlay applied".
+    assert type(mapper) is GeneralSchemaOrgMapper  # pylint: disable=unidiomatic-typecheck
+
+
+def test_create_mapper_with_mapper_field_uses_overlay() -> None:
+    mapper = LinkedDataPlugin.create_mapper(_config(mapper="openagrar"))
+    assert type(mapper) is OpenAgrarSchemaOrgMapper  # pylint: disable=unidiomatic-typecheck
+
+
+def test_create_mapper_rejects_unknown_mapper_overlay() -> None:
+    with pytest.raises(ValueError, match="Unsupported mapper overlay: bad"):
+        LinkedDataPlugin.create_mapper(_config(mapper="bad"))
+
+
+def test_create_mapper_rejects_overlay_payload_type_mismatch() -> None:
+    with pytest.raises(ValueError, match="openagrar.*regal_general"):
+        LinkedDataPlugin.create_mapper(_config(mapper="openagrar", payload_type=PayloadType.regal_general))
 
 
 def test_create_sitemap_rejects_unknown_sitemap_type() -> None:
