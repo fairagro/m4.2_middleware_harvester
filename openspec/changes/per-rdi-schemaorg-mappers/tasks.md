@@ -1,8 +1,8 @@
 ## 1. Dialect seams (no behaviour change)
 
-- [ ] 1.1 Convert `LinkedDataMapper._stable_wrap` from `@staticmethod` to an instance method; update `GeneralSchemaOrgMapper` and `RegalMapper` overrides
-- [ ] 1.2 Collapse `GeneralSchemaOrgMapper.SCHEMA_URIS` into the single `SCHEMA_ORG_NAMESPACES` source; drive Dataset `rdf:type` selection from the same tuple the wrap receives
-- [ ] 1.3 Run the full linked_data suite unchanged to prove the refactor is inert (Regal stability, Schema.org identifier, concurrent `map_graph` guards)
+- [x] 1.1 Convert `LinkedDataMapper._stable_wrap` from `@staticmethod` to an instance method; update `GeneralSchemaOrgMapper` and `RegalMapper` overrides
+- [x] 1.2 Collapse `GeneralSchemaOrgMapper.SCHEMA_URIS` into the single `SCHEMA_ORG_NAMESPACES` source; drive Dataset `rdf:type` selection from the same tuple the wrap receives
+- [x] 1.3 Run the full linked_data suite unchanged to prove the refactor is inert (Regal stability, Schema.org identifier, concurrent `map_graph` guards)
 
 ## 2. Overlay selection mechanism
 
