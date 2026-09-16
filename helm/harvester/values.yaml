@@ -297,13 +297,12 @@ config:
           respect_robots_txt: true
           # -- User-Agent header sent with every HTTP request.
           user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
+      mapper:
+        type: schema_org_general
 
     # -------------------------------------------------------------------------
     # Example 3: Schema.org via MyCoRe Solr discovery source
     # -------------------------------------------------------------------------
-      mapper:
-        type: schema_org_general
-
     - rdi: "example-schemaorg-mycore-solr"
       linked_data:
         # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
@@ -325,13 +324,12 @@ config:
           # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
           # -- requires respect_robots_txt: false (machine-to-machine endpoint).
           respect_robots_txt: false
+      mapper:
+        type: schema_org_general
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
     # -------------------------------------------------------------------------
-      mapper:
-        type: schema_org_general
-
     - rdi: "example-publisso-regal"
       linked_data:
         # -- Regal /find endpoint (query-free is fine). Defaults fill
