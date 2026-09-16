@@ -4,6 +4,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import replace
+from typing import ClassVar
 
 import httpx
 
@@ -17,6 +18,7 @@ from middleware.linked_data.dataset.regal_jsonld import RegalJsonLdDataset  # no
 from middleware.linked_data.errors import LinkedDataError, LinkedDataSitemapError
 from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.linked_data.sitemap import Sitemap
+from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper import (
     LinkedDataMapper,
     MappingContext,
@@ -24,7 +26,8 @@ from middleware.payload.linked_data_mapper import (
 )
 from middleware.payload.mapper_config import MapperConfig
 
-# Side effect: load Schema.org / Regal mappers into DataMapper.registry.
+# Single side-effect entrypoint for builtin RDF mappers (also pulled in when
+# harvester.config imports LinkedDataPlugin for mapper/produces validation).
 _ = _register_builtin_mappers
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 class LinkedDataPlugin:
     """Stateful Linked Data plugin implementation (structurally satisfies ``Plugin``)."""
+
+    produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
 
     def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
         """Initialize the plugin with plugin + repository mapper configuration."""
@@ -53,7 +58,7 @@ class LinkedDataPlugin:
     def create_mapper(config: Config, mapper_config: MapperConfig) -> LinkedDataMapper:
         """Create the mapper from repository ``mapper`` config (shared registry)."""
         try:
-            mapper_cls = LinkedDataMapper.registry[mapper_config.type]
+            mapper_cls = LinkedDataMapper.registered_class(mapper_config.type)
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
 

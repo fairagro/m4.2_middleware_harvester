@@ -16,7 +16,6 @@ from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.registry import Registry
 
 
 @dataclass(frozen=True)
@@ -27,7 +26,7 @@ class MappingContext:
     harvest_source_id: str | None = None
 
 
-class LinkedDataMapper(DataMapper):
+class LinkedDataMapper(DataMapper[MappingContext]):
     """Maps a parsed Linked Data RDF graph to ARC RO-Crate JSON-LD.
 
     ``map_graph`` wraps the graph via :meth:`_stable_wrap`, then passes the
@@ -41,10 +40,16 @@ class LinkedDataMapper(DataMapper):
     """
 
     accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
-    # Reuse DataMapper.registry; keep a typed alias for RDF mappers.
-    registry: Registry[MapperType, LinkedDataMapper] = DataMapper.registry  # type: ignore[assignment]
 
     _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
+
+    @classmethod
+    def registered_class(cls, mapper_type: MapperType) -> type[LinkedDataMapper]:
+        """Return the ``DataMapper.registry`` entry narrowed to ``LinkedDataMapper``."""
+        mapper_cls = DataMapper.registry[mapper_type]
+        if not issubclass(mapper_cls, cls):
+            raise TypeError(f"mapper.type {mapper_type} is {mapper_cls.__name__}, not a {cls.__name__}")
+        return mapper_cls
 
     @classmethod
     @override
@@ -57,14 +62,12 @@ class LinkedDataMapper(DataMapper):
         return cls()
 
     @override
-    def map(self, payload: ParsedPayload, context: object) -> Iterable[HarvestedArc]:
+    def map(self, payload: ParsedPayload, context: MappingContext) -> Iterable[HarvestedArc]:
         """Map an ``rdf_graph`` ``ParsedPayload`` using ``MappingContext``."""
         if payload.kind != PayloadKind.rdf_graph:
             raise ValueError(f"LinkedDataMapper accepts {PayloadKind.rdf_graph}, got {payload.kind}")
         if not isinstance(payload.value, Graph):
             raise TypeError(f"rdf_graph payload value must be rdflib.Graph, got {type(payload.value)!r}")
-        if not isinstance(context, MappingContext):
-            raise TypeError(f"context must be MappingContext, got {type(context)!r}")
         return self.map_graph(payload.value, context)
 
     def map_graph(self, graph: Graph, context: MappingContext) -> Iterable[HarvestedArc]:

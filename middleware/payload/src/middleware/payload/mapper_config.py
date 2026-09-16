@@ -2,9 +2,8 @@
 
 from enum import StrEnum
 from typing import Annotated
-from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 
 class MapperType(StrEnum):
@@ -21,26 +20,25 @@ class MapperConfig(BaseModel):
 
     type: Annotated[MapperType, Field(description="DataMapper registry key.")]
     resource_base_url: Annotated[
-        str | None,
+        HttpUrl | None,
         Field(
             description=(
-                "Optional base URL for expanding compact Regal resource ids "
+                "Optional http(s) base URL for expanding compact Regal resource ids "
                 "(e.g. `frl:123`) to absolute IRIs. Used by Regal mappers; "
                 "when unset, callers may supply a derived fallback."
             ),
         ),
     ] = None
 
+    @field_validator("resource_base_url", mode="before")
+    @classmethod
+    def _blank_resource_base_url_as_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     def normalize_resource_base_url(self) -> str | None:
         """Return a trailing-slash-normalized resource base URL, or None."""
-        if self.resource_base_url is None or not self.resource_base_url.strip():
+        if self.resource_base_url is None:
             return None
-        return self.resource_base_url.rstrip("/") + "/"
-
-    @staticmethod
-    def resource_base_url_from_sitemap(sitemap_url: str) -> str:
-        """Derive ``{scheme}://{host}/resource/`` from a sitemap entry URL."""
-        parsed = urlparse(sitemap_url)
-        if not parsed.scheme or not parsed.netloc:
-            raise ValueError(f"Cannot derive resource_base_url from sitemap URL: {sitemap_url}")
-        return f"{parsed.scheme}://{parsed.netloc}/resource/"
+        return str(self.resource_base_url).rstrip("/") + "/"

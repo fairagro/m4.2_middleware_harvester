@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
@@ -12,17 +12,20 @@ from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.registry import Registry
 
-TDataMapper = TypeVar("TDataMapper", bound="DataMapper")
+TDataMapper = TypeVar("TDataMapper", bound="DataMapper[Any]")
 
 
-class DataMapper(ABC):
+class DataMapper[TContext](ABC):
     """Maps an intermediate payload to ``HarvestedArc``.
+
+    ``TContext`` is the mapper-family context type (e.g. ``MappingContext`` for RDF).
 
     Mappers must not perform protocol discovery or HTTP fetching of source
     catalogs. Selection is by explicit registry key (``MapperType``).
     """
 
-    registry: Registry[MapperType, DataMapper] = Registry()
+    # Shared store for all context specializations (erased to Any at the registry).
+    registry: Registry[MapperType, DataMapper[Any]] = Registry()
     accepts: ClassVar[PayloadKind]
 
     @classmethod
@@ -31,7 +34,7 @@ class DataMapper(ABC):
         return cls.registry.register(mapper_type)
 
     @classmethod
-    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> DataMapper:
+    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> DataMapper[TContext]:
         """Construct a mapper from repository mapper configuration.
 
         Subclasses that need config fields override this. ``resource_base_url``
@@ -42,9 +45,6 @@ class DataMapper(ABC):
         return cls()
 
     @abstractmethod
-    def map(self, payload: ParsedPayload, context: object) -> Iterable[HarvestedArc]:
-        """Map ``payload`` to harvested ARCs.
-
-        ``context`` is mapper-family specific (e.g. ``MappingContext`` for RDF).
-        """
+    def map(self, payload: ParsedPayload, context: TContext) -> Iterable[HarvestedArc]:
+        """Map ``payload`` to harvested ARCs using a family-specific ``context``."""
         raise NotImplementedError

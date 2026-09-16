@@ -7,16 +7,12 @@ from pydantic import BaseModel, Field, model_validator
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
+from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.payload import (
     DataMapper,
     MapperConfig,
-    PayloadKind,
 )
-from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
-
-# Side effect: load Schema.org / Regal mappers into DataMapper.registry.
-_ = _register_builtin_mappers
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig
@@ -71,9 +67,10 @@ class RepositoryConfig(BaseModel):
         except KeyError as exc:
             raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
         accepts = getattr(mapper_cls, "accepts", None)
-        if accepts != PayloadKind.rdf_graph:
+        produced = LinkedDataPlugin.produces
+        if accepts != produced:
             raise ValueError(
-                f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {PayloadKind.rdf_graph}"
+                f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {produced}"
             )
         return self
 

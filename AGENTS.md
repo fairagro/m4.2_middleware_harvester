@@ -80,7 +80,7 @@ MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked
 uv run pylint --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
   --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit,middleware/payload/tests/unit \
-  middleware/inspire middleware/linked_data middleware/harvester
+  middleware/inspire middleware/linked_data middleware/harvester middleware/payload
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

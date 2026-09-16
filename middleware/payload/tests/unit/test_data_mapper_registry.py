@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from typing import ClassVar, override
 
 import pytest
+from pydantic import ValidationError
 from rdflib import Graph
 
 from middleware.payload.data_mapper import DataMapper
@@ -28,7 +29,8 @@ def test_parsed_payload_rejects_empty_identifier() -> None:
 def test_registry_resolves_schema_org_and_regal() -> None:
     assert DataMapper.registry[MapperType.schema_org_general] is GeneralSchemaOrgMapper
     assert DataMapper.registry[MapperType.regal_general] is RegalMapper
-    assert LinkedDataMapper.registry[MapperType.schema_org_general] is GeneralSchemaOrgMapper
+    assert LinkedDataMapper.registered_class(MapperType.schema_org_general) is GeneralSchemaOrgMapper
+    assert LinkedDataMapper.registry is DataMapper.registry
 
 
 def test_registered_rdf_mappers_accept_rdf_graph() -> None:
@@ -37,7 +39,7 @@ def test_registered_rdf_mappers_accept_rdf_graph() -> None:
 
 
 def test_data_mapper_map_contract() -> None:
-    class _Stub(DataMapper):
+    class _Stub(DataMapper[object]):
         accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
 
         @override
@@ -61,3 +63,13 @@ def test_regal_from_config_uses_fallback() -> None:
         resource_base_url="https://example.org/resource",
     )
     assert mapper._resource_base_url == "https://example.org/resource/"
+
+
+def test_mapper_config_resource_base_url_requires_http_scheme() -> None:
+    cfg = MapperConfig(type=MapperType.regal_general, resource_base_url="https://example.org/resource")
+    assert cfg.normalize_resource_base_url() == "https://example.org/resource/"
+    assert MapperConfig(type=MapperType.regal_general, resource_base_url="  ").resource_base_url is None
+    with pytest.raises(ValidationError):
+        MapperConfig(type=MapperType.regal_general, resource_base_url="ftp://example.org/resource")
+    with pytest.raises(ValidationError):
+        MapperConfig(type=MapperType.regal_general, resource_base_url="not-a-url")
