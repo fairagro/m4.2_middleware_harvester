@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from middleware.harvester.person_names import PersonNameParts, split_display_name
+from middleware.payload.person_names import PersonNameParts, split_display_name
 
 
 @pytest.mark.parametrize(

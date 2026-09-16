@@ -6,10 +6,10 @@ from typing import ClassVar, override
 import pytest
 from rdflib import Graph
 
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.payload.data_mapper import DataMapper
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
-from middleware.payload.linked_data_mapper import LinkedDataMapper, register_builtin_mappers
+from middleware.payload.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.regal_mapper import RegalMapper
 from middleware.payload.mapper_config import MapperConfig, MapperType
@@ -26,7 +26,6 @@ def test_parsed_payload_rejects_empty_identifier() -> None:
 
 
 def test_registry_resolves_schema_org_and_regal() -> None:
-    register_builtin_mappers()
     assert DataMapper.registry[MapperType.schema_org_general] is GeneralSchemaOrgMapper
     assert DataMapper.registry[MapperType.regal_general] is RegalMapper
     assert LinkedDataMapper.registry[MapperType.schema_org_general] is GeneralSchemaOrgMapper

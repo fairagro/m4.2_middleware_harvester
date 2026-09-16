@@ -18,11 +18,10 @@ from owslib.iso import MD_Metadata
 from owslib.util import Authentication
 
 from middleware.harvester.errors import RecordProcessingError
-
-from .config import Config
-from .errors import CswConnectionError
-from .iso_parser import IsoParser
-from .models import InspireRecord
+from middleware.inspire.config import Config
+from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.iso_parser import IsoParser
+from middleware.inspire.models import InspireRecord
 
 T = TypeVar("T")
 

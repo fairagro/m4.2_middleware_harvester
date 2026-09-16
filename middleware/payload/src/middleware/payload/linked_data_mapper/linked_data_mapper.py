@@ -10,14 +10,13 @@ from typing import ClassVar, override
 
 from rdflib import Graph
 
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.payload.data_mapper import DataMapper
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
+from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.registry import Registry
-
-from .stable_graph import StableGraph
 
 
 @dataclass(frozen=True)

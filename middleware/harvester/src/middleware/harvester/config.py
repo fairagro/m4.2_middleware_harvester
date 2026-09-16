@@ -7,11 +7,16 @@ from pydantic import BaseModel, Field, model_validator
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
-from middleware.payload.data_mapper import DataMapper
-from middleware.payload.kinds import PayloadKind
-from middleware.payload.linked_data_mapper import register_builtin_mappers
-from middleware.payload.mapper_config import MapperConfig
+from middleware.payload import (
+    DataMapper,
+    MapperConfig,
+    PayloadKind,
+)
+from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
+
+# Side effect: load Schema.org / Regal mappers into DataMapper.registry.
+_ = _register_builtin_mappers
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig
@@ -61,7 +66,6 @@ class RepositoryConfig(BaseModel):
             return self
         if self.mapper is None:
             raise ValueError("linked_data repositories require a sibling mapper: block with type")
-        register_builtin_mappers()
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -82,10 +86,11 @@ class RepositoryConfig(BaseModel):
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        cfg: PluginConfig | None = getattr(self, self.plugin_type)
-        if cfg is None:  # pragma: no cover
-            raise RuntimeError("No plugin config set — did model validation run?")
-        return cfg
+        if self.inspire is not None:
+            return self.inspire
+        if self.linked_data is not None:
+            return self.linked_data
+        raise RuntimeError("No plugin config set — did model validation run?")
 
     @property
     def source_url(self) -> str | None:

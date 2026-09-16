@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import override
 from urllib.parse import quote, urlparse
 
-from arctrl import (
+from arctrl import (  # type: ignore[import-untyped]
     ARC,
     ArcAssay,
     ArcInvestigation,
@@ -23,17 +23,16 @@ from arctrl import (
     Person,
     Publication,
 )
-from arctrl.py.Core.ontology_source_reference import OntologySourceReference
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
-from middleware.harvester.person_contacts import require_nonempty_person_given_names
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
-
-from .linked_data_mapper import LinkedDataMapper, MappingContext
-from .stable_graph import LabelledNode, ResourceView, StableGraph
+from middleware.payload.person_contacts import require_nonempty_person_given_names
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")

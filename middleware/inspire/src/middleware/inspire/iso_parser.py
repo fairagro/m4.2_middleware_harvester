@@ -6,8 +6,8 @@ from typing import cast
 
 from owslib.iso import MD_DataIdentification, MD_Metadata
 
-from .errors import SemanticError
-from .models import (
+from middleware.inspire.errors import SemanticError
+from middleware.inspire.models import (
     ConformanceResult,
     Contact,
     DistributionFormat,

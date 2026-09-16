@@ -1,8 +1,8 @@
-"""Validation helpers for ARC Person contacts produced by harvester mappers."""
+"""Validation helpers for ARC Person contacts produced by mappers."""
 
 from __future__ import annotations
 
-from arctrl import ArcInvestigation
+from arctrl import ArcInvestigation  # type: ignore[import-untyped]
 
 
 def require_nonempty_person_given_names(investigation: ArcInvestigation) -> None:

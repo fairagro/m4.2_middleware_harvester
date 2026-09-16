@@ -5,12 +5,7 @@ Concrete dataset classes are imported from their modules (e.g.
 without loading provider implementations.
 """
 
-from .dataset import (
-    Dataset,
-    DiscoveryResult,
-    JsonLdDiscoveryResult,
-    UrlDiscoveryResult,
-)
+from middleware.linked_data.dataset.dataset import Dataset, DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 
 __all__ = [
     "Dataset",

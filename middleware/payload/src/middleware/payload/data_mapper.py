@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from typing import ClassVar, TypeVar
 
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload

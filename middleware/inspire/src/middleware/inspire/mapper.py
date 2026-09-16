@@ -6,7 +6,7 @@ to ARC Investigation, Study, Assay, and related objects.
 
 import re
 
-from arctrl import (
+from arctrl import (  # type: ignore[import-untyped]
     ARC,
     ArcAssay,
     ArcInvestigation,
@@ -20,12 +20,11 @@ from arctrl import (
     Person,
     Publication,
 )
-from arctrl.py.Core.ontology_source_reference import OntologySourceReference
+from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
-from middleware.harvester.person_contacts import require_nonempty_person_given_names
-from middleware.harvester.person_names import split_display_name
-
-from .models import Contact, InspireRecord
+from middleware.inspire.models import Contact, InspireRecord
+from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_names import split_display_name
 
 # Map INSPIRE role codes to ontology terms / Comment names.
 _ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
@@ -88,8 +87,8 @@ class InspireMapper:
         first_name, last_name = self._split_name(contact.name)
         if not first_name.strip():
             raise ValueError(
-                f"INSPIRE individualName must yield a non-empty given name "
-                f"(individualName={contact.name!r}, last_name={last_name!r})"
+                "INSPIRE individualName must yield a non-empty given name"
+                + f" (individualName={contact.name!r}, last_name={last_name!r})"
             )
 
         full_address = self._format_address(contact)
@@ -507,7 +506,7 @@ class InspireMapper:
         return headers, cells
 
     @staticmethod
-    def _add_lineage_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    def _add_lineage_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
         """Add lineage-related columns to processing protocol."""
         if record.lineage:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")))
@@ -517,7 +516,9 @@ class InspireMapper:
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Lineage Documentation URL")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage_url)))
 
-    def _add_conformance_columns(self, record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    def _add_conformance_columns(
+        self, record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]
+    ) -> None:
         """Add conformance result columns to processing protocol."""
         if not record.conformance_results:
             return
@@ -539,7 +540,7 @@ class InspireMapper:
         return "Unknown"
 
     @staticmethod
-    def _add_format_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    def _add_format_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
         """Add data format columns to processing protocol."""
         if not record.distribution_formats:
             return
@@ -550,7 +551,7 @@ class InspireMapper:
             cells.append(CompositeCell.term(OntologyAnnotation(name=fmt_str)))
 
     @staticmethod
-    def _add_date_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list) -> None:
+    def _add_date_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
         """Add processing date columns to processing protocol."""
         pub_dates = [d.date for d in record.dates if d.datetype in {"publication", "revision"}]
         if not pub_dates:
@@ -561,7 +562,7 @@ class InspireMapper:
         cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
 
     @staticmethod
-    def _assemble_processing_table_with_headers(headers: list[CompositeHeader], cells: list) -> ArcTable:
+    def _assemble_processing_table_with_headers(headers: list[CompositeHeader], cells: list[CompositeCell]) -> ArcTable:
         """Assemble processing table with input, parameter, and output columns."""
         table = ArcTable.init("Data Processing")
         table.AddColumn(

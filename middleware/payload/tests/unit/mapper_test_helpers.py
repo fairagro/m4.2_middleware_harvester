@@ -6,10 +6,10 @@ import json
 import re
 from collections.abc import Iterable
 
-from arctrl import ARC
+from arctrl import ARC  # type: ignore[import-untyped]
 from rdflib import Graph
 
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper import MappingContext
 
 BLANK_NODE_ID = re.compile(r"^N[0-9a-fA-F]{32}$")
@@ -79,7 +79,6 @@ OPENAGRAR_DUAL_DOI_TEMPLATE = """
   ]
 }}
 """
-
 
 # Real e!DAL-PGP (IPK Gatersleben) markup, from DOIs 10.5447/ipk/2012/{1,2,3}
 # (fetched 2026-09-15; see issue #125). No schema:identifier, schema:url, or

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy
+from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy  # type: ignore[import-untyped]
 
 from middleware.api_client.api_client import ApiClientError
 from middleware.harvester.errors import HarvesterError, SkippedRecord

@@ -16,9 +16,8 @@ import httpx
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
-
-from .dataset import DiscoveryResult
-from .errors import LinkedDataError
+from middleware.linked_data.dataset import DiscoveryResult
+from middleware.linked_data.errors import LinkedDataError
 
 PipelineResult = HarvestedArc | HarvesterError | SkippedRecord
 ProcessFn = Callable[

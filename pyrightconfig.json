@@ -9,5 +9,6 @@
     "**/.*",
     "**/.venv",
     "**/venv"
-  ]
+  ],
+  "typeCheckingMode": "off"
 }

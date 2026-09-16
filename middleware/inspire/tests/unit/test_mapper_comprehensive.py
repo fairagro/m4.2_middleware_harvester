@@ -6,9 +6,17 @@ import os
 from pathlib import Path
 
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy, OntologyAnnotation, Person
-from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async
-from fable_library.async_ import run_synchronously
+from arctrl import (  # type: ignore[import-untyped]
+    ARC,
+    ArcAssay,
+    ArcInvestigation,
+    ArcStudy,
+    Comment,
+    OntologyAnnotation,
+    Person,
+)
+from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (
@@ -91,24 +99,9 @@ def mapper() -> InspireMapper:
     return InspireMapper()
 
 
-def _create_minimal_record(
-    **kwargs: list
-    | str
-    | None
-    | list[Contact]
-    | list[ResourceIdentifier]
-    | list[InspireDate]
-    | list[DistributionFormat]
-    | list[OnlineResource]
-    | list[ConformanceResult]
-    | list[ReferenceSystem]
-    | list[float]
-    | list[SpatialResolutionDistance]
-    | tuple[str | None, str | None]
-    | bytes,
-) -> InspireRecord:
+def _create_minimal_record(**kwargs: object) -> InspireRecord:
     """Create a minimal InspireRecord with default values for all required fields."""
-    defaults: dict = {
+    defaults: dict[str, object] = {
         "identifier": "test",
         "title": "Test",
         "abstract": "Test abstract",
@@ -137,7 +130,7 @@ def _create_minimal_record(
     }
     # Update defaults with provided kwargs
     defaults.update(kwargs)
-    return InspireRecord(**defaults)
+    return InspireRecord.model_validate(defaults)
 
 
 def test_map_record_e2e(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -723,7 +716,7 @@ def test_add_constraint_comments(mapper: InspireMapper) -> None:
         other_constraints_url=["https://example.com/constraints"],
     )
 
-    comments: list = []
+    comments: list[Comment] = []
     mapper._add_constraint_comments(comments, record)
 
     assert len(comments) == 5

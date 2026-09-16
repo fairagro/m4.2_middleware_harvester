@@ -8,9 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from arctrl import ARC
-from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async
-from fable_library.async_ import run_synchronously
+from arctrl import ARC  # type: ignore[import-untyped]
+from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
+from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
     assert_harvest_has_no_bnode_labels,
@@ -28,7 +28,7 @@ from mapper_test_helpers import (
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
