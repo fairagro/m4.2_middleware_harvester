@@ -7,6 +7,10 @@ model used by ARC.
 **Related specs:**
 
 - Implementation contract: [`openspec/specs/schemaorg-to-arc-mapping/`](../openspec/specs/schemaorg-to-arc-mapping/)
+- Overlay mechanism: [`openspec/specs/linked-data-mapper/`](../openspec/specs/linked-data-mapper/),
+  [`openspec/specs/linked-data-harvesting/`](../openspec/specs/linked-data-harvesting/)
+- OpenAgrar overlay deltas: [`openspec/changes/per-rdi-schemaorg-mappers/specs/openagrar-schemaorg-overrides/`](../openspec/changes/per-rdi-schemaorg-mappers/specs/openagrar-schemaorg-overrides/)
+  (moves to `openspec/specs/openagrar-schemaorg-overrides/` once `#227` is archived)
 
 ## Concept
 
@@ -231,3 +235,88 @@ Example:
 
 Produces two `"Distribution"` comments: `"text/csv: https://repo.example.org/data.csv"`
 and `"application/json: https://repo.example.org/data.json"`.
+
+## RDI Overrides
+
+`payload_type` (e.g. `schema_org_general`) names the payload **format** a
+repository serves; it never encodes which repository the data came from. Every
+Schema.org repository therefore shares the same `GeneralSchemaOrgMapper` rules
+described above, including one all Schema.org RDIs must satisfy: **a Dataset
+without a non-empty `schema:name` fails closed** (record-level mapping error,
+no `HarvestedArc`, no `Untitled` display title).
+
+A minority of repositories need a small, genuinely repository-specific
+exception to an otherwise-shared rule. That behaviour does not widen
+`GeneralSchemaOrgMapper` — it lives in a dedicated **overlay mapper**: a
+subclass that overrides only the extension point it needs and inherits
+everything else (identifier cascade, contacts, publisher policy, comments,
+ordering). An overlay is selected per-repository by an optional `mapper`
+config field alongside `payload_type`; omitting `mapper` uses the shared
+mapper unchanged. See `linked-data-mapper` and `linked-data-harvesting` for the
+full overlay-selection contract, including the fail-fast checks on an unknown
+`mapper` name or a `BUILDS_ON`/`payload_type` mismatch.
+
+### Registered overlays
+
+| Overlay name | Class | Builds on | What it changes |
+| --- | --- | --- | --- |
+| `openagrar` | `OpenAgrarSchemaOrgMapper` | `schema_org_general` | Accepts a title fallback chain when `schema:name` is missing/blank |
+
+**`openagrar`** — OpenAgrar's MyCoRe export omits `schema:name` on a small
+share of otherwise-valid records (issue `#164`) while still exposing a usable
+title elsewhere. `OpenAgrarSchemaOrgMapper` resolves the Dataset title from the
+first non-empty carrier, in order:
+
+1. `schema:headline`
+2. the first non-empty `schema:alternativeHeadline`
+3. the HTML `citation_title`/`<title>` hint carried on
+   `MappingContext.html_title` (`html_jsonld` datasets only)
+
+A title resolved this way is never silent: the Investigation gets a
+`Comment("Title Source", "<carrier>")` and a WARNING log line names the
+Dataset, the carrier, and the resolved title. A title from `schema:name`
+itself produces neither. When none of the four carriers (`schema:name` plus
+the three above) yields a value, mapping fails closed exactly as the shared
+mapper does, naming all four in the error. See
+`openagrar-schemaorg-overrides` for the full scenario-level contract.
+
+`e!DAL-PGP` is a Schema.org RDI with **no** overlay: its only known quirk
+(sibling-replicate identifier collisions, issue `#125`) was RDI-agnostic and
+already fixed in the shared harvest-stable identifier cascade, so it keeps
+`payload_type: schema_org_general` with no `mapper` line.
+
+### Onboarding a new RDI overlay
+
+This is a lightweight checklist for adding another repository-specific
+overlay. It documents current practice with two known mappers; `#170` is
+expected to formalize it as generated per-RDI docs
+(`docs/mappers/rdi/<name>.md`) — until then, this checklist and
+`openagrar_schema_org_mapper.py` are the worked example to copy from.
+
+1. **Confirm it's genuinely RDI-specific.** A rule that would apply to any
+   repository exposing the same payload shape belongs in the shared format
+   mapper, not an overlay, even if only one RDI motivated it (see the
+   `e!DAL-PGP` case above). Don't create an overlay with no behaviour in it.
+2. **Subclass the base format mapper** (e.g. `GeneralSchemaOrgMapper`) in a new
+   `middleware/linked_data/src/middleware/linked_data/linked_data_mapper/<name>_schema_org_mapper.py`.
+3. **Register it**: `@LinkedDataMapper.register_overlay("<name>")` and declare
+   `BUILDS_ON = PayloadType.<the format it extends>`.
+4. **Override only the extension points you need** (today: `TITLE_SOURCES` and
+   `resolve_title_fallback`); everything else inherits from the base mapper
+   unchanged.
+5. **Export the class** from `linked_data_mapper/__init__.py` so the
+   `@register_overlay` decorator runs on package import.
+6. **Point repository configs at it**: add `mapper: <name>` next to
+   `payload_type` in the relevant `helm/harvester/values.yaml` example and/or
+   `dev_environment/*.yaml`, with a comment explaining the quirk it works
+   around and that removing the line falls back to the base mapper.
+7. **Add a per-mapper test module** mirroring
+   `middleware/linked_data/tests/unit/test_openagrar_mapper.py`: the
+   overridden behaviour itself, its provenance comment/log (if any), the
+   fail-closed error naming every declared carrier, a parity test showing
+   identical output to the base mapper on payloads that don't hit the overlay
+   rule, and the concurrent `map_graph` cross-talk guard.
+8. **Add an OpenSpec delta** under
+   `openspec/changes/<change-id>/specs/<name>-schemaorg-overrides/spec.md`
+   stating only the deltas relative to `schemaorg-to-arc-mapping` — see
+   `openagrar-schemaorg-overrides/spec.md` as the template.

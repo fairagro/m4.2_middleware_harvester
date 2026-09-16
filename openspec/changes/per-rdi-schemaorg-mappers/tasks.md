@@ -37,10 +37,10 @@
 
 ## 6. Docs and follow-ups
 
-- [ ] 6.1 Add an "RDI overrides" section to `docs/schemaorg_mapping.md` listing the OpenAgrar overlay and its title chain, cross-referencing `#170`
-- [ ] 6.2 Add an RDI-onboarding template anchored to the OpenAgrar overlay as the worked example
-- [ ] 6.3 File a follow-up issue: move the JSON-LD `@context` allowlist out of `jsonld_validation.py`'s module constant into a mapper-declared contribution (dialect blocker crossing into the dataset layer)
-- [ ] 6.4 Record on `#227` that `#125` carried no e!DAL-specific code and no `EdalPgpSchemaOrgMapper` was created
+- [x] 6.1 Add an "RDI overrides" section to `docs/schemaorg_mapping.md` listing the OpenAgrar overlay and its title chain, cross-referencing `#170`
+- [x] 6.2 Add an RDI-onboarding template anchored to the OpenAgrar overlay as the worked example
+- [x] 6.3 File a follow-up issue: move the JSON-LD `@context` allowlist out of `jsonld_validation.py`'s module constant into a mapper-declared contribution (dialect blocker crossing into the dataset layer) — filed as `#247`
+- [x] 6.4 Record on `#227` that `#125` carried no e!DAL-specific code and no `EdalPgpSchemaOrgMapper` was created
 
 ## 7. Validation
 
