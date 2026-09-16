@@ -3,12 +3,6 @@
   "venv": ".venv",
   "stubPath": "stubs",
   "extraPaths": ["scripts/ai/src"],
-  "exclude": [
-    "**/node_modules",
-    "**/__pycache__",
-    "**/.*",
-    "**/.venv",
-    "**/venv"
-  ],
+  "exclude": ["**/node_modules", "**/__pycache__", "**/.*", "**/.venv", "**/venv", "**/dist"],
   "typeCheckingMode": "off"
 }

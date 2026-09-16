@@ -19,7 +19,7 @@ ARG RUNTIME_GID=65532
 WORKDIR /middleware
 
 # hadolint ignore=DL3018
-# Pin apk versions for reproducible builds (bump via scripts/update-apk-dependencies.sh).
+# Pin apk versions for reproducible builds (bump via scripts/update-dockerfile-pins.sh).
 # Explicit libssl3/libcrypto3 pins pull security fixes when alpine:${ALPINE_VERSION} lags the repo.
 RUN apk add --no-cache \
     ca-certificates=20260611-r0 \
