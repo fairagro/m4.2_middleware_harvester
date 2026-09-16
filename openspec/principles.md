@@ -151,6 +151,14 @@ harvester/orchestrator.py  →  <plugin>/plugin.py  (dynamic dispatch by plugin 
 harvester/upload.py        →  harvester/reporting.py
 harvester/upload.py        →  harvester/plugin_base.py
 harvester/upload.py        →  api_client (shared lib)
+harvester/config.py        →  payload  (MapperConfig / registry validation)
+
+# Shared payload / mapper layer (cross-cutting; not a protocol plugin)
+# Owns PayloadKind, ParsedPayload, DataMapper registry, RDF LinkedDataMapper /
+# StableGraph / Schema.org + Regal mappers.
+payload/  ↛  inspire / linked_data / future protocol plugins
+# (Follow-up #155: drop remaining payload → harvester imports for HarvestedArc /
+# person helpers by moving those contracts out of the orchestrator package.)
 
 # INSPIRE plugin (example; all plugins follow this pattern)
 inspire/plugin.py  →  inspire/csw_client.py  →  inspire/models.py
@@ -160,8 +168,9 @@ inspire/plugin.py  →  harvester/errors.py
 
 # Linked Data plugin — domain wiring vs concurrency plumbing
 linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker/consumer
-linked_data/plugin.py   →  linked_data/sitemap.py / dataset / linked_data_mapper
-linked_data/pipeline.py ↛  linked_data_mapper / dataset implementations
+linked_data/plugin.py   →  linked_data/sitemap / dataset
+linked_data/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
+linked_data/pipeline.py ↛  payload mappers / dataset implementations
 # pipeline may import DiscoveryResult (and related types) from the dataset
 # package; ``dataset/__init__.py`` MUST NOT eagerly import provider dataset
 # classes. Pipeline MUST NOT perform mapping or own source-format semantics.
@@ -171,7 +180,9 @@ config  ←── all modules (read-only)
 
 Circular imports are forbidden. Within a plugin, the mapper must not import the
 source client and vice versa. Plugins must not import each other. Infrastructure
-modules MUST NOT import mappers or execute mapping logic.
+modules MUST NOT import mappers or execute mapping logic. Protocol plugins MAY
+depend on `middleware.payload`; `middleware.payload` MUST NOT depend on protocol
+plugin packages (`inspire`, `linked_data`, …).
 
 ---
 
@@ -197,7 +208,9 @@ Shared rules are in `principles.global.md`. In this repo:
 | New config value (orchestrator) | Extend `HarvesterConfig` in `middleware/harvester/config.py` |
 | New config value (plugin) | Extend the plugin's `Config` class in its own `config.py` |
 | New source field (existing plugin) | Add field to the plugin's record model, extract in client, map in mapper |
-| New ARC structure | Add helper method to the plugin's mapper; reference arctrl skill |
+| New vocabulary→ARC mapper (existing `PayloadKind`) | Register in `middleware.payload`; select via repository `mapper.type` |
+| New `PayloadKind` / shared mapper family | Extend `middleware.payload` (`kinds`, `DataMapper.accepts`, implementations) |
+| New ARC structure | Add helper method to the relevant mapper; reference arctrl skill |
 
 ---
 
