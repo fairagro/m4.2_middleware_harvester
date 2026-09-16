@@ -94,7 +94,7 @@ uv run --project scripts/ai m42-ai --help
 ```
 
 Note: Cursor Source Control may skip git hooks (≥3.15.6: forces `core.hooksPath=/dev/null`).
-Dev Container `remoteEnv` prepends `scripts/bin` so SCM uses `scripts/cursor-git.sh`, which
+Dev Container `remoteEnv` prepends `scripts/bin` so SCM uses `scripts/bin/git`, which
 strips that pin. Terminal `git` is unaffected. Remove once Cursor fixes
 [forum #167719](https://forum.cursor.com/t/167719).
 
