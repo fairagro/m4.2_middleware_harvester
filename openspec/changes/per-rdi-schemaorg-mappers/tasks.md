@@ -44,7 +44,7 @@
 
 ## 7. Validation
 
-- [ ] 7.1 `uv run ruff format middleware/linked_data/` and `uv run ruff check middleware/linked_data/`
-- [ ] 7.2 `uv run mypy --config-file pyproject.toml` and `uv run pylint` on the affected package
-- [ ] 7.3 `uv run pytest middleware/linked_data/tests/unit/ -v`
-- [ ] 7.4 `openspec validate per-rdi-schemaorg-mappers --strict`
+- [x] 7.1 `uv run ruff format middleware/linked_data/` and `uv run ruff check middleware/linked_data/`
+- [x] 7.2 `uv run mypy --config-file pyproject.toml` and `uv run pylint` on the affected package
+- [x] 7.3 `uv run pytest middleware/linked_data/tests/unit/ -v`
+- [x] 7.4 `openspec validate per-rdi-schemaorg-mappers --strict`
