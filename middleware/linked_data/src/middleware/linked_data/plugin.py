@@ -44,13 +44,27 @@ class LinkedDataPlugin:
 
     @staticmethod
     def create_mapper(config: Config) -> LinkedDataMapper:
-        """Create the mapper implementation for the configured payload type."""
-        try:
-            mapper_cls = LinkedDataMapper.registry[config.payload_type]
-        except KeyError as exc:
-            raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
+        """Create the mapper implementation for the configured payload type or mapper overlay."""
+        if config.mapper is None:
+            try:
+                mapper_cls = LinkedDataMapper.registry[config.payload_type]
+            except KeyError as exc:
+                raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
 
-        return mapper_cls.from_config(config)
+            return mapper_cls.from_config(config)
+
+        try:
+            overlay_cls = LinkedDataMapper.overlay_registry[config.mapper]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported mapper overlay: {config.mapper}") from exc
+
+        if config.payload_type != overlay_cls.BUILDS_ON:
+            raise ValueError(
+                f"Mapper overlay {config.mapper!r} builds on payload type "
+                f"{overlay_cls.BUILDS_ON!r}, but config payload_type is {config.payload_type!r}"
+            )
+
+        return overlay_cls.from_config(config)
 
     @staticmethod
     def create_dataset_class(config: Config) -> type[Dataset]:

@@ -6,10 +6,10 @@
 
 ## 2. Overlay selection mechanism
 
-- [ ] 2.1 Add optional `mapper: str | None` to `middleware/linked_data/config.py` with a Pydantic `description` (no `PayloadType` change)
-- [ ] 2.2 Add `LinkedDataMapper.overlay_registry: Registry[str, LinkedDataMapper]` plus a `register_overlay(name)` classmethod
-- [ ] 2.3 Add `BUILDS_ON: ClassVar[PayloadType | None]` to `LinkedDataMapper`; overlays declare their base payload format
-- [ ] 2.4 Extend `LinkedDataPlugin.create_mapper`: resolve from `overlay_registry` when `config.mapper` is set, else from the `payload_type` registry; raise a configuration error naming the value on unknown mapper or `BUILDS_ON` / `payload_type` mismatch
+- [x] 2.1 Add optional `mapper: str | None` to `middleware/linked_data/config.py` with a Pydantic `description` (no `PayloadType` change)
+- [x] 2.2 Add `LinkedDataMapper.overlay_registry: Registry[str, LinkedDataMapper]` plus a `register_overlay(name)` classmethod
+- [x] 2.3 Add `BUILDS_ON: ClassVar[PayloadType | None]` to `LinkedDataMapper`; overlays declare their base payload format
+- [x] 2.4 Extend `LinkedDataPlugin.create_mapper`: resolve from `overlay_registry` when `config.mapper` is set, else from the `payload_type` registry; raise a configuration error naming the value on unknown mapper or `BUILDS_ON` / `payload_type` mismatch
 
 ## 3. Title fallback hook and OpenAgrar overlay
 

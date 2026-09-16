@@ -31,7 +31,7 @@ def test_create_mapper_from_config() -> None:
 
 
 def test_create_mapper_rejects_unknown_payload_type() -> None:
-    config = cast(Config, SimpleNamespace(payload_type="bad"))
+    config = cast(Config, SimpleNamespace(payload_type="bad", mapper=None))
 
     with pytest.raises(ValueError, match="Unsupported payload type"):
         LinkedDataPlugin.create_mapper(config)
