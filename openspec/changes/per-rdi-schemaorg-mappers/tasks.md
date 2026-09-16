@@ -13,13 +13,13 @@
 
 ## 3. Title fallback hook and OpenAgrar overlay
 
-- [ ] 3.1 Add frozen `ResolvedField(value, source)` dataclass
-- [ ] 3.2 Add `GeneralSchemaOrgMapper.TITLE_SOURCES = ("schema:name",)` and public `resolve_title_fallback(dataset: ResourceView, context: MappingContext) -> ResolvedField | None` returning null in the base
-- [ ] 3.3 Rewrite `_SchemaOrgRun._resolve_dataset_title` to try `schema:name`, delegate to the hook, then raise; error message lists `TITLE_SOURCES`
-- [ ] 3.4 Confirm `Title Source` comment + WARNING log stay in the shared mapper (`_add_title_fallback_comment` unchanged)
-- [ ] 3.5 Add `linked_data_mapper/openagrar_schema_org_mapper.py`: `OpenAgrarSchemaOrgMapper(GeneralSchemaOrgMapper)`, overlay name `openagrar`, `BUILDS_ON = PayloadType.schema_org_general`, `#164`'s chain in `resolve_title_fallback`, overridden `TITLE_SOURCES`
-- [ ] 3.6 Export the overlay from `linked_data_mapper/__init__.py` so registration happens on package import
-- [ ] 3.7 Verify no RDI-specific string (`edal`, `pgp`, `openagrar`, `mycore`) remains in `general_schema_org_mapper.py`
+- [x] 3.1 Add frozen `ResolvedField(value, source)` dataclass
+- [x] 3.2 Add `GeneralSchemaOrgMapper.TITLE_SOURCES = ("schema:name",)` and public `resolve_title_fallback(dataset: ResourceView, context: MappingContext) -> ResolvedField | None` returning null in the base
+- [x] 3.3 Rewrite `_SchemaOrgRun._resolve_dataset_title` to try `schema:name`, delegate to the hook, then raise; error message lists `TITLE_SOURCES`
+- [x] 3.4 Confirm `Title Source` comment + WARNING log stay in the shared mapper (`_add_title_fallback_comment` unchanged)
+- [x] 3.5 Add `linked_data_mapper/openagrar_schema_org_mapper.py`: `OpenAgrarSchemaOrgMapper(GeneralSchemaOrgMapper)`, overlay name `openagrar`, `BUILDS_ON = PayloadType.schema_org_general`, `#164`'s chain in `resolve_title_fallback`, overridden `TITLE_SOURCES`
+- [x] 3.6 Export the overlay from `linked_data_mapper/__init__.py` so registration happens on package import
+- [x] 3.7 Verify no RDI-specific string (`edal`, `pgp`, `openagrar`, `mycore`) remains in `general_schema_org_mapper.py`
 
 ## 4. Configuration
 
@@ -28,12 +28,12 @@
 
 ## 5. Tests
 
-- [ ] 5.1 Add `tests/unit/test_openagrar_mapper.py`: headline / first-non-empty alternativeHeadline / html_title fallbacks, `Title Source` comment, WARNING log, no-carrier fail-closed naming all four carriers
-- [ ] 5.2 Add overlay parity test: `schema:name` present → same identifier and title as `GeneralSchemaOrgMapper`, no `Title Source` comment
-- [ ] 5.3 Rework `tests/unit/test_mapper_title_fallback.py` to assert the shared mapper fails closed on each `#164` fixture and names only `schema:name`
-- [ ] 5.4 Keep `test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug` on `GeneralSchemaOrgMapper`; note in its docstring that the cascade is RDI-agnostic and e!DAL has no overlay
-- [ ] 5.5 Add config/plugin tests: `mapper` unset → base mapper; `mapper: openagrar` → overlay; unknown mapper → error; `BUILDS_ON` mismatch → error
-- [ ] 5.6 Add concurrent `map_graph` cross-talk guard for the overlay (mirrors the shared-mapper guard)
+- [x] 5.1 Add `tests/unit/test_openagrar_mapper.py`: headline / first-non-empty alternativeHeadline / html_title fallbacks, `Title Source` comment, WARNING log, no-carrier fail-closed naming all four carriers
+- [x] 5.2 Add overlay parity test: `schema:name` present → same identifier and title as `GeneralSchemaOrgMapper`, no `Title Source` comment
+- [x] 5.3 Rework `tests/unit/test_mapper_title_fallback.py` to assert the shared mapper fails closed on each `#164` fixture and names only `schema:name`
+- [x] 5.4 Keep `test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug` on `GeneralSchemaOrgMapper`; note in its docstring that the cascade is RDI-agnostic and e!DAL has no overlay
+- [x] 5.5 Add config/plugin tests: `mapper` unset → base mapper; `mapper: openagrar` → overlay; unknown mapper → error; `BUILDS_ON` mismatch → error
+- [x] 5.6 Add concurrent `map_graph` cross-talk guard for the overlay (mirrors the shared-mapper guard)
 
 ## 6. Docs and follow-ups
 

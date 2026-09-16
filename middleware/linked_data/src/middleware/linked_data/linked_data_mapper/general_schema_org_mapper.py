@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import override
+from typing import ClassVar, override
 
 from arctrl import (
     ARC,
@@ -27,7 +27,7 @@ from arctrl import (
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
 from middleware.harvester.person_contacts import require_nonempty_person_given_names
@@ -39,6 +39,14 @@ from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .stable_graph import SCHEMA_ORG_NAMESPACES, ResourceView, StableGraph, http_iri
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ResolvedField:
+    """A resolved field value plus the name of the carrier it came from."""
+
+    value: str
+    source: str
 
 
 @dataclass(frozen=True)
@@ -58,14 +66,24 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     ``_SchemaOrgRun``); identifier cascade and publisher policy stay here.
     """
 
-    SCHEMA_URIS = [
-        Namespace("https://schema.org/"),
-        Namespace("http://schema.org/"),
-    ]
+    #: Title carriers this mapper accepts, in the order they are tried. Named in
+    #: the fail-closed error so it stays accurate per mapper; overlays that widen
+    #: ``resolve_title_fallback`` MUST override this too.
+    TITLE_SOURCES: ClassVar[tuple[str, ...]] = ("schema:name",)
+
+    def resolve_title_fallback(self, dataset: ResourceView, context: MappingContext) -> ResolvedField | None:  # noqa: PLR6301
+        """Per-RDI title fallback beyond ``schema:name``; the base mapper has none.
+
+        Overlays override this to accept additional, repository-specific
+        carriers without weakening the base Schema.org contract. ``None``
+        means "no fallback applies"; the caller then fails closed, naming
+        ``TITLE_SOURCES``.
+        """
+        _ = dataset, context
+        return None
 
     @override
-    @staticmethod
-    def _stable_wrap(graph: Graph) -> StableGraph:
+    def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap with Schema.org http/https term aliases and ``schema:name`` labels."""
         return StableGraph.wrap(
             graph,
@@ -80,7 +98,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         Yields one HarvestedArc per schema:Dataset entity in the graph.
         """
         _ = graph  # Access via ``stable`` (call-scoped wrap).
-        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in self.SCHEMA_URIS))
+        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in SCHEMA_ORG_NAMESPACES))
         if not dataset_views:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
@@ -139,36 +157,26 @@ class _SchemaOrgRun:
     def _resolve_dataset_title(self, subject: Node, context: MappingContext) -> tuple[str, str | None]:
         """Resolve a non-empty title, or fail closed (no ``Untitled`` fallback).
 
-        Tries, in order: ``schema:name``, ``schema:headline``, the first
-        non-empty ``schema:alternativeHeadline``, then (``html_jsonld`` sources
-        only) the HTML ``citation_title``/``<title>`` hint carried on
-        ``context.html_title``. Returns ``(title, fallback_source)`` —
-        ``fallback_source`` is ``None`` when ``schema:name`` itself was used,
-        else a short label identifying which fallback won (logged and recorded
-        as a Comment by the caller, since a title fallback should never be
-        silent).
+        Tries ``schema:name`` first, then delegates to the mapper's
+        ``resolve_title_fallback`` hook — a per-RDI overlay may accept
+        additional carriers (see ``TITLE_SOURCES``). Returns
+        ``(title, fallback_source)`` — ``fallback_source`` is ``None`` when
+        ``schema:name`` itself was used, else the carrier name the hook
+        returned (logged and recorded as a Comment by the caller, since a
+        title fallback should never be silent).
         """
         name = (self.view(subject)["name"] or "").strip()
         if name:
             return name, None
 
-        headline = (self.view(subject)["headline"] or "").strip()
-        if headline:
-            return headline, "headline"
+        # pylint sees only the base's `return None`; an overlay may return a value.
+        # pylint: disable-next=assignment-from-none
+        resolved = self.mapper.resolve_title_fallback(self.view(subject), context)
+        if resolved is not None:
+            return resolved.value, resolved.source
 
-        for alternative in self.view(subject).schema_texts("alternativeHeadline"):
-            alternative = alternative.strip()
-            if alternative:
-                return alternative, "alternativeHeadline"
-
-        html_title = (context.html_title or "").strip()
-        if html_title:
-            return html_title, "html_title"
-
-        raise ValueError(
-            "Schema.org Dataset has no usable title "
-            "(schema:name, headline, alternativeHeadline, or page title); refusing Untitled fallback"
-        )
+        sources = ", ".join(self.mapper.TITLE_SOURCES)
+        raise ValueError(f"Schema.org Dataset has no usable title ({sources}); refusing Untitled fallback")
 
     @staticmethod
     def _add_title_fallback_comment(inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
