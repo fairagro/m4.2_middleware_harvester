@@ -275,6 +275,12 @@ config:
         dataset_type: html_jsonld
         # -- Expected JSON-LD payload shape. Allowed: schema_org_general
         payload_type: schema_org_general
+        # -- Optional per-RDI mapper overlay on top of payload_type. OpenAgrar
+        # -- omits schema:name on a minority of records (issue #164); this
+        # -- overlay falls back to headline/alternativeHeadline/page-title so
+        # -- those records still map instead of failing closed. Remove this
+        # -- line to fall back to the base schema_org_general mapper.
+        mapper: openagrar
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -313,6 +319,12 @@ config:
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
         payload_type: schema_org_general
+        # -- Optional per-RDI mapper overlay on top of payload_type. OpenAgrar
+        # -- omits schema:name on a minority of records (issue #164); this
+        # -- overlay falls back to headline/alternativeHeadline/page-title so
+        # -- those records still map instead of failing closed. Remove this
+        # -- line to fall back to the base schema_org_general mapper.
+        mapper: openagrar
         # -- Optional page size (default 200). Used as Solr `rows` only when
         # -- sitemap_url has no `rows` parameter; URL `rows` wins when present.
         page_size: 100

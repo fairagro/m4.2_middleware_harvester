@@ -23,8 +23,8 @@
 
 ## 4. Configuration
 
-- [ ] 4.1 Add `mapper: openagrar` to the two OpenAgrar examples in `helm/harvester/values.yaml` with an explanatory comment
-- [ ] 4.2 Leave `dev_environment/*.yaml` `edal` untouched (no e!DAL overlay — design decision 5)
+- [x] 4.1 Add `mapper: openagrar` to the two OpenAgrar examples in `helm/harvester/values.yaml` with an explanatory comment
+- [x] 4.2 Leave `dev_environment/*.yaml` `edal` untouched (no e!DAL overlay — design decision 5)
 
 ## 5. Tests
 
