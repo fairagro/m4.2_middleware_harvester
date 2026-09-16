@@ -12,9 +12,13 @@ from middleware.harvester.errors import HarvesterError, RecordProcessingError, S
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config
-from middleware.linked_data.dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
-from middleware.linked_data.dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
-from middleware.linked_data.dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
+from middleware.linked_data.dataset import (
+    Dataset,
+    DiscoveryResult,
+    UrlDiscoveryResult,
+    html_jsonld as _register_html_jsonld_dataset,
+    regal_jsonld as _register_regal_jsonld_dataset,
+)
 from middleware.linked_data.errors import LinkedDataError, LinkedDataSitemapError
 from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.linked_data.sitemap import Sitemap
@@ -26,9 +30,9 @@ from middleware.payload.linked_data_mapper import (
 )
 from middleware.payload.mapper_config import MapperConfig
 
-# Single side-effect entrypoint for builtin RDF mappers (also pulled in when
+# Side-effect imports: @Dataset.register / @DataMapper.register hooks (also pulled in when
 # harvester.config imports LinkedDataPlugin for mapper/produces validation).
-_ = _register_builtin_mappers
+_ = (_register_html_jsonld_dataset, _register_regal_jsonld_dataset, _register_builtin_mappers)
 
 logger = logging.getLogger(__name__)
 

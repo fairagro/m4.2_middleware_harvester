@@ -9,7 +9,6 @@ from rdflib import Graph
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataError
-from middleware.payload.mapper_config import MapperConfig, MapperType
 
 DEFAULT_CONNECT_TIMEOUT = 5.0
 DEFAULT_READ_TIMEOUT = 15.0
@@ -100,8 +99,6 @@ _MINIMAL_CONFIG = Config(
     dataset_type=DatasetType.html_jsonld,
     http=NiceHttpClientConfig(),
 )
-
-_MINIMAL_MAPPER = MapperConfig(type=MapperType.schema_org_general)
 
 
 SIMPLE_HTML = """<!DOCTYPE html>
