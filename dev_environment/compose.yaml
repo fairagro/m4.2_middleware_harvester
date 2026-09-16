@@ -1,9 +1,9 @@
 services:
   harvester:
+    # Built via `./start.sh --build` → `docker buildx bake harvester` (versions.env pins
+    # + Bake contexts). Do not `docker compose build` this service: Dockerfile.harvester
+    # is a last stage that needs named contexts from docker-bake.hcl.
     image: harvester:latest
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.harvester
     environment:
       CLIENT_KEY_DATA: ${data}
     tmpfs:
