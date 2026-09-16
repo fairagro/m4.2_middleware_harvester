@@ -4,8 +4,9 @@ See `proposal.md`. Today Schema.org and Regal mappers live under
 `middleware.linked_data.linked_data_mapper`, use call-scoped `StableGraph` /
 `_*Run`, and are selected via plugin-local `payload_type`. Repository config
 allows exactly one plugin key and has no sibling `mapper:` block. Explore
-lock-ins (2026-09-15): **hard `mapper.type` only** (no `payload_type` alias);
-**one change** moving the whole mapper package, tasks staged.
+lock-ins (2026-09-15) originally chose a hard cut; revised (2026-09-16): canonical
+`mapper.type` with a **deprecated** `linked_data.payload_type` lift; **one change**
+moving the whole mapper package, tasks staged.
 
 ## Goals / Non-Goals
 
@@ -19,11 +20,14 @@ lock-ins (2026-09-15): **hard `mapper.type` only** (no `payload_type` alias);
   config wiring.
 - Preserve StableGraph concurrency: wrap is call-scoped, never stored on the
   shared mapper instance.
+- Accept legacy `linked_data.payload_type` with a `DeprecationWarning`, lifting it
+  to `mapper.type` so existing operator YAML keeps working.
 
 **Non-Goals:**
 
 - Generic Protocol/PayloadParser (#141), OAI-PMH (#142), INSPIRE mapper (#143),
-  additional `PayloadKind`s, `payload_type` alias.
+  additional `PayloadKind`s.
+- Permanent dual vocabulary — `payload_type` is transitional only.
 
 ## Decisions
 
@@ -42,19 +46,23 @@ mappers; `payload` names the contract layer. Unchanged from PR #162 design.
 **Reasoning:** Independent replaceability; fail-fast on illegal pairs. v1 only
 `rdf_graph`.
 
-### Repository `mapper:` beside plugin; hard remove `payload_type`
+### Repository `mapper:` beside plugin; deprecate `payload_type`
 
 **Choice:** Add `mapper:` (at least `type`) on repository entries that use
-shared RDF mappers (`linked_data`). Remove `payload_type` from linked_data
-plugin config in the same change. INSPIRE entries do not require `mapper` in
-v1.
+shared RDF mappers (`linked_data`). Remove `payload_type` from the linked_data
+plugin `Config` model. Accept legacy YAML that still sets
+`linked_data.payload_type` by lifting it to `mapper.type` in
+`RepositoryConfig` with a `DeprecationWarning`. If both are set and differ,
+validation fails. INSPIRE entries do not require `mapper` in v1.
 
-**Reasoning:** Explore lock-in B — `payload_type` collides with `PayloadKind`
-semantics; in-repo YAML/tests are the only callers. Exactly-one-plugin rule
-MUST exclude the `mapper` key.
+**Reasoning:** `payload_type` collides with `PayloadKind` semantics as a
+first-class field; canonical config is `mapper.type`. A temporary lift keeps
+deployed operator YAML working while examples/demos migrate. Exactly-one-plugin
+rule MUST exclude the `mapper` key.
 
-**Alternatives considered:** Transitional alias (rejected); require `mapper` on
-every repository including inspire (premature until #143).
+**Alternatives considered:** Hard cut with no alias (original lock-in; revised
+for operator compatibility); require `mapper` on every repository including
+inspire (premature until #143).
 
 ### Full package move in one change (staged tasks)
 
@@ -81,8 +89,8 @@ graph; plugin wraps/passes into shared mapper / `ParsedPayload` as needed.
 
 - **[Risk] Import / test churn** → Mitigate with staged tasks and full linked_data
   + payload pytest in validation; update MYPYPATH / quality overlays.
-- **[Risk] Breaking YAML** → Update all in-repo examples/demos/tests in the same
-  change; no alias.
+- **[Risk] Breaking YAML** → In-repo examples use `mapper.type`; legacy
+  `payload_type` lifts with a deprecation warning until removal.
 - **[Risk] Concurrency regression** → Keep `map_graph` → `_stable_wrap` →
   `_map_graph` / `_*Run` pattern; no `StableGraph` on `self`.
 - **[Risk] Spec drift on requirement titles** → Refresh deltas against current
@@ -93,7 +101,8 @@ graph; plugin wraps/passes into shared mapper / `ParsedPayload` as needed.
 1. Scaffold `middleware/payload` + workspace deps.
 2. Add contracts + registry.
 3. Move mapper package; fix imports.
-4. Add `RepositoryConfig.mapper`; remove `payload_type`; migrate YAML.
+4. Add `RepositoryConfig.mapper`; drop plugin-field `payload_type`; lift legacy
+   `payload_type` → `mapper.type` with deprecation; migrate in-repo YAML.
 5. Wire linked_data plugin; run quality/tests.
 6. Archive merges principles + domain specs.
 

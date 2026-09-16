@@ -1,6 +1,9 @@
 """Configuration module for the Middleware Harvester core orchestrator."""
 
-from typing import Annotated, Self
+from __future__ import annotations
+
+import warnings
+from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -19,13 +22,19 @@ PluginConfig = InspireConfig | LinkedDataConfig
 
 _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper"})
 
+_LEGACY_PAYLOAD_TYPE_MSG = (
+    "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
+    "Support for payload_type will be removed in a future release."
+)
+
 
 class RepositoryConfig(BaseModel):
     """Configuration for an individual harvesting plugin/repository.
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
     selected via an optional sibling ``mapper:`` block (required for
-    ``linked_data``).
+    ``linked_data``). Legacy ``linked_data.payload_type`` is accepted with a
+    :class:`DeprecationWarning` and lifted to ``mapper.type``.
     """
 
     rdi: Annotated[
@@ -44,6 +53,41 @@ class RepositoryConfig(BaseModel):
         MapperConfig | None,
         Field(description="Shared DataMapper selection (required for linked_data)."),
     ] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def lift_legacy_payload_type(cls, data: Any) -> Any:
+        """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
+        if not isinstance(data, dict):
+            return data
+        linked = data.get("linked_data")
+        if not isinstance(linked, dict) or "payload_type" not in linked:
+            return data
+
+        linked = dict(linked)
+        legacy_type = linked.pop("payload_type")
+        data = {**data, "linked_data": linked}
+
+        mapper = data.get("mapper")
+        if mapper is None:
+            warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
+            data["mapper"] = {"type": legacy_type}
+            return data
+
+        if not isinstance(mapper, dict):
+            raise ValueError("mapper must be a mapping when lifting linked_data.payload_type")
+
+        existing_type = mapper.get("type")
+        if existing_type is None:
+            warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
+            data["mapper"] = {**mapper, "type": legacy_type}
+            return data
+
+        if existing_type != legacy_type:
+            raise ValueError(f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {existing_type!r}")
+
+        warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
+        return data
 
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
@@ -69,9 +113,7 @@ class RepositoryConfig(BaseModel):
         accepts = getattr(mapper_cls, "accepts", None)
         produced = LinkedDataPlugin.produces
         if accepts != produced:
-            raise ValueError(
-                f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {produced}"
-            )
+            raise ValueError(f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {produced}")
         return self
 
     @property

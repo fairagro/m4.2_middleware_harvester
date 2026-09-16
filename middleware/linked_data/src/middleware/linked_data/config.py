@@ -28,7 +28,9 @@ class Config(BaseModel):
     """Configuration model for the Linked Data harvesting plugin.
 
     Mapper selection lives on the repository-level ``mapper:`` block (shared
-    ``middleware.payload`` registry), not on this plugin config.
+    ``middleware.payload`` registry), not on this plugin config. Legacy YAML
+    ``payload_type`` is lifted to ``mapper.type`` in harvester
+    ``RepositoryConfig`` with a deprecation warning.
     """
 
     model_config = ConfigDict(populate_by_name=True)

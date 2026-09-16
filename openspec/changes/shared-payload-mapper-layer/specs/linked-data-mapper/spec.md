@@ -7,6 +7,11 @@ The system SHALL select mapper implementations using configured repository `mapp
 live in `middleware.payload` and register against that registry. Behavioural ARC mapping rules for Schema.org and Regal
 are unchanged (including ResourceView / StableGraph requirements in this spec).
 
+#### Scenario: Configured payload selects the registered mapper
+
+- **WHEN** repository config sets a supported `mapper.type` for a linked-data harvest
+- **THEN** registry resolution returns the matching concrete mapper from `middleware.payload`
+
 #### Scenario: Configured mapper type selects the registered mapper
 
 - **WHEN** repository config sets a supported `mapper.type` for a linked-data harvest
@@ -27,6 +32,12 @@ reside in `middleware.payload` and MUST NOT import protocol clients (sitemap/CSW
 
 The system SHALL keep mapper runtime configuration limited to fields needed for the selected `mapper.type` (e.g. Regal
 resource base URL via mapper or repository mapper config). Discovery/plugin fields MUST NOT leak into StableGraph wrap.
+
+#### Scenario: Payload-scoped config only
+
+- **WHEN** a repository selects a given `mapper.type`
+- **THEN** only configuration relevant to that mapper type influences mapping behaviour beyond the graph and
+  `MappingContext`
 
 #### Scenario: Mapper-specific config only
 

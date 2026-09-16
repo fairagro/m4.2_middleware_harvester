@@ -16,9 +16,10 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
   Regal implementations) — **one change**, tasks staged (scaffold → contracts → move → config → wiring).
 - v1 `PayloadKind` is **`rdf_graph` only** (`rdflib.Graph`).
 - Repository config gains a top-level `mapper:` block beside the plugin key; fail-fast when producer kind ≠ mapper
-  `accepts`. **Hard cut:** remove plugin-local `payload_type` (no transitional alias) — YAML uses `mapper.type` only.
+  `accepts`. Canonical YAML uses `mapper.type`. Deprecated: `linked_data.payload_type` is still accepted, emits a
+  `DeprecationWarning`, and is lifted to `mapper.type` (conflict with a differing `mapper.type` fails closed).
 - `linked_data` keeps Sitemap/Dataset orchestration but **calls** shared mappers; mapper selection leaves the plugin
-  config.
+  config (except the deprecated alias).
 - Preserve call-scoped `StableGraph` / `_*Run` concurrency contracts during the move.
 - Update principles dependency graph / extension points for `middleware.payload`.
 
@@ -29,7 +30,7 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
 - Moving INSPIRE mapper / `inspire_record` kind (→ [#143](https://github.com/fairagro/m4.2_middleware_harvester/issues/143))
 - Renaming or removing the `linked_data` plugin
 - Auto-detecting mapper from payload bytes
-- `payload_type` compatibility alias
+- Permanent dual vocabulary (`payload_type` remains transitional only)
 
 ## Capabilities
 
@@ -41,9 +42,10 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
 ### Modified Capabilities
 
 - `harvester-configuration`: Repository entries that use shared mappers MUST accept `mapper` beside the plugin key;
-  validate mapper↔kind compatibility; `mapper` is not a plugin field for the exactly-one-plugin rule.
-- `linked-data-harvesting`: Plugin MUST resolve mappers from repository `mapper.type` / shared registry; drop
-  `payload_type` from plugin config.
+  validate mapper↔kind compatibility; `mapper` is not a plugin field for the exactly-one-plugin rule; deprecated
+  `linked_data.payload_type` MAY be lifted to `mapper.type` with a deprecation warning.
+- `linked-data-harvesting`: Plugin MUST resolve mappers from repository `mapper.type` / shared registry; plugin config
+  MUST NOT model `payload_type` as a first-class field (legacy values are lifted at repository validation).
 - `linked-data-mapper`: Mapper ownership and import paths move to `middleware.payload`; behavioural ARC mapping rules
   (including StableGraph / ResourceView) unchanged.
 - `principles`: Module dependency graph and extension points MUST include `middleware.payload`.

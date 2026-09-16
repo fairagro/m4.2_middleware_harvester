@@ -102,3 +102,33 @@ def test_inspire_repository_ok_without_mapper() -> None:
     repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
     assert repo.mapper is None
     assert repo.plugin_type == "inspire"
+
+
+def test_legacy_payload_type_lifts_to_mapper() -> None:
+    with pytest.warns(DeprecationWarning, match="payload_type is deprecated"):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+        })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+
+
+def test_legacy_payload_type_matching_mapper_still_warns() -> None:
+    with pytest.warns(DeprecationWarning, match="payload_type is deprecated"):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+            "mapper": {"type": "schema_org_general"},
+        })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+
+
+def test_legacy_payload_type_conflicts_with_mapper() -> None:
+    with pytest.raises(ValidationError, match="conflicts with mapper.type"):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+            "mapper": {"type": "regal_general"},
+        })
