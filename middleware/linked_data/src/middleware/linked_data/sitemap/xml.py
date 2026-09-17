@@ -9,11 +9,10 @@ from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import SitemapType
-from ..dataset import DiscoveryResult, UrlDiscoveryResult
-from ..errors import LinkedDataSitemapError
-from .sitemap import Sitemap
+from middleware.linked_data.config import SitemapType
+from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
+from middleware.linked_data.errors import LinkedDataSitemapError
+from middleware.linked_data.sitemap.sitemap import Sitemap
 
 
 @Sitemap.register(SitemapType.xml)

@@ -33,7 +33,7 @@ target "harvester-wheels" {
     ALPINE_MINOR      = ALPINE_MINOR
     PIP_VERSION       = PIP_VERSION
     UV_VERSION        = UV_VERSION
-    UV_BUILD_PACKAGES = "inspire harvester linked_data"
+    UV_BUILD_PACKAGES = "inspire harvester linked_data payload"
   }
 }
 
@@ -65,10 +65,10 @@ target "harvester-base" {
     PIP_VERSION         = PIP_VERSION
     UV_VERSION          = UV_VERSION
     PYINSTALLER_VERSION = PYINSTALLER_VERSION
-    UV_BUILD_PACKAGES   = "inspire harvester linked_data"
+    UV_BUILD_PACKAGES   = "inspire harvester linked_data payload"
     BINARY_NAME         = "harvester"
     PYINSTALLER_IMPORT  = "middleware.harvester"
-    EXTRA_PYINSTALLER_ARGS = "--copy-metadata harvester --copy-metadata inspire --copy-metadata fairagro-middleware-api-client --copy-metadata fairagro-middleware-shared"
+    EXTRA_PYINSTALLER_ARGS = "--copy-metadata harvester --copy-metadata inspire --copy-metadata payload --copy-metadata fairagro-middleware-api-client --copy-metadata fairagro-middleware-shared"
   }
 }
 

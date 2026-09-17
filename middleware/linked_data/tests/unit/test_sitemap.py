@@ -7,7 +7,7 @@ import pytest
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.plugin import LinkedDataPlugin
@@ -21,7 +21,6 @@ def test_create_sitemap_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -38,7 +37,6 @@ def test_xml_sitemap_discover_urlset() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -68,7 +66,6 @@ def test_xml_sitemap_yields_error_for_empty_loc_with_sitemap_url_in_record_id() 
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -107,7 +104,6 @@ def test_xml_sitemap_yields_error_for_empty_loc_in_sitemapindex() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -156,7 +152,6 @@ def test_xml_sitemap_raises_sitemap_error_on_malformed_xml() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -180,7 +175,6 @@ def test_xml_sitemap_raises_sitemap_error_on_unsupported_root() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -204,7 +198,6 @@ def test_xml_sitemap_deduplicates_dataset_urls() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -243,7 +236,6 @@ def test_xml_sitemap_prevents_sitemapindex_loops() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -291,7 +283,6 @@ def test_create_sitemap_from_config_mycore_solr() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -311,7 +302,6 @@ def test_mycore_solr_sitemap_paginates_and_deduplicates() -> None:
         ),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -360,7 +350,6 @@ def test_mycore_solr_sitemap_sets_harvest_source_id_from_solr_id() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -394,7 +383,6 @@ def test_mycore_solr_sitemap_fills_defaults_for_query_free_url() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         page_size=7,
         http=_TEST_HTTP,
     )
@@ -441,7 +429,6 @@ def test_mycore_solr_sitemap_operator_params_override_defaults() -> None:
         ),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         page_size=4,
         http=_TEST_HTTP,
     )
@@ -484,7 +471,6 @@ def test_mycore_solr_sitemap_ignores_operator_wt() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select?wt=xml&q=test",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         page_size=2,
         http=_TEST_HTTP,
     )
@@ -522,7 +508,6 @@ def test_mycore_solr_sitemap_url_rows_overrides_page_size() -> None:
         sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=2&fl=id&wt=json"),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         page_size=50,
         http=_TEST_HTTP,
     )
@@ -562,7 +547,6 @@ def test_mycore_solr_sitemap_uses_page_size_when_rows_absent() -> None:
         sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&fl=id&wt=json"),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         page_size=3,
         http=_TEST_HTTP,
     )
@@ -602,7 +586,6 @@ def test_mycore_solr_sitemap_get_expected_count_uses_cached_first_page() -> None
         sitemap_url=("https://www.openagrar.de/servlets/solr/select?core=main&q=test&rows=1&fl=id&wt=json"),
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 
@@ -637,7 +620,6 @@ def test_mycore_solr_sitemap_raises_on_non_object_payload() -> None:
         sitemap_url="https://www.openagrar.de/servlets/solr/select",
         sitemap_type=SitemapType.mycore_solr,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=_TEST_HTTP,
     )
 

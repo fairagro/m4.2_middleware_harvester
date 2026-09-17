@@ -10,11 +10,10 @@ from html.parser import HTMLParser
 from rdflib import Graph
 
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import Config, DatasetType
-from ..errors import LinkedDataDatasetError
-from ..jsonld_validation import JsonLdContextError, validate_jsonld_context_data
-from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
+from middleware.linked_data.config import Config, DatasetType
+from middleware.linked_data.dataset.dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
+from middleware.linked_data.errors import LinkedDataDatasetError
+from middleware.linked_data.jsonld_validation import JsonLdContextError, validate_jsonld_context_data
 
 logger = logging.getLogger(__name__)
 

@@ -4,21 +4,35 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import replace
+from typing import ClassVar
 
 import httpx
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.linked_data.config import Config
+from middleware.linked_data.dataset import (
+    Dataset,
+    DiscoveryResult,
+    UrlDiscoveryResult,
+    html_jsonld as _register_html_jsonld_dataset,
+    regal_jsonld as _register_regal_jsonld_dataset,
+)
+from middleware.linked_data.errors import LinkedDataError, LinkedDataSitemapError
+from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
+from middleware.linked_data.sitemap import Sitemap
+from middleware.payload.kinds import PayloadKind
+from middleware.payload.linked_data_mapper import (
+    LinkedDataMapper,
+    MappingContext,
+    register_builtins as _register_builtin_mappers,
+)
+from middleware.payload.mapper_config import MapperConfig
 
-from .config import Config
-from .dataset import Dataset, DiscoveryResult, UrlDiscoveryResult
-from .dataset.html_jsonld import HtmlJsonLdDataset  # noqa: F401
-from .dataset.regal_jsonld import RegalJsonLdDataset  # noqa: F401
-from .errors import LinkedDataError, LinkedDataSitemapError
-from .linked_data_mapper import LinkedDataMapper, MappingContext
-from .pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
-from .sitemap import Sitemap
+# Side-effect imports: @Dataset.register / @DataMapper.register hooks (also pulled in when
+# harvester.config imports LinkedDataPlugin for mapper/produces validation).
+_ = (_register_html_jsonld_dataset, _register_regal_jsonld_dataset, _register_builtin_mappers)
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +40,12 @@ logger = logging.getLogger(__name__)
 class LinkedDataPlugin:
     """Stateful Linked Data plugin implementation (structurally satisfies ``Plugin``)."""
 
-    def __init__(self, config: Config) -> None:
-        """Initialize the plugin with its parsed configuration."""
+    produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+    def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
+        """Initialize the plugin with plugin + repository mapper configuration."""
         self._config: Config = config
-        self._mapper: LinkedDataMapper = self.create_mapper(config)
+        self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
         self._dataset_cls: type[Dataset] = self.create_dataset_class(config)
 
     @staticmethod
@@ -43,14 +59,15 @@ class LinkedDataPlugin:
         return sitemap_cls(config, client)
 
     @staticmethod
-    def create_mapper(config: Config) -> LinkedDataMapper:
-        """Create the mapper implementation for the configured payload type."""
+    def create_mapper(config: Config, mapper_config: MapperConfig) -> LinkedDataMapper:
+        """Create the mapper from repository ``mapper`` config (shared registry)."""
         try:
-            mapper_cls = LinkedDataMapper.registry[config.payload_type]
+            mapper_cls = LinkedDataMapper.registered_class(mapper_config.type)
         except KeyError as exc:
-            raise ValueError(f"Unsupported payload type: {config.payload_type}") from exc
+            raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
 
-        return mapper_cls.from_config(config)
+        fallback = config.effective_resource_base_url
+        return mapper_cls.from_config(mapper_config, resource_base_url=fallback)
 
     @staticmethod
     def create_dataset_class(config: Config) -> type[Dataset]:

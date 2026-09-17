@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy
+from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy  # type: ignore[import-untyped]
 
 from middleware.api_client.api_client import ApiClientError
 from middleware.harvester.errors import HarvesterError, SkippedRecord
@@ -26,6 +26,11 @@ def _make_repo(plugin_type: str = "inspire") -> MagicMock:
     repo.plugin_type = plugin_type
     repo.plugin_config = MagicMock()
     repo.rdi = f"{plugin_type}-rdi"
+    repo.source_url = f"https://example.test/{plugin_type}"
+    # Avoid MagicMock auto-attrs making every plugin look like linked_data.
+    repo.linked_data = MagicMock() if plugin_type == "linked_data" else None
+    repo.inspire = MagicMock() if plugin_type == "inspire" else None
+    repo.mapper = MagicMock(type="schema_org_general") if plugin_type == "linked_data" else None
     return repo
 
 
@@ -43,7 +48,7 @@ def _make_mock_client() -> AsyncMock:
 class SuccessPlugin:
     """A plugin that yields one ARC payload successfully."""
 
-    def __init__(self, config: object) -> None:
+    def __init__(self, config: object, _mapper_config: object | None = None) -> None:
         """Initialize the success plugin with its configuration."""
         self._config = config
 
@@ -59,7 +64,7 @@ class SuccessPlugin:
 class FailingPlugin:
     """A plugin that fails during iteration."""
 
-    def __init__(self, config: object) -> None:
+    def __init__(self, config: object, _mapper_config: object | None = None) -> None:
         """Initialize the failing plugin with its configuration."""
         self._config = config
 

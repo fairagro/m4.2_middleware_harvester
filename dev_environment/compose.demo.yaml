@@ -28,10 +28,9 @@ services:
       retries: 10
 
   harvester:
+    # Image must be Bake-built (see start.sh --build / docs/ci.md). Compose --build of
+    # Dockerfile.harvester alone cannot inject versions.env or Bake named contexts.
     image: harvester:demo
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.harvester
     depends_on:
       middleware-api:
         condition: service_healthy

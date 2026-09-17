@@ -12,8 +12,9 @@ from rdflib import Graph
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.payload.mapper_config import MapperConfig, MapperType
 
 EXPECTED_DATASET_COUNT = 5
 
@@ -23,18 +24,23 @@ def test_create_mapper_from_config() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
-    mapper = LinkedDataPlugin.create_mapper(config)
+    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig(type=MapperType.schema_org_general))
     assert mapper is not None
 
 
-def test_create_mapper_rejects_unknown_payload_type() -> None:
-    config = cast(Config, SimpleNamespace(payload_type="bad"))
+def test_create_mapper_rejects_unknown_mapper_type() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        http=NiceHttpClientConfig(),
+    )
+    bad_mapper = cast(MapperConfig, SimpleNamespace(type="bad"))
 
-    with pytest.raises(ValueError, match="Unsupported payload type"):
-        LinkedDataPlugin.create_mapper(config)
+    with pytest.raises(ValueError, match="Unsupported mapper type"):
+        LinkedDataPlugin.create_mapper(config, bad_mapper)
 
 
 def test_create_sitemap_rejects_unknown_sitemap_type() -> None:
@@ -58,7 +64,6 @@ async def test_linked_data_plugin_get_expected_datasets_returns_none_on_failure(
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -76,7 +81,9 @@ async def test_linked_data_plugin_get_expected_datasets_returns_none_on_failure(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
         staticmethod(fake_create_sitemap),
     ):
-        result = await LinkedDataPlugin(config).get_expected_datasets()
+        result = await LinkedDataPlugin(
+            config, MapperConfig(type=MapperType.schema_org_general)
+        ).get_expected_datasets()
 
     assert result is None
 
@@ -87,7 +94,6 @@ async def test_linked_data_plugin_get_expected_datasets_returns_count() -> None:
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -105,7 +111,9 @@ async def test_linked_data_plugin_get_expected_datasets_returns_count() -> None:
         "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
         staticmethod(fake_create_sitemap),
     ):
-        result = await LinkedDataPlugin(config).get_expected_datasets()
+        result = await LinkedDataPlugin(
+            config, MapperConfig(type=MapperType.schema_org_general)
+        ).get_expected_datasets()
 
     assert result == EXPECTED_DATASET_COUNT
 
@@ -118,7 +126,6 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -138,10 +145,10 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: BadFakeDataset})
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -155,7 +162,6 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -173,10 +179,10 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: GoodFakeDataset})
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -192,7 +198,6 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -218,14 +223,14 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: MagicMock()),
+        staticmethod(lambda _config, _mapper_config=None: MagicMock()),
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.Dataset.registry",
         {DatasetType.html_jsonld: GoodFakeDataset},
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], SkippedRecord)
@@ -241,7 +246,6 @@ async def test_linked_data_plugin_run_plugin_forwards_discovery_record_processin
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -267,14 +271,14 @@ async def test_linked_data_plugin_run_plugin_forwards_discovery_record_processin
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: MagicMock()),
+        staticmethod(lambda _config, _mapper_config=None: MagicMock()),
     )
     monkeypatch.setattr(
         "middleware.linked_data.plugin.Dataset.registry",
         {DatasetType.html_jsonld: GoodFakeDataset},
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -288,7 +292,6 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -306,10 +309,10 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: GoodFakeDataset})
     monkeypatch.setattr(
         "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
-        staticmethod(lambda _config: mock_mapper),
+        staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert results == [HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/dataset/slow")]
     mock_mapper.map_graph.assert_called_once()
@@ -326,7 +329,6 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_whe
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=NiceHttpClientConfig(),
     )
 
@@ -347,7 +349,7 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_whe
         ),
     )
 
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)

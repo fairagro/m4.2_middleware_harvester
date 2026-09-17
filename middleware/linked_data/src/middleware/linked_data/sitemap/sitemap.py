@@ -8,10 +8,9 @@ from typing import TypeVar
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import Config, SitemapType
-from ..dataset import DiscoveryResult, UrlDiscoveryResult
-from ..registry import Registry
+from middleware.linked_data.config import Config, SitemapType
+from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
+from middleware.payload.registry import Registry
 
 # Payload carriers plus shared harvester signals (inspire-style).
 type SitemapYield = DiscoveryResult | RecordProcessingError | SkippedRecord

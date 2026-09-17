@@ -9,10 +9,9 @@ import logging
 from rdflib import Graph
 
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import Config, DatasetType
-from ..errors import LinkedDataDatasetError
-from .dataset import Dataset, DiscoveryResult, JsonLdDiscoveryResult
+from middleware.linked_data.config import Config, DatasetType
+from middleware.linked_data.dataset.dataset import Dataset, DiscoveryResult, JsonLdDiscoveryResult
+from middleware.linked_data.errors import LinkedDataDatasetError
 
 logger = logging.getLogger(__name__)
 
