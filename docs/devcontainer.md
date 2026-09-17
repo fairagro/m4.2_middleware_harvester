@@ -58,8 +58,13 @@ non-executable or non-zero). Do **not** edit synced JSON `postCreate` for LFS.
 ## Tool versions
 
 All toolchain pins live in repo-root [`versions.env`](../versions.env) (k8s tools, sops/age, jq/yq/xq, CST, Trivy,
-Renovate, Node/OpenSpec/Prettier/markdownlint, …). Distro packages (`jq`, `gnupg`, JRE, graphviz) come from apt without
-a separate pin.
+Renovate, Node/`NPM_VERSION`/OpenSpec/Prettier/markdownlint, …). Distro packages (`jq`, `gnupg`, JRE, graphviz) come
+from apt without a separate pin.
+
+**Node vs npm:** `NODE_VERSION` installs the official Node tarball (which bundles some npm). The image then pins the
+**npm CLI** with `npm install -g npm@${NPM_VERSION}` so the binary is Renovate-managed separately from Node. Ignore
+npm’s self-update notice until Renovate bumps `NPM_VERSION` to current; once the pin matches the latest advertised
+release, that notice should stop.
 
 [`.python-version`](../.python-version) is kept aligned with `PYTHON_VERSION` (via `scripts/load-versions-env.sh`, also
 run from postCreate).
@@ -71,6 +76,7 @@ gh --version
 openspec --version
 uv --version
 node --version
+npm --version
 sops --version
 trivy --version
 renovate --version
@@ -80,7 +86,7 @@ renovate --version
 
 | Area            | Tools                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------- |
-| GitHub / Node   | `gh`, Node, OpenSpec, Prettier, markdownlint-cli2, Renovate                                    |
+| GitHub / Node   | `gh`, Node, pinned `npm`, OpenSpec, Prettier, markdownlint-cli2, Renovate                      |
 | Python          | `uv` + pinned Python; quality CLIs via `uv sync` / pre-commit (ruff, …)                        |
 | Query / lint    | `jq`, `yq`, `xq`, `yamlfmt`, `hadolint`                                                        |
 | K8s             | `kubectl`, `helm`, `minikube`                                                                  |

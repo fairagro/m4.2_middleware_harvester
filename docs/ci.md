@@ -58,6 +58,23 @@ not synced). ARG list is documented at the top of
 import path whose `main.py` is resolved after wheel install); do not pass a repo-relative entry path — PyInstaller entry
 must come from the installed wheel, not from copying application source as the script path.
 
+**Optional secondary binary ([#71](https://github.com/fairagro/m4.2_middleware_devinfra/issues/71)):** the shared base
+can build **one** extra PyInstaller binary into the same `/dist` export (same Bake `export_bins` context). Pass on the
+`*-base` target:
+
+| Build-arg                      | Role                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `SECONDARY_BINARY_NAME`        | Gate + `--name`; **empty / omit = skip** (single-primary behavior unchanged) |
+| `SECONDARY_PYINSTALLER_IMPORT` | Preferred: import path whose `main.py` is the secondary entry                |
+| `SECONDARY_PYINSTALLER_ENTRY`  | Optional path override after wheel install                                   |
+| `SECONDARY_ONEFILE`            | Default `true` (`--onefile`); set `false` for secondary `--onedir`           |
+
+Primary stays `--onedir` under `/dist/<BINARY_NAME>/`. A default secondary is a **file** at
+`/dist/<SECONDARY_BINARY_NAME>` (onefile); if `SECONDARY_ONEFILE=false`, it is a tree like the primary. Last stage
+`COPY`s from the same `export_bins` context — do not fork `Dockerfile.product-app.base`. Deleting product-local
+secondary Dockerfiles (e.g. harvester healthcheck) is a **product follow-up after sync**, not part of the Devinfra base
+change.
+
 **Lockfile-deterministic binary-builder install
 ([#73](https://github.com/fairagro/m4.2_middleware_devinfra/issues/73)):** `binary-builder` copies `uv.lock` and
 workspace metadata from `package-builder`, runs `uv sync --frozen --no-dev --no-install-workspace` so transitive deps
@@ -74,9 +91,10 @@ Container section + **Product app image** section for `PIP_VERSION`, `ALPINE_*`,
 `docker/Dockerfile.product-app.base`).
 
 **Structure expectation** for API, sql-to-arc, and harvester: same three-stage skeleton; product differences via base
-ARGs (packages, binary name, optional compile apk extras) and local last-stage finishing. **Product-only** extras (e.g.
-sql-to-arc Microsoft ODBC driver) stay in the **product-local last stage**, not in the synced base. Builder compile
-extras that all products share may use `BUILDER_APK_PACKAGES`; runtime personality stays in the last stage.
+ARGs (packages, binary name, optional secondary binary, optional compile apk extras) and local last-stage finishing.
+**Product-only** extras (e.g. sql-to-arc Microsoft ODBC driver) stay in the **product-local last stage**, not in the
+synced base. Builder compile extras that all products share may use `BUILDER_APK_PACKAGES`; runtime personality stays in
+the last stage.
 
 Local smoke (in a product repo after adoption):
 
@@ -129,8 +147,47 @@ Bump the product `uses:` ref after this policy lands so callers pick up report-o
 
 ### Feature PR (Docker build + check)
 
+Recommended product caller: cancel in-progress runs on the same PR, keep `detect-changes` **product-local**, and pass
+`skip` into the shared reusables. Outer Devinfra reusables also declare complementary `concurrency` (see below); that
+does **not** replace this caller-level cancel for the full pipeline.
+
 ```yaml
+name: Feature Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: feature-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'middleware/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'docker/**'
+              - 'docker-bake.hcl'
+              - '.github/**'
+              - 'scripts/**'
+              - '.pre-commit-config.yaml'
+              - '.bandit'
+              - 'versions.env'
+              # Products may extend, e.g. stubs/, dev_environment/**
+
   code-quality:
     needs: [detect-changes]
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@main
@@ -161,9 +218,30 @@ jobs:
     secrets: inherit
 ```
 
+`detect-changes` / `skip` stay a **caller** responsibility. Suggested `code` paths above are a fleet default — extend
+for product-only trees (e.g. `stubs/`, `dev_environment/**`).
+
 ### Release / pre-release (Docker)
 
+Prefer workflow-level concurrency that **serializes** overlapping runs of the same workflow+ref
+(`cancel-in-progress: false`) so a half-finished publish is not aborted. `detect-changes` / `skip` is
+Feature-PR-oriented and not required for `workflow_dispatch` release callers.
+
 ```yaml
+name: Docker Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        type: choice
+        options: [major, minor, patch]
+        default: patch
+
+concurrency:
+  group: docker-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
@@ -202,6 +280,8 @@ Keep any **PyPI** publish steps in a product-local job or workflow after build (
 
 ### Helm (thin `workflow_dispatch` caller)
 
+Same serialize guidance as Docker release (`cancel-in-progress: false`). No `detect-changes` required.
+
 ```yaml
 name: Helm Chart Release
 on:
@@ -211,6 +291,10 @@ on:
         type: choice
         options: [major, minor, patch]
         default: patch
+
+concurrency:
+  group: helm-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   helm:
@@ -439,3 +523,10 @@ Container structure tests load:
 Callers that upload SARIF need `security-events: write` on the top-level workflow (or inherit permissions that allow the
 reusable security job). Prefer `secrets: inherit` when product secrets are required by nested steps. Docker/Helm pushes
 need DockerHub secrets on the caller and `packages: write` for GHCR where applicable.
+
+**Nested reusable ceiling:** GitHub intersects permissions down the `workflow_call` chain. An intermediate reusable’s
+top-level `permissions` is the maximum nested jobs may request. Outer Devinfra entrypoints that call
+`reusable-docker-registry-push.yml` / `reusable-helm-oci-push.yml` (notably `reusable-release.yml` and
+`reusable-registry-retry.yml`) therefore grant `packages: write` (and `contents: write` when they tag or edit Releases)
+at the workflow level — not only on leaf jobs — so GHCR push validation succeeds. Granting `packages: write` only on the
+product caller is not enough if the intermediate reusable still declares `packages: none` / omits packages.
