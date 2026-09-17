@@ -147,8 +147,47 @@ Bump the product `uses:` ref after this policy lands so callers pick up report-o
 
 ### Feature PR (Docker build + check)
 
+Recommended product caller: cancel in-progress runs on the same PR, keep `detect-changes` **product-local**, and pass
+`skip` into the shared reusables. Outer Devinfra reusables also declare complementary `concurrency` (see below); that
+does **not** replace this caller-level cancel for the full pipeline.
+
 ```yaml
+name: Feature Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: feature-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'middleware/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'docker/**'
+              - 'docker-bake.hcl'
+              - '.github/**'
+              - 'scripts/**'
+              - '.pre-commit-config.yaml'
+              - '.bandit'
+              - 'versions.env'
+              # Products may extend, e.g. stubs/, dev_environment/**
+
   code-quality:
     needs: [detect-changes]
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@main
@@ -179,9 +218,30 @@ jobs:
     secrets: inherit
 ```
 
+`detect-changes` / `skip` stay a **caller** responsibility. Suggested `code` paths above are a fleet default — extend
+for product-only trees (e.g. `stubs/`, `dev_environment/**`).
+
 ### Release / pre-release (Docker)
 
+Prefer workflow-level concurrency that **serializes** overlapping runs of the same workflow+ref
+(`cancel-in-progress: false`) so a half-finished publish is not aborted. `detect-changes` / `skip` is
+Feature-PR-oriented and not required for `workflow_dispatch` release callers.
+
 ```yaml
+name: Docker Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        type: choice
+        options: [major, minor, patch]
+        default: patch
+
+concurrency:
+  group: docker-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
@@ -220,6 +280,8 @@ Keep any **PyPI** publish steps in a product-local job or workflow after build (
 
 ### Helm (thin `workflow_dispatch` caller)
 
+Same serialize guidance as Docker release (`cancel-in-progress: false`). No `detect-changes` required.
+
 ```yaml
 name: Helm Chart Release
 on:
@@ -229,6 +291,10 @@ on:
         type: choice
         options: [major, minor, patch]
         default: patch
+
+concurrency:
+  group: helm-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   helm:

@@ -51,7 +51,7 @@ format/lint setups. Prefer `signageos.signageos-vscode-sops` (Open VSX / Cursor)
 install and hook overlays entirely in the product repo (independent of Devinfra). Shared `setup-git-hooks.sh` installs a
 **dispatcher** (`.git/hooks/pre-push`) plus shared `.git/hooks/pre-push.d/50-quality`; it does not remove foreign
 `pre-push.d` fragments or manage LFS `post-*` hooks. Products add numbered fragments under `pre-push.d/` (e.g.
-`10-git-lfs` before `50-quality`). Shared postCreate does **not** hard-code product scripts such as `setup-git-lfs.sh`;
+`10-git-lfs` before `50-quality`). Shared postCreate does **not** hard-code `install-dev-hooks.sh` / `setup-git-lfs.sh`;
 optional product work runs via **`scripts/devcontainer-post-create.d/*.sh`** (sorted, T-late, hard-fail if present and
 non-executable or non-zero). Do **not** edit synced JSON `postCreate` for LFS.
 

@@ -202,7 +202,7 @@ Typical place: Dev Container **postCreate** (`scripts/devcontainer-post-create.s
 Installs `.git/hooks/pre-push` (dispatcher) and `.git/hooks/pre-push.d/50-quality` from `scripts/git-hooks/`. Does
 **not** require, install, or manage Git LFS; does **not** delete other hooks or foreign `pre-push.d` fragments.
 Idempotent re-runs refresh only the shared-owned paths. Invoked from Dev Container postCreate, or once after clone.
-Shared postCreate does **not** hard-code product scripts; optional product work uses
+Shared postCreate does **not** hard-code product scripts such as `install-dev-hooks.sh`; optional product work uses
 `scripts/devcontainer-post-create.d/` (see [`docs/devcontainer.md`](devcontainer.md)).
 
 On `git push`, the dispatcher runs `pre-push.d/*` in lexicographic order (e.g. product `10-git-lfs` then shared
