@@ -68,6 +68,10 @@ on `PATH`). That pin is for local dry-runs only. CI runs
 [`renovatebot/github-action`](../.github/workflows/renovate.yml) at its own Action version (currently `v46.2.6`) — keep
 the Action major aware of the CLI major when bumping either pin; they are not the same artifact.
 
+The **npm CLI** itself is pinned as `NPM_VERSION` in `versions.env` (regex custom manager, `datasourceTemplate: npm`,
+grouped under **npm toolchain** with Prettier / markdownlint-cli2 / OpenSpec / Renovate CLI). It is independent of
+`NODE_VERSION` (Node tarball). Bump npm in Devinfra via Renovate; do not hand-edit the pin in product checkouts.
+
 From the repo root (no PR creation):
 
 ```bash
