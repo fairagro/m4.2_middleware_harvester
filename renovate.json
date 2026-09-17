@@ -160,6 +160,15 @@
       "autoReplaceStringTemplate": "NODE_VERSION=v{{newVersion}}"
     },
     {
+      "description": "npm CLI pin in versions.env",
+      "customType": "regex",
+      "managerFilePatterns": ["/^versions\\.env$/"],
+      "matchStrings": ["NPM_VERSION=(?<currentValue>[^\\s#]+)"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
       "description": "kubectl pin in versions.env",
       "customType": "regex",
       "managerFilePatterns": ["/^versions\\.env$/"],
