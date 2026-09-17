@@ -3,9 +3,14 @@
 Automation that opens pull requests in the three m4.2 product repos, copying only paths listed in
 [`docs/synced-paths.yaml`](synced-paths.yaml).
 
-**v1 scope:** sync **adds/updates** allowlisted files only. It does **not** delete paths in product repos (even if a
-file was removed in Devinfra or dropped from the allowlist). Propagating deletions would be a separate follow-up if
-needed.
+**Scope:** sync **adds/updates** the current allowlist file set and **`git rm`s allowlist orphans** — paths that were in
+the resolved allowlist set at the comparison base (`github.event.before` on push) but not at source `HEAD`. There is
+**no** `retire:` list; dropping a path from `allow` (or deleting it upstream so it leaves the resolved set) is enough.
+Paths that were **never** on the allowlist (product-only extras) are **not** deleted.
+
+**`SYNC-FOLLOWUP`:** when a merged Devinfra PR body or comment contains `SYNC-FOLLOWUP: <stable-id>`, live sync opens
+(or reuses) a deduplicated Task issue in each product repo via `m42-ai`. Manual `workflow_dispatch` input `followup_id`
+does the same without a trailer. Dry-run creates neither PRs nor issues.
 
 **Sole path SoT:** [`docs/synced-paths.yaml`](synced-paths.yaml) is the only place that defines _what_ is synced
 (`allow`) and the hard denylist (`exclude`). The workflow does **not** maintain a second path list (no `paths:` filter).
@@ -91,12 +96,32 @@ first-party packages ([`docs/quality.md`](quality.md)).
 
 ## Triggers
 
-- **Push to `main`**: live sync. The workflow compares the push `before` SHA to `HEAD` against `docs/synced-paths.yaml`
-  (via `--list-files`) and skips the sync step when nothing allowlisted changed.
-- **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`.
+- **Push to `main`**: live sync when the allowlist **file set** or allowlisted **content** changed vs `before`. Passes
+  `--orphan-base` so product PRs can delete delta orphans. Always collects `SYNC-FOLLOWUP` from the merged PR (body +
+  comments) when a PR exists for `HEAD`.
+- **`workflow_dispatch`**: inputs `dry_run` (default **true**), `skip_api`, `skip_sql_to_arc`, `skip_harvester`,
+  `followup_id` (optional stable id).
 
-Dry-run reports resolved files and targets without cloning or opening/closing PRs. Skip flags omit a consumer. Actions
-dry-run (`workflow_dispatch` with `dry_run=true`) does **not** require `DEVINFRA_BOT_TOKEN`; live sync does.
+Dry-run reports resolved files / would-delete orphans and targets without cloning or opening/closing PRs or creating
+issues. Skip flags omit a consumer. Actions dry-run (`workflow_dispatch` with `dry_run=true`) does **not** require
+`DEVINFRA_BOT_TOKEN`; live sync and follow-up ensure do.
+
+## SYNC-FOLLOWUP (product local work)
+
+Put a trailer on the **Devinfra PR** (body preferred; comments also scanned):
+
+```text
+SYNC-FOLLOWUP: remove-stubs
+```
+
+`<stable-id>` must be a non-empty token (`[A-Za-z0-9][A-Za-z0-9._/-]*`). Re-runs reuse an open product issue labeled
+`sync-followup:<id>`.
+
+**Author / agent checklist:** if copy/`git rm` is not enough for products (never-allowlisted paths, CI env, call-site
+ignores), add `SYNC-FOLLOWUP: <id>` before merge — or run Actions → Sync products with `followup_id` after merge.
+
+Plumbing: `uv run m42-ai pr-for-commit`, `sync-followup-ids`, `sync-followup-ensure` (see `scripts/ai/README.md`). Issue
+body template: [`docs/sync-followup-issue.md`](sync-followup-issue.md) (Devinfra-only).
 
 ## PR shape (one PR per sync run)
 
@@ -137,7 +162,9 @@ ship `scripts/sync-products.py` — use [`synced-paths.yaml`](synced-paths.yaml)
 
 ```bash
 uv run python scripts/sync-products.py --list-files
+uv run python scripts/sync-products.py --list-files --ref HEAD^
 uv run python scripts/sync-products.py --dry-run
+uv run python scripts/sync-products.py --dry-run --orphan-base HEAD^
 uv run python scripts/sync-products.py --dry-run --skip-harvester
 ```
 

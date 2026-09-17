@@ -31,8 +31,8 @@ arctrl ships no `py.typed` marker. Fleet typing handles it **in synced tool conf
 - **ruff:** no third-party missing-import gate; `known-third-party` includes `arctrl` / `fable_library` for isort
 - **basedpyright / Pylance:** synced `pyrightconfig.json` sets `typeCheckingMode: "off"` — language server only; no
   second IDE type-diagnostics stream
-- Do **not** add `# type: ignore[import-untyped]` on arctrl/fable imports as the fleet default (config covers it).
-  Other one-off untyped libs may still use per-import ignores.
+- Do **not** add `# type: ignore[import-untyped]` on arctrl/fable imports as the fleet default (config covers it). Other
+  one-off untyped libs may still use per-import ignores.
 
 ```python
 from fable_library.async_ import start_as_task
