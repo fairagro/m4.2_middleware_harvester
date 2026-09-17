@@ -174,8 +174,8 @@ repo’s `pyproject.toml` (Devinfra: `scripts/ai/tests`; products: their `middle
 
 **Analysis (basedpyright / Pylance):** use synced [`pyrightconfig.json`](../pyrightconfig.json) **verbatim** — root
 `.venv`, `extraPaths` only for `scripts/ai/src`, and `typeCheckingMode: "off"` so the language server stays for IDE
-navigation while **mypy** owns type diagnostics (hooks + CI). Do **not** add product `middleware/` paths — editable
-`uv` installs resolve them. Do **not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
+navigation while **mypy** owns type diagnostics (hooks + CI). Do **not** add product `middleware/` paths — editable `uv`
+installs resolve them. Do **not** patch `python.analysis.extraPaths` / Cursor Pyright equivalents into synced
 `.vscode/settings.json` after sync for product overlays ([`docs/sync.md`](sync.md)).
 
 Mypy, Pylint, and Bandit stay **hooks + CI only** in the shared baseline (see
