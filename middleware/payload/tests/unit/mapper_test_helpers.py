@@ -112,6 +112,22 @@ OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE = """
 }
 """
 
+# Alphabetically-last entry is document-first: catches a regression where the
+# fallback picks the casefold-sorted first alternativeHeadline instead of the
+# first one that actually appears in the document.
+OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE_OUT_OF_ALPHA_ORDER = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "alternativeHeadline": ["", "Zebra finch population study", "Alpha note about metadata"],
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
 OPENAGRAR_MISSING_NAME_NO_FALLBACK = """
 {
   "@context": "https://schema.org/",

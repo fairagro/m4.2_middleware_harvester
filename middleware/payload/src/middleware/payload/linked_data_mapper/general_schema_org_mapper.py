@@ -154,12 +154,15 @@ class _SchemaOrgRun:
         if headline:
             return headline, "headline"
 
-        for alternative in self.view(subject).schema_texts("alternativeHeadline"):
-            alternative = alternative.strip()
+        # schema_texts() dedupes and alphabetizes; alternativeHeadline needs
+        # document order, so read the raw objects instead.
+        for alternative_node in self.view(subject).schema_objects("alternativeHeadline"):
+            alternative = self.stable.object_text(alternative_node)
             if alternative:
                 return alternative, "alternativeHeadline"
 
-        html_title = (context.html_title or "").strip()
+        html_title = (context.html_title() if context.html_title is not None else None) or ""
+        html_title = html_title.strip()
         if html_title:
             return html_title, "html_title"
 
@@ -168,14 +171,13 @@ class _SchemaOrgRun:
             "(schema:name, headline, alternativeHeadline, or page title); refusing Untitled fallback"
         )
 
-    @staticmethod
-    def _add_title_fallback_comment(inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
+    def _add_title_fallback_comment(self, inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
         """Warn and record a Comment when the title came from a fallback, not schema:name."""
         if source is None:
             return
         logger.warning(
             "Schema.org Dataset %s used title fallback %r: resolved title=%r",
-            subject,
+            self.view(subject).iri or title,
             source,
             title,
         )

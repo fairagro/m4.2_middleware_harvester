@@ -355,3 +355,51 @@ def test_html_jsonld_title_hint_reuses_html_already_fetched_by_to_graph() -> Non
     calls, hint = asyncio.run(run())
     assert calls == 1
     assert hint == "Citation Title"
+
+
+def test_html_jsonld_to_graph_reuses_html_already_fetched_by_title_hint() -> None:
+    page_fetch_count = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal page_fetch_count
+        if request.url == httpx.URL("https://example.org/page"):
+            page_fetch_count += 1
+            return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> tuple[int, int]:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            await ds.title_hint()
+            graph = await ds.to_graph()
+            return page_fetch_count, len(graph)
+
+    calls, graph_len = asyncio.run(run())
+    assert calls == 1
+    assert graph_len > 0
+
+
+def test_html_jsonld_title_hint_from_cache_none_before_fetch() -> None:
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig()) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            return ds.title_hint_from_cache()
+
+    assert asyncio.run(run()) is None
+
+
+def test_html_jsonld_title_hint_from_cache_uses_html_fetched_by_to_graph() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            await ds.to_graph()
+            return ds.title_hint_from_cache()
+
+    assert asyncio.run(run()) == "Citation Title"

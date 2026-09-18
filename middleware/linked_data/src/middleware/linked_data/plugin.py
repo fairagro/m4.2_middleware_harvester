@@ -129,7 +129,7 @@ class LinkedDataPlugin:
             mapping_context = MappingContext(
                 source_url=source_url,
                 harvest_source_id=harvest_source_id,
-                html_title=await dataset.title_hint(),
+                html_title=dataset.title_hint_from_cache,
             )
             harvested_items = await asyncio.to_thread(
                 lambda: list(self._mapper.map_graph(graph, mapping_context)),
