@@ -25,7 +25,7 @@ class MappingContext:
 
     source_url: str | None = None
     harvest_source_id: str | None = None
-    html_title: str | None = None
+    html_title: Callable[[], str | None] | None = None
 
 
 class LinkedDataMapper(ABC):
@@ -77,10 +77,13 @@ class LinkedDataMapper(ABC):
         ``source_url`` as the primary harvest-stable identifier before graph URL or
         DOI fallbacks.
 
-        ``context.html_title`` is an optional page-title hint from the dataset's
-        raw payload (e.g. ``html_jsonld``'s ``citation_title``/``<title>``),
-        outside the RDF graph. Schema.org mappers may use it as a last-resort
-        title fallback when the graph itself carries no usable title.
+        ``context.html_title`` is an optional zero-arg callable that lazily
+        recovers a page-title hint from the dataset's raw payload (e.g.
+        ``html_jsonld``'s ``citation_title``/``<title>``), outside the RDF
+        graph. It is a callable rather than a precomputed value so the (often
+        expensive) HTML re-parse it performs only happens when a mapper
+        actually reaches its last-resort title fallback. Schema.org mappers
+        may call it when the graph itself carries no usable title.
 
         Returns an iterable of HarvestedArc objects. Mappers that handle a single
         entity per graph yield an iterable with exactly one element. Mappers that

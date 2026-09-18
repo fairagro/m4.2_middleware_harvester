@@ -130,8 +130,10 @@ class HtmlJsonLdDataset(Dataset):
         if self._jsonld_blocks is not None:
             return self._jsonld_blocks
 
-        html_text = await self._fetch_html(self._url, self._client)
-        self._html_text = html_text
+        html_text = self._html_text
+        if html_text is None:
+            html_text = await self._fetch_html(self._url, self._client)
+            self._html_text = html_text
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
 
@@ -181,6 +183,15 @@ class HtmlJsonLdDataset(Dataset):
         if self._html_text is None:
             self._html_text = await self._fetch_html(self._url, self._client)
         return _extract_title_hint(self._html_text)
+
+    def title_hint_from_cache(self) -> str | None:
+        """``title_hint()`` result using only the HTML already fetched by ``to_graph()``.
+
+        Returns ``None`` (no I/O, no parse) when nothing has been fetched yet.
+        Lets callers pass this as a lazy ``MappingContext.html_title`` provider
+        without paying for a second ``HTMLParser`` pass unless it's invoked.
+        """
+        return _extract_title_hint(self._html_text) if self._html_text is not None else None
 
     def _parse_jsonld_block(self, block: str) -> Graph:
         graph = Graph()

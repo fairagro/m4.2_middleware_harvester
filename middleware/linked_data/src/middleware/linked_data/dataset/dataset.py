@@ -85,6 +85,16 @@ class Dataset(ABC):
         """
         return None
 
+    def title_hint_from_cache(self) -> str | None:  # noqa: PLR6301
+        """``title_hint()`` using only state already fetched by ``to_graph()``; no I/O.
+
+        Default ``None``. Overridden by dataset kinds where this can be computed
+        for free from what ``to_graph()`` already fetched, so callers can wire it
+        as a lazy ``MappingContext.html_title`` provider (see
+        ``HtmlJsonLdDataset.title_hint_from_cache``).
+        """
+        return None
+
     @staticmethod
     async def _fetch_html(url: str, client: NiceHttpClient) -> str:
         """Fetch an HTML payload with harvesting policy (robots, rate limit, retry)."""

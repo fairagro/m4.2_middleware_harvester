@@ -97,6 +97,10 @@ class GoodFakeDataset:
         await asyncio.sleep(0)
         return None
 
+    def title_hint_from_cache(self) -> str | None:  # noqa: PLR6301
+        """No page-title hint, matching Dataset.title_hint_from_cache()."""
+        return None
+
 
 _MINIMAL_CONFIG = Config(
     sitemap_url="https://example.org/sitemap.xml",
