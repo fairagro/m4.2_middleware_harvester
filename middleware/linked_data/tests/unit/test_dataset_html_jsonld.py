@@ -6,7 +6,16 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
-from fakes import _MINIMAL_CONFIG, BAD_JSON_HTML, MULTI_BLOCK_HTML, NO_JSONLD_HTML, SIMPLE_HTML
+from fakes import (
+    _MINIMAL_CONFIG,
+    BAD_JSON_HTML,
+    CITATION_TITLE_HTML,
+    MULTI_BLOCK_HTML,
+    NO_JSONLD_HTML,
+    NO_TITLE_HINT_HTML,
+    SIMPLE_HTML,
+    TITLE_ONLY_HTML,
+)
 
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.linked_data.config import Config, DatasetType, PayloadType, SitemapType
@@ -284,3 +293,117 @@ async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
                 return len(graph)
 
     assert await run() > 0
+
+
+def test_html_jsonld_title_hint_prefers_citation_title_over_title_tag() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            return await ds.title_hint()
+
+    assert asyncio.run(run()) == "Citation Title"
+
+
+def test_html_jsonld_title_hint_falls_back_to_title_tag() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=TITLE_ONLY_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            return await ds.title_hint()
+
+    assert asyncio.run(run()) == "Page Title Only"
+
+
+def test_html_jsonld_title_hint_none_when_absent() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=NO_TITLE_HINT_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            return await ds.title_hint()
+
+    assert asyncio.run(run()) is None
+
+
+def test_html_jsonld_title_hint_reuses_html_already_fetched_by_to_graph() -> None:
+    page_fetch_count = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal page_fetch_count
+        if request.url == httpx.URL("https://example.org/page"):
+            page_fetch_count += 1
+            return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> tuple[int, str | None]:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            await ds.to_graph()
+            hint = await ds.title_hint()
+            return page_fetch_count, hint
+
+    calls, hint = asyncio.run(run())
+    assert calls == 1
+    assert hint == "Citation Title"
+
+
+def test_html_jsonld_to_graph_reuses_html_already_fetched_by_title_hint() -> None:
+    page_fetch_count = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal page_fetch_count
+        if request.url == httpx.URL("https://example.org/page"):
+            page_fetch_count += 1
+            return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> tuple[int, int]:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            await ds.title_hint()
+            graph = await ds.to_graph()
+            return page_fetch_count, len(graph)
+
+    calls, graph_len = asyncio.run(run())
+    assert calls == 1
+    assert graph_len > 0
+
+
+def test_html_jsonld_title_hint_from_cache_none_before_fetch() -> None:
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig()) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            return ds.title_hint_from_cache()
+
+    assert asyncio.run(run()) is None
+
+
+def test_html_jsonld_title_hint_from_cache_uses_html_fetched_by_to_graph() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=CITATION_TITLE_HTML, headers={"content-type": "text/html"})
+
+    transport = httpx.MockTransport(handler)
+
+    async def run() -> str | None:
+        async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
+            ds = HtmlJsonLdDataset("https://example.org/page", client, _MINIMAL_CONFIG)
+            await ds.to_graph()
+            return ds.title_hint_from_cache()
+
+    assert asyncio.run(run()) == "Citation Title"

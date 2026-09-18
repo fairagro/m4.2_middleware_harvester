@@ -7,6 +7,7 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import override
@@ -36,6 +37,8 @@ from middleware.harvester.plugin_base import HarvestedArc
 from ..config import PayloadType
 from .linked_data_mapper import LinkedDataMapper, MappingContext
 from .stable_graph import SCHEMA_ORG_NAMESPACES, ResourceView, StableGraph, http_iri
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -112,7 +115,7 @@ class _SchemaOrgRun:
         *,
         use_page_harvest_id: bool = True,
     ) -> ARC:
-        title = self._require_dataset_title(subject)
+        title, title_fallback_source = self._resolve_dataset_title(subject, context)
         identifier_plan = self._plan_investigation_identifier(
             subject,
             context,
@@ -120,7 +123,12 @@ class _SchemaOrgRun:
         )
         publication_doi = identifier_plan.publication_doi
 
-        investigation = self._map_investigation(subject, title=title, identifier_plan=identifier_plan)
+        investigation = self._map_investigation(
+            subject,
+            title=title,
+            identifier_plan=identifier_plan,
+            title_fallback_source=title_fallback_source,
+        )
         study = self._map_study(subject, title=title)
         investigation.AddStudy(study)
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
@@ -128,12 +136,54 @@ class _SchemaOrgRun:
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(investigation)
 
-    def _require_dataset_title(self, subject: Node) -> str:
-        """Return a non-empty ``schema:name``, or fail closed (no Untitled fallback)."""
-        title = (self.view(subject)["name"] or "").strip()
-        if not title:
-            raise ValueError("Schema.org Dataset has no non-empty schema:name; refusing Untitled fallback")
-        return title
+    def _resolve_dataset_title(self, subject: Node, context: MappingContext) -> tuple[str, str | None]:
+        """Resolve a non-empty title, or fail closed (no ``Untitled`` fallback).
+
+        Tries, in order: ``schema:name``, ``schema:headline``, the first
+        non-empty ``schema:alternativeHeadline``, then (``html_jsonld`` sources
+        only) the HTML ``citation_title``/``<title>`` hint carried on
+        ``context.html_title``. Returns ``(title, fallback_source)`` —
+        ``fallback_source`` is ``None`` when ``schema:name`` itself was used,
+        else a short label identifying which fallback won (logged and recorded
+        as a Comment by the caller, since a title fallback should never be
+        silent).
+        """
+        name = (self.view(subject)["name"] or "").strip()
+        if name:
+            return name, None
+
+        headline = (self.view(subject)["headline"] or "").strip()
+        if headline:
+            return headline, "headline"
+
+        # schema_texts() dedupes and alphabetizes; alternativeHeadline needs
+        # document order, so read the raw objects instead.
+        for alternative_node in self.view(subject).schema_objects("alternativeHeadline"):
+            alternative = self.stable.object_text(alternative_node)
+            if alternative:
+                return alternative, "alternativeHeadline"
+
+        html_title = (context.html_title() if context.html_title is not None else None) or ""
+        html_title = html_title.strip()
+        if html_title:
+            return html_title, "html_title"
+
+        raise ValueError(
+            "Schema.org Dataset has no usable title "
+            "(schema:name, headline, alternativeHeadline, or page title); refusing Untitled fallback"
+        )
+
+    def _add_title_fallback_comment(self, inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
+        """Warn and record a Comment when the title came from a fallback, not schema:name."""
+        if source is None:
+            return
+        logger.warning(
+            "Schema.org Dataset %s used title fallback %r: resolved title=%r",
+            self.view(subject).iri or title,
+            source,
+            title,
+        )
+        inv.Comments.append(Comment.create("Title Source", source))
 
     def _study_assay_identifier(self, title: str) -> str:
         identifier = self.mapper.to_identifier_slug(title)
@@ -189,6 +239,7 @@ class _SchemaOrgRun:
         *,
         title: str,
         identifier_plan: _IdentifierPlan,
+        title_fallback_source: str | None = None,
     ) -> ArcInvestigation:
         plan = identifier_plan
         identifier = plan.investigation_id
@@ -206,6 +257,7 @@ class _SchemaOrgRun:
         self._add_contacts(inv, subject)
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
         self._add_alternate_identifier_comments(inv, plan.alternate_dois)
+        self._add_title_fallback_comment(inv, subject, title_fallback_source, title)
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
         return inv

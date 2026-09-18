@@ -81,6 +81,66 @@ OPENAGRAR_DUAL_DOI_TEMPLATE = """
 """
 
 
+# OpenAgrar shape from issue #164: schema:name missing/blank but a usable
+# title exists in headline / alternativeHeadline / (html_jsonld only) the
+# HTML page title. Mirrors the real failing record's field mix (description,
+# creator, license, DOI identifier all present; just no schema:name).
+OPENAGRAR_MISSING_NAME_WITH_HEADLINE = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "name": "",
+  "headline": "Flower visitors in legume-intercrops",
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "alternativeHeadline": ["", "Flower visitors in legume-intercrops", "Ignored second entry"],
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+# Alphabetically-last entry is document-first: catches a regression where the
+# fallback picks the casefold-sorted first alternativeHeadline instead of the
+# first one that actually appears in the document.
+OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE_OUT_OF_ALPHA_ORDER = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "alternativeHeadline": ["", "Zebra finch population study", "Alpha note about metadata"],
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+OPENAGRAR_MISSING_NAME_NO_FALLBACK = """
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "identifier": [{
+    "@type": "PropertyValue",
+    "propertyID": "https://registry.identifiers.org/registry/doi",
+    "value": "10.3220/253-2025-42"
+  }]
+}
+"""
+
+
 # Real e!DAL-PGP (IPK Gatersleben) markup, from DOIs 10.5447/ipk/2012/{1,2,3}
 # (fetched 2026-09-15; see issue #125). No schema:identifier, schema:url, or
 # schema:sameAs — the Dataset's only "id-shaped" field is a bare, schemeless
@@ -129,6 +189,26 @@ def root_identifier(arc_json: str) -> str:
     identifier = root["identifier"]
     assert isinstance(identifier, str)
     return identifier
+
+
+def root_title(arc_json: str) -> str:
+    assert_harvest_has_no_bnode_labels(arc_json)
+    payload = json.loads(arc_json)
+    root = next(item for item in payload["@graph"] if item.get("@id") == "./")
+    return rocrate_prop(root, "name")
+
+
+def title_source_comment_text(arc_json: str) -> str | None:
+    assert_harvest_has_no_bnode_labels(arc_json)
+    payload = json.loads(arc_json)
+    for item in payload.get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        if rocrate_prop(item, "name") == "Title Source":
+            return rocrate_prop(item, "text")
+    return None
 
 
 def rocrate_prop(item: dict, short_name: str) -> str:
