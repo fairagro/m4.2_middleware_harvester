@@ -18,7 +18,7 @@ Canonical GitHub Actions for the three m4.2 product repos live in this repositor
 | CodeQL (per-repo)             | [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) — thin synced workflow; see below                                                                                          |
 | Sync products                 | [`.github/workflows/sync-products.yml`](https://github.com/fairagro/m4.2_middleware_devinfra/blob/main/.github/workflows/sync-products.yml) — allowlist push; see [docs/sync.md](sync.md)    |
 
-Dockerfile pins Renovate skips (`apk=…-rN`, inline `name==…`): synced
+Dockerfile pins Renovate skips (apk via `ARG …_VERSION=*-rN`, inline `name==…`): synced
 [`scripts/update-dockerfile-pins.sh`](../scripts/update-dockerfile-pins.sh) — see
 [Manual Dockerfile pins](renovate.md#manual-dockerfile-pins-not-renovate).
 
