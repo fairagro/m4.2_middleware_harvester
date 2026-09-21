@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import ClassVar, override
 
 # Ensure builtins are registered.
-import middleware.generic.parser.html_jsonld  # noqa: F401
-import middleware.generic.protocol.xml  # noqa: F401
+import middleware.generic.parser.html_jsonld as _register_html_jsonld
+import middleware.generic.protocol.xml as _register_xml
 from middleware.generic.config import ParserType, ProtocolType
 from middleware.generic.discovery import DiscoveryResult
 from middleware.generic.parser.parser import PayloadParser
@@ -14,6 +14,8 @@ from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.parsed_payload import ParsedPayload
+
+_ = (_register_html_jsonld, _register_xml)
 
 
 def test_xml_protocol_registered() -> None:

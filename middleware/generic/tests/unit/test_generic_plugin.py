@@ -9,10 +9,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from rdflib import Graph
 
-import middleware.generic.parser.html_jsonld  # noqa: F401
+import middleware.generic.parser.html_jsonld as _register_html_jsonld
 import middleware.generic.plugin as plugin_mod
-import middleware.generic.protocol.xml  # noqa: F401
-import middleware.payload.linked_data_mapper.register_builtins  # noqa: F401
+import middleware.generic.protocol.xml as _register_xml
+import middleware.payload.linked_data_mapper.register_builtins as _register_builtin_mappers
 from middleware.generic.config import Config, ParserType, ProtocolType
 from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.generic.parser.parser import PayloadParser
@@ -24,6 +24,8 @@ from middleware.harvester.plugin_base import HarvestedArc
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
+
+_ = (_register_html_jsonld, _register_xml, _register_builtin_mappers)
 
 
 def _config(**overrides: object) -> Config:
