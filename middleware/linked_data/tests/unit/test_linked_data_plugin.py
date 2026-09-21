@@ -183,7 +183,6 @@ async def test_linked_data_plugin_wires_page_title_hint_into_mapper_fallback(
         sitemap_url="https://www.openagrar.de/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        payload_type=PayloadType.schema_org_general,
         http=LinkedDataNiceHttpClientConfig(),
     )
     calls: list[str] = []
@@ -237,7 +236,7 @@ async def test_linked_data_plugin_wires_page_title_hint_into_mapper_fallback(
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
     # Deliberately no create_mapper patch: the real GeneralSchemaOrgMapper must run.
-    results = [item async for item in LinkedDataPlugin(config).run()]
+    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
 
     assert len(results) == 1
     harvested = results[0]

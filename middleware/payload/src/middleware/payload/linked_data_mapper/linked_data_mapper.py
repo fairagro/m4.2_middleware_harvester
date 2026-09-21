@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import ClassVar, override
 
@@ -20,7 +20,14 @@ from middleware.payload.parsed_payload import ParsedPayload
 
 @dataclass(frozen=True)
 class MappingContext:
-    """Discovery context for one ``map_graph`` call (not part of StableGraph)."""
+    """Discovery context for one ``map_graph`` call (not part of StableGraph).
+
+    ``html_title`` lazily recovers a page-title hint from the dataset's raw
+    payload (e.g. ``html_jsonld``'s ``citation_title`` / ``<title>``), which
+    lives outside the RDF graph. It is a callable rather than a precomputed
+    value so the HTML re-parse only happens when a mapper actually reaches that
+    last-resort step of the title cascade.
+    """
 
     source_url: str | None = None
     harvest_source_id: str | None = None

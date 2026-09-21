@@ -17,7 +17,8 @@ from mapper_test_helpers import (
     title_source_comment_text,
 )
 
-from middleware.linked_data.linked_data_mapper import GeneralSchemaOrgMapper, MappingContext
+from middleware.payload.linked_data_mapper import MappingContext
+from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 
 
 def test_schema_name_present_no_fallback_used() -> None:
