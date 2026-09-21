@@ -7,6 +7,12 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from mapper_test_helpers import (
+    OPENAGRAR_MISSING_NAME_NO_FALLBACK,
+    parse_jsonld,
+    root_title,
+    title_source_comment_text,
+)
 from rdflib import Graph
 
 from middleware.harvester.errors import RecordProcessingError
@@ -160,6 +166,89 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
     mock_mapper.map_graph.assert_called_once()
     _graph_arg, context_arg = mock_mapper.map_graph.call_args.args
     assert context_arg.harvest_source_id == "openagrar_mods_00107322"
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_wires_page_title_hint_into_mapper_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End-to-end: a graph without schema:name resolves via the plugin's html_title wiring.
+
+    Exercises ``to_graph()`` -> ``title_hint_from_cache`` -> ``MappingContext.html_title``
+    against the real ``GeneralSchemaOrgMapper``. The other title-fallback tests only
+    cover this chain piecewise: dataset-level cache tests on one end, mapper-level
+    context tests on the other, with no test proving the plugin joins them.
+    """
+    config = Config(
+        sitemap_url="https://www.openagrar.de/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=PayloadType.schema_org_general,
+        http=LinkedDataNiceHttpClientConfig(),
+    )
+    calls: list[str] = []
+
+    class DatasetWithPageTitle:
+        """OpenAgrar shape from #164: no usable title in the JSON-LD, one on the page."""
+
+        def __init__(self, url: str) -> None:
+            self._url = url
+
+        @property
+        def identifier(self) -> str:
+            return self._url
+
+        @classmethod
+        def from_discovery_result(
+            cls,
+            discovery_result: UrlDiscoveryResult,
+            client: NiceHttpClient | None = None,
+            config: Config | None = None,
+        ) -> "DatasetWithPageTitle":
+            del client, config
+            return cls(discovery_result.url)
+
+        async def to_graph(self) -> Graph:  # noqa: PLR6301
+            calls.append("to_graph")
+            await asyncio.sleep(0)
+            return parse_jsonld(OPENAGRAR_MISSING_NAME_NO_FALLBACK)
+
+        async def title_hint(self) -> str | None:  # noqa: PLR6301
+            calls.append("title_hint")
+            await asyncio.sleep(0)
+            return "Citation Title From Page"
+
+        def title_hint_from_cache(self) -> str | None:  # noqa: PLR6301
+            calls.append("title_hint_from_cache")
+            return "Citation Title From Page"
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
+        del client
+        return FakeSitemap(["https://www.openagrar.de/receive/openagrar_mods_00110150"])
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: DatasetWithPageTitle},
+    )
+    monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
+
+    # Deliberately no create_mapper patch: the real GeneralSchemaOrgMapper must run.
+    results = [item async for item in LinkedDataPlugin(config).run()]
+
+    assert len(results) == 1
+    harvested = results[0]
+    assert isinstance(harvested, HarvestedArc)
+    assert root_title(harvested.arc_json) == "Citation Title From Page"
+    assert title_source_comment_text(harvested.arc_json) == "html_title"
+    # to_graph() must populate the HTML cache before the mapper reads it, so
+    # reaching the fallback never costs a second fetch of the same page.
+    assert calls[0] == "to_graph"
+    assert "title_hint_from_cache" in calls
+    assert "title_hint" not in calls
 
 
 @pytest.mark.asyncio
