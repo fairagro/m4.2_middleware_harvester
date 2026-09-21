@@ -26,7 +26,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
 from middleware.payload.harvested_arc import HarvestedArc
@@ -59,14 +59,8 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     ``_SchemaOrgRun``); identifier cascade and publisher policy stay here.
     """
 
-    SCHEMA_URIS = [
-        Namespace("https://schema.org/"),
-        Namespace("http://schema.org/"),
-    ]
-
     @override
-    @staticmethod
-    def _stable_wrap(graph: Graph) -> StableGraph:
+    def _stable_wrap(self, graph: Graph) -> StableGraph:
         """Wrap with Schema.org http/https term aliases and ``schema:name`` labels."""
         return StableGraph.wrap(
             graph,
@@ -81,7 +75,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         Yields one HarvestedArc per schema:Dataset entity in the graph.
         """
         _ = graph  # Access via ``stable`` (call-scoped wrap).
-        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in self.SCHEMA_URIS))
+        dataset_views = stable.subjects_of_types(*(schema.Dataset for schema in SCHEMA_ORG_NAMESPACES))
         if not dataset_views:
             raise ValueError("Graph does not contain a Schema.org Dataset entity")
 
