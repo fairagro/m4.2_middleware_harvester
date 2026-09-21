@@ -1,0 +1,11 @@
+Sitemap: https://www.openagrar.de/sitemap_google.xml
+User-agent: *
+Allow: /servlets/MCRFileNodeServlet/
+Allow: /rsc/sass/
+Allow: /rsc/locale/
+Allow: /api/v1/objects/
+Disallow: /*?
+Disallow: /servlets/
+Disallow: /browse/
+Disallow: /rsc/
+Disallow: /api/

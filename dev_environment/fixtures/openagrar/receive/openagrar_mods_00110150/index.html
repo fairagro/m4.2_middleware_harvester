@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  Fixture for issue #164: the OpenAgrar record whose schema.org JSON-LD export
+  carries no schema:name. Bibliographic values are the record's real ones,
+  taken from https://www.openagrar.de/api/v2/objects/openagrar_mods_00110150
+  (MODS). The JSON-LD block is reconstructed, because the live page is behind
+  the pow-challenge gate (see issue #271) -- it reproduces the field mix #164
+  describes: no name, no headline, no alternativeHeadline, so the title can
+  only come from the page.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp
+      Pemphredon lethifer - OpenAgrar
+    </title>
+    <meta
+      name="citation_title"
+      content="Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer"
+    />
+    <meta name="citation_author" content="Furtwengler, Jana" />
+    <meta name="citation_author" content="Böckman, Elias" />
+    <meta name="citation_publication_date" content="2026/08/03" />
+    <meta name="citation_doi" content="10.5073/20250926-163035-0" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/20250926-163035-0",
+        "identifier": "https://doi.org/10.5073/20250926-163035-0",
+        "url": "https://www.openagrar.de/receive/openagrar_mods_00110150",
+        "description": "Trap nest and laboratory experiment data on pith diameter preferences of the digger wasp Pemphredon lethifer.",
+        "datePublished": "2026-08-03",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [
+          { "@type": "Person", "familyName": "Furtwengler", "givenName": "Jana", "name": "Furtwengler, Jana" },
+          { "@type": "Person", "familyName": "Böckman", "givenName": "Elias", "name": "Böckman, Elias" }
+        ],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" },
+        "distribution": [
+          {
+            "@type": "DataDownload",
+            "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "contentUrl": "https://www.openagrar.de/servlets/MCRFileNodeServlet/openagrar_derivate_00067866/Raw_data_diameter_preference_Pemphredon_lethifer_laboratory.xlsx"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <h1>
+      Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp
+      <i>Pemphredon lethifer</i>
+    </h1>
+  </body>
+</html>

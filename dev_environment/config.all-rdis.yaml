@@ -1,0 +1,71 @@
+# Every RDI that can actually be harvested, plus the OpenAgrar fixture stand-in.
+#
+# Intended for before/after comparison runs: harvest the same set on two git
+# branches and diff the JSON-LD reports the harvester writes to stdout.
+#
+# Needs the same two local services as config.fixtures.yaml (static fixture
+# server on :8080, mock Middleware API on :8000).
+#
+# Run times are dominated by e!DAL: 338 records with robots.txt Crawl-delay: 1,
+# so roughly six minutes. publisso is 92 records on one page; bonares is 27.
+
+log_level: INFO
+
+repositories:
+  # INSPIRE/CSW. Untouched by the linked_data mapper work -- included to show
+  # the orchestrator is unaffected.
+  # NOTE: config.yaml still points at repository-staging.dataservice.zalf.de,
+  # which no longer resolves. repository-e is the working host.
+  - rdi: "bonares"
+    inspire:
+      csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
+
+  # The other real schema_org_general + html_jsonld source, and so the only
+  # live RDI that could regress from a GeneralSchemaOrgMapper change.
+  - rdi: "edal"
+    linked_data:
+      sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
+      sitemap_type: xml
+      dataset_type: html_jsonld
+      payload_type: schema_org_general
+
+  # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
+  # did not disturb the other mapper.
+  - rdi: "publisso"
+    linked_data:
+      sitemap_url: "https://frl.publisso.de/find"
+      sitemap_type: regal_find
+      dataset_type: regal_jsonld
+      payload_type: regal_general
+      resource_base_url: "https://repository.publisso.de/resource/"
+      http:
+        # FRL robots.txt is User-agent: * / Disallow: / -- /find is a public
+        # machine API, so robots checks are disabled for this RDI.
+        respect_robots_txt: false
+
+  # Static stand-in for OpenAgrar; see fixtures/openagrar/README.md.
+  - rdi: "openagrar-fixture"
+    linked_data:
+      sitemap_url: "http://localhost:8080/servlets/solr/select"
+      sitemap_type: mycore_solr
+      dataset_type: html_jsonld
+      payload_type: schema_org_general
+      http:
+        respect_robots_txt: false
+        max_requests_per_second: null
+
+  # The real OpenAgrar cannot be harvested: record pages, servlets/solr/select
+  # and sitemap_google.xml all 302 to /pow-challenge. Tracked in #271.
+  # - rdi: "openagrar"
+  #   linked_data:
+  #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
+  #     sitemap_type: mycore_solr
+  #     dataset_type: html_jsonld
+  #     payload_type: schema_org_general
+  #     http:
+  #       respect_robots_txt: false
+
+api_client:
+  api_url: "http://localhost:8000"
+  timeout: 60.0
+  verify_ssl: false
