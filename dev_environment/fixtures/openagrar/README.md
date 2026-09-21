@@ -50,11 +50,17 @@ step of the cascade.
 | `fixture_altheadline_only` | 3 — first `schema:alternativeHeadline` in **document order** | `alternativeHeadline` |
 | `fixture_page_title_only` | 4 — page `<title>`, no `citation_title` | `html_title` |
 | `fixture_no_title_anywhere` | none — nothing resolves | **must fail closed on every branch** |
+| `fixture_ordertest` | 3 — ordering of multiple `alternativeHeadline` values | `alternativeHeadline`, resolving to `Apple is alphabetically-first` |
 
-`fixture_altheadline_only` is the regression guard for commit `6fa8197`: its document-order
-first value (`Zebra …`) differs from its alphabetically first value (`Alpha …`). The spec
-requires document order, so `Zebra …` must win. The pre-`6fa8197` implementation went through
-`schema_texts()`, which dedupes and sorts, and would have picked `Alpha …`.
+`fixture_altheadline_only` and `fixture_ordertest` pin the ordering of multiple
+`alternativeHeadline` values. RDF gives no ordering to repeated predicates — there is no
+`@list` involved — so the order the mapper observes is an artefact of the rdflib store rather
+than of the source document. Running from source and running the shipped PyInstaller binary
+disagreed on exactly this, which is how it was found. The mapper therefore picks the
+casefold-alphabetical value deliberately, and both fixtures assert that: `Alpha …` and
+`Apple is alphabetically-first`. `fixture_ordertest` uses three values so that document,
+alphabetical and reverse-document order each select a different winner; a two-value fixture
+cannot tell them apart.
 
 ## How it is served
 

@@ -9,16 +9,31 @@
     }
   },
   "response": {
-    "numFound": 6,
+    "numFound": 7,
     "start": 0,
     "numFoundExact": true,
     "docs": [
-      { "id": "openagrar_mods_00110150" },
-      { "id": "openagrar_mods_00108436" },
-      { "id": "fixture_headline_only" },
-      { "id": "fixture_altheadline_only" },
-      { "id": "fixture_page_title_only" },
-      { "id": "fixture_no_title_anywhere" }
+      {
+        "id": "openagrar_mods_00110150"
+      },
+      {
+        "id": "openagrar_mods_00108436"
+      },
+      {
+        "id": "fixture_headline_only"
+      },
+      {
+        "id": "fixture_altheadline_only"
+      },
+      {
+        "id": "fixture_page_title_only"
+      },
+      {
+        "id": "fixture_no_title_anywhere"
+      },
+      {
+        "id": "fixture_ordertest"
+      }
     ]
   }
 }
