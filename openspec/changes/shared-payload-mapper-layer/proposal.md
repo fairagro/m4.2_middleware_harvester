@@ -17,7 +17,7 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
 - v1 `PayloadKind` is **`rdf_graph` only** (`rdflib.Graph`).
 - Repository config gains a top-level `mapper:` block beside the plugin key; fail-fast when producer kind ≠ mapper
   `accepts`. Canonical YAML uses `mapper.type`. Deprecated: `linked_data.payload_type` is still accepted, emits a
-  `DeprecationWarning`, and is lifted to `mapper.type` (conflict with a differing `mapper.type` fails closed).
+  `logger.warning`, and is lifted to `mapper.type` (conflict with a differing `mapper.type` fails closed).
 - `linked_data` keeps Sitemap/Dataset orchestration but **calls** shared mappers; mapper selection leaves the plugin
   config (except the deprecated alias).
 - Preserve call-scoped `StableGraph` / `_*Run` concurrency contracts during the move.
@@ -45,7 +45,7 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
   validate mapper↔kind compatibility; `mapper` is not a plugin field for the exactly-one-plugin rule; deprecated
   `linked_data.payload_type` MAY be lifted to `mapper.type` with a deprecation warning.
 - `linked-data-harvesting`: Plugin MUST resolve mappers from repository `mapper.type` / shared registry; plugin config
-  MUST NOT model `payload_type` as a first-class field (legacy values are lifted at repository validation).
+  MUST keep deprecated `payload_type` (`Field(deprecated=True)`), lifted to `mapper.type` at repository validation.
 - `linked-data-mapper`: Mapper ownership and import paths move to `middleware.payload`; behavioural ARC mapping rules
   (including StableGraph / ResourceView) unchanged.
 - `principles`: Module dependency graph and extension points MUST include `middleware.payload`.

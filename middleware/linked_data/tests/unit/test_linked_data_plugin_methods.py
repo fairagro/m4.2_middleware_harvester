@@ -30,6 +30,20 @@ def test_create_mapper_from_config() -> None:
     assert mapper is not None
 
 
+def test_create_schema_org_mapper_skips_resource_base_derivation() -> None:
+    """schema_org_general must not require a derivable resource_base_url from sitemap_url."""
+    config = Config(
+        sitemap_url="/relative/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        http=NiceHttpClientConfig(),
+    )
+    with pytest.raises(ValueError, match="Cannot derive resource_base_url"):
+        _ = config.effective_resource_base_url
+    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig(type=MapperType.schema_org_general))
+    assert mapper is not None
+
+
 def test_create_mapper_rejects_unknown_mapper_type() -> None:
     config = Config(
         sitemap_url="https://example.org/sitemap.xml",

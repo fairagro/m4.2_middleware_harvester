@@ -3,9 +3,9 @@
 ### Requirement: Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
 The system SHALL require explicit `sitemap_type` and `dataset_type` on the linked-data plugin config. Mapper selection
 MUST use the repository-level `mapper.type` (shared `middleware.payload` registry). The plugin MUST NOT infer sitemap,
-dataset, or mapper formats automatically. The linked-data plugin `Config` model MUST NOT expose `payload_type` as a
-first-class field. Legacy repository YAML that still sets `linked_data.payload_type` MUST be accepted by lifting the
-value to sibling `mapper.type` and MUST emit a `DeprecationWarning`.
+dataset, or mapper formats automatically. The linked-data plugin `Config` model MUST keep `payload_type` as an optional
+field marked `Field(deprecated=True)`. When set, repository validation MUST lift the value to sibling `mapper.type` and
+MUST emit a `logger.warning`.
 
 #### Scenario: Satisfies — Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
 
@@ -26,7 +26,7 @@ value to sibling `mapper.type` and MUST emit a `DeprecationWarning`.
 #### Scenario: Legacy payload_type is lifted with deprecation
 
 - **WHEN** a linked-data repository sets `linked_data.payload_type` and omits `mapper`
-- **THEN** validation succeeds, `mapper.type` equals the legacy value, and a `DeprecationWarning` is emitted
+- **THEN** validation succeeds, `mapper.type` equals the legacy value, and a `logger.warning` is emitted
 
 #### Scenario: Conflicting payload_type and mapper.type fail closed
 

@@ -4,7 +4,7 @@
 
 Each repository entry that uses shared `middleware.payload` mappers (v1: `linked_data`) MUST include a `mapper`
 configuration object beside the single plugin key, or MUST supply a legacy `linked_data.payload_type` that is lifted to
-`mapper.type` with a `DeprecationWarning`. The `mapper` block MUST specify an explicit mapper `type` (registry key) and
+`mapper.type` with a `logger.warning`. The `mapper` block MUST specify an explicit mapper `type` (registry key) and
 MAY include mapper-specific fields. The `mapper` key is NOT counted as a plugin field for the exactly-one-plugin rule.
 Repository entries that do not use shared mappers in v1 (e.g. `inspire`) MUST NOT be required to set `mapper`.
 
@@ -21,7 +21,7 @@ Repository entries that do not use shared mappers in v1 (e.g. `inspire`) MUST NO
 #### Scenario: Legacy payload_type satisfies mapper requirement
 
 - **WHEN** a `linked_data` repository entry omits `mapper` but sets `linked_data.payload_type` to a supported value
-- **THEN** configuration validation succeeds after lifting to `mapper.type`, and a `DeprecationWarning` is emitted
+- **THEN** configuration validation succeeds after lifting to `mapper.type`, and a `logger.warning` is emitted
 
 #### Scenario: inspire without mapper remains valid
 

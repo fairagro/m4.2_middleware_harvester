@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import warnings
-from typing import Annotated, Any, Self
+import logging
+from typing import Annotated, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -22,6 +22,8 @@ PluginConfig = InspireConfig | LinkedDataConfig
 
 _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper"})
 
+logger = logging.getLogger(__name__)
+
 _LEGACY_PAYLOAD_TYPE_MSG = (
     "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
     "Support for payload_type will be removed in a future release."
@@ -33,8 +35,8 @@ class RepositoryConfig(BaseModel):
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
     selected via an optional sibling ``mapper:`` block (required for
-    ``linked_data``). Legacy ``linked_data.payload_type`` is accepted with a
-    :class:`DeprecationWarning` and lifted to ``mapper.type``.
+    ``linked_data``). Deprecated ``linked_data.payload_type`` is accepted with a
+    ``logger.warning`` and lifted to ``mapper.type``.
     """
 
     rdi: Annotated[
@@ -54,41 +56,6 @@ class RepositoryConfig(BaseModel):
         Field(description="Shared DataMapper selection (required for linked_data)."),
     ] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def lift_legacy_payload_type(cls, data: Any) -> Any:
-        """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
-        if not isinstance(data, dict):
-            return data
-        linked = data.get("linked_data")
-        if not isinstance(linked, dict) or "payload_type" not in linked:
-            return data
-
-        linked = dict(linked)
-        legacy_type = linked.pop("payload_type")
-        data = {**data, "linked_data": linked}
-
-        mapper = data.get("mapper")
-        if mapper is None:
-            warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
-            data["mapper"] = {"type": legacy_type}
-            return data
-
-        if not isinstance(mapper, dict):
-            raise ValueError("mapper must be a mapping when lifting linked_data.payload_type")
-
-        existing_type = mapper.get("type")
-        if existing_type is None:
-            warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
-            data["mapper"] = {**mapper, "type": legacy_type}
-            return data
-
-        if existing_type != legacy_type:
-            raise ValueError(f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {existing_type!r}")
-
-        warnings.warn(_LEGACY_PAYLOAD_TYPE_MSG, DeprecationWarning, stacklevel=2)
-        return data
-
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
         """Ensure exactly one plugin key is set (``mapper`` is not a plugin)."""
@@ -97,6 +64,27 @@ class RepositoryConfig(BaseModel):
         set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
+        return self
+
+    @model_validator(mode="after")
+    def lift_legacy_payload_type(self) -> Self:
+        """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
+        if self.linked_data is None:
+            return self
+        # Read via __dict__ to avoid Pydantic's DeprecationWarning on field access;
+        # operator-facing signal is logger.warning below.
+        legacy_type = self.linked_data.__dict__.get("payload_type")
+        if legacy_type is None:
+            return self
+
+        logger.warning(_LEGACY_PAYLOAD_TYPE_MSG)
+        if self.mapper is None:
+            return self.model_copy(update={"mapper": MapperConfig(type=legacy_type)})
+
+        if self.mapper.type != legacy_type:
+            raise ValueError(
+                f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {self.mapper.type!r}"
+            )
         return self
 
     @model_validator(mode="after")
@@ -114,6 +102,18 @@ class RepositoryConfig(BaseModel):
         produced = LinkedDataPlugin.produces
         if accepts != produced:
             raise ValueError(f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {produced}")
+
+        # Fail closed when both blocks set an explicit base and they disagree —
+        # dataset parsing uses linked_data; RegalMapper prefers mapper.
+        linked_base = self.linked_data.resource_base_url
+        mapper_base = self.mapper.normalize_resource_base_url()
+        if linked_base is not None and linked_base.strip() and mapper_base is not None:
+            normalized_linked = self.linked_data.effective_resource_base_url
+            if normalized_linked != mapper_base:
+                raise ValueError(
+                    f"linked_data.resource_base_url {normalized_linked!r} conflicts with "
+                    f"mapper.resource_base_url {mapper_base!r}"
+                )
         return self
 
     @property
@@ -125,11 +125,7 @@ class RepositoryConfig(BaseModel):
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        if self.inspire is not None:
-            return self.inspire
-        if self.linked_data is not None:
-            return self.linked_data
-        raise RuntimeError("No plugin config set — did model validation run?")
+        return getattr(self, self.plugin_type)
 
     @property
     def source_url(self) -> str | None:

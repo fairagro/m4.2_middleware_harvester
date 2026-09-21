@@ -22,8 +22,8 @@
 - [x] 4.1 Add `mapper` model (`type`, optional mapper-specific fields as needed) to `RepositoryConfig`; exclude
       `mapper` from exactly-one-plugin field set
 - [x] 4.2 Require `mapper` for `linked_data` repositories; validate registered type and `accepts == rdf_graph`
-- [x] 4.3 Remove `payload_type` from linked_data plugin `Config` / enums; lift legacy `linked_data.payload_type` to
-      `mapper.type` with `DeprecationWarning` (conflict fails closed)
+- [x] 4.3 Keep `payload_type` on linked_data plugin `Config` as `Field(deprecated=True)`; lift to
+      `mapper.type` with `logger.warning` (conflict fails closed)
 - [x] 4.4 Unit tests: valid linked_data+mapper; missing mapper; unknown type; inspire without mapper still OK;
       legacy `payload_type` lift / conflict
 - [x] 4.5 Update example/demo YAML and fixtures to `mapper.type`

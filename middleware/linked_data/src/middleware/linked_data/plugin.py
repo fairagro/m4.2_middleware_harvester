@@ -28,7 +28,7 @@ from middleware.payload.linked_data_mapper import (
     MappingContext,
     register_builtins as _register_builtin_mappers,
 )
-from middleware.payload.mapper_config import MapperConfig
+from middleware.payload.mapper_config import MapperConfig, MapperType
 
 # Side-effect imports: @Dataset.register / @DataMapper.register hooks (also pulled in when
 # harvester.config imports LinkedDataPlugin for mapper/produces validation).
@@ -66,7 +66,9 @@ class LinkedDataPlugin:
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
 
-        fallback = config.effective_resource_base_url
+        # Only Regal needs a derived base; Schema.org ignores the kwarg — avoid
+        # forcing sitemap URL parsing for mappers that never use it.
+        fallback = config.effective_resource_base_url if mapper_config.type == MapperType.regal_general else None
         return mapper_cls.from_config(mapper_config, resource_base_url=fallback)
 
     @staticmethod

@@ -1,8 +1,23 @@
 """Linked Data configuration unit tests."""
 
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
+from middleware.payload import MapperType
 
 DEFAULT_MAX_REQUESTS_PER_SECOND = 2.0
+
+
+def test_payload_type_is_deprecated_optional_field() -> None:
+    field = Config.model_fields.get("payload_type")
+    assert field is not None
+    assert field.deprecated is True
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        payload_type=MapperType.schema_org_general,
+        http=NiceHttpClientConfig(),
+    )
+    assert config.__dict__.get("payload_type") == MapperType.schema_org_general
 
 
 def test_page_size_defaults_to_200() -> None:

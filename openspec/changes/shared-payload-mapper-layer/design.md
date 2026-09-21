@@ -20,7 +20,7 @@ moving the whole mapper package, tasks staged.
   config wiring.
 - Preserve StableGraph concurrency: wrap is call-scoped, never stored on the
   shared mapper instance.
-- Accept legacy `linked_data.payload_type` with a `DeprecationWarning`, lifting it
+- Accept legacy `linked_data.payload_type` with a `logger.warning`, lifting it
   to `mapper.type` so existing operator YAML keeps working.
 
 **Non-Goals:**
@@ -49,20 +49,19 @@ mappers; `payload` names the contract layer. Unchanged from PR #162 design.
 ### Repository `mapper:` beside plugin; deprecate `payload_type`
 
 **Choice:** Add `mapper:` (at least `type`) on repository entries that use
-shared RDF mappers (`linked_data`). Remove `payload_type` from the linked_data
-plugin `Config` model. Accept legacy YAML that still sets
-`linked_data.payload_type` by lifting it to `mapper.type` in
-`RepositoryConfig` with a `DeprecationWarning`. If both are set and differ,
-validation fails. INSPIRE entries do not require `mapper` in v1.
+shared RDF mappers (`linked_data`). Keep `payload_type` on the linked_data
+plugin `Config` model as `Field(deprecated=True)`. When set, lift it to
+`mapper.type` in `RepositoryConfig` with a `logger.warning`. If both are set
+and differ, validation fails. INSPIRE entries do not require `mapper` in v1.
 
-**Reasoning:** `payload_type` collides with `PayloadKind` semantics as a
-first-class field; canonical config is `mapper.type`. A temporary lift keeps
-deployed operator YAML working while examples/demos migrate. Exactly-one-plugin
+**Reasoning:** Canonical config is `mapper.type`, but the deprecated alias must
+remain a real Pydantic field (schema, ConfigWrapper, validation). Operator-facing
+deprecation uses `logger.warning` (not only `DeprecationWarning`). Exactly-one-plugin
 rule MUST exclude the `mapper` key.
 
-**Alternatives considered:** Hard cut with no alias (original lock-in; revised
-for operator compatibility); require `mapper` on every repository including
-inspire (premature until #143).
+**Alternatives considered:** Drop the field and only accept raw YAML via a
+before-validator (rejected — not visible on the model); hard cut with no alias;
+require `mapper` on every repository including inspire (premature until #143).
 
 ### Full package move in one change (staged tasks)
 
@@ -101,7 +100,7 @@ graph; plugin wraps/passes into shared mapper / `ParsedPayload` as needed.
 1. Scaffold `middleware/payload` + workspace deps.
 2. Add contracts + registry.
 3. Move mapper package; fix imports.
-4. Add `RepositoryConfig.mapper`; drop plugin-field `payload_type`; lift legacy
+4. Add `RepositoryConfig.mapper`; keep deprecated plugin-field `payload_type`; lift legacy
    `payload_type` → `mapper.type` with deprecation; migrate in-repo YAML.
 5. Wire linked_data plugin; run quality/tests.
 6. Archive merges principles + domain specs.

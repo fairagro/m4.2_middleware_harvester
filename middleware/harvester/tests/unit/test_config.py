@@ -1,5 +1,7 @@
 """Unit tests for the Harvester orchestrator configuration."""
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
@@ -104,18 +106,21 @@ def test_inspire_repository_ok_without_mapper() -> None:
     assert repo.plugin_type == "inspire"
 
 
-def test_legacy_payload_type_lifts_to_mapper() -> None:
-    with pytest.warns(DeprecationWarning, match="payload_type is deprecated"):
+def test_legacy_payload_type_lifts_to_mapper(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
         repo = RepositoryConfig.model_validate({
             "rdi": "ld",
             "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
         })
     assert repo.mapper is not None
     assert repo.mapper.type == "schema_org_general"
+    assert repo.linked_data is not None
+    assert repo.linked_data.__dict__.get("payload_type") == "schema_org_general"
+    assert any("payload_type is deprecated" in record.message for record in caplog.records)
 
 
-def test_legacy_payload_type_matching_mapper_still_warns() -> None:
-    with pytest.warns(DeprecationWarning, match="payload_type is deprecated"):
+def test_legacy_payload_type_matching_mapper_still_warns(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
         repo = RepositoryConfig.model_validate({
             "rdi": "ld",
             "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
@@ -123,6 +128,7 @@ def test_legacy_payload_type_matching_mapper_still_warns() -> None:
         })
     assert repo.mapper is not None
     assert repo.mapper.type == "schema_org_general"
+    assert any("payload_type is deprecated" in record.message for record in caplog.records)
 
 
 def test_legacy_payload_type_conflicts_with_mapper() -> None:
@@ -132,3 +138,32 @@ def test_legacy_payload_type_conflicts_with_mapper() -> None:
             "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
             "mapper": {"type": "regal_general"},
         })
+
+
+def test_resource_base_url_conflict_between_linked_data_and_mapper() -> None:
+    with pytest.raises(ValidationError, match="resource_base_url .* conflicts"):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {
+                **_minimal_linked_data(),
+                "sitemap_type": "regal_find",
+                "dataset_type": "regal_jsonld",
+                "resource_base_url": "https://a.example/resource/",
+            },
+            "mapper": {"type": "regal_general", "resource_base_url": "https://b.example/resource/"},
+        })
+
+
+def test_resource_base_url_matching_linked_data_and_mapper_ok() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "ld",
+        "linked_data": {
+            **_minimal_linked_data(),
+            "sitemap_type": "regal_find",
+            "dataset_type": "regal_jsonld",
+            "resource_base_url": "https://example.org/resource",
+        },
+        "mapper": {"type": "regal_general", "resource_base_url": "https://example.org/resource/"},
+    })
+    assert repo.mapper is not None
+    assert repo.mapper.normalize_resource_base_url() == "https://example.org/resource/"

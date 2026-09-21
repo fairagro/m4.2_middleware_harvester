@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, Field
 
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
+from middleware.payload import MapperType
 
 
 class SitemapType(StrEnum):
@@ -27,10 +28,10 @@ class DatasetType(StrEnum):
 class Config(BaseModel):
     """Configuration model for the Linked Data harvesting plugin.
 
-    Mapper selection lives on the repository-level ``mapper:`` block (shared
-    ``middleware.payload`` registry), not on this plugin config. Legacy YAML
-    ``payload_type`` is lifted to ``mapper.type`` in harvester
-    ``RepositoryConfig`` with a deprecation warning.
+    Canonical mapper selection lives on the repository-level ``mapper:`` block
+    (shared ``middleware.payload`` registry). ``payload_type`` remains as a
+    deprecated alias and is lifted to ``mapper.type`` in harvester
+    ``RepositoryConfig``.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -51,6 +52,16 @@ class Config(BaseModel):
     ]
     sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
+    payload_type: Annotated[
+        MapperType | None,
+        Field(
+            description=(
+                "Deprecated. Use the repository-level mapper.type block instead. "
+                "Still accepted and lifted to mapper.type during RepositoryConfig validation."
+            ),
+            deprecated=True,
+        ),
+    ] = None
     http: Annotated[
         NiceHttpClientConfig,
         Field(
