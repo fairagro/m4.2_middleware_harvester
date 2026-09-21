@@ -1,215 +1,172 @@
 # Development Environment
 
-Complete Docker Compose setup for local development and testing of the SQL-to-ARC middleware.
+Local ways to run the harvester: against static fixtures, against the real RDIs, or as a
+credential-free demo.
 
-## Services
+There are three stacks. Pick by what you need:
 
-### 1. postgres
+| Stack | Network | Credentials | Writes ARCs to | Use it for |
+| --- | --- | --- | --- | --- |
+| `compose.fixtures.yaml` | none | none | `demo_output/` | Exercising mapper behaviour end to end, deterministically |
+| `compose.demo.yaml` | public GeoNode CSW | none | `demo_output/` | A quick smoke test of the whole pipeline |
+| `compose.yaml` (via `start.sh`) | real RDIs | **sops key + mTLS cert** | `middleware-test.fairagro.net` | Running against the real middleware |
 
-PostgreSQL 15 database server with:
+## Building the image
 
-- Default credentials: `postgres/postgres`
-- Port: `5432`
-- Persistent volume: `postgres_data`
-- Health check enabled
-
-### 2. db-init
-
-One-time initialization container that:
-
-- Waits for PostgreSQL to be healthy
-- Drops and recreates `edaphobase` database
-- Downloads and imports the Edaphobase dump from <https://repo.edaphobase.org/rep/dumps/FAIRagro.sql>
-- Exits after completion
-
-### 3. inspire
-
-The SQL-to-ARC converter that:
-
-- Builds from `../docker/Dockerfile.harvester`
-- Waits for db-init to complete
-- Connects to PostgreSQL and Middleware API
-- Mounts encrypted secrets via sops
-- Currently set to `sleep 3600` (modify compose.yaml to enable converter)
-
-### 4. middleware-api
-
-The FAIRagro Middleware API service that:
-
-- Builds from `../docker/Dockerfile.api`
-- Runs on port `8000`
-- Provides REST API for ARC management
-- No mTLS validation in dev mode (HTTP without client certs)
-- Health check via `/live` endpoint
-
-## Quick Start
-
-### Prerequisites
-
-- Docker and Docker Compose
-- [sops](https://github.com/getsops/sops) for secret management
-- Age or PGP key configured for sops decryption
-
-### Start Everything
+`docker compose --build` **cannot build the harvester.** `docker/Dockerfile.harvester` consumes
+the named build contexts `export_bins` and `healthcheck_bins`, and those are wired only in
+`docker-bake.hcl`. Build with Bake first, then bring the stack up without `--build`:
 
 ```bash
-./start.sh
+cd "$(git rev-parse --show-toplevel)"
+set -a && source versions.env && set +a
+docker buildx bake harvester --load --set harvester.tags=harvester:fixtures
 ```
 
-This will:
+Swap the tag to match the stack you are starting (`harvester:fixtures`, `harvester:demo`, or
+`harvester:latest`).
 
-1. Start PostgreSQL
-2. Initialize the database with Edaphobase data
-3. Run the SQL-to-ARC converter
+## Fixture stack — no network, no credentials
 
-With image rebuild (Bake + `versions.env` pins — not `docker compose build`):
+Harvests a static stand-in for OpenAgrar: a `mycore_solr` discovery endpoint plus record pages
+with embedded JSON-LD. See [`fixtures/openagrar/README.md`](fixtures/openagrar/README.md) for
+what each record covers and which parts are real.
 
 ```bash
-./start.sh --build
+docker buildx bake harvester --load --set harvester.tags=harvester:fixtures
+docker compose -f dev_environment/compose.fixtures.yaml up --abort-on-container-exit
 ```
 
-### Start with External Middleware API
-
-If you want to run `inspire` against an external API server (e.g. production or staging) that requires client certificates:
-
-1. Copy your client certificate and key to `dev_environment/client.crt` and `dev_environment/client.key`.
-2. Edit `dev_environment/config-external.yaml` and set the `api_url` to the external endpoint.
-3. Run the external start script:
+Or without Docker, which is the faster loop when iterating on mapper code:
 
 ```bash
-./start-external.sh
+uv sync --dev --all-packages
+
+# terminal 1 — fixture origin
+uv run python -m http.server 8080 --directory dev_environment/fixtures/openagrar
+
+# terminal 2 — mock Middleware API
+DEMO_OUTPUT_DIR=$PWD/dev_environment/demo_output \
+  uv run --with fastapi --with uvicorn \
+  uvicorn demo_api_main:app --app-dir dev_environment --host 127.0.0.1 --port 8000
+
+# terminal 3 — the harvester
+uv run python -m middleware.harvester.main -c dev_environment/config.fixtures.yaml \
+  > report.json 2> run.log
 ```
 
-This starts only `postgres`, `db-init`, and `inspire`.
+`config.fixtures.yaml` targets `localhost`; `config.fixtures.container.yaml` is the same config
+with compose service names. Keep the two in sync.
 
-### View Logs
+## Demo stack — public CSW, no credentials
 
 ```bash
-docker compose logs -f
-docker compose logs -f postgres
-docker compose logs -f inspire
+docker buildx bake harvester --load --set harvester.tags=harvester:demo
+docker compose -f dev_environment/compose.demo.yaml up --abort-on-container-exit
 ```
 
-### Stop Services
+Harvests five records from the public GeoNode demo catalogue (`config.demo.yaml`) into the mock
+API.
+
+## Real RDIs — needs credentials
 
 ```bash
-docker compose down
+cd dev_environment
+./start.sh          # or ./start.sh --build
+./stop.sh           # ./stop.sh --clean also drops volumes
 ```
 
-### Clean Everything (including data)
+`start.sh` wraps `docker compose -f compose.yaml up` in `sops exec-env` to decrypt
+`client.key`. **This posts to `https://middleware-test.fairagro.net` over mTLS — it is not a
+local demo.** It needs `sops` installed and a PGP secret key for one of the recipients in
+[`.sops.yaml`](../.sops.yaml). Without those, use the fixture or demo stack.
 
-```bash
-docker compose down -v
+`config.all-rdis.yaml` lists every RDI that can currently be harvested — bonares (INSPIRE/CSW),
+e!DAL and publisso (linked data) — plus the OpenAgrar fixture. It points at the mock API, so it
+can be run from source against all of them without credentials. Note it uses
+`repository-e.dataservice.zalf.de` for bonares: the `repository-staging...` host in
+`config.yaml` no longer resolves.
+
+Real OpenAgrar is commented out there. Every path the harvester uses — record pages,
+`servlets/solr/select`, and the `sitemap_google.xml` in `robots.txt` — redirects to a
+proof-of-work challenge, so it cannot be harvested. Tracked in
+[#271](https://github.com/fairagro/m4.2_middleware_harvester/issues/271).
+
+## The mock Middleware API
+
+`demo_api_main.py` is a FastAPI stand-in. It implements the `v3/harvests` lifecycle the client
+actually drives — create, per-harvest ARC submit, complete, patch, get — plus the single-shot
+`POST /v3/arcs` and a `/live` probe, and reconstructs each RO-Crate into an ARC directory with
+`arctrl`.
+
+Output layout, under `DEMO_OUTPUT_DIR` (`/data/arcs` in the containers, bind-mounted to
+`demo_output/`):
+
+```text
+demo_output/<rdi>/<harvest_id>/
+  harvest.json              run summary: status, counts, timestamps
+  <arc_id>/                 the reconstructed ARC directory
+  <arc_id>.payload.json     the RO-Crate exactly as submitted
 ```
+
+Grouping per run keeps two harvests of the same RDI comparable — for example the same config
+run against two git branches.
+
+Two deliberate differences from the real API: an unknown harvest id is adopted rather than
+answered with 404 (the client treats 404 as catastrophic and aborts the whole run, which makes
+a restarted mock unusable), and no authentication is performed.
 
 ## Configuration
 
-### Environment Variables
+| File | Purpose |
+| --- | --- |
+| `config.fixtures.yaml` | Fixture RDI only, addressed via `localhost` |
+| `config.fixtures.container.yaml` | Same, addressed via compose service names |
+| `config.all-rdis.yaml` | Every harvestable RDI plus the fixture, against the mock API |
+| `config.demo.yaml` | Public GeoNode CSW, five records |
+| `config.yaml` | Real RDIs against `middleware-test`, used by `compose.yaml` |
+| `config.local.yaml` | Older local variant; not referenced by any compose file |
+| `config_example.yaml` | Reference config with commented examples for every source type |
 
-Set via `.env` file or shell environment:
+Any YAML leaf can be overridden by an environment variable, joining nested keys with `_` — for
+example `API_CLIENT_API_URL=http://localhost:8000`. Values can also be supplied as files under
+`/run/secrets/<lowercase_key>`.
 
-- `POSTGRES_USER` - Database user (default: `postgres`)
-- `POSTGRES_PASSWORD` - Database password (default: `postgres`)
+## Secrets
 
-### Secrets with sops
-
-The `client.key` file should be encrypted with sops:
+`client.key` is encrypted with sops (PGP recipients in [`.sops.yaml`](../.sops.yaml)):
 
 ```bash
-# Encrypt (first time)
-sops -e -i client.key
-
-# Edit encrypted file
-sops client.key
-
-# Decrypt to view
-sops -d client.key
+sops client.key      # edit in place
+sops -d client.key   # decrypt to stdout
 ```
 
-The `start.sh` script uses `sops exec-file` to temporarily decrypt `client.key` during container startup.
-
-### config.yaml
-
-Application configuration for inspire:
-
-- `db_host`: Set to `postgres` (Docker service name)
-- `api_client.client_cert_path`: `/run/secrets/client.crt`
-- `api_client.client_key_path`: `/run/secrets/client.key`
-
-## Service Dependencies
-
-```text
-postgres (healthcheck)
-  ↓
-db-init (waits for healthy postgres)
-  ↓
-inspire (waits for db-init completion)
-```
+`client.crt` is stored in plain text.
 
 ## Troubleshooting
 
-### Database not initializing
+**`docker compose --build` fails on the harvester** — expected; build with `docker buildx bake`
+first, as above.
 
-Check db-init logs:
+**Harvester exits 1 immediately with 404s from the API** — the mock is out of date relative to
+`middleware.api_client`. Check that it serves `POST /v3/harvests`; the client classifies 404 as
+catastrophic and aborts.
 
-```bash
-docker compose logs db-init
-```
+**`start.sh` fails to decrypt** — verify `sops -d client.key` works and that your PGP key is one
+of the `.sops.yaml` recipients.
 
-Common issues:
-
-- Network timeout downloading dump → retry with `docker compose up db-init`
-- PostgreSQL not ready → check postgres healthcheck
-
-### inspire fails
-
-Check logs:
-
-```bash
-docker compose logs inspire
-```
-
-Common issues:
-
-- Secrets not mounted → verify sops decryption works: `sops -d client.key`
-- API unreachable → check `api_url` in config.yaml
-- Database connection → verify db-init completed successfully
-
-### Rebuild specific service
-
-```bash
-docker compose build inspire
-docker compose up inspire
-```
-
-## Manual Usage (without start.sh)
-
-If you don't want to use sops or the start script:
-
-```bash
-# Start postgres and db-init only
-docker compose up -d postgres db-init
-
-# Wait for initialization
-docker compose logs -f db-init
-
-# Run inspire manually (after decrypting secrets)
-sops exec-file client.key \
-  'docker compose run --rm inspire'
-```
-
-## Development Workflow
-
-1. Make changes to inspire code
-2. Rebuild image: `./start.sh --build`
-3. View logs: `docker compose logs -f inspire`
-4. Iterate
+**Nothing appears in `demo_output/`** — confirm the harvester actually reached the API
+(`docker compose logs harvester`), and that `DEMO_OUTPUT_DIR` points where you expect.
 
 ## Files
 
-- `compose.yaml` - Docker Compose service definitions
-- `config.yaml` - Application configuration
-- `client.crt` - Client certificate (plain)
-- `client.key` - Client private key (encrypted with sops)
-- `start.sh` - Startup script with sops integration
-- `run.sh` - **DEPRECATED** - Old script (kept for reference)
+| File | Purpose |
+| --- | --- |
+| `compose.fixtures.yaml` | Fixture origin + mock API + harvester |
+| `compose.demo.yaml` | Mock API + harvester against the public demo CSW |
+| `compose.yaml` | Harvester against real RDIs and `middleware-test` |
+| `demo_api_main.py` | Mock Middleware API |
+| `fixtures/openagrar/` | Static OpenAgrar stand-in |
+| `start.sh` / `stop.sh` | sops wrapper around `compose.yaml` |
+| `client.crt` / `client.key` | mTLS client certificate; the key is sops-encrypted |
+| `FAIRagro.sql` | Unused 252 MB LFS pointer from the retired Edaphobase stack |
