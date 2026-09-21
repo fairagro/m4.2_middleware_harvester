@@ -115,6 +115,9 @@ OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE = """
 # Alphabetically-last entry is document-first: catches a regression where the
 # fallback picks the casefold-sorted first alternativeHeadline instead of the
 # first one that actually appears in the document.
+# Document order deliberately differs from alphabetical order, so this fixture
+# distinguishes the two. The mapper picks the alphabetically first value:
+# document order is not recoverable from an RDF graph.
 OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE_OUT_OF_ALPHA_ORDER = """
 {
   "@context": "https://schema.org/",

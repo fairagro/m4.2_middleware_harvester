@@ -52,13 +52,21 @@ def test_alternative_headline_first_non_empty_used() -> None:
     assert title_source_comment_text(harvested.arc_json) == "alternativeHeadline"
 
 
-def test_alternative_headline_uses_document_order_not_alphabetical() -> None:
+def test_alternative_headline_picks_alphabetically_first_value() -> None:
+    """Multiple alternativeHeadline values resolve to the casefold-alphabetically first.
+
+    Not the document-first value: RDF gives no ordering to repeated predicates
+    (no ``@list`` is involved), so document order does not survive into the
+    graph. Reading raw objects returns rdflib store order, which differs
+    between a source run and the shipped PyInstaller binary — the same record
+    would then map to different titles in development and in production.
+    """
     harvested = first_harvest(
         GeneralSchemaOrgMapper().map_graph(
             parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE_OUT_OF_ALPHA_ORDER), NO_DISCOVERY
         )
     )
-    assert root_title(harvested.arc_json) == "Zebra finch population study"
+    assert root_title(harvested.arc_json) == "Alpha note about metadata"
     assert title_source_comment_text(harvested.arc_json) == "alternativeHeadline"
 
 

@@ -154,12 +154,19 @@ class _SchemaOrgRun:
         if headline:
             return headline, "headline"
 
-        # schema_texts() dedupes and alphabetizes; alternativeHeadline needs
-        # document order, so read the raw objects instead.
-        for alternative_node in self.view(subject).schema_objects("alternativeHeadline"):
-            alternative = self.stable.object_text(alternative_node)
-            if alternative:
-                return alternative, "alternativeHeadline"
+        # Deliberately the casefold-alphabetically first value, not the one that
+        # appeared first in the source document. RDF gives no ordering to
+        # repeated predicates (no @list is involved), so document order simply
+        # does not survive into the graph: reading raw objects returns them in
+        # rdflib store order, which is an implementation detail. It differs
+        # between running from source and running the shipped PyInstaller
+        # binary, which would make the same record map to different titles in
+        # development and in production. schema_texts() is deduped and sorted,
+        # so it is stable everywhere.
+        for alternative in self.view(subject).schema_texts("alternativeHeadline"):
+            text = str(alternative).strip()
+            if text:
+                return text, "alternativeHeadline"
 
         html_title = (context.html_title() if context.html_title is not None else None) or ""
         html_title = html_title.strip()

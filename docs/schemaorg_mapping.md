@@ -50,7 +50,7 @@ and `https://schema.org/` namespaces (dual-namespace aliasing via `StableGraph`)
 | **`@type`** | Must be `schema:Dataset` | Gate: only Dataset entities are mapped; `DataCatalog` is container, not output |
 | **`schema:name`** | Dataset title | `Investigation.Title`, `Study.Title`, `Assay.Title`; falls back to `headline` / `alternativeHeadline` / page title, see [Title Resolution Cascade](#title-resolution-cascade) |
 | **`schema:headline`** | Dataset title (fallback) | Title fallback when `schema:name` is missing or blank; adds `Investigation.Comment("Title Source")` |
-| **`schema:alternativeHeadline`** | Alternative titles (fallback) | Title fallback after `headline`; first non-empty entry in **document order** |
+| **`schema:alternativeHeadline`** | Alternative titles (fallback) | Title fallback after `headline`; first non-empty entry in **casefold-alphabetical order** |
 | **`schema:description`** | Abstract / summary | `Investigation.Description`, `Study.Description` |
 | **`schema:url`** | Canonical landing page URL | `Investigation.Identifier` (sanitized); Assay `Output [URI]` |
 | **`schema:sameAs`** | Equivalent URLs | `Investigation.Identifier` fallback (lexicographic min) |
@@ -129,7 +129,7 @@ stopping at the first non-empty (trimmed) value:
 | --- | --- | --- |
 | 1 | **`schema:name`** | The normal case; no Comment and no warning |
 | 2 | **`schema:headline`** | Used when `schema:name` is missing or blank |
-| 3 | **`schema:alternativeHeadline`** | First non-empty entry in **document order** — not the casefold-sorted order used for other multi-value text fields |
+| 3 | **`schema:alternativeHeadline`** | First non-empty entry in **casefold-alphabetical order**, the same deterministic ordering used for other multi-value text fields — see the note below on why document order is not available |
 | 4 | **HTML page title** | `html_jsonld`-sourced Datasets only: the fetched page's `citation_title` meta content, else its `<title>` text |
 
 **Rules:**
@@ -143,6 +143,13 @@ stopping at the first non-empty (trimmed) value:
   label; a subject is identified by its IRI when it has one, else by the resolved title.
 - Step 4 is computed **lazily** — records whose title resolves at steps 1–3 never pay for
   the extra HTML parse, and the page HTML is fetched only once regardless of call order.
+- Step 3 deliberately does **not** use document order. RDF assigns no ordering to repeated
+  predicates — no `@list` is involved — so the order in which the source document listed the
+  values does not survive into the graph. Reading raw graph objects returns them in rdflib
+  store order, an implementation detail that was observed to differ between running the
+  harvester from source and running the shipped PyInstaller binary, which would make the
+  same record map to different titles in development and in production. Casefold-alphabetical
+  order is stable everywhere.
 
 Motivating case: OpenAgrar's MyCoRe export omits `schema:name` on a small fraction of
 otherwise-valid records (see issue #164).

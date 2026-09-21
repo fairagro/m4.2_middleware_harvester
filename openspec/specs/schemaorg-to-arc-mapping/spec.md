@@ -284,9 +284,15 @@ following cascade, stopping at the first non-empty (trimmed) value:
 
 1. `schema:name`
 2. `schema:headline`
-3. The first non-empty `schema:alternativeHeadline`, in document order (not
-   the alphabetically-sorted order otherwise used for multi-value text
-   fields)
+3. The first non-empty `schema:alternativeHeadline` in casefold-alphabetical
+   order — the same deterministic ordering used for other multi-value text
+   fields. Document order MUST NOT be relied on: RDF assigns no order to
+   repeated predicates (no `@list` is involved), so the order in which the
+   source document listed the values does not survive into the graph. Reading
+   raw graph objects yields rdflib store order, which is an implementation
+   detail and has been observed to differ between running from source and
+   running the shipped PyInstaller binary; the same record would then map to
+   different titles in development and in production.
 4. (`html_jsonld`-sourced Datasets only) An HTML page-title hint: the fetched
    page's `citation_title` meta content, else its `<title>` text
 
@@ -315,15 +321,17 @@ computed for records whose title already resolved at step 1, 2, or 3.
 - **AND** an Investigation Comment `"Title Source"` = `"headline"` is added
 - **AND** a WARNING is logged
 
-#### Scenario: alternativeHeadline fallback uses document order
+#### Scenario: alternativeHeadline fallback is order-stable across environments
 
 - **GIVEN** a `schema:Dataset` with no `schema:name`/`schema:headline` and
   `schema:alternativeHeadline` `["Zebra finch population study", "Alpha note
   about metadata"]` in that document order
 - **WHEN** the mapper processes the Dataset
-- **THEN** the title is `"Zebra finch population study"` (the first
-  document-order entry), not `"Alpha note about metadata"` (the
-  alphabetically-first entry)
+- **THEN** the title is `"Alpha note about metadata"` (the
+  casefold-alphabetically first entry), not `"Zebra finch population study"`
+  (the document-first entry)
+- **AND** the same value is chosen whether the harvester runs from source or
+  as the packaged binary
 
 #### Scenario: HTML title hint fallback (html_jsonld sources only)
 
