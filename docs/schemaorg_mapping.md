@@ -48,7 +48,9 @@ and `https://schema.org/` namespaces (dual-namespace aliasing via `StableGraph`)
 | --- | --- | --- |
 | **`@id`** | Subject IRI (blank node or HTTP(S) URI) | `Investigation.Identifier` (when no higher-precedence ID); see [Identifier Cascade](#identifier-cascade-precedence) |
 | **`@type`** | Must be `schema:Dataset` | Gate: only Dataset entities are mapped; `DataCatalog` is container, not output |
-| **`schema:name`** | Dataset title | `Investigation.Title`, `Study.Title`, `Assay.Title` |
+| **`schema:name`** | Dataset title | `Investigation.Title`, `Study.Title`, `Assay.Title`; falls back to `headline` / `alternativeHeadline` / page title, see [Title Resolution Cascade](#title-resolution-cascade) |
+| **`schema:headline`** | Dataset title (fallback) | Title fallback when `schema:name` is missing or blank; adds `Investigation.Comment("Title Source")` |
+| **`schema:alternativeHeadline`** | Alternative titles (fallback) | Title fallback after `headline`; first non-empty entry in **document order** |
 | **`schema:description`** | Abstract / summary | `Investigation.Description`, `Study.Description` |
 | **`schema:url`** | Canonical landing page URL | `Investigation.Identifier` (sanitized); Assay `Output [URI]` |
 | **`schema:sameAs`** | Equivalent URLs | `Investigation.Identifier` fallback (lexicographic min) |
@@ -94,13 +96,14 @@ node identity).
 | **`schema:url`** | Landing page URL | `Investigation.Comment("URL")` |
 | **`schema:publisher`** | Publisher (Person or Organization) | `Investigation.Comment("Publisher")` |
 | **`schema:conformsTo`** | Specification or standard | `Investigation.Comment("Conforms To")` |
+| **(title fallback used)** | Which fallback supplied the title | `Investigation.Comment("Title Source")` — only when `schema:name` did not win; see [Title Resolution Cascade](#title-resolution-cascade) |
 | **`schema:distribution`** | `schema:DataDownload` resources | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`) |
 
 ### 5. Study
 
 | Schema.org Field | Description | ARC Mapping |
 | --- | --- | --- |
-| **`schema:name`** | Dataset title | `Study.Title` |
+| **`schema:name`** | Dataset title | `Study.Title` (same resolved title as `Investigation.Title`, see [Title Resolution Cascade](#title-resolution-cascade)) |
 | **`schema:description`** | Abstract / summary | `Study.Description` (fallback: "Imported from Schema.org metadata") |
 | **`schema:datePublished`** | Publication date | `Study.SubmissionDate` |
 
@@ -116,6 +119,33 @@ node identity).
 | **`schema:license`** | License | Assay Measurement column `Comment("License")` |
 | **`schema:publisher`** | Publisher name | Assay Measurement column `Comment("Publisher")` |
 | **`schema:inLanguage`** | Language code | Assay Measurement column `Comment("Language")` |
+
+## Title Resolution Cascade
+
+The `Investigation`/`Study`/`Assay` title is resolved using the following cascade,
+stopping at the first non-empty (trimmed) value:
+
+| Priority | Source | Description |
+| --- | --- | --- |
+| 1 | **`schema:name`** | The normal case; no Comment and no warning |
+| 2 | **`schema:headline`** | Used when `schema:name` is missing or blank |
+| 3 | **`schema:alternativeHeadline`** | First non-empty entry in **document order** — not the casefold-sorted order used for other multi-value text fields |
+| 4 | **HTML page title** | `html_jsonld`-sourced Datasets only: the fetched page's `citation_title` meta content, else its `<title>` text |
+
+**Rules:**
+
+- When step 2, 3, or 4 supplies the title, an `Investigation.Comment("Title Source")`
+  records which fallback won (`headline`, `alternativeHeadline`, or `html_title`), and a
+  WARNING is logged. Titles are never silently substituted.
+- Mapping **fails closed** when the whole cascade yields nothing — there is no
+  `"Untitled"` default.
+- Neither the warning nor any ARC field may contain an rdflib parser-local blank-node
+  label; a subject is identified by its IRI when it has one, else by the resolved title.
+- Step 4 is computed **lazily** — records whose title resolves at steps 1–3 never pay for
+  the extra HTML parse, and the page HTML is fetched only once regardless of call order.
+
+Motivating case: OpenAgrar's MyCoRe export omits `schema:name` on a small fraction of
+otherwise-valid records (see issue #164).
 
 ## Identifier Cascade Precedence
 
