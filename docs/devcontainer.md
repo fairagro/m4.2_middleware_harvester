@@ -109,14 +109,14 @@ PATH string — Cursor agent shells leave it unexpanded, so `scripts/bin` wrappe
 in the prompt comes from `DEVCONTAINER_REPO_NAME` + synced `.devcontainer/starship.toml` (not from the `.venv` parent
 path, which is always `workspace`).
 
-| Need                            | Shared mechanism                                                                                                                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` + `VIRTUAL_ENV=/workspace/.venv` in synced `devcontainer.json`                                                                                                       |
-| Prompt repo identity            | `DEVCONTAINER_REPO_NAME` + synced [`.devcontainer/starship.toml`](../.devcontainer/starship.toml) (`STARSHIP_CONFIG`)                                                                 |
-| Short `kubectl` / `docker`      | Synced wrappers [`scripts/bin/k`](../scripts/bin/k) and [`scripts/bin/d`](../scripts/bin/d)                                                                                           |
-| Bash completion for `k` / `d`   | Shared image files under `/usr/share/bash-completion/completions/` (rebuild after Dockerfile change)                                                                                  |
-| Personal tokens                 | [`scripts/bin/gh`](../scripts/bin/gh) / [`git`](../scripts/bin/git) load `/commandhistory/tokens.env` on each invoke; `set-dev-tokens.sh` only **writes** the store (not process env) |
-| `.env.integration.enc` → `.env` | Shared postCreate decrypt (writes the file; does **not** auto-`source` into every shell)                                                                                              |
+| Need                            | Shared mechanism                                                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.venv/bin` + `scripts/bin`     | `remoteEnv.PATH` + `VIRTUAL_ENV=/workspace/.venv` in synced `devcontainer.json`                                                                                           |
+| Prompt repo identity            | `DEVCONTAINER_REPO_NAME` + synced [`.devcontainer/starship.toml`](../.devcontainer/starship.toml) (`STARSHIP_CONFIG`)                                                     |
+| Short `kubectl` / `docker`      | Synced wrappers [`scripts/bin/k`](../scripts/bin/k) and [`scripts/bin/d`](../scripts/bin/d)                                                                               |
+| Bash completion for `k` / `d`   | Shared image files under `/usr/share/bash-completion/completions/` (rebuild after Dockerfile change)                                                                      |
+| Personal tokens                 | Host `GH_TOKEN` / `GITGUARDIAN_API_KEY` via `remoteEnv` `${localEnv:…}`; wrappers load store (non-empty wins) then host; `set-dev-tokens.sh` **writes** store to override |
+| `.env.integration.enc` → `.env` | Shared postCreate decrypt (writes the file; does **not** auto-`source` into every shell)                                                                                  |
 
 Product-local `scripts/load-env.sh` and `setup-bashrc-load-env.sh` (or inline bashrc `source` lines) are **deprecated**.
 After sync of postCreate + wrappers + JSON, drop them in product adopt follow-ups (tracked from #58 / #65). Optional
@@ -175,11 +175,12 @@ Ensure on the **host**:
 
 Prefer the personal-token helpers (see root README **Personal tokens**):
 
-- Stored `GH_TOKEN` in `/commandhistory/tokens.env` (Linux Dev Container only) — **sole source** (process env does not
-  override the store)
-- Empty prompt skips until `source ./scripts/set-dev-tokens.sh` (that script **writes** the store; it does not export
-  tokens into every agent/IDE process)
-- `scripts/bin/gh` on `PATH` (after rebuild) applies the store then runs real `gh` — if `command -v gh` shows
+- Host tokens can arrive via `remoteEnv` `${localEnv:GH_TOKEN}` / `${localEnv:GITGUARDIAN_API_KEY}` (rebuild so this
+  applies)
+- Non-empty store in `/commandhistory/tokens.env` wins over host/process env; otherwise host/process is kept; prompt
+  only when still empty. Empty prompts are **not** persisted as skip markers
+- Override host: `source ./scripts/set-dev-tokens.sh` (force-prompt; **writes** non-empty values to the store)
+- `scripts/bin/gh` on `PATH` (after rebuild) applies store-then-host then runs real `gh` — if `command -v gh` shows
   `/usr/bin/gh`, the `remoteEnv.PATH` contract is broken (see bashrc-free section / #143), not a missing store
 
 Alternatively:
