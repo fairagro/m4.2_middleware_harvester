@@ -85,9 +85,13 @@ class LinkedDataMapper(DataMapper[MappingContext]):
         """Map ``graph`` using the caller-provided ``stable`` wrap (see :meth:`map_graph`)."""
         raise NotImplementedError
 
-    @staticmethod
-    def _stable_wrap(graph: Graph) -> StableGraph:
-        """Wrap ``graph`` for this mapper. Override for vocabulary-specific policy."""
+    def _stable_wrap(self, graph: Graph) -> StableGraph:  # noqa: PLR6301
+        """Wrap ``graph`` for this mapper. Override for vocabulary-specific policy.
+
+        Instance-scoped so a subclass's wrap policy (term namespaces, label
+        predicates) can come from instance state — config or a dialect profile —
+        rather than only from a hardcoded class body.
+        """
         return StableGraph.wrap(graph)
 
     @classmethod
