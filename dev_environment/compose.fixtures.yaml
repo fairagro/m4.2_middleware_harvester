@@ -72,5 +72,8 @@ services:
         condition: service_healthy
     volumes:
       - ./config.fixtures.container.yaml:/etc/harvester/config.yaml:ro
-    command: /middleware/harvester/harvester -c /etc/harvester/config.yaml
+    # The image ENTRYPOINT is already /middleware/harvester/harvester, so this
+    # must be arguments only -- naming the binary again makes argparse see it
+    # as a positional and fail with "unrecognized arguments".
+    command: ["-c", "/etc/harvester/config.yaml"]
     restart: no

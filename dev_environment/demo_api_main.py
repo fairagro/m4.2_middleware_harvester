@@ -264,7 +264,12 @@ async def create_harvest(request: Request) -> dict[str, object]:
         "arcs_submitted": 0,
     }
     _HARVESTS[harvest_id] = harvest
-    _harvest_dir(harvest).mkdir(parents=True, exist_ok=True)
+    harvest_dir = _harvest_dir(harvest)
+    harvest_dir.mkdir(parents=True, exist_ok=True)
+    # Chown from the RDI directory down: mkdir(parents=True) creates the
+    # intermediate <rdi>/ as the container user, which leaves it root-owned on
+    # the host bind mount and undeletable without sudo.
+    _chown_tree(harvest_dir.parent)
     print(f"Created harvest {harvest_id} for rdi={harvest['rdi']} expected={harvest['expected_datasets']}")
     return _harvest_result(harvest)
 
