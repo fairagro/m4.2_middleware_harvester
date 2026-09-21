@@ -14,6 +14,7 @@ from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.parser.parser import PayloadParser
 from middleware.generic.plugin import GenericPlugin
+from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
@@ -140,6 +141,10 @@ class RepositoryConfig(BaseModel):
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
             raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        try:
+            Protocol.registry[self.generic.protocol_type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown generic.protocol_type: {self.generic.protocol_type}") from exc
         try:
             parser_cls = PayloadParser.registry[self.generic.parser_type]
         except KeyError as exc:

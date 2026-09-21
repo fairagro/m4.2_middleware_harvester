@@ -6,9 +6,11 @@ import pytest
 from pydantic import ValidationError
 
 from middleware.api_client.config import Config as ApiClientConfig
+from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
 from middleware.inspire.config import Config as InspireConfig
+from middleware.payload.registry import Registry
 
 
 def test_harvester_config_loading() -> None:
@@ -200,5 +202,16 @@ def test_generic_and_linked_data_mutual_exclusion() -> None:
             "rdi": "both",
             "generic": _minimal_generic(),
             "linked_data": _minimal_linked_data(),
+            "mapper": {"type": "schema_org_general"},
+        })
+
+
+def test_generic_unregistered_protocol_type_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Enum-accepted protocol_type must still be present in Protocol.registry."""
+    monkeypatch.setattr(Protocol, "registry", Registry())
+    with pytest.raises(ValidationError, match="Unknown generic.protocol_type"):
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": _minimal_generic(),
             "mapper": {"type": "schema_org_general"},
         })
