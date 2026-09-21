@@ -28,4 +28,4 @@
 
 ## 6. Pause for user commit / draft PR
 
-- [ ] 6.1 After implementation, pause for the user to commit/push; then open draft PR with `Fixes #141` when tip is ahead of `main`
+- [x] 6.1 After implementation, pause for the user to commit/push; then open draft PR with `Fixes #141` when tip is ahead of `main` — https://github.com/fairagro/m4.2_middleware_harvester/pull/301
