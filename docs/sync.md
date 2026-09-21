@@ -144,9 +144,11 @@ Product checkouts accumulate local and `origin` heads after merges (incl. squash
 ./scripts/prune-merged-branches.sh --apply
 ```
 
-It deletes a branch only when it is an ancestor of `origin/main`, the head of a **MERGED** PR into `main`, or the head
-of a **CLOSED** PR that reaches a MERGED PR via a recursive `Superseded by #<n>` chain. It never deletes `main`, the
-current branch, or heads of **OPEN** PRs. Requires `gh` on `PATH` (Dev Container wrappers).
+It deletes a branch only when it is an ancestor of `origin/main`, the head of a **MERGED** PR into `main`, or a tip that
+still matches (no unique commits vs) a **CLOSED** PR head commit that reaches a MERGED PR via a recursive
+`Superseded by #<n>` chain. Reusing a closed/superseded head **name** for new work is not enough to delete — the current
+tip SHA must still be that closed PR’s head (or an ancestor of it). It never deletes `main`, the current branch, or
+heads of **OPEN** PRs. Requires `gh` on `PATH` (Dev Container wrappers). Dry-run is the default (`--apply` deletes).
 
 ## Bot token (shared with Renovate)
 
