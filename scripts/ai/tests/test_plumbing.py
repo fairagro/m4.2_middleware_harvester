@@ -138,7 +138,7 @@ def test_view_issue_empty_comments() -> None:
     with patch("m42_ai.issue.run_gh") as run_gh:
         run_gh.return_value = MagicMock(stdout=__import__("json").dumps(raw))
         out = view_issue(7)
-    assert out["comments"] == []
+    assert not out["comments"]
     assert out["body"] == "just the body"
 
 
