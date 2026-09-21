@@ -79,7 +79,9 @@ Local-only reviews never require GitHub auth.
 2. Correctness / missing edge cases (inputs, network, config)
 3. Concurrency & races (when async/shared state)
 4. Architecture & simplicity (YAGNI)
-5. Import graph / cycles — **judgment-only** (mechanical graphs → import-linter when present)
+5. Import graph / cycles — **judgment-only** against
+   [`openspec/principles.global.md`](../../../openspec/principles.global.md) **Import policy** (mechanical graphs →
+   import-linter when present)
 6. Defensive bloat vs real edges
 7. Resource frugality
 8. Dead / unused code (judgment; vulture when landed is toolchain-owned)
