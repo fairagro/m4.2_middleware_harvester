@@ -108,7 +108,7 @@ def _derive_safe_arc_id(base_dir: Path, raw_id: object) -> tuple[str, Path]:
 
     def _fallback() -> tuple[str, Path]:
         rid = _generate_random_arc_id()
-        return rid, base_dir / rid
+        return rid, _output_path(*base_dir.relative_to(OUTPUT_ROOT.resolve()).parts, rid)
 
     if not (isinstance(raw_id, str) and raw_id.strip()):
         return _fallback()
@@ -118,7 +118,7 @@ def _derive_safe_arc_id(base_dir: Path, raw_id: object) -> tuple[str, Path]:
     if not safe_name or safe_name in {".", ".."} or not _SAFE_NAME_PATTERN.match(safe_name):
         return _fallback()
 
-    return safe_name, base_dir / safe_name
+    return safe_name, _output_path(*base_dir.relative_to(OUTPUT_ROOT.resolve()).parts, safe_name)
 
 
 def _safe_path_segment(raw: object, fallback: str) -> str:
@@ -129,6 +129,23 @@ def _safe_path_segment(raw: object, fallback: str) -> str:
     if not segment or segment in {".", ".."} or not _SAFE_NAME_PATTERN.match(segment):
         return fallback
     return segment
+
+
+def _output_path(*segments: str) -> Path:
+    """Join already-sanitized segments under ``OUTPUT_ROOT`` and verify containment.
+
+    ``rdi`` and ``harvest_id`` reach here from request bodies and URL paths.
+    ``_safe_path_segment`` already reduces each to a basename matching
+    ``_SAFE_NAME_PATTERN``, which cannot express a separator or ``..``; this is
+    the belt-and-braces check that the joined result really does land inside the
+    output root, and it is what makes that guarantee legible to a reader (and to
+    static analysis) at the point where the path is built.
+    """
+    root = OUTPUT_ROOT.resolve()
+    candidate = root.joinpath(*segments).resolve()
+    if candidate != root and root not in candidate.parents:
+        raise ValueError(f"Refusing to write outside the output root: {candidate}")
+    return candidate
 
 
 async def _write_arc(output_path: Path, rdi: str, arc_payload: dict) -> tuple[str, str]:
@@ -206,7 +223,7 @@ def _harvest_result(harvest: dict[str, Any]) -> dict[str, object]:
 def _harvest_dir(harvest: dict[str, Any]) -> Path:
     rdi_segment = _safe_path_segment(harvest["rdi"], "unknown-rdi")
     id_segment = _safe_path_segment(harvest["harvest_id"], "unknown-harvest")
-    return OUTPUT_ROOT / rdi_segment / id_segment
+    return _output_path(rdi_segment, id_segment)
 
 
 def _adopt_harvest(harvest_id: str) -> dict[str, Any]:
@@ -334,7 +351,7 @@ async def upload_arc(request: Request) -> dict[str, object]:
     rdi: str = data.get("rdi", "unknown")
     arc_payload: dict = data.get("arc", data)
 
-    output_path = OUTPUT_ROOT / _safe_path_segment(rdi, "unknown-rdi") / "_direct"
+    output_path = _output_path(_safe_path_segment(rdi, "unknown-rdi"), "_direct")
     arc_id, now = await _write_arc(output_path, rdi, arc_payload)
     return _arc_result(arc_id, now)
 
