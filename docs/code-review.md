@@ -25,7 +25,9 @@ Issue: [#171](https://github.com/fairagro/m4.2_middleware_devinfra/issues/171) (
 ## Anti-duplication
 
 Do not restate findings owned by Ruff, mypy, pylint, Bandit, markdownlint, Prettier, ggshield, CodeQL, Trivy, or (once
-landed) vulture / import-linter. Import cycles in the skill remain judgment-only until the toolchain covers them.
+landed) vulture / import-linter. Import-graph judgment applies
+[`openspec/principles.global.md`](../openspec/principles.global.md) **Import policy** until import-linter lands
+(mechanical graphs stay toolchain-owned when present).
 
 ## Auth
 
