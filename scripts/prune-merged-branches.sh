@@ -6,8 +6,9 @@
 #
 # Deletion rule (A ∪ B):
 #   A — tip is ancestor of origin/<base>, OR head of a MERGED PR into <base> (incl. squash)
-#   B — head of a CLOSED-unmerged PR that reaches a MERGED PR via recursive
-#       "Superseded by #<n>" edges (sync closes older PRs this way)
+#   B — tip still equals (or is an ancestor of) a CLOSED-unmerged PR head commit that
+#       reaches a MERGED PR via recursive "Superseded by #<n>" edges (sync closes older
+#       PRs this way). A reused head *name* with new unique commits is not deletable.
 #
 # Never deletes: <base>, current checkout, heads of OPEN PRs.
 #
@@ -79,7 +80,7 @@ trap 'rm -rf "$TMP"' EXIT
 # All PRs targeting BASE (open/closed/merged) — head ref + state + merge info.
 # Paginate; sync fleets can accumulate hundreds of sync PRs.
 gh pr list --repo "$OWNER_REPO" --base "$BASE" --state all --limit 500 \
-  --json number,state,mergedAt,headRefName,url >"$TMP/prs.json"
+  --json number,state,mergedAt,headRefName,headRefOid,url >"$TMP/prs.json"
 
 # Collect issue/PR comments that may contain "Superseded by #N" (issue comments on the PR).
 # Batch per PR would be slow; fetch timeline comments via graphql for closed PRs only when needed.
@@ -191,19 +192,23 @@ with open(os.path.join(tmp, "open_heads.txt"), "w") as f:
     for h in sorted(open_heads):
         f.write(h + "\n")
 
-# Precompute per-head reasons candidates (gh-side only); bash adds ancestor check.
-reasons: dict[str, str] = {}
+# Precompute per-head reasons candidates (gh-side only); bash adds ancestor check
+# and the superseded-chain commit-oid guard (reused names).
+reasons: dict[str, dict[str, str]] = {}
 for head, plist in by_head.items():
     # Prefer MERGED
     merged = [p for p in plist if p.get("state") == "MERGED" or p.get("mergedAt")]
     if merged:
-        reasons[head] = f"merged-pr→#{merged[0]['number']}"
+        reasons[head] = {"reason": f"merged-pr→#{merged[0]['number']}"}
         continue
     closed = [p for p in plist if p.get("state") == "CLOSED" and not p.get("mergedAt")]
     for p in closed:
         m = chain_merged_into(p["number"])
         if m is not None:
-            reasons[head] = f"superseded-chain→#{m}"
+            reasons[head] = {
+                "reason": f"superseded-chain→#{m}",
+                "headRefOid": (p.get("headRefOid") or "").strip(),
+            }
             break
 
 with open(os.path.join(tmp, "gh_reasons.json"), "w") as f:
@@ -225,8 +230,34 @@ is_open_head() {
 }
 
 gh_reason_for() {
-  python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2],""))' \
-    "$TMP/gh_reasons.json" "$1"
+  # $1 head name, $2 git ref for this local/remote tip
+  python3 - "$TMP/gh_reasons.json" "$1" "$2" <<'PY'
+import json, subprocess, sys
+
+entry = json.load(open(sys.argv[1])).get(sys.argv[2])
+ref = sys.argv[3]
+if not entry:
+    raise SystemExit(0)
+reason = (entry.get("reason") or "").strip()
+if not reason:
+    raise SystemExit(0)
+if reason.startswith("superseded-chain"):
+    oid = (entry.get("headRefOid") or "").strip()
+    if not oid:
+        raise SystemExit(0)
+    try:
+        ok = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ref, oid],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        raise SystemExit(0)
+    if ok.returncode != 0:
+        raise SystemExit(0)
+print(reason)
+PY
 }
 
 KEPT=()
@@ -256,7 +287,7 @@ consider() {
     # Tip reachable from base → fully merged (ff/merge commit)
     reason="merged-ancestor"
   else
-    reason="$(gh_reason_for "$name")"
+    reason="$(gh_reason_for "$name" "$ref")"
   fi
 
   if [[ -z "$reason" ]]; then
