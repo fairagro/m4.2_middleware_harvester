@@ -5,6 +5,8 @@
 
   "timezone": "Europe/Berlin",
 
+  "gitAuthor": "Carsten Scharfenberg <138563220+Zalfsten@users.noreply.github.com>",
+
   "enabledManagers": [
     "dockerfile",
     "devcontainer",

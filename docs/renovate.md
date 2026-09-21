@@ -61,6 +61,17 @@ Example API fragment (repository permissions object):
 Until the secret exists, scheduled Renovate runs fail; after setting it, use **Actions → Renovate → Run workflow**. Sync
 dry-run: **Actions → Sync products → Run workflow** (`dry_run=true` by default).
 
+### `gitAuthor` (avoid Mend default)
+
+Self-hosted Renovate without `gitAuthor` falls back to Mend’s `renovate@whitesourcesoftware.com`, which logs a WARN and
+can mark commits **Unverified** under Vigilant Mode
+([renovate discussion #39309](https://github.com/renovatebot/renovate/discussions/39309)).
+
+Shared [`renovate.json`](../renovate.json) sets `gitAuthor` to the GitHub user that owns `DEVINFRA_BOT_TOKEN`, using
+that user’s noreply address (`Name <id+login@users.noreply.github.com>`). Today that is
+`Carsten Scharfenberg <138563220+Zalfsten@users.noreply.github.com>`. If the PAT owner changes, update `gitAuthor` to
+match (or set `RENOVATE_GIT_AUTHOR` in the workflow instead).
+
 ## Local CLI dry-run
 
 The Dev Container pins the **Renovate npm CLI** via `RENOVATE_VERSION` in [`versions.env`](../versions.env) (`renovate`
