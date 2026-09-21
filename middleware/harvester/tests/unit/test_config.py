@@ -1,5 +1,7 @@
 """Unit tests for the Harvester orchestrator configuration."""
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
@@ -63,3 +65,105 @@ def test_nice_http_client_config_defaults_to_respect_robots_txt() -> None:
 
 # max_concurrent_http_connections is intentionally removed from the harvester core config.
 # Connection limits are now configured per-plugin where supported.
+
+
+def _minimal_linked_data() -> dict[str, object]:
+    return {
+        "sitemap_url": "https://example.org/sitemap.xml",
+        "sitemap_type": "xml",
+        "dataset_type": "html_jsonld",
+    }
+
+
+def test_linked_data_repository_requires_mapper() -> None:
+    with pytest.raises(ValidationError, match="mapper"):
+        RepositoryConfig.model_validate({"rdi": "ld", "linked_data": _minimal_linked_data()})
+
+
+def test_linked_data_repository_accepts_schema_org_mapper() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "ld",
+        "linked_data": _minimal_linked_data(),
+        "mapper": {"type": "schema_org_general"},
+    })
+    assert repo.plugin_type == "linked_data"
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+
+
+def test_linked_data_repository_rejects_unknown_mapper_type() -> None:
+    with pytest.raises(ValidationError):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": _minimal_linked_data(),
+            "mapper": {"type": "not_a_real_mapper"},
+        })
+
+
+def test_inspire_repository_ok_without_mapper() -> None:
+    repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
+    assert repo.mapper is None
+    assert repo.plugin_type == "inspire"
+
+
+def test_legacy_payload_type_lifts_to_mapper(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+        })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+    assert repo.linked_data is not None
+    assert repo.linked_data.__dict__.get("payload_type") == "schema_org_general"
+    assert any("payload_type is deprecated" in record.message for record in caplog.records)
+
+
+def test_legacy_payload_type_matching_mapper_still_warns(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+            "mapper": {"type": "schema_org_general"},
+        })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+    assert any("payload_type is deprecated" in record.message for record in caplog.records)
+
+
+def test_legacy_payload_type_conflicts_with_mapper() -> None:
+    with pytest.raises(ValidationError, match="conflicts with mapper.type"):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
+            "mapper": {"type": "regal_general"},
+        })
+
+
+def test_resource_base_url_conflict_between_linked_data_and_mapper() -> None:
+    with pytest.raises(ValidationError, match="resource_base_url .* conflicts"):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {
+                **_minimal_linked_data(),
+                "sitemap_type": "regal_find",
+                "dataset_type": "regal_jsonld",
+                "resource_base_url": "https://a.example/resource/",
+            },
+            "mapper": {"type": "regal_general", "resource_base_url": "https://b.example/resource/"},
+        })
+
+
+def test_resource_base_url_matching_linked_data_and_mapper_ok() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "ld",
+        "linked_data": {
+            **_minimal_linked_data(),
+            "sitemap_type": "regal_find",
+            "dataset_type": "regal_jsonld",
+            "resource_base_url": "https://example.org/resource",
+        },
+        "mapper": {"type": "regal_general", "resource_base_url": "https://example.org/resource/"},
+    })
+    assert repo.mapper is not None
+    assert repo.mapper.normalize_resource_base_url() == "https://example.org/resource/"

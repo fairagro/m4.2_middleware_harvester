@@ -4,10 +4,10 @@ import contextlib
 import logging
 from typing import cast
 
-from owslib.iso import MD_DataIdentification, MD_Metadata
+from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
-from .errors import SemanticError
-from .models import (
+from middleware.inspire.errors import SemanticError
+from middleware.inspire.models import (
     ConformanceResult,
     Contact,
     DistributionFormat,

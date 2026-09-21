@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, Field
 
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
+from middleware.payload import MapperType
 
 
 class SitemapType(StrEnum):
@@ -24,15 +25,14 @@ class DatasetType(StrEnum):
     regal_jsonld = "regal_jsonld"
 
 
-class PayloadType(StrEnum):
-    """Supported dataset payload types."""
-
-    schema_org_general = "schema_org_general"
-    regal_general = "regal_general"
-
-
 class Config(BaseModel):
-    """Configuration model for the Linked Data harvesting plugin."""
+    """Configuration model for the Linked Data harvesting plugin.
+
+    Canonical mapper selection lives on the repository-level ``mapper:`` block
+    (shared ``middleware.payload`` registry). ``payload_type`` remains as a
+    deprecated alias and is lifted to ``mapper.type`` in harvester
+    ``RepositoryConfig``.
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -52,7 +52,16 @@ class Config(BaseModel):
     ]
     sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
-    payload_type: Annotated[PayloadType, Field(description="Expected dataset payload type.")]
+    payload_type: Annotated[
+        MapperType | None,
+        Field(
+            description=(
+                "Deprecated. Use the repository-level mapper.type block instead. "
+                "Still accepted and lifted to mapper.type during RepositoryConfig validation."
+            ),
+            deprecated=True,
+        ),
+    ] = None
     http: Annotated[
         NiceHttpClientConfig,
         Field(
@@ -85,8 +94,9 @@ class Config(BaseModel):
         Field(
             description=(
                 "Base URL for expanding compact Regal resource ids (e.g. `frl:123`) "
-                "to absolute IRIs. If unset, derived as "
-                "`{scheme}://{host}/resource/` from `sitemap_url`."
+                "to absolute IRIs during dataset JSON-LD normalization. If unset, "
+                "derived as `{scheme}://{host}/resource/` from `sitemap_url`. "
+                "Mapper config may also set `resource_base_url` for RegalMapper."
             ),
         ),
     ] = None
@@ -119,6 +129,7 @@ class Config(BaseModel):
 
     @staticmethod
     def _resource_base_url_from_sitemap(sitemap_url: str) -> str:
+
         parsed = urlparse(sitemap_url)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError(f"Cannot derive resource_base_url from sitemap URL: {sitemap_url}")

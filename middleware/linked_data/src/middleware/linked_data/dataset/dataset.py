@@ -10,10 +10,9 @@ from typing import TypeVar
 from rdflib import Graph
 
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import Config, DatasetType
-from ..errors import LinkedDataDatasetError
-from ..registry import Registry
+from middleware.linked_data.config import Config, DatasetType
+from middleware.linked_data.errors import LinkedDataDatasetError
+from middleware.payload.registry import Registry
 
 TDataset = TypeVar("TDataset", bound="Dataset")
 

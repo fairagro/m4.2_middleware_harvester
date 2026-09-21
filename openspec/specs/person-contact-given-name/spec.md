@@ -36,7 +36,7 @@ signals: `individualName` identifies a person; `organisationName` identifies an
 organization (or a person's affiliation when both are present).
 
 1. When `individualName` is present, the mapper MUST split it with
-   `middleware.harvester.person_names.split_display_name`. If that split does
+   `middleware.payload.person_names.split_display_name`. If that split does
    not yield a non-empty given name, mapping MUST fail closed for the record.
 2. When only `organisationName` is present (no `individualName`), the mapper
    MUST emit an Investigation Comment named from the contact role (for example
@@ -133,7 +133,7 @@ and MUST NOT yield/upload a `HarvestedArc` for that record.
 When the Schema.org mapper must derive given/family names from a display string
 (`schema:name` / literal creator) rather than from structured given/family
 fields, it MUST use the shared
-`middleware.harvester.person_names.split_display_name` helper (backed by
+`middleware.payload.person_names.split_display_name` helper (backed by
 `nameparser`). It MUST NOT keep private whitespace/last-token split heuristics
 for Person contacts. Single-token display strings MUST continue to yield no
 usable given name so organization-like labels remain fail-closed or

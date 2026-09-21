@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 import httpx
 from rdflib import Graph
 
-from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.linked_data.errors import LinkedDataError
 
@@ -97,9 +97,9 @@ _MINIMAL_CONFIG = Config(
     sitemap_url="https://example.org/sitemap.xml",
     sitemap_type=SitemapType.xml,
     dataset_type=DatasetType.html_jsonld,
-    payload_type=PayloadType.schema_org_general,
     http=NiceHttpClientConfig(),
 )
+
 
 SIMPLE_HTML = """<!DOCTYPE html>
 <html>

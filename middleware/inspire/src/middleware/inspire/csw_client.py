@@ -12,17 +12,16 @@ from typing import TypeVar
 from urllib.parse import urlencode
 
 import lxml.etree  # type: ignore[import-untyped]
-from owslib.catalogue.csw2 import CatalogueServiceWeb
-from owslib.fes import OgcExpression
-from owslib.iso import MD_Metadata
-from owslib.util import Authentication
+from owslib.catalogue.csw2 import CatalogueServiceWeb  # type: ignore[import-untyped]
+from owslib.fes import OgcExpression  # type: ignore[import-untyped]
+from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
+from owslib.util import Authentication  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
-
-from .config import Config
-from .errors import CswConnectionError
-from .iso_parser import IsoParser
-from .models import InspireRecord
+from middleware.inspire.config import Config
+from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.iso_parser import IsoParser
+from middleware.inspire.models import InspireRecord
 
 T = TypeVar("T")
 

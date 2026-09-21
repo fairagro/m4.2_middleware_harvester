@@ -49,6 +49,7 @@ middleware/
 │       ├── errors.py
 │       ├── nice_http_client.py
 │       └── healthcheck.py
+├── payload/               # Shared PayloadKind / DataMapper registry + RDF mappers
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
 │   ├── src/middleware/inspire/
 │   │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
@@ -74,12 +75,12 @@ uv run pytest middleware/ -v
 # Quality checks (synced: ruff.toml, mypy.ini, .pylintrc — see docs/quality.md)
 uv run ruff format --check --config ruff.toml middleware/
 uv run ruff check --config ruff.toml middleware/
-MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit \
+MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/payload/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit:middleware/payload/tests/unit \
   uv run mypy --config-file mypy.ini middleware/
 uv run pylint --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
-  --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit \
-  middleware/inspire middleware/linked_data middleware/harvester
+  --source-roots=middleware/linked_data/tests/unit,middleware/inspire/tests/unit,middleware/payload/tests/unit \
+  middleware/inspire middleware/linked_data middleware/harvester middleware/payload
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

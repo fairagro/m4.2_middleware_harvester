@@ -1,31 +1,43 @@
 """Configuration module for the Middleware Harvester core orchestrator."""
 
-from typing import Annotated
+from __future__ import annotations
+
+import logging
+from typing import Annotated, Self, cast
 
 from pydantic import BaseModel, Field, model_validator
 
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
+from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.payload import (
+    DataMapper,
+    MapperConfig,
+)
 from middleware.shared.config.config_base import ConfigBase
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig
 
+_NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper"})
+
+logger = logging.getLogger(__name__)
+
+_LEGACY_PAYLOAD_TYPE_MSG = (
+    "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
+    "Support for payload_type will be removed in a future release."
+)
+
 
 class RepositoryConfig(BaseModel):
     """Configuration for an individual harvesting plugin/repository.
 
-    Exactly one plugin key must be set per entry. The YAML format is:
-
-        repositories:
-          - inspire:
-              csw_url: "https://..."
-              rdi: "my-rdi"
+    Exactly one plugin key must be set per entry. Shared DataMappers are
+    selected via an optional sibling ``mapper:`` block (required for
+    ``linked_data``). Deprecated ``linked_data.payload_type`` is accepted with a
+    ``logger.warning`` and lifted to ``mapper.type``.
     """
-
-    # Plugin fields: any Optional field that holds a PluginConfig subclass.
-    # No explicit list needed — the validator introspects model_fields at runtime.
 
     rdi: Annotated[
         str,
@@ -39,35 +51,81 @@ class RepositoryConfig(BaseModel):
         LinkedDataConfig | None,
         Field(description="Linked Data harvesting plugin configuration"),
     ] = None
+    mapper: Annotated[
+        MapperConfig | None,
+        Field(description="Shared DataMapper selection (required for linked_data)."),
+    ] = None
 
     @model_validator(mode="after")
-    def exactly_one_plugin(self) -> "RepositoryConfig":
-        """Ensure exactly one plugin key is set.
-
-        Derives the set of plugin fields dynamically from model_fields so that
-        adding a new plugin only requires adding its Optional field — no separate
-        registry constant needs updating.
-        """
+    def exactly_one_plugin(self) -> Self:
+        """Ensure exactly one plugin key is set (``mapper`` is not a plugin)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
-        plugin_fields = [name for name in all_field_names if name != "rdi"]
+        plugin_fields = [name for name in all_field_names if name not in _NON_PLUGIN_FIELDS]
         set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
+        return self
+
+    @model_validator(mode="after")
+    def lift_legacy_payload_type(self) -> Self:
+        """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
+        if self.linked_data is None:
+            return self
+        # Read via __dict__ to avoid Pydantic's DeprecationWarning on field access;
+        # operator-facing signal is logger.warning below.
+        legacy_type = self.linked_data.__dict__.get("payload_type")
+        if legacy_type is None:
+            return self
+
+        logger.warning(_LEGACY_PAYLOAD_TYPE_MSG)
+        if self.mapper is None:
+            return self.model_copy(update={"mapper": MapperConfig(type=legacy_type)})
+
+        if self.mapper.type != legacy_type:
+            raise ValueError(
+                f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {self.mapper.type!r}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_mapper_for_linked_data(self) -> Self:
+        """Require and validate ``mapper`` for linked_data repositories."""
+        if self.linked_data is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("linked_data repositories require a sibling mapper: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        produced = LinkedDataPlugin.produces
+        if accepts != produced:
+            raise ValueError(f"mapper.type {self.mapper.type} accepts {accepts!r}, but linked_data produces {produced}")
+
+        # Fail closed when both blocks set an explicit base and they disagree —
+        # dataset parsing uses linked_data; RegalMapper prefers mapper.
+        linked_base = self.linked_data.resource_base_url
+        mapper_base = self.mapper.normalize_resource_base_url()
+        if linked_base is not None and linked_base.strip() and mapper_base is not None:
+            normalized_linked = self.linked_data.effective_resource_base_url
+            if normalized_linked != mapper_base:
+                raise ValueError(
+                    f"linked_data.resource_base_url {normalized_linked!r} conflicts with "
+                    f"mapper.resource_base_url {mapper_base!r}"
+                )
         return self
 
     @property
     def plugin_type(self) -> str:
         """The active plugin type name (derived dynamically from model_fields)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
-        return next(f for f in all_field_names if f != "rdi" and getattr(self, f) is not None)
+        return next(f for f in all_field_names if f not in _NON_PLUGIN_FIELDS and getattr(self, f) is not None)
 
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        cfg: PluginConfig | None = getattr(self, self.plugin_type)
-        if cfg is None:  # pragma: no cover
-            raise RuntimeError("No plugin config set — did model validation run?")
-        return cfg
+        return cast(PluginConfig, getattr(self, self.plugin_type))
 
     @property
     def source_url(self) -> str | None:

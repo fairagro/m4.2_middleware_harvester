@@ -17,9 +17,11 @@ async def test_ensure_allowed_raises_when_url_is_disallowed() -> None:
     client = NiceHttpClient(config)
 
     async with client:
-        with patch.object(NiceHttpClient, "is_allowed", AsyncMock(return_value=False)):
-            with pytest.raises(RobotsTxtDisallowedError, match="Dataset URL disallowed by robots.txt"):
-                await client.ensure_allowed("https://example.com/dataset")
+        with (
+            patch.object(NiceHttpClient, "is_allowed", AsyncMock(return_value=False)),
+            pytest.raises(RobotsTxtDisallowedError, match="Dataset URL disallowed by robots.txt"),
+        ):
+            await client.ensure_allowed("https://example.com/dataset")
 
 
 @pytest.mark.asyncio

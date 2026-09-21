@@ -62,7 +62,7 @@ This will:
 2. Initialize the database with Edaphobase data
 3. Run the SQL-to-ARC converter
 
-With image rebuild:
+With image rebuild (Bake + `versions.env` pins — not `docker compose build`):
 
 ```bash
 ./start.sh --build

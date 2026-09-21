@@ -7,12 +7,11 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
-
-from ..config import Config, SitemapType
-from ..dataset import DiscoveryResult, JsonLdDiscoveryResult
-from ..errors import LinkedDataSitemapError
-from ..json_types import JsonValue
-from .sitemap import Sitemap
+from middleware.linked_data.config import Config, SitemapType
+from middleware.linked_data.dataset import DiscoveryResult, JsonLdDiscoveryResult
+from middleware.linked_data.errors import LinkedDataSitemapError
+from middleware.linked_data.json_types import JsonValue
+from middleware.linked_data.sitemap.sitemap import Sitemap
 
 # Overridable defaults when absent from ``sitemap_url``. Operator-supplied
 # query parameters always win for these (and any other non-owned keys).

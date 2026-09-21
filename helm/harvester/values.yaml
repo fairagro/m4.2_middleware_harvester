@@ -273,8 +273,6 @@ config:
         sitemap_type: xml
         # -- Provider-specific dataset page format. Allowed: html_jsonld
         dataset_type: html_jsonld
-        # -- Expected JSON-LD payload shape. Allowed: schema_org_general
-        payload_type: schema_org_general
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -299,6 +297,8 @@ config:
           respect_robots_txt: true
           # -- User-Agent header sent with every HTTP request.
           user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
+      mapper:
+        type: schema_org_general
 
     # -------------------------------------------------------------------------
     # Example 3: Schema.org via MyCoRe Solr discovery source
@@ -312,7 +312,6 @@ config:
         sitemap_url: "https://www.openagrar.de/servlets/solr/select"
         sitemap_type: mycore_solr
         dataset_type: html_jsonld
-        payload_type: schema_org_general
         # -- Optional page size (default 200). Used as Solr `rows` only when
         # -- sitemap_url has no `rows` parameter; URL `rows` wins when present.
         page_size: 100
@@ -325,6 +324,8 @@ config:
           # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
           # -- requires respect_robots_txt: false (machine-to-machine endpoint).
           respect_robots_txt: false
+      mapper:
+        type: schema_org_general
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
@@ -340,8 +341,6 @@ config:
         sitemap_type: regal_find
         # -- Allowed: html_jsonld | regal_jsonld
         dataset_type: regal_jsonld
-        # -- Allowed: schema_org_general | regal_general
-        payload_type: regal_general
         # -- Page size for /find `until` (default 200). URL `until` overrides
         # -- this value (same role as Solr `rows`).
         page_size: 200
@@ -358,6 +357,8 @@ config:
           # -- FRL robots.txt is Disallow: / for all agents; /find is still a
           # -- public machine API. Set false for this RDI or discovery fails.
           respect_robots_txt: false
+      mapper:
+        type: regal_general
 
 # =============================================================================
 # Pod scheduling

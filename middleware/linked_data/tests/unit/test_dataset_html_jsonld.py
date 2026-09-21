@@ -9,7 +9,7 @@ import pytest
 from fakes import _MINIMAL_CONFIG, BAD_JSON_HTML, MULTI_BLOCK_HTML, NO_JSONLD_HTML, SIMPLE_HTML
 
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
-from middleware.linked_data.config import Config, DatasetType, PayloadType, SitemapType
+from middleware.linked_data.config import Config, DatasetType, SitemapType
 from middleware.linked_data.dataset.html_jsonld import HtmlJsonLdDataset
 from middleware.linked_data.errors import LinkedDataDatasetError
 
@@ -168,7 +168,6 @@ def test_html_jsonld_dataset_retries_transient_server_error() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
-            payload_type=PayloadType.schema_org_general,
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=0.01,
@@ -202,7 +201,6 @@ def test_html_jsonld_dataset_uses_retry_after_header_if_present() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
-            payload_type=PayloadType.schema_org_general,
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=0.01,
@@ -236,7 +234,6 @@ def test_html_jsonld_dataset_caps_backoff_delay() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
-            payload_type=PayloadType.schema_org_general,
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=10.0,
@@ -269,7 +266,6 @@ async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
-            payload_type=PayloadType.schema_org_general,
             http=NiceHttpClientConfig(),
             jsonld_parse_threshold_bytes=1,
         )

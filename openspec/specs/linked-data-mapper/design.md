@@ -33,7 +33,7 @@ schema.org, `RegalMapper` for Regal).
    fail closed via `require_nonempty_person_given_names` before returning `HarvestedArc`.
    Schema.org and INSPIRE display-string splits (when structured given/family
    fields are absent) go through shared
-   `middleware.harvester.person_names.split_display_name` (`nameparser`). Regal
+   `middleware.payload.person_names.split_display_name` (`nameparser`). Regal
    agent `skos:prefLabel` values follow PUBLISSO `Family, Given` and split on
    the first `", "` (labels without comma → organization/label Comment; ORCID
    without given → fail closed). Single-token / no-comma Regal labels remain
