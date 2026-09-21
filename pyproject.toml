@@ -79,7 +79,6 @@ pythonpath = [
     "middleware/payload/src",
     "middleware/linked_data/tests/unit",
     "middleware/inspire/tests/unit",
-    "middleware/generic/tests/unit",
     "middleware/payload/tests/unit",
 ]
 python_files = ["test_*.py"]
