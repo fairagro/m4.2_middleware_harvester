@@ -1,40 +1,42 @@
-"""Linked Data sitemap implementations."""
+"""Protocol ABC and registry."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
-from typing import TypeVar
+from typing import Protocol as TypingProtocol, TypeVar
 
+from middleware.generic.config import ProtocolType
 from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.linked_data.config import Config, SitemapType
 from middleware.payload.registry import Registry
 
-# Payload carriers plus shared harvester signals (inspire-style).
-type SitemapYield = DiscoveryResult | RecordProcessingError | SkippedRecord
+type ProtocolYield = DiscoveryResult | RecordProcessingError | SkippedRecord
 
-TSitemap = TypeVar("TSitemap", bound="Sitemap")
+TProtocol = TypeVar("TProtocol", bound="Protocol")
 
 
-class Sitemap(ABC):
-    """Abstract sitemap provider that yields discovery results asynchronously."""
+class SupportsSitemapUrl(TypingProtocol):
+    """Minimal config surface required by Protocol implementations."""
 
-    registry: Registry[SitemapType, Sitemap] = Registry()
+    sitemap_url: str
 
-    def __init__(self, config: Config, client: NiceHttpClient) -> None:
-        """Create a new Sitemap configured for a specific source."""
+
+class Protocol(ABC):
+    """Abstract discovery/transport provider for the generic harvest plugin."""
+
+    registry: Registry[ProtocolType, Protocol] = Registry()
+
+    def __init__(self, config: SupportsSitemapUrl, client: NiceHttpClient) -> None:
+        """Create a Protocol for ``config`` (must expose ``sitemap_url``) and ``client``."""
         self.config = config
         self._client = client
 
-    async def discover(self) -> AsyncGenerator[SitemapYield, None]:
+    async def discover(self) -> AsyncGenerator[ProtocolYield, None]:
         """Yield discovery payloads, record failures, or deliberate skips.
 
         Deduplicates successful ``DiscoveryResult`` entries by ``identifier``.
-        ``RecordProcessingError`` from ``_discover`` is forwarded unchanged
-        (same contract as the inspire CSW client). Duplicates become
-        ``SkippedRecord``.
         """
         seen: set[str] = set()
         async for result in self._discover(self._client):
@@ -57,12 +59,12 @@ class Sitemap(ABC):
 
     @abstractmethod
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
-        """Discover dataset sources using the shared polite HTTP client."""
+        """Discover harvest units using the shared polite HTTP client."""
         if False:  # pragma: no cover
             yield UrlDiscoveryResult("")
         raise NotImplementedError
 
     @classmethod
-    def register(cls, sitemap_type: SitemapType) -> Callable[[type[TSitemap]], type[TSitemap]]:
-        """Register a concrete Sitemap implementation for the given sitemap type."""
-        return cls.registry.register(sitemap_type)
+    def register(cls, protocol_type: ProtocolType) -> Callable[[type[TProtocol]], type[TProtocol]]:
+        """Register a concrete Protocol implementation for the given type."""
+        return cls.registry.register(protocol_type)

@@ -1,4 +1,4 @@
-"""Bounded discovery→worker→consumer pipeline for the Linked Data plugin.
+"""Bounded discovery→worker→consumer pipeline for the generic harvest plugin.
 
 Separates asyncio backpressure / cancellation mechanics from domain processing
 in ``plugin.py``.
@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 import httpx
 
 from middleware.generic.discovery import DiscoveryResult
+from middleware.generic.errors import GenericError
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.linked_data.errors import LinkedDataError
 
 PipelineResult = HarvestedArc | HarvesterError | SkippedRecord
 ProcessFn = Callable[
@@ -28,7 +28,7 @@ DiscoveryErrorFn = Callable[[BaseException], HarvesterError]
 DiscoveryStream = AsyncIterable[DiscoveryResult | RecordProcessingError | SkippedRecord]
 
 _DISCOVERY_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    LinkedDataError,
+    GenericError,
     RobotsTxtDisallowedError,
     RuntimeError,
     ValueError,

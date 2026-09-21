@@ -10,6 +10,7 @@ from pathlib import Path
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
+from middleware.generic.plugin import GenericPlugin
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import (
     failure_url_for_exception,
@@ -27,15 +28,16 @@ logger = logging.getLogger(__name__)
 PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
     "linked_data": LinkedDataPlugin,
+    "generic": GenericPlugin,
 }
 
 
 def _create_plugin(repo: RepositoryConfig) -> Plugin:
     """Instantiate the plugin for ``repo``, passing mapper config when required."""
     factory = PLUGIN_FACTORIES[repo.plugin_type]
-    if repo.plugin_type == "linked_data":
+    if repo.plugin_type in {"linked_data", "generic"}:
         if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
-            raise ValueError("linked_data repositories require mapper config")
+            raise ValueError(f"{repo.plugin_type} repositories require mapper config")
         return factory(repo.plugin_config, repo.mapper)
     return factory(repo.plugin_config)
 

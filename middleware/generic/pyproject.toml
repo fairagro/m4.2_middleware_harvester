@@ -1,16 +1,14 @@
 [project]
-name = "harvester"
+name = "generic"
 version = "0.1.0"
-description = "Core orchestrator for FAIRagro Middleware Harvester"
+description = "Generic harvest plugin (Protocol + PayloadParser) for FAIRagro Middleware Harvester"
 requires-python = ">=3.12"
 dependencies = [
     "arctrl>=3.2.1",
+    "defusedxml>=0.7.1",
     "pydantic>=2.0.0",
-    "fairagro-middleware-api-client>=11.1.1.dev34",
+    "rdflib>=7.0.0",
     "fairagro-middleware-shared>=11.1.1.dev34",
-    "inspire",
-    "linked_data",
-    "generic",
     "payload",
 ]
 
@@ -22,5 +20,11 @@ build-backend = "hatchling.build"
 packages = ["src/middleware"]
 
 [tool.pytest.ini_options]
-pythonpath = "src"
+pythonpath = ["src", "tests/unit"]
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:rdflib",
+]

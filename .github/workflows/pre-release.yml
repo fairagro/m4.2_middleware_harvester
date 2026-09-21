@@ -19,7 +19,7 @@ jobs:
     with:
       python_package_root: middleware
       components: '["harvester"]'
-      mypy_path: stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/payload/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit:middleware/payload/tests/unit
+      mypy_path: stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/generic/src:middleware/payload/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit:middleware/payload/tests/unit
       pylint_source_roots: middleware/linked_data/tests/unit,middleware/inspire/tests/unit,middleware/payload/tests/unit
     secrets: inherit
 
