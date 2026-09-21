@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Self
+from typing import Annotated, Self, cast
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -125,7 +125,7 @@ class RepositoryConfig(BaseModel):
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        return getattr(self, self.plugin_type)
+        return cast(PluginConfig, getattr(self, self.plugin_type))
 
     @property
     def source_url(self) -> str | None:
