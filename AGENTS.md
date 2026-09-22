@@ -174,6 +174,7 @@ archived into main specs.
   identifier recovery on broken records.
 - **[`openspec/specs/csw-retry/`](openspec/specs/csw-retry/)** — Retry with exponential backoff for transient CSW failures; `user_agent` forwarding via OWSLib headers.
 - **[`openspec/specs/csw-threadpool/`](openspec/specs/csw-threadpool/)** — Per-client bounded `ThreadPoolExecutor` for OWSLib calls; `csw_thread_pool_size` config field.
+- **[`openspec/specs/csw-xml-hardening/`](openspec/specs/csw-xml-hardening/)** — Explicit hardened lxml parser installed as the process default (no entity expansion, DTD loading or network retrieval).
 - **[`openspec/specs/inspire-to-arc-mapping/`](openspec/specs/inspire-to-arc-mapping/)** — Rules transforming InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 - **[`openspec/specs/inspire-workflow-execution/`](openspec/specs/inspire-workflow-execution/)** — The INSPIRE plugin processing loop.
 

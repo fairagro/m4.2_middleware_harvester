@@ -22,6 +22,7 @@ from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError
 from middleware.inspire.iso_parser import IsoParser
 from middleware.inspire.models import InspireRecord
+from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
 
 T = TypeVar("T")
 
@@ -527,7 +528,7 @@ class CSWClient:
         normalized = self._normalize_xml_query(xml_query)
         as_bytes = isinstance(normalized, (bytes, bytearray))
         try:
-            root = lxml.etree.fromstring(normalized)
+            root = lxml.etree.fromstring(normalized, parser=HARDENED_XML_PARSER)
         except lxml.etree.XMLSyntaxError as exc:
             raise ValueError(f"xml_query is not well-formed XML: {exc}") from exc
 
