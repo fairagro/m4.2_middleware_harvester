@@ -6,7 +6,7 @@ so every assertion here is behavioural: parse a hostile document and check what 
 
 from concurrent.futures import ThreadPoolExecutor
 
-import lxml.etree
+import lxml.etree  # type: ignore[import-untyped]
 import pytest
 
 from middleware.inspire.config import Config
@@ -29,9 +29,10 @@ _ISO_WITH_COMMENT = b"""<?xml version="1.0"?>
 def _parse_text(payload: bytes) -> str | None:
     """Parse with the installed default parser, returning root text or None on rejection."""
     try:
-        return lxml.etree.fromstring(payload).text
+        text: str | None = lxml.etree.fromstring(payload).text
     except lxml.etree.XMLSyntaxError:
         return None
+    return text
 
 
 def test_inspire_installs_its_own_default_parser() -> None:
