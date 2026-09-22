@@ -18,6 +18,7 @@ from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 from owslib.util import Authentication  # type: ignore[import-untyped]
 
 from middleware.harvester.errors import RecordProcessingError
+from middleware.inspire.capabilities import describe_service, warn_if_server_caps_page_size
 from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError
 from middleware.inspire.iso_parser import IsoParser
@@ -67,10 +68,8 @@ class CSWClient:
             headers={"User-Agent": self._config.user_agent},
             auth=Authentication(verify=self._config.verify_ssl),
         )
-        csw_title = None
-        if self._csw and hasattr(self._csw, "identification") and self._csw.identification:
-            csw_title = getattr(self._csw.identification, "title", None)
-        logger.info("Connected to CSW at %s: %s", self._config.csw_url, csw_title)
+        warn_if_server_caps_page_size(self._csw, self._config.chunk_size)
+        logger.info("Connected to CSW at %s: %s", self._config.csw_url, describe_service(self._csw))
 
     def connect(self) -> None:
         """Connect to the CSW service."""
