@@ -82,3 +82,30 @@ The system SHALL handle this edge case: when - ISO records with a valid identifi
 #### Scenario: Edge case — - ISO records with a valid identifier parse fine
 - **WHEN** - ISO records with a valid identifier parse fine
 - **THEN** DC is never fetched for that batch. - A batch is completely identifier-less (all records empty/broken) → DC batch fetched; all DC identifiers treated as failed records. - DC batch itself fails (network error) → log warning; ISO parse errors are reported without identifiers (message includes position in batch). - Broken XML responses or invalid attribute access → yield `RecordProcessingError`, continue iteration. - `fes_constraints` has no Config-level equivalent because OWSLib `OgcExpression` objects are runtime-only and not YAML-serializable; it can only be supplied at call time. - An XML query with an encoding declaration must be converted to `bytes` before being passed to OWSLib to avoid an lxml `Unicode strings with encoding declaration` error. - `xml_query` whose root is not CSW 2.0.2 `GetRecords` in the CSW namespace (wrong element, nested, unnamespaced, or non-CSW namespace) → raise `ValueError` before any network call. - `xml_query` with invalid / non-positive `maxRecords` or `startPosition` → ignore that attribute, log a warning, and fall back to config / default (same as if omitted). - `xml_query` plus config `max_records=N` → stop after N successfully counted records across pages (same semantics as CQL/standard); the final page is truncated so the success yield count does not exceed N, while `RecordProcessingError` items from that page are still yielded. - Operator sets XML `maxRecords="10"` and config `chunk_size=50` → each page requests 10 records; harvest continues across pages until exhausted or `max_records` stops it. - `xml_query` with a non-ISO `outputSchema` → override to ISO 19139 (`gmd`) on each ISO request copy (warned once at prepare); the shared template is not mutated; Dublin Core fallback still switches schema on its own copy
+
+### Requirement: Warn when the server's advertised MaxRecordDefault is below the configured page size
+
+The system SHALL inspect the `MaxRecordDefault` constraint from the CSW `GetCapabilities` response
+after connecting, and SHALL log a warning naming both the advertised cap and the configured
+`chunk_size` when the advertised cap is lower. The system SHALL continue to send the configured
+`chunk_size` as `maxRecords` without clamping it, and SHALL stay silent when the constraint is
+absent or not a positive integer.
+
+#### Scenario: Server advertises a cap below the configured chunk_size
+
+- **WHEN** the endpoint advertises `MaxRecordDefault = 10` and `chunk_size` is 50
+- **THEN** log one warning at connect naming both 10 and 50
+- **AND** still request `maxRecords=50` per page
+- **AND** still harvest every record, paginating on the response's `nextrecord` / `returned`
+
+#### Scenario: Server advertises a cap at or above the configured chunk_size
+
+- **WHEN** the endpoint advertises `MaxRecordDefault = 100` and `chunk_size` is 50
+- **THEN** log no page-cap warning
+
+#### Scenario: Constraint is absent or unparsable
+
+- **WHEN** `GetCapabilities` omits `MaxRecordDefault`, or advertises a non-numeric or non-positive
+  value
+- **THEN** log no page-cap warning
+- **AND** connect successfully
