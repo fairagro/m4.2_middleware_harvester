@@ -170,8 +170,5 @@ class InspireRecord(BaseModel):
     # Supplemental (new)
     supplemental_information: str | None = None
 
-    # Raw XML for archival
-    raw_xml: bytes | None = None
-
     # Note: acquisition and contentinfo are complex nested objects that will be
     # handled separately if needed (mapped as Assay Protocols in the mapper)
