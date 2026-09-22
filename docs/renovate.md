@@ -149,8 +149,20 @@ after this config is synced.
 
 ### Manual Dockerfile pins (not Renovate)
 
-Shared Renovate does **not** bump Alpine `apk add pkg=X.Y.Z-rN` pins from APKINDEX, nor ad-hoc inline `name==…` pip pins
-inside product Dockerfiles. For those, run the synced helper:
+Shared Renovate does **not** bump Alpine apk pins from APKINDEX, nor ad-hoc inline `name==…` pip pins inside product
+Dockerfiles. Fleet **apk pin style (B):** declare versions only as Dockerfile `ARG` defaults, reference them in
+`apk add`:
+
+```dockerfile
+ARG CA_CERTIFICATES_VERSION=20260611-r0
+RUN apk add --no-cache "ca-certificates=${CA_CERTIFICATES_VERSION}"
+```
+
+`ARG FOO_BAR_VERSION` maps to apk package `foo-bar`. Do **not** use inline literals `pkg=X.Y.Z-rN` (style A) — the
+updater fails loud if it finds them. Toolchain pins (`PYTHON_VERSION`, …) stay in `versions.env`, not as apk ARG
+defaults.
+
+For those pins, run the synced helper:
 
 ```bash
 ./scripts/update-dockerfile-pins.sh
@@ -158,9 +170,10 @@ inside product Dockerfiles. For those, run the synced helper:
 ```
 
 With no path, it updates every `docker/Dockerfile.*` except `Dockerfile.product-app.base`. Pass a path to limit to one
-file. It does **not** write `*.bak` sidecars — use git to roll back. It refreshes apk pins (APKINDEX main + community)
-and Dockerfile `name==` pins from PyPI. It does **not** edit `versions.env` (Devinfra Renovate + sync). After sync,
-remove divergent local copies (`update-apk-dependencies.sh`, `update-docker-pins.sh`, etc.).
+file. It does **not** write `*.bak` sidecars — use git to roll back. It refreshes apk **ARG** defaults (APKINDEX main +
+community) and Dockerfile `name==` pins from PyPI. Missing APKINDEX packages or leftover inline apk version literals
+exit non-zero. It does **not** edit `versions.env` (Devinfra Renovate + sync). After sync, remove divergent local copies
+(`update-apk-dependencies.sh`, `update-docker-pins.sh`, etc.).
 
 Reusable `reusable-renovate.yml` is **out of scope** for now — the thin workflow is expected to stay identical across
 repos via sync.
