@@ -22,7 +22,7 @@ from m42_ai.issue import (
     view_issue,
 )
 from m42_ai.pr import pr_strip_footer
-from m42_ai.review import fetch_review_open, review_reply, review_resolve
+from m42_ai.review import PrHeadGateError, fetch_review_open, review_reply, review_resolve
 from m42_ai.sync_followup import (
     collect_sync_followup_ids,
     ensure_sync_followup_issue,
@@ -65,8 +65,11 @@ def cmd_review_open(args: argparse.Namespace) -> int:
             review_id=args.review_id,
             cwd=Path(args.cwd) if getattr(args, "cwd", None) else None,
         )
+    except PrHeadGateError as exc:
+        _print_json(exc.as_json())
+        return 1
     except (GhError, ValueError, RuntimeError, OSError, json.JSONDecodeError) as exc:
-        _print_json({"ok": False, "error": str(exc)})
+        _print_json({"ok": False, "pr_head_ok": False, "error": str(exc), "agent_action": "stop"})
         return 1
     _print_json(data)
     return 0
