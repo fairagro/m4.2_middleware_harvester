@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 import httpx
 
 from middleware.generic.discovery import DiscoveryResult
-from middleware.generic.errors import GenericError
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
@@ -27,8 +26,10 @@ ProcessFn = Callable[
 DiscoveryErrorFn = Callable[[BaseException], HarvesterError]
 DiscoveryStream = AsyncIterable[DiscoveryResult | RecordProcessingError | SkippedRecord]
 
+# Catch plugin-specific HarvesterError subclasses (GenericError, LinkedDataError, …)
+# so both plugins can share this pipeline without forking the exception tuple.
 _DISCOVERY_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    GenericError,
+    HarvesterError,
     RobotsTxtDisallowedError,
     RuntimeError,
     ValueError,

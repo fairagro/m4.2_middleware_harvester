@@ -601,7 +601,6 @@ name = "generic"
 version = "0.1.0"
 source = { editable = "middleware/generic" }
 dependencies = [
-    { name = "arctrl" },
     { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
     { name = "payload" },
@@ -611,7 +610,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arctrl", specifier = ">=3.2.1" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
     { name = "payload", editable = "middleware/payload" },

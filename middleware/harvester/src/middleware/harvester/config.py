@@ -13,7 +13,6 @@ import middleware.generic.protocol.xml as _register_generic_xml
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.parser.parser import PayloadParser
-from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
@@ -155,12 +154,6 @@ class RepositoryConfig(BaseModel):
             raise ValueError(
                 f"mapper.type {self.mapper.type} accepts {accepts!r}, "
                 f"but generic parser {self.generic.parser_type} produces {produced!r}"
-            )
-        # Ensure GenericPlugin.produces stays aligned with the selected parser for v1.
-        if produced != GenericPlugin.produces:
-            raise ValueError(
-                f"generic parser {self.generic.parser_type} produces {produced!r}, "
-                f"but GenericPlugin.produces is {GenericPlugin.produces!r}"
             )
 
         generic_base = self.generic.resource_base_url

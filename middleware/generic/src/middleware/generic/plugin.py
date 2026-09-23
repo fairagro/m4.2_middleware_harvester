@@ -6,13 +6,12 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import replace
-from typing import ClassVar
 
 import httpx
 
 from middleware.generic.config import Config, ParserType, ProtocolType
 from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
-from middleware.generic.errors import GenericError, GenericParserError, GenericProtocolError
+from middleware.generic.errors import GenericError, GenericProtocolError
 
 # Side-effect imports: Protocol / PayloadParser / DataMapper registries.
 from middleware.generic.parser import html_jsonld as _register_html_jsonld_parser
@@ -23,7 +22,6 @@ from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper import (
     LinkedDataMapper,
     MappingContext,
@@ -38,8 +36,6 @@ logger = logging.getLogger(__name__)
 
 class GenericPlugin:
     """Stateful generic plugin (structurally satisfies ``Plugin``)."""
-
-    produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
 
     def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
         """Initialize with plugin + repository mapper configuration."""
@@ -155,6 +151,7 @@ class GenericPlugin:
         discovery_result: DiscoveryResult,
         exc: Exception,
     ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
+        """Wrap an unexpected process failure as a record-level error."""
         url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
         return [
             RecordProcessingError(
@@ -166,6 +163,7 @@ class GenericPlugin:
         ]
 
     def _harvester_error_from_discovery_failure(self, exc: BaseException) -> HarvesterError:
+        """Map a discovery-stream failure to a repository-level harvester error."""
         if isinstance(exc, HarvesterError):
             return exc
         return GenericProtocolError(f"Protocol discovery failed for {self._config.sitemap_url}: {exc}")
@@ -178,12 +176,14 @@ class GenericPlugin:
         *,
         on_results_queue: ResultsQueueHook | None = None,
     ) -> AsyncGenerator[PipelineResult, None]:
+        """Run the bounded pipeline for ``protocol`` and yield outcomes."""
+
         async def process(
             discovery_result: DiscoveryResult,
         ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
             try:
                 return await self._process_result(discovery_result, nice_http)
-            except (RuntimeError, ValueError, OSError, httpx.HTTPError, GenericParserError) as exc:
+            except (RuntimeError, ValueError, OSError, httpx.HTTPError, GenericError) as exc:
                 return self._processing_failure(discovery_result, exc)
 
         async for item in run_bounded_pipeline(
