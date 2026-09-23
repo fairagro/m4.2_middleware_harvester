@@ -1,0 +1,32 @@
+<!doctype html>
+<!--
+  Cascade step 2: no schema:name, but schema:headline is present. The headline
+  must win over both alternativeHeadline and the page title.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A page title that must lose to the headline - OpenAgrar</title>
+    <meta name="citation_title" content="A citation_title that must lose to the headline" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/fixture-headline-only",
+        "identifier": "https://doi.org/10.5073/fixture-headline-only",
+        "url": "https://www.openagrar.de/receive/fixture_headline_only",
+        "headline": "Headline wins when schema:name is absent",
+        "alternativeHeadline": "An alternative headline that must lose to the headline",
+        "description": "Cascade step 2: headline resolves the title.",
+        "datePublished": "2026-03-02",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [{ "@type": "Person", "familyName": "Mustermann", "givenName": "Max", "name": "Mustermann, Max" }],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Headline wins when schema:name is absent</h1>
+  </body>
+</html>

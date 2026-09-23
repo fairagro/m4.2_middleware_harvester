@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  Fail-closed guard: no schema:name, headline or alternativeHeadline, no
+  citation_title meta, and a whitespace-only <title> (which _extract_title_hint
+  strips to None). Nothing in the cascade can resolve, so this record must fail
+  on BOTH main and the feature branch -- never with an invented "Untitled".
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>   </title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/fixture-no-title-anywhere",
+        "identifier": "https://doi.org/10.5073/fixture-no-title-anywhere",
+        "url": "https://www.openagrar.de/receive/fixture_no_title_anywhere",
+        "description": "Nothing in the cascade resolves; the mapper must fail closed.",
+        "datePublished": "2026-04-07",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [{ "@type": "Person", "familyName": "Ohne", "givenName": "Titel", "name": "Ohne, Titel" }],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" }
+      }
+    </script>
+  </head>
+  <body>
+    <p>This record has no resolvable title anywhere.</p>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  Discriminator for how multiple schema:alternativeHeadline values are ordered.
+
+  The three values are chosen so that each candidate ordering picks a different
+  winner, which a two-value fixture cannot do:
+
+    document order      -> "Mango is document-first"
+    alphabetical order  -> "Apple is alphabetically-first"
+    reverse document    -> "Zulu is document-last"
+
+  This matters because RDF gives no ordering to repeated predicates (there is no
+  @list here), so whatever order the mapper sees is an artefact of the rdflib
+  store, not of the source document. Running the harvester from source and
+  running the shipped PyInstaller binary disagreed here, which is how that was
+  found. The mapper now takes the casefold-alphabetical value deliberately, so
+  the expected winner is "Apple is alphabetically-first" in every environment.
+
+  No title exists outside the alternativeHeadline list (the <title> is
+  whitespace-only), so the cascade cannot reach past that step.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>   </title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/fixture-ordertest",
+        "identifier": "https://doi.org/10.5073/fixture-ordertest",
+        "alternativeHeadline": ["Mango is document-first", "Apple is alphabetically-first", "Zulu is document-last"],
+        "description": "Discriminates document order vs alphabetical vs reverse-document ordering.",
+        "datePublished": "2026-06-15",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [{ "@type": "Person", "familyName": "Ordnung", "givenName": "Olga", "name": "Ordnung, Olga" }],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Ordering discriminator</h1>
+  </body>
+</html>

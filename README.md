@@ -20,14 +20,22 @@ Research Context (ARC) objects, and transmit them to the central FAIRagro Middle
 
 ## 🌟 Quick Start (Full Local Demo)
 
-For the best out-of-the-box experience, you can run a complete local demonstration. This setup starts a local Mock Middleware API and the Harvester to process and save results locally:
+For the best out-of-the-box experience, you can run a complete local demonstration. This setup starts a local Mock Middleware API and the Harvester to process and save results locally — no credentials needed:
 
 ```bash
-# Start the full demo stack (requires Docker)
-./dev_environment/start.sh
+# Build the harvester image (compose cannot build it; see dev_environment/README.md)
+set -a && source versions.env && set +a
+docker buildx bake harvester --load --set harvester.tags=harvester:demo
+
+# Start the demo stack
+docker compose -f dev_environment/compose.demo.yaml up --abort-on-container-exit
 ```
 
 Note: Generated ARCs will be saved to `dev_environment/demo_output/`.
+
+For a deterministic, network-free run against static fixtures, use `compose.fixtures.yaml` instead. Both stacks, and how to run the harvester from source without Docker, are described in the [Development Environment README](dev_environment/README.md).
+
+> `dev_environment/start.sh` is **not** the local demo: it runs against the real RDIs and posts to `middleware-test.fairagro.net` over mTLS, which needs `sops` and a PGP key.
 
 ## 🚀 Getting Started (Development)
 
