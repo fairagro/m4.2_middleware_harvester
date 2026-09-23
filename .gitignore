@@ -66,6 +66,9 @@ node_modules/
 .docker/.token_seed
 .docker/.token_seed.lock
 
+# --- Local harvester runs (dev_environment stacks write ARCs here) ---
+dev_environment/demo_output/
+
 # --- Editor / OS (light) ---
 .DS_Store
 Thumbs.db
