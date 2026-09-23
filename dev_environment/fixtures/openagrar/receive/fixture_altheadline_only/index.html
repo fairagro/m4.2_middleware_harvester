@@ -1,0 +1,40 @@
+<!doctype html>
+<!--
+  Cascade step 3, and the regression guard for commit 6fa8197: no schema:name
+  and no schema:headline, but several schema:alternativeHeadline values whose
+  document order differs from alphabetical order.
+
+  Document-order first is "Zebra ...", alphabetically first is "Alpha ...".
+  The spec says document order, so "Zebra ..." must win. Before 6fa8197 the
+  cascade went through schema_texts(), which dedupes and sorts, and would have
+  picked "Alpha ..." here.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A page title that must lose to the alternative headline - OpenAgrar</title>
+    <meta name="citation_title" content="A citation_title that must lose to the alternative headline" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/fixture-altheadline-only",
+        "identifier": "https://doi.org/10.5073/fixture-altheadline-only",
+        "url": "https://www.openagrar.de/receive/fixture_altheadline_only",
+        "alternativeHeadline": [
+          "Zebra alternative headline comes first in document order",
+          "Alpha alternative headline comes first alphabetically"
+        ],
+        "description": "Cascade step 3: first alternativeHeadline in document order resolves the title.",
+        "datePublished": "2026-01-20",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [{ "@type": "Person", "familyName": "Beispiel", "givenName": "Bea", "name": "Beispiel, Bea" }],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Zebra alternative headline comes first in document order</h1>
+  </body>
+</html>

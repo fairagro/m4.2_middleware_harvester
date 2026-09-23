@@ -1,0 +1,34 @@
+<!doctype html>
+<!--
+  Control record: schema:name is present, so the cascade must not engage at all
+  and the resulting ARC must carry no "Title Source" Comment. This is the
+  "control record" referenced in issue #164.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Control record with a schema:name - OpenAgrar</title>
+    <meta name="citation_title" content="A page title that must never be used" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "@id": "https://doi.org/10.5073/fixture-00108436",
+        "identifier": "https://doi.org/10.5073/fixture-00108436",
+        "url": "https://www.openagrar.de/receive/openagrar_mods_00108436",
+        "name": "Schema name wins over every fallback",
+        "headline": "A headline that must never be used",
+        "alternativeHeadline": "An alternative headline that must never be used",
+        "description": "Control record: schema:name present, so no fallback may engage.",
+        "datePublished": "2026-05-14",
+        "inLanguage": "en",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "creator": [{ "@type": "Person", "familyName": "Musterfrau", "givenName": "Erika", "name": "Musterfrau, Erika" }],
+        "publisher": { "@type": "Organization", "name": "OpenAgrar" }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Schema name wins over every fallback</h1>
+  </body>
+</html>

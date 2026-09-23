@@ -1,0 +1,33 @@
+# Fixture-only harvester config: the static OpenAgrar stand-in, nothing live.
+#
+# Use this to exercise the schema.org title-fallback cascade (#164) end to end
+# without touching the network. The real OpenAgrar is behind a proof-of-work
+# gate (#271), so it cannot be harvested; see
+# dev_environment/fixtures/openagrar/README.md for what the fixtures contain.
+#
+# Needs two local services:
+#   uv run python -m http.server 8080 --directory dev_environment/fixtures/openagrar
+#   DEMO_OUTPUT_DIR=$PWD/dev_environment/demo_output \
+#     uv run --with fastapi --with uvicorn --with arctrl \
+#     uvicorn demo_api_main:app --app-dir dev_environment --host 127.0.0.1 --port 8000
+
+log_level: INFO
+
+repositories:
+  - rdi: "openagrar-fixture"
+    linked_data:
+      sitemap_url: "http://localhost:8080/servlets/solr/select"
+      sitemap_type: mycore_solr
+      dataset_type: html_jsonld
+      payload_type: schema_org_general
+      http:
+        # Mirrors the real OpenAgrar config: robots.txt disallows /servlets/,
+        # where the Solr API lives.
+        respect_robots_txt: false
+        # No politeness delay against a local static server.
+        max_requests_per_second: null
+
+api_client:
+  api_url: "http://localhost:8000"
+  timeout: 60.0
+  verify_ssl: false

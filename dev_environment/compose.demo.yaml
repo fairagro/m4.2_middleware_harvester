@@ -35,5 +35,8 @@ services:
       middleware-api:
         condition: service_healthy
     volumes:
-      - ./config.demo.yaml:/etc/inspire/config.yaml:ro
-    command: /middleware/harvester/harvester -c /etc/inspire/config.yaml
+      - ./config.demo.yaml:/etc/harvester/config.yaml:ro
+    # The image ENTRYPOINT is already /middleware/harvester/harvester, so this
+    # must be arguments only -- naming the binary again makes argparse see it
+    # as a positional and fail with "unrecognized arguments".
+    command: ["-c", "/etc/harvester/config.yaml"]

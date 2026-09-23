@@ -76,7 +76,14 @@ class HtmlJsonLdParser(PayloadParser):
             html_text = response.text
         except Exception as exc:  # noqa: BLE001
             raise GenericParserError(f"Failed to fetch dataset URL {url}: {exc}") from exc
+        return await self.graph_from_html(url, html_text, threshold)
 
+    async def graph_from_html(self, url: str, html_text: str, threshold: int) -> Graph:
+        """Parse embedded JSON-LD from already-fetched HTML into an RDF graph.
+
+        Used by callers (e.g. ``HtmlJsonLdDataset``) that cache the HTML for
+        page-title hints and must avoid a second HTTP fetch.
+        """
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
         if not parser.blocks:

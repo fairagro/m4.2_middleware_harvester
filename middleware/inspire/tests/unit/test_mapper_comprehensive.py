@@ -76,7 +76,6 @@ def sample_record() -> InspireRecord:
         language="eng",
         metadata_standard_name="ISO 19115",
         metadata_standard_version="2003/Cor.1:2006",
-        raw_xml=b"<test/>",
         resource_language=["en"],
         graphic_overviews=["https://example.com/graphic.png"],
         dates=[InspireDate(date="2023-10-27", datetype="creation")],

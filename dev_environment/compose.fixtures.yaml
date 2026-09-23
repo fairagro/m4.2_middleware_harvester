@@ -1,0 +1,79 @@
+# End-to-end harvester run against the static OpenAgrar fixture RDI.
+#
+# Credential-free and network-free: a static fixture origin, the mock Middleware
+# API, and the harvester image. Use it to exercise the schema.org title-fallback
+# cascade (#164) against the real binary -- the live OpenAgrar is behind a
+# proof-of-work gate (#271) and cannot be harvested.
+#
+# The harvester image must be built with Bake first; `docker compose --build`
+# cannot build it, because docker/Dockerfile.harvester consumes the named build
+# contexts `export_bins` and `healthcheck_bins`, which are wired only in
+# docker-bake.hcl:
+#
+#   set -a && source versions.env && set +a
+#   docker buildx bake harvester --load --set harvester.tags=harvester:fixtures
+#   docker compose -f dev_environment/compose.fixtures.yaml up --abort-on-container-exit
+#
+# ARCs land in dev_environment/demo_output/<rdi>/<harvest_id>/.
+
+services:
+  fixtures:
+    image: python:3.12-slim
+    container_name: openagrar-fixtures
+    working_dir: /fixtures
+    volumes:
+      - ./fixtures/openagrar:/fixtures:ro
+    command: ["python", "-m", "http.server", "8080", "--directory", "/fixtures"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/servlets/solr/select')\" 2>/dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  middleware-api:
+    image: python:3.12-slim
+    container_name: middleware-api-fixtures
+    environment:
+      - LOCAL_UID=${LOCAL_UID:-1000}
+      - LOCAL_GID=${LOCAL_GID:-1000}
+      - DEMO_OUTPUT_DIR=/data/arcs
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./demo_output:/data/arcs
+      - ./demo_api_main.py:/app/main.py:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        pip install --quiet fastapi uvicorn arctrl
+        uvicorn main:app --app-dir /app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/live')\" 2>/dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  harvester:
+    image: harvester:fixtures
+    depends_on:
+      fixtures:
+        condition: service_healthy
+      middleware-api:
+        condition: service_healthy
+    volumes:
+      - ./config.fixtures.container.yaml:/etc/harvester/config.yaml:ro
+    # The image ENTRYPOINT is already /middleware/harvester/harvester, so this
+    # must be arguments only -- naming the binary again makes argparse see it
+    # as a positional and fail with "unrecognized arguments".
+    command: ["-c", "/etc/harvester/config.yaml"]
+    restart: no

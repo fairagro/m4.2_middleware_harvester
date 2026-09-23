@@ -40,3 +40,22 @@
    GetRecords structure is validated via `_prepare_xml_query_before_network`
    in `get_records` / `get_records_async` / `get_record_count` **before**
    `connect()`, so invalid XML never triggers a CSW network call.
+
+6. **Report the server's advertised page cap; do not clamp to it**
+   — Some servers enforce the `MaxRecordDefault` capabilities constraint as a
+   hard ceiling, which makes a larger `chunk_size` inert. Measured 2026-09-22
+   against `atlas.thuenen.de` (pycsw 3.0.dev0, 151 records) for issue #19: it
+   advertises `MaxRecordDefault = 10` and returns 10 records for `maxRecords`
+   of 10, 50, 100 and 151 alike, so `chunk_size` 10, 50 and 500 all cost the
+   same 16 requests. Harvest results are unaffected — decision 4's pagination
+   follows `nextrecord` / `returned`, never the requested page size, verified
+   at 151 records and 151 distinct identifiers for each of those `chunk_size`
+   values — but the wasted configuration was previously invisible.
+   `capabilities.warn_if_server_caps_page_size` therefore logs one warning at
+   connect naming both numbers. We deliberately do **not** clamp the request:
+   CSW 2.0.2 defines `MaxRecordDefault` as the page size used when the client
+   *omits* `maxRecords`, not as a ceiling, so a conforming server may honour a
+   larger value despite advertising a smaller default, and clamping would make
+   paging worse against those servers to fix nothing. The readers live in
+   `capabilities.py` rather than `csw_client.py` because that module sits at
+   the 1000-line pylint ceiling.

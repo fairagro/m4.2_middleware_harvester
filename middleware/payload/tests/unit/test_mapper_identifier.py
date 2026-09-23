@@ -18,6 +18,7 @@ from rdflib.namespace import RDF
 
 from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES
 
 
 def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> None:
@@ -46,7 +47,7 @@ def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:
 def test_openagrar_propertyvalue_doi_is_investigation_identifier_when_no_source_url() -> None:
     graph = parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI)
     subject = None
-    for schema in GeneralSchemaOrgMapper.SCHEMA_URIS:
+    for schema in SCHEMA_ORG_NAMESPACES:
         subjects = list(graph.subjects(RDF.type, schema.Dataset))
         if subjects:
             subject = subjects[0]

@@ -88,8 +88,6 @@ class IsoParser:
             reference_systems=self._extract_reference_systems(iso),
             # Supplemental (new)
             supplemental_information=self._extract_identification_str("supplementalinformation", identification),
-            # Raw XML
-            raw_xml=getattr(iso, "xml", None),
         )
 
     @staticmethod

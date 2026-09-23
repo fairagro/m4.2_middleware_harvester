@@ -1,0 +1,23 @@
+# config.fixtures.yaml for the compose stack.
+#
+# Identical to config.fixtures.yaml except that the fixture origin and the mock
+# Middleware API are addressed by compose service name rather than localhost.
+# Keep the two files in sync.
+
+log_level: INFO
+
+repositories:
+  - rdi: "openagrar-fixture"
+    linked_data:
+      sitemap_url: "http://fixtures:8080/servlets/solr/select"
+      sitemap_type: mycore_solr
+      dataset_type: html_jsonld
+      payload_type: schema_org_general
+      http:
+        respect_robots_txt: false
+        max_requests_per_second: null
+
+api_client:
+  api_url: "http://middleware-api:8000"
+  timeout: 60.0
+  verify_ssl: false
