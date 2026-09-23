@@ -8,6 +8,7 @@ dependencies = [
   "inspire",
   "harvester",
   "linked_data",
+  "generic",
   "payload",
 ]
 
@@ -36,6 +37,7 @@ dev = [
 inspire = { workspace = true }
 harvester = { workspace = true }
 linked_data = { workspace = true }
+generic = { workspace = true }
 payload = { workspace = true }
 
 [tool.uv.workspace]
@@ -43,6 +45,7 @@ members = [
     "middleware/inspire",
     "middleware/harvester",
     "middleware/linked_data",
+    "middleware/generic",
     "middleware/payload",
 ]
 
@@ -65,12 +68,14 @@ testpaths = [
     "middleware/inspire/tests",
     "middleware/harvester/tests",
     "middleware/linked_data/tests",
+    "middleware/generic/tests",
     "middleware/payload/tests",
 ]
 pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
     "middleware/linked_data/src",
+    "middleware/generic/src",
     "middleware/payload/src",
     "middleware/linked_data/tests/unit",
     "middleware/inspire/tests/unit",
@@ -113,6 +118,7 @@ source = [
     "middleware/inspire/src/middleware/inspire",
     "middleware/harvester/src/middleware/harvester",
     "middleware/linked_data/src/middleware/linked_data",
+    "middleware/generic/src/middleware/generic",
     "middleware/payload/src/middleware/payload",
 ]
 omit = [

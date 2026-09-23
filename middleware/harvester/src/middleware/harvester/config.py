@@ -7,7 +7,13 @@ from typing import Annotated, Self, cast
 
 from pydantic import BaseModel, Field, model_validator
 
+# Side-effect: register generic parsers/protocols + shared mappers for config validation.
+import middleware.generic.parser.html_jsonld as _register_generic_html_jsonld
+import middleware.generic.protocol.xml as _register_generic_xml
 from middleware.api_client.config import Config as ApiClientConfig
+from middleware.generic.config import Config as GenericConfig
+from middleware.generic.parser.parser import PayloadParser
+from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
@@ -15,10 +21,13 @@ from middleware.payload import (
     DataMapper,
     MapperConfig,
 )
+from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
 
+_ = (_register_generic_html_jsonld, _register_generic_xml, _register_builtin_mappers)
+
 # Union of all plugin config types. Extend when adding a new plugin.
-PluginConfig = InspireConfig | LinkedDataConfig
+PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig
 
 _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper"})
 
@@ -51,9 +60,13 @@ class RepositoryConfig(BaseModel):
         LinkedDataConfig | None,
         Field(description="Linked Data harvesting plugin configuration"),
     ] = None
+    generic: Annotated[
+        GenericConfig | None,
+        Field(description="Generic Protocol + PayloadParser plugin configuration"),
+    ] = None
     mapper: Annotated[
         MapperConfig | None,
-        Field(description="Shared DataMapper selection (required for linked_data)."),
+        Field(description="Shared DataMapper selection (required for linked_data and generic)."),
     ] = None
 
     @model_validator(mode="after")
@@ -112,6 +125,44 @@ class RepositoryConfig(BaseModel):
             if normalized_linked != mapper_base:
                 raise ValueError(
                     f"linked_data.resource_base_url {normalized_linked!r} conflicts with "
+                    f"mapper.resource_base_url {mapper_base!r}"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def validate_mapper_for_generic(self) -> Self:
+        """Require and validate ``mapper`` for generic repositories."""
+        if self.generic is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("generic repositories require a sibling mapper: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        try:
+            Protocol.registry[self.generic.protocol_type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown generic.protocol_type: {self.generic.protocol_type}") from exc
+        try:
+            parser_cls = PayloadParser.registry[self.generic.parser_type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown generic.parser_type: {self.generic.parser_type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        produced = getattr(parser_cls, "produces", None)
+        if accepts != produced:
+            raise ValueError(
+                f"mapper.type {self.mapper.type} accepts {accepts!r}, "
+                f"but generic parser {self.generic.parser_type} produces {produced!r}"
+            )
+
+        generic_base = self.generic.resource_base_url
+        mapper_base = self.mapper.normalize_resource_base_url()
+        if generic_base is not None and generic_base.strip() and mapper_base is not None:
+            normalized_generic = self.generic.effective_resource_base_url
+            if normalized_generic != mapper_base:
+                raise ValueError(
+                    f"generic.resource_base_url {normalized_generic!r} conflicts with "
                     f"mapper.resource_base_url {mapper_base!r}"
                 )
         return self

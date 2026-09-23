@@ -253,7 +253,7 @@ def test_html_jsonld_dataset_caps_backoff_delay() -> None:
         async with NiceHttpClient(config.http, transport=transport) as client:
             ds = HtmlJsonLdDataset("https://example.org/page", client, config=config)
             with (
-                patch("middleware.linked_data.dataset.html_jsonld.asyncio.sleep", new=fake_sleep),
+                patch("middleware.harvester.nice_http_client.asyncio.sleep", new=fake_sleep),
                 contextlib.suppress(LinkedDataDatasetError),
             ):
                 await ds.to_graph()
@@ -281,7 +281,7 @@ async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
         async with NiceHttpClient(NiceHttpClientConfig(), transport=transport) as client:
             ds = HtmlJsonLdDataset("https://example.org/page", client, config)
             with patch(
-                "middleware.linked_data.dataset.html_jsonld.asyncio.to_thread",
+                "middleware.generic.parser.html_jsonld.asyncio.to_thread",
                 new=AsyncMock(side_effect=lambda func, *args, **kwargs: func(*args, **kwargs)),
             ) as to_thread_mock:
                 graph = await ds.to_graph()

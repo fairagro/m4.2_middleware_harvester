@@ -10,6 +10,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "generic",
     "harvester",
     "inspire",
     "linked-data",
@@ -596,6 +597,27 @@ wheels = [
 ]
 
 [[package]]
+name = "generic"
+version = "0.1.0"
+source = { editable = "middleware/generic" }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "fairagro-middleware-shared" },
+    { name = "payload" },
+    { name = "pydantic" },
+    { name = "rdflib" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "defusedxml", specifier = ">=0.7.1" },
+    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "payload", editable = "middleware/payload" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "rdflib", specifier = ">=7.0.0" },
+]
+
+[[package]]
 name = "ggshield"
 version = "1.54.0"
 source = { registry = "https://pypi.org/simple" }
@@ -716,6 +738,7 @@ dependencies = [
     { name = "arctrl" },
     { name = "fairagro-middleware-api-client" },
     { name = "fairagro-middleware-shared" },
+    { name = "generic" },
     { name = "inspire" },
     { name = "linked-data" },
     { name = "payload" },
@@ -727,6 +750,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.1.1.dev34" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "generic", editable = "middleware/generic" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "linked-data", editable = "middleware/linked_data" },
     { name = "payload", editable = "middleware/payload" },
@@ -1030,6 +1054,7 @@ dependencies = [
     { name = "arctrl" },
     { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
+    { name = "generic" },
     { name = "payload" },
     { name = "pydantic" },
     { name = "rdflib" },
@@ -1040,6 +1065,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "generic", editable = "middleware/generic" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
@@ -1172,6 +1198,7 @@ wheels = [
 name = "m4-2-middleware-harvester"
 source = { editable = "." }
 dependencies = [
+    { name = "generic" },
     { name = "harvester" },
     { name = "inspire" },
     { name = "linked-data" },
@@ -1201,6 +1228,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "generic", editable = "middleware/generic" },
     { name = "harvester", editable = "middleware/harvester" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "linked-data", editable = "middleware/linked_data" },

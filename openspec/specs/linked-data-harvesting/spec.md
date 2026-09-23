@@ -16,25 +16,67 @@ The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel`
 - **THEN** The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the main `middleware.harvester.config.Config` plugin config schema
 
 ### Requirement: Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
-The system SHALL require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically.
+The system SHALL require explicit `sitemap_type` and `dataset_type` on the linked-data plugin config. Mapper selection
+MUST use the repository-level `mapper.type` (shared `middleware.payload` registry). The plugin MUST NOT infer sitemap,
+dataset, or mapper formats automatically. The linked-data plugin `Config` model MUST keep `payload_type` as an optional
+field marked `Field(deprecated=True)`. When set, repository validation MUST lift the value to sibling `mapper.type` and
+MUST emit a `logger.warning`.
 
 #### Scenario: Satisfies — Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Require explicit `sitemap_type`, `dataset_type`, and `payload_type` values. Do not infer source formats automatically
+
+- **WHEN** linked-data plugin config omits `sitemap_type` or `dataset_type`
+- **THEN** validation fails at startup; mapper selection uses repository `mapper.type` (or a deprecated
+  `linked_data.payload_type` lift), not inference
+
+#### Scenario: Explicit sitemap and dataset required
+
+- **WHEN** linked-data plugin config omits `sitemap_type` or `dataset_type`
+- **THEN** validation fails at startup
+
+#### Scenario: Mapper comes from repository mapper config
+
+- **WHEN** a linked-data repository is configured with `mapper.type`
+- **THEN** the plugin resolves the mapper from the shared payload registry using that type
+
+#### Scenario: Legacy payload_type is lifted with deprecation
+
+- **WHEN** a linked-data repository sets `linked_data.payload_type` and omits `mapper`
+- **THEN** validation succeeds, `mapper.type` equals the legacy value, and a `logger.warning` is emitted
+
+#### Scenario: Conflicting payload_type and mapper.type fail closed
+
+- **WHEN** `linked_data.payload_type` and `mapper.type` are both set to different values
+- **THEN** validation fails at startup
 
 ### Requirement: Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-The system SHALL implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
+The system SHALL implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the
+plugin config and repository mapper config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
+The plugin MUST pass intermediate RDF graphs into the shared `LinkedDataMapper` / `DataMapper` API.
 
 #### Scenario: Satisfies — Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the plugin config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface
+
+- **WHEN** the harvester runs a linked-data repository
+- **THEN** mapping is performed by a mapper instance from `middleware.payload`
+
+#### Scenario: Plugin uses shared mapper
+
+- **WHEN** the harvester runs a linked-data repository
+- **THEN** mapping is performed by a mapper instance from `middleware.payload`
 
 ### Requirement: Select implementations using registries for sitemap, dataset, and mapper types
-The system SHALL select implementations using registries for sitemap, dataset, and mapper types.
+The system SHALL select sitemap and dataset implementations using plugin-local registries, and SHALL select mapper
+implementations using the shared `middleware.payload` DataMapper registry keyed by repository `mapper.type`.
 
 #### Scenario: Satisfies — Select implementations using registries for sitemap, dataset, and mapper types
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Select implementations using registries for sitemap, dataset, and mapper types
+
+- **WHEN** the linked-data plugin creates its mapper
+- **THEN** resolution uses the shared payload package registry keyed by repository `mapper.type`
+
+#### Scenario: Mapper registry is shared
+
+- **WHEN** the linked-data plugin creates its mapper
+- **THEN** resolution uses the shared payload package registry, not plugin-private ownership of Schema.org/Regal
+  implementations
 
 ### Requirement: Validate config at startup and fail fast on unsupported enum…
 The system SHALL validate config at startup and fail fast on unsupported enum values.
@@ -166,6 +208,27 @@ unhandled exceptions on the asyncio event loop.
   normally
 - **THEN** the plugin MUST exit cleanly with no cancellation side effects on
   the harvest report counters for items already yielded
+
+### Requirement: Coexist with generic plugin during incremental migration
+
+The system SHALL keep the `linked_data` plugin key and its Sitemap/Dataset
+registries valid while equivalent sources migrate to `generic`. Operators MAY
+point a repository at `generic` with a protocol/parser pair that preserves the
+prior harvest outcomes for that source.
+
+#### Scenario: Unmigrated linked_data repositories keep working
+
+- **WHEN** a repository still uses `linked_data` after the generic package lands
+- **THEN** harvesting continues to use LinkedDataPlugin without requiring an
+  immediate config rewrite
+
+#### Scenario: First migrated pair xml + html_jsonld via generic
+
+- **WHEN** a repository that previously used linked_data xml sitemap +
+  html_jsonld is reconfigured to `generic` with the corresponding
+  `protocol_type` / `parser_type` and the same `mapper`
+- **THEN** harvest yields remain observationally equivalent for successful
+  records (same PayloadKind path into the shared DataMapper)
 
 ## Feature split
 

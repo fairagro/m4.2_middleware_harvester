@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import TypeVar
 
 from rdflib import Graph
 
+from middleware.generic.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType
 from middleware.linked_data.errors import LinkedDataDatasetError
@@ -16,42 +16,12 @@ from middleware.payload.registry import Registry
 
 TDataset = TypeVar("TDataset", bound="Dataset")
 
-
-@dataclass
-class DiscoveryResult:
-    """Base class for results yielded by Sitemap discovery.
-
-    Every discovery result carries a stable ``identifier`` used for
-    deduplication in ``Sitemap.discover()`` and for error reporting.
-    Concrete subclasses fill it with a URL, a Regal ``@id``, or another
-    provider-specific key.
-    """
-
-    identifier: str
-
-
-@dataclass
-class UrlDiscoveryResult(DiscoveryResult):
-    """Discovery result representing a dataset URL.
-
-    The ``identifier`` is the dataset URL. When the sitemap knows a native
-    catalog id for the harvested record (e.g. MyCoRe Solr ``id``), it MAY
-    supply ``harvest_source_id`` for stable Schema.org mapping.
-    """
-
-    harvest_source_id: str | None = None
-
-    @property
-    def url(self) -> str:
-        """The discovered dataset URL (alias for ``identifier``)."""
-        return self.identifier
-
-
-@dataclass
-class JsonLdDiscoveryResult(DiscoveryResult):
-    """Discovery result carrying an inline JSON-LD record payload."""
-
-    payload: dict[str, object]
+__all__ = [
+    "Dataset",
+    "DiscoveryResult",
+    "JsonLdDiscoveryResult",
+    "UrlDiscoveryResult",
+]
 
 
 class Dataset(ABC):

@@ -6,7 +6,8 @@ Define the mapping contract from a parsed Linked Data RDF graph to a
 `HarvestedArc` (RO-Crate JSON-LD plus study/assay composition counts).
 
 Vocabulary-specific implementations (e.g. `GeneralSchemaOrgMapper` for
-schema.org, `RegalMapper` for Regal) register against `payload_type` and
+schema.org, `RegalMapper` for Regal) live in `middleware.payload`, register
+against repository `mapper.type` via the shared DataMapper registry, and
 implement this interface.
 
 ## Requirements
@@ -113,25 +114,31 @@ Detailed Regal field and stability requirements live in
 
 ### Requirement: Select mapper by payload_type
 
-The system SHALL select mapper implementations using configured `payload_type`
-values via the mapper registry (explicit, non-guessing selection).
+The system SHALL select mapper implementations using configured repository `mapper.type` values via the shared
+`middleware.payload` DataMapper registry (explicit, non-guessing selection). Vocabulary-specific Linked Data mappers MUST
+live in `middleware.payload` and register against that registry. Behavioural ARC mapping rules for Schema.org and Regal
+are unchanged (including ResourceView / StableGraph requirements in this spec).
 
 #### Scenario: Configured payload selects the registered mapper
 
-- **WHEN** plugin config sets a supported `payload_type`
-- **THEN** `LinkedDataMapper.from_config` / registry resolution returns the
-  matching concrete mapper
+- **WHEN** repository config sets a supported `mapper.type` for a linked-data harvest
+- **THEN** registry resolution returns the matching concrete mapper from `middleware.payload`
+
+#### Scenario: Configured mapper type selects the registered mapper
+
+- **WHEN** repository config sets a supported `mapper.type` for a linked-data harvest
+- **THEN** registry resolution returns the matching concrete mapper from `middleware.payload`
 
 ### Requirement: Keep mapping separate from discovery
 
-The system SHALL keep mapping logic separate from sitemap discovery and dataset
-payload extraction.
+The system SHALL keep mapping logic separate from sitemap discovery and dataset payload extraction. Mapping code MUST
+reside in `middleware.payload` and MUST NOT import protocol clients (sitemap/CSW/OAI HTTP discovery).
 
 #### Scenario: Mapper does not fetch sitemaps
 
 - **WHEN** a mapper implementation runs
-- **THEN** it operates only on an already-built `rdflib.Graph` and does not
-  perform sitemap discovery or HTTP dataset fetch
+- **THEN** it operates only on an already-built RDF graph (via `ParsedPayload` or `map_graph`) and does not perform
+  sitemap discovery or HTTP dataset fetch
 
 ### Requirement: StableGraph MUST be call-scoped on concurrent map_graph
 
@@ -171,15 +178,20 @@ Mapping failures MUST be surfaced to the orchestrator as `HarvesterError`
 
 ### Requirement: Edge case — no runtime config outside payload selection
 
-Mapper implementations MUST NOT depend on ad-hoc runtime config outside the
-fields needed for the selected `payload_type` (e.g. Regal resource base URL via
-`from_config`).
+The system SHALL keep mapper runtime configuration limited to fields needed for the selected `mapper.type` (e.g. Regal
+resource base URL via mapper or repository mapper config). Discovery/plugin fields MUST NOT leak into StableGraph wrap.
 
 #### Scenario: Payload-scoped config only
 
-- **WHEN** a mapper is constructed from plugin config
-- **THEN** only configuration relevant to that `payload_type` influences
-  mapping behaviour
+- **WHEN** a repository selects a given `mapper.type`
+- **THEN** only configuration relevant to that mapper type influences mapping behaviour beyond the graph and
+  `MappingContext`
+
+#### Scenario: Mapper-specific config only
+
+- **WHEN** a repository selects a given `mapper.type`
+- **THEN** only configuration relevant to that mapper type influences mapping behaviour beyond the graph and
+  `MappingContext`
 
 ### Requirement: Schema.org Organization publisher MUST become Comment not Person
 

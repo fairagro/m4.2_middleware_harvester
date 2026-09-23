@@ -129,7 +129,7 @@ harvester/config.py        →  payload  (MapperConfig / registry validation)
 # Shared payload / mapper layer (cross-cutting; not a protocol plugin)
 # Owns PayloadKind, ParsedPayload, HarvestedArc, person-name helpers,
 # DataMapper registry, RDF LinkedDataMapper / StableGraph / Schema.org + Regal.
-payload/  ↛  harvester / inspire / linked_data / future protocol plugins
+payload/  ↛  harvester / inspire / linked_data / generic / future protocol plugins
 harvester/plugin_base.py  →  payload/harvested_arc.py
 inspire/mapper.py         →  payload/person_*
 # Protocol plugins MAY import harvester errors / NiceHttpClient / Plugin; see #155.
@@ -145,17 +145,25 @@ linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker
 linked_data/plugin.py   →  linked_data/sitemap / dataset
 linked_data/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
 linked_data/pipeline.py ↛  payload mappers / dataset implementations
-# pipeline may import DiscoveryResult (and related types) from the dataset
-# package; ``dataset/__init__.py`` MUST NOT eagerly import provider dataset
-# classes. Pipeline MUST NOT perform mapping or own source-format semantics.
+# DiscoveryResult types live in generic/; linked_data re-exports them during
+# coexistence (temporary linked_data → generic.discovery). Pipeline MUST NOT
+# perform mapping or own source-format semantics.
+
+# Generic plugin — Protocol + PayloadParser + shared DataMapper
+generic/plugin.py   →  generic/protocol / parser / pipeline
+generic/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
+generic/  ↛  linked_data / inspire
+# linked_data MAY import generic.discovery / generic parsers for shims only;
+# plugins must not import each other's plugin.py modules.
 
 config  ←── all modules (read-only)
 ```
 
 Circular imports are forbidden. Within a plugin, the mapper must not import the source client and vice versa. Plugins
-must not import each other. Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins
+must not import each other (except the documented temporary `linked_data` → `generic.discovery` / shim imports during
+migration). Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins
 MAY depend on `middleware.payload`; `middleware.payload` MUST NOT depend on `middleware.harvester` or on protocol plugin
-packages (`inspire`, `linked_data`, …).
+packages (`inspire`, `linked_data`, `generic`, …).
 
 ### Import policy (product; candidate for Devinfra sync)
 
