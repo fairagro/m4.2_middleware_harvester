@@ -7,7 +7,9 @@ Import this module for its side effects before resolving ``PayloadParser.registr
 from __future__ import annotations
 
 from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
+from middleware.parsing.parser.rdf_xml import RdfXmlParser
 
 __all__ = [
     "HtmlJsonLdParser",
+    "RdfXmlParser",
 ]

@@ -7,3 +7,4 @@ class ParserType(StrEnum):
     """Registered PayloadParser kinds for shared harvesting parsers."""
 
     html_jsonld = "html_jsonld"
+    rdf_xml = "rdf_xml"

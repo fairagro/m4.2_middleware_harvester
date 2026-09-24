@@ -16,6 +16,7 @@ from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.oai_pmh.config import Config as OaiPmhConfig
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import (
@@ -28,7 +29,7 @@ from middleware.shared.config.config_base import ConfigBase
 _ = (_register_html_jsonld_parser, _register_generic_xml, _register_builtin_mappers)
 
 # Union of all plugin config types. Extend when adding a new plugin.
-PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig
+PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig | OaiPmhConfig
 
 _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper", "parser"})
 
@@ -45,9 +46,10 @@ class RepositoryConfig(BaseModel):
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
     selected via an optional sibling ``mapper:`` block (required for
-    ``linked_data`` / ``generic``). Shared PayloadParsers use sibling ``parser:``
-    (required for ``generic``). Deprecated ``linked_data.payload_type`` is accepted
-    with a ``logger.warning`` and lifted to ``mapper.type``.
+    ``linked_data`` / ``generic`` / ``oai_pmh``). Shared PayloadParsers use sibling
+    ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
+    ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
+    ``mapper.type``.
     """
 
     rdi: Annotated[
@@ -66,13 +68,17 @@ class RepositoryConfig(BaseModel):
         GenericConfig | None,
         Field(description="Generic Protocol plugin configuration"),
     ] = None
+    oai_pmh: Annotated[
+        OaiPmhConfig | None,
+        Field(description="OAI-PMH plugin configuration"),
+    ] = None
     mapper: Annotated[
         MapperConfig | None,
-        Field(description="Shared DataMapper selection (required for linked_data and generic)."),
+        Field(description="Shared DataMapper selection (required for linked_data, generic, oai_pmh)."),
     ] = None
     parser: Annotated[
         ParserConfig | None,
-        Field(description="Shared PayloadParser selection (required for generic)."),
+        Field(description="Shared PayloadParser selection (required for generic and oai_pmh)."),
     ] = None
 
     @model_validator(mode="after")
@@ -175,6 +181,32 @@ class RepositoryConfig(BaseModel):
                 )
         return self
 
+    @model_validator(mode="after")
+    def validate_mapper_and_parser_for_oai_pmh(self) -> Self:
+        """Require and validate ``mapper`` + ``parser`` for oai_pmh repositories."""
+        if self.oai_pmh is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("oai_pmh repositories require a sibling mapper: block with type")
+        if self.parser is None:
+            raise ValueError("oai_pmh repositories require a sibling parser: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        try:
+            parser_cls = PayloadParser.registry[self.parser.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown parser.type: {self.parser.type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        produced = getattr(parser_cls, "produces", None)
+        if accepts != produced:
+            raise ValueError(
+                f"mapper.type {self.mapper.type} accepts {accepts!r}, "
+                f"but parser.type {self.parser.type} produces {produced!r}"
+            )
+        return self
+
     @property
     def plugin_type(self) -> str:
         """The active plugin type name (derived dynamically from model_fields)."""
@@ -190,7 +222,7 @@ class RepositoryConfig(BaseModel):
     def source_url(self) -> str | None:
         """The primary entry-point URL for this plugin."""
         cfg = self.plugin_config
-        return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None)
+        return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None) or getattr(cfg, "endpoint_url", None)
 
 
 class Config(ConfigBase):
