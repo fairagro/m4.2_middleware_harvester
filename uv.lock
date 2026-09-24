@@ -1204,6 +1204,7 @@ version = "0.1.0"
 source = { editable = "middleware/parsing" }
 dependencies = [
     { name = "fairagro-middleware-shared" },
+    { name = "harvester" },
     { name = "payload" },
     { name = "pydantic" },
     { name = "rdflib" },
@@ -1212,6 +1213,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "harvester", editable = "middleware/harvester" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },

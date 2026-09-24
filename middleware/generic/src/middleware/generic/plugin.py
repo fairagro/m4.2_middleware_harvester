@@ -19,6 +19,7 @@ from middleware.harvester.errors import HarvesterError, RecordProcessingError, S
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.payload.linked_data_mapper import (
@@ -104,7 +105,7 @@ class GenericPlugin:
         parser = self._parser_cls()
         try:
             payload = await parser.parse(discovery_result, client=nice_http, config=self._config)
-        except (GenericError, RuntimeError, ValueError, OSError) as exc:
+        except (ParserError, GenericError, RuntimeError, ValueError, OSError) as exc:
             return [
                 RecordProcessingError(
                     (f"Failed to parse {type(discovery_result).__name__} {discovery_result.identifier}: {exc}"),
@@ -182,7 +183,7 @@ class GenericPlugin:
         ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
             try:
                 return await self._process_result(discovery_result, nice_http)
-            except (RuntimeError, ValueError, OSError, httpx.HTTPError, GenericError) as exc:
+            except (ParserError, RuntimeError, ValueError, OSError, httpx.HTTPError, GenericError) as exc:
                 return self._processing_failure(discovery_result, exc)
 
         async for item in run_bounded_pipeline(
