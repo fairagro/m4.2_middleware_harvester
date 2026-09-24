@@ -21,6 +21,7 @@ from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.upload import execute_harvest_upload
 from middleware.inspire.plugin import InspirePlugin
 from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.oai_pmh.plugin import OaiPmhPlugin
 from middleware.shared.report import HarvestReport, RepositoryScope
 
 logger = logging.getLogger(__name__)
@@ -29,13 +30,18 @@ PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
     "linked_data": LinkedDataPlugin,
     "generic": GenericPlugin,
+    "oai_pmh": OaiPmhPlugin,
 }
 
 
 def _create_plugin(repo: RepositoryConfig) -> Plugin:
-    """Instantiate the plugin for ``repo``, passing mapper config when required."""
+    """Instantiate the plugin for ``repo``, passing mapper/parser config when required."""
     factory = PLUGIN_FACTORIES[repo.plugin_type]
-    if repo.plugin_type in {"linked_data", "generic"}:
+    if repo.plugin_type in {"generic", "oai_pmh"}:
+        if repo.mapper is None or repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
+            raise ValueError(f"{repo.plugin_type} repositories require mapper and parser config")
+        return factory(repo.plugin_config, repo.mapper, repo.parser)
+    if repo.plugin_type == "linked_data":
         if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
             raise ValueError(f"{repo.plugin_type} repositories require mapper config")
         return factory(repo.plugin_config, repo.mapper)

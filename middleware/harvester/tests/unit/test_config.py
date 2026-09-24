@@ -175,24 +175,39 @@ def _minimal_generic() -> dict[str, object]:
     return {
         "sitemap_url": "https://example.org/sitemap.xml",
         "protocol_type": "xml",
-        "parser_type": "html_jsonld",
     }
 
 
 def test_generic_repository_requires_mapper() -> None:
     with pytest.raises(ValidationError, match="mapper"):
-        RepositoryConfig.model_validate({"rdi": "g", "generic": _minimal_generic()})
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": _minimal_generic(),
+            "parser": {"type": "html_jsonld"},
+        })
+
+
+def test_generic_repository_requires_parser() -> None:
+    with pytest.raises(ValidationError, match="parser"):
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": _minimal_generic(),
+            "mapper": {"type": "schema_org_general"},
+        })
 
 
 def test_generic_repository_accepts_schema_org_mapper() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "g",
         "generic": _minimal_generic(),
+        "parser": {"type": "html_jsonld"},
         "mapper": {"type": "schema_org_general"},
     })
     assert repo.plugin_type == "generic"
     assert repo.mapper is not None
     assert repo.mapper.type == "schema_org_general"
+    assert repo.parser is not None
+    assert repo.parser.type == "html_jsonld"
     assert repo.source_url == "https://example.org/sitemap.xml"
 
 
@@ -202,6 +217,7 @@ def test_generic_and_linked_data_mutual_exclusion() -> None:
             "rdi": "both",
             "generic": _minimal_generic(),
             "linked_data": _minimal_linked_data(),
+            "parser": {"type": "html_jsonld"},
             "mapper": {"type": "schema_org_general"},
         })
 
@@ -213,5 +229,56 @@ def test_generic_unregistered_protocol_type_fails_closed(monkeypatch: pytest.Mon
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
+            "parser": {"type": "html_jsonld"},
+            "mapper": {"type": "schema_org_general"},
+        })
+
+
+def _minimal_oai_pmh() -> dict[str, object]:
+    return {
+        "endpoint_url": "https://example.org/oai",
+        "metadata_prefix": "rdf",
+    }
+
+
+def test_oai_pmh_repository_requires_mapper() -> None:
+    with pytest.raises(ValidationError, match="mapper"):
+        RepositoryConfig.model_validate({
+            "rdi": "oai",
+            "oai_pmh": _minimal_oai_pmh(),
+            "parser": {"type": "rdf_xml"},
+        })
+
+
+def test_oai_pmh_repository_requires_parser() -> None:
+    with pytest.raises(ValidationError, match="parser"):
+        RepositoryConfig.model_validate({
+            "rdi": "oai",
+            "oai_pmh": _minimal_oai_pmh(),
+            "mapper": {"type": "schema_org_general"},
+        })
+
+
+def test_oai_pmh_repository_accepts_parser_and_mapper() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "oai",
+        "oai_pmh": _minimal_oai_pmh(),
+        "parser": {"type": "rdf_xml"},
+        "mapper": {"type": "schema_org_general"},
+    })
+    assert repo.plugin_type == "oai_pmh"
+    assert repo.parser is not None
+    assert repo.parser.type == "rdf_xml"
+    assert repo.mapper is not None
+    assert repo.source_url == "https://example.org/oai"
+
+
+def test_oai_pmh_and_generic_mutual_exclusion() -> None:
+    with pytest.raises(ValidationError, match="exactly one plugin key"):
+        RepositoryConfig.model_validate({
+            "rdi": "both",
+            "oai_pmh": _minimal_oai_pmh(),
+            "generic": _minimal_generic(),
+            "parser": {"type": "rdf_xml"},
             "mapper": {"type": "schema_org_general"},
         })

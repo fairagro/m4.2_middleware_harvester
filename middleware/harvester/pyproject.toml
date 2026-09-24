@@ -11,6 +11,8 @@ dependencies = [
     "inspire",
     "linked_data",
     "generic",
+    "oai_pmh",
+    "parsing",
     "payload",
 ]
 

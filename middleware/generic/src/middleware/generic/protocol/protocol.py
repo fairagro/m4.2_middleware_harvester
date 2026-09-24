@@ -7,9 +7,9 @@ from collections.abc import AsyncGenerator, Callable
 from typing import Protocol as TypingProtocol, TypeVar
 
 from middleware.generic.config import ProtocolType
-from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.payload.registry import Registry
 
 type ProtocolYield = DiscoveryResult | RecordProcessingError | SkippedRecord

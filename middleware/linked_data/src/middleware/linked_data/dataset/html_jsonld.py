@@ -1,4 +1,4 @@
-"""HTML JSON-LD dataset — shim over ``middleware.generic`` HtmlJsonLdParser."""
+"""HTML JSON-LD dataset — shim over ``middleware.parsing`` HtmlJsonLdParser."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from html.parser import HTMLParser
 
 from rdflib import Graph
 
-from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
-from middleware.generic.errors import GenericParserError
-from middleware.generic.parser.html_jsonld import HtmlJsonLdParser
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType
 from middleware.linked_data.dataset.dataset import Dataset
 from middleware.linked_data.errors import LinkedDataDatasetError
+from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.errors import ParserError
+from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
 
 
 class _TitleHintParser(HTMLParser):
@@ -111,7 +111,7 @@ class HtmlJsonLdDataset(Dataset):
                 html_text,
                 self._jsonld_parse_threshold_bytes,
             )
-        except GenericParserError as exc:
+        except ParserError as exc:
             raise LinkedDataDatasetError(str(exc)) from exc
 
     async def title_hint(self) -> str | None:

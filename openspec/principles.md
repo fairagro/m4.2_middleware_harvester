@@ -125,14 +125,25 @@ harvester/upload.py        →  harvester/reporting.py
 harvester/upload.py        →  harvester/plugin_base.py
 harvester/upload.py        →  api_client (shared lib)
 harvester/config.py        →  payload  (MapperConfig / registry validation)
+harvester/config.py        →  parsing  (PayloadParser registry validation)
 
 # Shared payload / mapper layer (cross-cutting; not a protocol plugin)
 # Owns PayloadKind, ParsedPayload, HarvestedArc, person-name helpers,
 # DataMapper registry, RDF LinkedDataMapper / StableGraph / Schema.org + Regal.
-payload/  ↛  harvester / inspire / linked_data / generic / future protocol plugins
+payload/  ↛  harvester / parsing / inspire / linked_data / generic / oai_pmh / future protocol plugins
 harvester/plugin_base.py  →  payload/harvested_arc.py
 inspire/mapper.py         →  payload/person_*
 # Protocol plugins MAY import harvester errors / NiceHttpClient / Plugin; see #155.
+
+# Shared parsing layer (discovery units + PayloadParser registry)
+# MAY import harvester (NiceHttpClient, HarvesterError) and payload; MUST NOT
+# import protocol plugins.
+parsing/  ↛  inspire / linked_data / generic / oai_pmh / future protocol plugins
+parsing/  →  harvester/nice_http_client, harvester/errors, payload
+generic/plugin.py   →  parsing  (PayloadParser + DiscoveryResult)
+oai_pmh/plugin.py   →  parsing  (PayloadParser + XmlDiscoveryResult)
+linked_data/dataset →  parsing  (DiscoveryResult + HtmlJsonLdParser)
+# plugins must not import each other for parsers.
 
 # INSPIRE plugin (example; all plugins follow this pattern)
 inspire/plugin.py  →  inspire/csw_client.py  →  inspire/models.py
@@ -145,25 +156,34 @@ linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker
 linked_data/plugin.py   →  linked_data/sitemap / dataset
 linked_data/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
 linked_data/pipeline.py ↛  payload mappers / dataset implementations
-# DiscoveryResult types live in generic/; linked_data re-exports them during
-# coexistence (temporary linked_data → generic.discovery). Pipeline MUST NOT
-# perform mapping or own source-format semantics.
+# DiscoveryResult / shared parsers live in parsing/; linked_data MAY still import
+# generic Protocol shims during coexistence. Pipeline MUST NOT perform mapping
+# or own source-format semantics.
 
-# Generic plugin — Protocol + PayloadParser + shared DataMapper
-generic/plugin.py   →  generic/protocol / parser / pipeline
+# Generic plugin — Protocol + shared PayloadParser + shared DataMapper
+generic/plugin.py   →  generic/protocol / pipeline
+generic/plugin.py   →  parsing  (PayloadParser)
 generic/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
 generic/  ↛  linked_data / inspire
-# linked_data MAY import generic.discovery / generic parsers for shims only;
+# linked_data MAY import generic Protocol helpers for shims only;
 # plugins must not import each other's plugin.py modules.
+
+# OAI-PMH plugin — Scythe ListRecords + shared PayloadParser + shared DataMapper
+oai_pmh/plugin.py   →  oai_pmh/client / harvest / config
+oai_pmh/plugin.py   →  parsing  (PayloadParser + XmlDiscoveryResult)
+oai_pmh/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
+oai_pmh/  ↛  linked_data / inspire / generic
 
 config  ←── all modules (read-only)
 ```
 
 Circular imports are forbidden. Within a plugin, the mapper must not import the source client and vice versa. Plugins
-must not import each other (except the documented temporary `linked_data` → `generic.discovery` / shim imports during
-migration). Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins MAY depend on
-`middleware.payload`; `middleware.payload` MUST NOT depend on `middleware.harvester` or on protocol plugin packages
-(`inspire`, `linked_data`, `generic`, …).
+must not import each other (except the documented temporary `linked_data` → `generic` Protocol shims during migration).
+Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins MAY depend on
+`middleware.payload` and `middleware.parsing`. `middleware.payload` MUST NOT depend on `middleware.harvester`,
+`middleware.parsing`, or on protocol plugin packages (`inspire`, `linked_data`, `generic`, `oai_pmh`, …).
+`middleware.parsing` MAY depend on `middleware.harvester` and `middleware.payload` but MUST NOT depend on protocol
+plugin packages.
 
 ### Import policy (product; candidate for Devinfra sync)
 
@@ -207,6 +227,7 @@ Shared rules are in `principles.global.md`. In this repo:
 | New config value (plugin)                          | Extend the plugin's `Config` class in its own `config.py`                                     |
 | New source field (existing plugin)                 | Add field to the plugin's record model, extract in client, map in mapper                      |
 | New vocabulary→ARC mapper (existing `PayloadKind`) | Register in `middleware.payload`; select via repository `mapper.type`                         |
+| New shared PayloadParser / discovery unit          | Register in `middleware.parsing`; select via repository `parser.type`                         |
 | New `PayloadKind` / shared mapper family           | Extend `middleware.payload` (`kinds`, `DataMapper.accepts`, implementations)                  |
 | New ARC structure                                  | Add helper method to the relevant mapper; reference arctrl skill                              |
 

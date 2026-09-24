@@ -1,6 +1,6 @@
-"""JSON-LD @context validation — re-exported from ``middleware.generic``."""
+"""JSON-LD @context validation — re-exported from ``middleware.parsing``."""
 
-from middleware.generic.jsonld_validation import (
+from middleware.parsing.jsonld_validation import (
     SCHEMAORG_CONTEXT_ALLOWLIST,
     JsonLdContextError,
     validate_jsonld_context,

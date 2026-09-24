@@ -7,16 +7,18 @@ from typing import Annotated, Self, cast
 
 from pydantic import BaseModel, Field, model_validator
 
-# Side-effect: register generic parsers/protocols + shared mappers for config validation.
-import middleware.generic.parser.html_jsonld as _register_generic_html_jsonld
+# Side-effect: register shared parsers + generic protocols + mappers for config validation.
 import middleware.generic.protocol.xml as _register_generic_xml
+import middleware.parsing.register_builtin_parsers as _register_html_jsonld_parser
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
-from middleware.generic.parser.parser import PayloadParser
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
+from middleware.oai_pmh.config import Config as OaiPmhConfig
+from middleware.parsing.parser.parser import PayloadParser
+from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import (
     DataMapper,
     MapperConfig,
@@ -24,12 +26,12 @@ from middleware.payload import (
 from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
 
-_ = (_register_generic_html_jsonld, _register_generic_xml, _register_builtin_mappers)
+_ = (_register_html_jsonld_parser, _register_generic_xml, _register_builtin_mappers)
 
 # Union of all plugin config types. Extend when adding a new plugin.
-PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig
+PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig | OaiPmhConfig
 
-_NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper"})
+_NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper", "parser"})
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +46,10 @@ class RepositoryConfig(BaseModel):
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
     selected via an optional sibling ``mapper:`` block (required for
-    ``linked_data``). Deprecated ``linked_data.payload_type`` is accepted with a
-    ``logger.warning`` and lifted to ``mapper.type``.
+    ``linked_data`` / ``generic`` / ``oai_pmh``). Shared PayloadParsers use sibling
+    ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
+    ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
+    ``mapper.type``.
     """
 
     rdi: Annotated[
@@ -62,16 +66,24 @@ class RepositoryConfig(BaseModel):
     ] = None
     generic: Annotated[
         GenericConfig | None,
-        Field(description="Generic Protocol + PayloadParser plugin configuration"),
+        Field(description="Generic Protocol plugin configuration"),
+    ] = None
+    oai_pmh: Annotated[
+        OaiPmhConfig | None,
+        Field(description="OAI-PMH plugin configuration"),
     ] = None
     mapper: Annotated[
         MapperConfig | None,
-        Field(description="Shared DataMapper selection (required for linked_data and generic)."),
+        Field(description="Shared DataMapper selection (required for linked_data, generic, oai_pmh)."),
+    ] = None
+    parser: Annotated[
+        ParserConfig | None,
+        Field(description="Shared PayloadParser selection (required for generic and oai_pmh)."),
     ] = None
 
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
-        """Ensure exactly one plugin key is set (``mapper`` is not a plugin)."""
+        """Ensure exactly one plugin key is set (``mapper`` / ``parser`` are not plugins)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
         plugin_fields = [name for name in all_field_names if name not in _NON_PLUGIN_FIELDS]
         set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
@@ -130,12 +142,14 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_mapper_for_generic(self) -> Self:
-        """Require and validate ``mapper`` for generic repositories."""
+    def validate_mapper_and_parser_for_generic(self) -> Self:
+        """Require and validate ``mapper`` + ``parser`` for generic repositories."""
         if self.generic is None:
             return self
         if self.mapper is None:
             raise ValueError("generic repositories require a sibling mapper: block with type")
+        if self.parser is None:
+            raise ValueError("generic repositories require a sibling parser: block with type")
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -145,15 +159,15 @@ class RepositoryConfig(BaseModel):
         except KeyError as exc:
             raise ValueError(f"Unknown generic.protocol_type: {self.generic.protocol_type}") from exc
         try:
-            parser_cls = PayloadParser.registry[self.generic.parser_type]
+            parser_cls = PayloadParser.registry[self.parser.type]
         except KeyError as exc:
-            raise ValueError(f"Unknown generic.parser_type: {self.generic.parser_type}") from exc
+            raise ValueError(f"Unknown parser.type: {self.parser.type}") from exc
         accepts = getattr(mapper_cls, "accepts", None)
         produced = getattr(parser_cls, "produces", None)
         if accepts != produced:
             raise ValueError(
                 f"mapper.type {self.mapper.type} accepts {accepts!r}, "
-                f"but generic parser {self.generic.parser_type} produces {produced!r}"
+                f"but parser.type {self.parser.type} produces {produced!r}"
             )
 
         generic_base = self.generic.resource_base_url
@@ -165,6 +179,32 @@ class RepositoryConfig(BaseModel):
                     f"generic.resource_base_url {normalized_generic!r} conflicts with "
                     f"mapper.resource_base_url {mapper_base!r}"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_mapper_and_parser_for_oai_pmh(self) -> Self:
+        """Require and validate ``mapper`` + ``parser`` for oai_pmh repositories."""
+        if self.oai_pmh is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("oai_pmh repositories require a sibling mapper: block with type")
+        if self.parser is None:
+            raise ValueError("oai_pmh repositories require a sibling parser: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        try:
+            parser_cls = PayloadParser.registry[self.parser.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown parser.type: {self.parser.type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        produced = getattr(parser_cls, "produces", None)
+        if accepts != produced:
+            raise ValueError(
+                f"mapper.type {self.mapper.type} accepts {accepts!r}, "
+                f"but parser.type {self.parser.type} produces {produced!r}"
+            )
         return self
 
     @property
@@ -182,7 +222,7 @@ class RepositoryConfig(BaseModel):
     def source_url(self) -> str | None:
         """The primary entry-point URL for this plugin."""
         cfg = self.plugin_config
-        return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None)
+        return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None) or getattr(cfg, "endpoint_url", None)
 
 
 class Config(ConfigBase):

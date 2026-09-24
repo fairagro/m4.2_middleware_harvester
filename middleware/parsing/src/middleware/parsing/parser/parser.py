@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import ClassVar, TypeVar
 
-from middleware.generic.config import ParserType
-from middleware.generic.discovery import DiscoveryResult
 from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.parsing.discovery import DiscoveryResult
+from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.registry import Registry

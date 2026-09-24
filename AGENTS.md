@@ -51,6 +51,7 @@ middleware/
 │       ├── nice_http_client.py
 │       └── healthcheck.py
 ├── payload/               # Shared PayloadKind / DataMapper registry + RDF mappers
+├── parsing/               # Shared DiscoveryResult / PayloadParser registry
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
 │   ├── src/middleware/inspire/
 │   │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
@@ -62,6 +63,7 @@ middleware/
 │   └── tests/
 │       ├── unit/          # Unit tests for mapper and harvester
 │       └── integration/   # Integration tests with real CSW endpoints
+├── oai_pmh/               # OAI-PMH / Scythe harvester (shared parsers + mappers)
 └── linked_data/           # Linked-data / sitemap / Regal harvester
 ```
 
@@ -76,13 +78,18 @@ uv run pytest middleware/ -v
 # Quality checks (synced: ruff.toml, mypy.ini, .pylintrc — see docs/quality.md).
 # Path overlays: `.devcontainer/product.env` (`MYPYPATH`, `PYLINT_SOURCE_ROOTS`);
 # `scripts/run-quality-cli.sh` / `./scripts/quality-*.sh` load them when unset.
+# After editing `product.env`, recreate the Dev Container (compose `env_file` is snapshotted
+# at create). A stale `MYPYPATH` (missing a new `middleware/*/src`) makes mypy fail with
+# "Source file found twice under different module names". Soft-load will not override a
+# set-but-stale value — `unset MYPYPATH PYLINT_SOURCE_ROOTS` then re-run the hook, or
+# rebuild the container so `product.env` is re-injected.
 uv run ruff format --check --config ruff.toml middleware/
 uv run ruff check --config ruff.toml middleware/
 bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/
 bash scripts/run-quality-cli.sh pylint \
   --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
-  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/generic
+  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/generic middleware/parsing middleware/oai_pmh
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

@@ -10,12 +10,12 @@ from typing import ClassVar, override
 
 from rdflib import Graph
 
-from middleware.generic.config import ParserType
-from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
-from middleware.generic.errors import GenericParserError
-from middleware.generic.jsonld_validation import JsonLdContextError, validate_jsonld_context_data
-from middleware.generic.parser.parser import PayloadParser
 from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.errors import ParserError
+from middleware.parsing.jsonld_validation import JsonLdContextError, validate_jsonld_context_data
+from middleware.parsing.parser.parser import PayloadParser
+from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.parsed_payload import ParsedPayload
 
@@ -75,7 +75,7 @@ class HtmlJsonLdParser(PayloadParser):
             response = await client.get_with_policy(url, follow_redirects=True)
             html_text = response.text
         except Exception as exc:  # noqa: BLE001
-            raise GenericParserError(f"Failed to fetch dataset URL {url}: {exc}") from exc
+            raise ParserError(f"Failed to fetch dataset URL {url}: {exc}") from exc
         return await self.graph_from_html(url, html_text, threshold)
 
     async def graph_from_html(self, url: str, html_text: str, threshold: int) -> Graph:
@@ -87,18 +87,18 @@ class HtmlJsonLdParser(PayloadParser):
         parser = _JsonLdScriptParser()
         parser.feed(html_text)
         if not parser.blocks:
-            raise GenericParserError(f"No JSON-LD blocks found in HTML at: {url}")
+            raise ParserError(f"No JSON-LD blocks found in HTML at: {url}")
 
         normalized_blocks: list[str] = []
         for block in parser.blocks:
             try:
                 parsed = json.loads(block, strict=False)
             except json.JSONDecodeError as exc:
-                raise GenericParserError(f"Invalid JSON in JSON-LD block at {url}: {exc}\nBlock:\n{block}") from exc
+                raise ParserError(f"Invalid JSON in JSON-LD block at {url}: {exc}\nBlock:\n{block}") from exc
             try:
                 validate_jsonld_context_data(parsed)
             except JsonLdContextError as exc:
-                raise GenericParserError(f"Unsupported @context in JSON-LD block at {url}: {exc}") from exc
+                raise ParserError(f"Unsupported @context in JSON-LD block at {url}: {exc}") from exc
             normalized_blocks.append(json.dumps(parsed))
 
         merged = Graph()
@@ -116,5 +116,5 @@ class HtmlJsonLdParser(PayloadParser):
         try:
             graph.parse(data=block, format="json-ld")
         except Exception as exc:  # noqa: BLE001
-            raise GenericParserError(f"Failed to parse JSON-LD at {url}: {exc}\nBlock:\n{block}") from exc
+            raise ParserError(f"Failed to parse JSON-LD at {url}: {exc}\nBlock:\n{block}") from exc
         return graph
