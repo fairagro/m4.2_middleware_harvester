@@ -46,7 +46,7 @@ members = [
 
 # Ruff / Mypy / Pylint configs: synced ruff.toml, mypy.ini, .pylintrc (no product ruff overlay).
 # Fleet CLIs for hooks/CI: scripts/run-quality-cli.sh + scripts/quality-tools-pins.txt.
-# Path overlays: MYPYPATH / pylint --source-roots / stubs/ — not in pyproject.
+# Path overlays: MYPYPATH / pylint --source-roots via .devcontainer/product.env — not in pyproject.
 
 [tool.pytest.ini_options]
 # Test discovery
