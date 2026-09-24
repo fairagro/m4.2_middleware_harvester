@@ -1,0 +1,31 @@
+# Product-owned import-linter config (not synced). Fleet baseline: docs/quality.md.
+#
+# PEP 420: grimp raises NamespacePackageEncountered for package `middleware`, so
+# `ancestors = middleware` (fleet template) cannot run here. Ancestors are the
+# installed portions instead — that still uses contract type `acyclic_siblings`
+# and checks cycles among each portion's children. Cross-portion edges
+# (harvester ↔ plugins) are an existing architecture shape; tightening that DAG
+# is out of scope for #319 (see openspec/principles.md / follow-ups).
+
+[importlinter]
+exclude_type_checking_imports = True
+root_packages =
+    middleware.api_client
+    middleware.generic
+    middleware.harvester
+    middleware.inspire
+    middleware.linked_data
+    middleware.payload
+    middleware.shared
+
+[importlinter:contract:middleware-acyclic-siblings]
+name = middleware sibling packages must be acyclic
+type = acyclic_siblings
+ancestors =
+    middleware.api_client
+    middleware.generic
+    middleware.harvester
+    middleware.inspire
+    middleware.linked_data
+    middleware.payload
+    middleware.shared

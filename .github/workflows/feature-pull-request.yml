@@ -48,7 +48,7 @@ jobs:
   code-quality:
     name: Code Quality
     needs: detect-changes
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@a061d6fb85afc8dfd54083ff58bf788744dcdca8
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@e2c2ab4cbeab6c33c36fad6fbad0cb85958efb07
     with:
       python_package_root: middleware
       components: '["harvester"]'
