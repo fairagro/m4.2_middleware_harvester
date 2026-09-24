@@ -140,9 +140,13 @@ async def test_run_parser_error_does_not_abort_repository(monkeypatch: pytest.Mo
     _patch_nice_http(monkeypatch)
 
     results = [item async for item in plugin.run()]
-    assert len(results) == 2
-    assert isinstance(results[0], RecordProcessingError)
-    assert results[1] == HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/good")
+    # Default worker_tasks > 1: completion order is non-deterministic.
+    errors = [r for r in results if isinstance(r, RecordProcessingError)]
+    arcs = [r for r in results if isinstance(r, HarvestedArc)]
+    assert len(errors) == 1
+    assert len(arcs) == 1
+    assert "Failed to parse" in str(errors[0])
+    assert arcs[0] == HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/good")
 
 
 @pytest.mark.asyncio
