@@ -1,6 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
+
 The system SHALL require explicit `sitemap_type` and `dataset_type` on the linked-data plugin config. Mapper selection
 MUST use the repository-level `mapper.type` (shared `middleware.payload` registry). The plugin MUST NOT infer sitemap,
 dataset, or mapper formats automatically. The linked-data plugin `Config` model MUST keep `payload_type` as an optional
@@ -34,6 +35,7 @@ MUST emit a `logger.warning`.
 - **THEN** validation fails at startup
 
 ### Requirement: Select implementations using registries for sitemap, dataset, and mapper types
+
 The system SHALL select sitemap and dataset implementations using plugin-local registries, and SHALL select mapper
 implementations using the shared `middleware.payload` DataMapper registry keyed by repository `mapper.type`.
 
@@ -49,6 +51,7 @@ implementations using the shared `middleware.payload` DataMapper registry keyed 
   implementations
 
 ### Requirement: Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
+
 The system SHALL implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the
 plugin config and repository mapper config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
 The plugin MUST pass intermediate RDF graphs into the shared `LinkedDataMapper` / `DataMapper` API.

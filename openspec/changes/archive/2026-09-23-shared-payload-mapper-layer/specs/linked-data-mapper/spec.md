@@ -3,9 +3,9 @@
 ### Requirement: Select mapper by payload_type
 
 The system SHALL select mapper implementations using configured repository `mapper.type` values via the shared
-`middleware.payload` DataMapper registry (explicit, non-guessing selection). Vocabulary-specific Linked Data mappers MUST
-live in `middleware.payload` and register against that registry. Behavioural ARC mapping rules for Schema.org and Regal
-are unchanged (including ResourceView / StableGraph requirements in this spec).
+`middleware.payload` DataMapper registry (explicit, non-guessing selection). Vocabulary-specific Linked Data mappers
+MUST live in `middleware.payload` and register against that registry. Behavioural ARC mapping rules for Schema.org and
+Regal are unchanged (including ResourceView / StableGraph requirements in this spec).
 
 #### Scenario: Configured payload selects the registered mapper
 

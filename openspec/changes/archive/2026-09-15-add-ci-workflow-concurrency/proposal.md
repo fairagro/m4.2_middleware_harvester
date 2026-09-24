@@ -1,11 +1,12 @@
 ## Why
 
-Rapid PR pushes can overlap Feature-PR CI runs because `.github/workflows/feature-pull-request.yml` has no workflow-level
-`concurrency`. Manual `pre-release` / `release` / Helm callers likewise lack a serialize policy, so overlapping
-`workflow_dispatch` runs can race. Sibling products (API, sql_to_arc) already use the standard caller pattern; Harvester
-[#182](https://github.com/fairagro/m4.2_middleware_harvester/issues/182) tracks adopt here. Devinfra
-[#76](https://github.com/fairagro/m4.2_middleware_devinfra/issues/76) will document the snippet in `docs/ci.md` — product
-YAML is not on the sync allowlist, so this change lands the caller blocks now from the agreed acceptance criteria.
+Rapid PR pushes can overlap Feature-PR CI runs because `.github/workflows/feature-pull-request.yml` has no
+workflow-level `concurrency`. Manual `pre-release` / `release` / Helm callers likewise lack a serialize policy, so
+overlapping `workflow_dispatch` runs can race. Sibling products (API, sql_to_arc) already use the standard caller
+pattern; Harvester [#182](https://github.com/fairagro/m4.2_middleware_harvester/issues/182) tracks adopt here. Devinfra
+[#76](https://github.com/fairagro/m4.2_middleware_devinfra/issues/76) will document the snippet in `docs/ci.md` —
+product YAML is not on the sync allowlist, so this change lands the caller blocks now from the agreed acceptance
+criteria.
 
 ## What Changes
 

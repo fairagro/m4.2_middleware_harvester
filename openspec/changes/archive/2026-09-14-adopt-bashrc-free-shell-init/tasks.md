@@ -7,9 +7,9 @@
 
 ## 2. Product Dev Container overlay
 
-- [x] 2.1 Add `.devcontainer/product.env` with:
-      - `MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit`
-      - `CST_BAKE_TARGET=harvester`
+- [x] 2.1 Add `.devcontainer/product.env` with: -
+      `MYPYPATH=stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit` -
+      `CST_BAKE_TARGET=harvester`
 - [x] 2.2 Confirm synced `devcontainer.json` `remoteEnv.PATH` already prepends `.venv/bin` and `scripts/bin` (no edit)
 - [x] 2.3 Confirm synced Compose still has optional `env_file: product.env`
 

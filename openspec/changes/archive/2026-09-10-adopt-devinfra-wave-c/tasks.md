@@ -8,12 +8,12 @@
 ## 2. Bake product-app layout
 
 - [x] 2.1 Copy `docker/Dockerfile.product-app.base` verbatim from Devinfra `main`
-- [x] 2.2 Rewrite `docker/Dockerfile.harvester` as thin last stage (USER / CMD /
-      HEALTHCHECK / runtime apk / labels only)
-- [x] 2.3 Expand root `docker-bake.hcl` for `harvester-base` + `harvester` with
-      `contexts` per Devinfra examples; keep CST target working
-- [x] 2.4 Product-local healthcheck Bake path (`Dockerfile.harvester-healthcheck`)
-      without editing synced base (golden rule)
+- [x] 2.2 Rewrite `docker/Dockerfile.harvester` as thin last stage (USER / CMD / HEALTHCHECK / runtime apk / labels
+      only)
+- [x] 2.3 Expand root `docker-bake.hcl` for `harvester-base` + `harvester` with `contexts` per Devinfra examples; keep
+      CST target working
+- [x] 2.4 Product-local healthcheck Bake path (`Dockerfile.harvester-healthcheck`) without editing synced base (golden
+      rule)
 - [x] 2.5 Smoke local Bake load using `versions.env` pins
 
 ## 3. CI callers → Devinfra
@@ -24,8 +24,7 @@
 
 ## 4. Helm
 
-- [x] 4.1 Switch `helm-pre-release.yml` / `helm-release.yml` to Devinfra
-      `reusable-helm-*@main`
+- [x] 4.1 Switch `helm-pre-release.yml` / `helm-release.yml` to Devinfra `reusable-helm-*@main`
 - [x] 4.2 Remove duplicated Helm job logic that now lives upstream
 
 ## 5. Docs / verify

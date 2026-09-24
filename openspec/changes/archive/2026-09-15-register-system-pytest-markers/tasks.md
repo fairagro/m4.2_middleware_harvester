@@ -1,7 +1,7 @@
 ## 1. Register markers
 
-- [x] 1.1 Add `system_local` and `system_external` to `[tool.pytest.ini_options] markers` in root `pyproject.toml`
-      (same meanings as API)
+- [x] 1.1 Add `system_local` and `system_external` to `[tool.pytest.ini_options] markers` in root `pyproject.toml` (same
+      meanings as API)
 - [x] 1.2 Keep existing `asyncio` / `unit` / `integration` entries
 
 ## 2. Audit suites

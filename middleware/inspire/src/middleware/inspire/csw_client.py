@@ -113,7 +113,7 @@ class CSWClient:
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: object | None
+        self, _exc_type: type[BaseException] | None, _exc: BaseException | None, _traceback: object | None
     ) -> None:
         """Shut down the owned executor when exiting the async context."""
         self._shutdown_executor()

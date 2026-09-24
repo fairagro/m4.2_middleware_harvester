@@ -56,7 +56,7 @@ async def test_get_expected_datasets_soft_none_on_failure(monkeypatch: pytest.Mo
         @override
         async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult, None]:
             _ = client
-            if False:  # pragma: no cover
+            if False:  # pragma: no cover  # noqa: make this an async generator
                 yield UrlDiscoveryResult("")
 
     plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general))
@@ -160,7 +160,7 @@ async def test_run_forwards_skipped_record_from_protocol(monkeypatch: pytest.Mon
 async def test_run_empty_discovery_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
     class _EmptyProtocol:
         async def discover(self) -> AsyncGenerator[DiscoveryResult, None]:  # noqa: PLR6301
-            if False:  # pragma: no cover
+            if False:  # pragma: no cover  # noqa: make this an async generator
                 yield UrlDiscoveryResult("")
 
         async def get_expected_count(self) -> int | None:  # noqa: PLR6301

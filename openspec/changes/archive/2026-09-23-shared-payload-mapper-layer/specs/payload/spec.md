@@ -40,9 +40,9 @@ NOT perform protocol discovery or HTTP fetching of source catalogs.
 
 ### Requirement: LinkedDataMapper refines DataMapper for rdf_graph
 
-The system SHALL provide a `LinkedDataMapper` refinement of `DataMapper` for `PayloadKind.rdf_graph`. Concrete vocabulary
-mappers (Schema.org general, Regal) MUST live in `middleware.payload`, register in the shared registry, and accept
-`rdf_graph`. Behavioural ARC field rules remain those of `openspec/specs/linked-data-mapper/` and
+The system SHALL provide a `LinkedDataMapper` refinement of `DataMapper` for `PayloadKind.rdf_graph`. Concrete
+vocabulary mappers (Schema.org general, Regal) MUST live in `middleware.payload`, register in the shared registry, and
+accept `rdf_graph`. Behavioural ARC field rules remain those of `openspec/specs/linked-data-mapper/` and
 `docs/regal_mapping.md` as applicable (including StableGraph / ResourceView requirements).
 
 #### Scenario: Schema.org mapper accepts rdf_graph

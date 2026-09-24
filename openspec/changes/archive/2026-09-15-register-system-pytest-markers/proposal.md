@@ -1,7 +1,7 @@
 ## Why
 
-Devinfra [#120](https://github.com/fairagro/m4.2_middleware_devinfra/issues/120) will change the synced pre-push
-pytest entry to exclude expensive markers:
+Devinfra [#120](https://github.com/fairagro/m4.2_middleware_devinfra/issues/120) will change the synced pre-push pytest
+entry to exclude expensive markers:
 
 ```bash
 uv run pytest -m "not system_external and not system_local"
@@ -13,8 +13,8 @@ as the API product).
 
 ## What Changes
 
-- Add `system_local` and `system_external` to `[tool.pytest.ini_options] markers` in root `pyproject.toml`, matching
-  API meanings (local/testcontainers vs real external systems/secrets).
+- Add `system_local` and `system_external` to `[tool.pytest.ini_options] markers` in root `pyproject.toml`, matching API
+  meanings (local/testcontainers vs real external systems/secrets).
 - Audit existing suites for markers that should use the new names; remapping may be **zero** for this MVP (existing
   `@pytest.mark.integration` CSW suites stay as-is unless clearly in scope).
 - After merge: comment on Devinfra #120 that harvester has registered the markers (ready signal).

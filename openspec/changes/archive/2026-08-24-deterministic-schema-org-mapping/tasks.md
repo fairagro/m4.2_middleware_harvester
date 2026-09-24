@@ -1,6 +1,7 @@
 ## 1. Deterministic graph helpers
 
-- [x] 1.1 Replace `_str` / `_obj` multi-value selection with language-preferring, empty-dropping, deterministic tie-break policy
+- [x] 1.1 Replace `_str` / `_obj` multi-value selection with language-preferring, empty-dropping, deterministic
+      tie-break policy
 - [x] 1.2 Make `_strs` return trimmed, deduplicated, casefold-sorted strings
 - [x] 1.3 Apply sorted keywords join in Investigation comments and Data Collection protocol
 

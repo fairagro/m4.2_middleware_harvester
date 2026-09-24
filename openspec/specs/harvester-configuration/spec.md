@@ -2,79 +2,100 @@
 
 ## Purpose
 
-Defines the structure of the harvester configuration file. The configuration
-is validated at startup via Pydantic; an invalid config aborts the process
-before any harvesting begins.
+Defines the structure of the harvester configuration file. The configuration is validated at startup via Pydantic; an
+invalid config aborts the process before any harvesting begins.
 
-The top-level `Config` class follows the `ConfigWrapper / ConfigBase` pattern —
-see skill [`config-wrapper`](../../../.agents/skills/config-wrapper/SKILL.md).
-Plugin configs (nested under each repository entry) are plain Pydantic `BaseModel`
-subclasses; they are populated by the same YAML loading but do not extend `ConfigBase`.
+The top-level `Config` class follows the `ConfigWrapper / ConfigBase` pattern — see skill
+[`config-wrapper`](../../../.agents/skills/config-wrapper/SKILL.md). Plugin configs (nested under each repository entry)
+are plain Pydantic `BaseModel` subclasses; they are populated by the same YAML loading but do not extend `ConfigBase`.
 
 ## Requirements
 
 ### Requirement: The configuration must contain exactly one api_client section
+
 The system SHALL ensure that the configuration must contain exactly one `api_client` section.
 
 #### Scenario: Satisfies — The configuration must contain exactly one api_client section
+
 - **WHEN** the conditions described by this requirement apply
 - **THEN** The configuration must contain exactly one `api_client` section
 
 ### Requirement: The configuration must contain a non-empty repositories list
+
 The system SHALL ensure that the configuration must contain a non-empty `repositories` list.
 
 #### Scenario: Satisfies — The configuration must contain a non-empty repositories list
+
 - **WHEN** the conditions described by this requirement apply
 - **THEN** The configuration must contain a non-empty `repositories` list
 
 ### Requirement: Each repository entry must contain a shared rdi field (string,…
+
 The system SHALL ensure that each repository entry must contain a shared `rdi` field (string, required).
 
 #### Scenario: Satisfies — Each repository entry must contain a shared rdi field (string,…
+
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Each repository entry must contain a shared `rdi` field (string, required)
 
 ### Requirement: Each repository entry must contain exactly one plugin field (e.g.…
-The system SHALL ensure that each repository entry must contain exactly one plugin field (e.g. `inspire`); zero or two or more plugin fields are rejected with a validation error.
+
+The system SHALL ensure that each repository entry must contain exactly one plugin field (e.g. `inspire`); zero or two
+or more plugin fields are rejected with a validation error.
 
 #### Scenario: Satisfies — Each repository entry must contain exactly one plugin field (e.g.…
+
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Each repository entry must contain exactly one plugin field (e.g. `inspire`); zero or two or more plugin fields are rejected with a validation error
+- **THEN** Each repository entry must contain exactly one plugin field (e.g. `inspire`); zero or two or more plugin
+  fields are rejected with a validation error
 
 ### Requirement: Plugin field types are statically typed Pydantic models; no dict[str,…
-The system SHALL ensure that plugin field types are statically typed Pydantic models; no `dict[str, Any]` is used for plugin config.
+
+The system SHALL ensure that plugin field types are statically typed Pydantic models; no `dict[str, Any]` is used for
+plugin config.
 
 #### Scenario: Satisfies — Plugin field types are statically typed Pydantic models; no dict[str,…
+
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Plugin field types are statically typed Pydantic models; no `dict[str, Any]` is used for plugin config
 
 ### Requirement: Edge case — Repository entry with no plugin field
-The system SHALL handle this edge case: when Repository entry with no plugin field, then `ValidationError` at startup, process aborts.
+
+The system SHALL handle this edge case: when Repository entry with no plugin field, then `ValidationError` at startup,
+process aborts.
 
 #### Scenario: Edge case — Repository entry with no plugin field
+
 - **WHEN** Repository entry with no plugin field
 - **THEN** `ValidationError` at startup, process aborts
 
 ### Requirement: Edge case — Repository entry with two plugin fields set
-The system SHALL handle this edge case: when Repository entry with two plugin fields set, then `ValidationError` at startup, process aborts.
+
+The system SHALL handle this edge case: when Repository entry with two plugin fields set, then `ValidationError` at
+startup, process aborts.
 
 #### Scenario: Edge case — Repository entry with two plugin fields set
+
 - **WHEN** Repository entry with two plugin fields set
 - **THEN** `ValidationError` at startup, process aborts
 
 ### Requirement: Edge case — Repository entry with an unrecognised key
-The system SHALL handle this edge case: when Repository entry with an unrecognised key, then Pydantic ignores extra fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch, not raw dict keys.
+
+The system SHALL handle this edge case: when Repository entry with an unrecognised key, then Pydantic ignores extra
+fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch, not raw dict keys.
 
 #### Scenario: Edge case — Repository entry with an unrecognised key
+
 - **WHEN** Repository entry with an unrecognised key
-- **THEN** Pydantic ignores extra fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch, not raw dict keys
+- **THEN** Pydantic ignores extra fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch, not
+  raw dict keys
 
 ### Requirement: Repository entries that use shared mappers MUST include a mapper config beside the plugin
 
 Each repository entry that uses shared `middleware.payload` mappers (v1: `linked_data`) MUST include a `mapper`
 configuration object beside the single plugin key, or MUST supply a legacy `linked_data.payload_type` that is lifted to
-`mapper.type` with a `logger.warning`. The `mapper` block MUST specify an explicit mapper `type` (registry key) and
-MAY include mapper-specific fields. The `mapper` key is NOT counted as a plugin field for the exactly-one-plugin rule.
+`mapper.type` with a `logger.warning`. The `mapper` block MUST specify an explicit mapper `type` (registry key) and MAY
+include mapper-specific fields. The `mapper` key is NOT counted as a plugin field for the exactly-one-plugin rule.
 Repository entries that do not use shared mappers in v1 (e.g. `inspire`) MUST NOT be required to set `mapper`.
 
 #### Scenario: Valid linked_data entry with plugin and mapper
@@ -115,14 +136,13 @@ fail fast at startup.
 
 ### Requirement: Each repository entry may use the generic plugin key
 
-The system SHALL allow each repository entry to select exactly one plugin field
-among the supported keys, including `generic` alongside existing keys such as
-`inspire` and `linked_data`. Zero or two or more plugin fields remain rejected.
+The system SHALL allow each repository entry to select exactly one plugin field among the supported keys, including
+`generic` alongside existing keys such as `inspire` and `linked_data`. Zero or two or more plugin fields remain
+rejected.
 
 #### Scenario: generic alone is accepted
 
-- **WHEN** a repository entry sets only `generic` (plus shared fields and
-  `mapper` as required)
+- **WHEN** a repository entry sets only `generic` (plus shared fields and `mapper` as required)
 - **THEN** configuration validation succeeds
 
 #### Scenario: generic together with linked_data is rejected
@@ -132,10 +152,9 @@ among the supported keys, including `generic` alongside existing keys such as
 
 ### Requirement: generic repositories require mapper config
 
-The system SHALL require a top-level repository `mapper` block when the
-`generic` plugin key is selected, and SHALL fail closed when the configured
-parser's `produces` kind is incompatible with `mapper.accepts` at startup when
-both kinds are known statically.
+The system SHALL require a top-level repository `mapper` block when the `generic` plugin key is selected, and SHALL fail
+closed when the configured parser's `produces` kind is incompatible with `mapper.accepts` at startup when both kinds are
+known statically.
 
 #### Scenario: generic without mapper fails closed
 

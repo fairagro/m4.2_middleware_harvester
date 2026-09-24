@@ -155,7 +155,7 @@ async def test_run_plugin_fatal_error_propagates() -> None:
 
     async def _records() -> AsyncGenerator[str, None]:
         raise RuntimeError("CSW endpoint unreachable")
-        yield  # pragma: no cover
+        yield  # pragma: no cover  # noqa: make this an async generator
 
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value

@@ -100,27 +100,23 @@ Product application code under `middleware/` must pass via `uv run`. Prefer shar
 (`ruff.toml`, `mypy.ini`, `.pylintrc`, `.bandit`); otherwise use the project's equivalent config (e.g. root
 `pyproject.toml` tool tables). Do not invent a second quality policy channel. Example invocations with shared fragments:
 
-- `bash scripts/run-quality-cli.sh ruff format --check --config ruff.toml middleware/`
-  — formatting
-- `bash scripts/run-quality-cli.sh ruff check --config ruff.toml middleware/` —
-  linting
-- `bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/` —
-  static type checking
-- `bash scripts/run-quality-cli.sh pylint --rcfile .pylintrc middleware/` — style
-  and code smells
-- `bash scripts/run-quality-cli.sh bandit -r middleware/ -c .bandit -ll` — security
-  (hooks: MEDIUM+ only via `-ll`). CI may omit `-ll` to log LOW while still failing only on MEDIUM/HIGH — same fail bar;
-  see `docs/quality.md` when that file is synced
-- `bash scripts/run-quality-cli.sh vulture middleware/ --min-confidence 100` —
-  unused definitions (hooks + CI; no IDE gate; no synced whitelist; see `docs/quality.md`)
+- `bash scripts/run-quality-cli.sh ruff format --check --config ruff.toml middleware/` — formatting
+- `bash scripts/run-quality-cli.sh ruff check --config ruff.toml middleware/` — linting
+- `bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/` — static type checking
+- `bash scripts/run-quality-cli.sh pylint --rcfile .pylintrc middleware/` — style and code smells
+- `bash scripts/run-quality-cli.sh bandit -r middleware/ -c .bandit -ll` — security (hooks: MEDIUM+ only via `-ll`). CI
+  may omit `-ll` to log LOW while still failing only on MEDIUM/HIGH — same fail bar; see `docs/quality.md` when that
+  file is synced
+- `bash scripts/run-quality-cli.sh vulture middleware/ --min-confidence 100` — unused definitions (hooks + CI; no IDE
+  gate; no synced whitelist; see `docs/quality.md`)
 - `./scripts/run-import-linter.sh` — import contracts (product-owned `.importlinter` with fleet-required settings;
   hooks + CI; no IDE gate; see `docs/quality.md`)
 - `./scripts/run-uv-audit.sh` — lockfile CVEs via `uv audit --frozen` (hooks + CI; no IDE gate; optional product
   `.uv-audit-ignore`; needs OSV network — see `docs/quality.md`). Distinct from Trivy on images and from
   `UV_MALWARE_CHECK` at `uv sync`
 
-Fleet quality CLI pins live in synced `scripts/quality-tools-pins.txt` (not product `pyproject.toml`); hooks/CI
-use `scripts/run-quality-cli.sh`.
+Fleet quality CLI pins live in synced `scripts/quality-tools-pins.txt` (not product `pyproject.toml`); hooks/CI use
+`scripts/run-quality-cli.sh`.
 
 Markdown must pass Prettier formatting and markdownlint (`.markdownlint.json` disables rules that fight Prettier).
 Typical scripts (see `package.json` where present):

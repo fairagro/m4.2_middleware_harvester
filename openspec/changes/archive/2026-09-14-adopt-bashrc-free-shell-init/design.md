@@ -23,10 +23,10 @@ no `postStartCommand` bashrc patch ([docs/devcontainer.md](../../../docs/devcont
 
 1. **Delete `load-env.sh` entirely** rather than shrink it. Decrypt already lives in synced
    `scripts/devcontainer-post-create.sh`; aliases `k`/`d` are synced wrappers; PATH is `remoteEnv`. No remaining product
-   delta belongs in a sourced shell blob. *Alternative:* thin stub that only warns — rejected (encourages re-fork).
+   delta belongs in a sourced shell blob. _Alternative:_ thin stub that only warns — rejected (encourages re-fork).
 
-2. **Delete `setup-bashrc-load-env.sh`**. Synced JSON no longer calls it. *Alternative:* keep as no-op — rejected
-   (dead surface).
+2. **Delete `setup-bashrc-load-env.sh`**. Synced JSON no longer calls it. _Alternative:_ keep as no-op — rejected (dead
+   surface).
 
 3. **Add `.devcontainer/product.env`** (overlay, not synced) with the same `MYPYPATH` roots as reusable CI and
    `CST_BAKE_TARGET=harvester`. Compose already loads it optionally (`required: false`).

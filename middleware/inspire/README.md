@@ -1,8 +1,7 @@
 # INSPIRE-to-ARC Harvester Plugin
 
-The INSPIRE plugin connects to standard-compliant Metadata Catalogues (CSW - Catalogue Service for
-the Web) and transforms ISO 19139 (Dublin Core and GMD) records into FAIRagro-compliant Annotated
-Research Context (ARC) objects.
+The INSPIRE plugin connects to standard-compliant Metadata Catalogues (CSW - Catalogue Service for the Web) and
+transforms ISO 19139 (Dublin Core and GMD) records into FAIRagro-compliant Annotated Research Context (ARC) objects.
 
 ## Overview
 
@@ -23,15 +22,15 @@ The plugin is configured as part of a `repository` entry in the central Harveste
 
 ### Full Plugin Configuration Reference
 
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `csw_url` | string | *(required)* | Base URL of the CSW 2.0.2 endpoint. |
-| `cql_query` | string | `None` | OGC CQL filter (e.g., `AnyText LIKE '%agriculture%'`). |
-| `xml_query` | string | `None` | Raw `GetRecords` XML body (mutually exclusive with `cql_query`). Paginated: filter body is preserved; `startPosition`/`maxRecords` are rewritten per page. |
-| `chunk_size` | int | `50` | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`. |
-| `timeout` | int | `30` | Network timeout for CSW requests in seconds. |
-| `max_records` | int | `None` | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this. |
-| `verify_ssl` | bool \| string | `true` | TLS verification for CSW/OWSLib: `true` (system CA), `false` (disable), or path to a CA bundle (passed through to OWSLib). Independent of the harvester API client's `verify_ssl`. |
+| Parameter     | Type           | Default      | Description                                                                                                                                                                        |
+| :------------ | :------------- | :----------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `csw_url`     | string         | _(required)_ | Base URL of the CSW 2.0.2 endpoint.                                                                                                                                                |
+| `cql_query`   | string         | `None`       | OGC CQL filter (e.g., `AnyText LIKE '%agriculture%'`).                                                                                                                             |
+| `xml_query`   | string         | `None`       | Raw `GetRecords` XML body (mutually exclusive with `cql_query`). Paginated: filter body is preserved; `startPosition`/`maxRecords` are rewritten per page.                         |
+| `chunk_size`  | int            | `50`         | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`.                                                                                      |
+| `timeout`     | int            | `30`         | Network timeout for CSW requests in seconds.                                                                                                                                       |
+| `max_records` | int            | `None`       | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this.                                                              |
+| `verify_ssl`  | bool \| string | `true`       | TLS verification for CSW/OWSLib: `true` (system CA), `false` (disable), or path to a CA bundle (passed through to OWSLib). Independent of the harvester API client's `verify_ssl`. |
 
 ### Example Plugin Configuration
 
@@ -53,7 +52,8 @@ The transformation from INSPIRE records to ARCs follows specific mapping rules:
 - **Abstract**: Maps to the ARC investigation description.
 - **Contacts**: Individual contacts are added as persons in the ARC investigation.
 
-For a detailed breakdown of all mapping rules, please refer to the **[INSPIRE Mapping Specification](../../docs/inspire_mapping.md)**.
+For a detailed breakdown of all mapping rules, please refer to the
+**[INSPIRE Mapping Specification](../../docs/inspire_mapping.md)**.
 
 ## External Documentation
 

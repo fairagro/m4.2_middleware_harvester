@@ -71,7 +71,7 @@ class FailingPlugin:
     async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
         """Yield a generator that immediately raises during iteration."""
         raise RuntimeError("harvest failure")
-        yield  # pragma: no cover
+        yield  # pragma: no cover  # noqa: make this an async generator
 
     async def get_expected_datasets(self) -> int | None:  # noqa: PLR6301
         """Return the expected dataset count for this plugin."""
@@ -523,7 +523,7 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
-            if False:  # pragma: no cover - required for AsyncGenerator typing
+            if False:  # pragma: no cover  # noqa: make this an async generator
                 yield HarvestedArc(arc_json="{}")
             raise asyncio.CancelledError
 

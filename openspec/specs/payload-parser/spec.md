@@ -2,27 +2,24 @@
 
 ## Purpose
 
-PayloadParser abstraction that turns a discovery unit into a typed
-ParsedPayload for shared DataMapper consumption.
+PayloadParser abstraction that turns a discovery unit into a typed ParsedPayload for shared DataMapper consumption.
 
 ## Requirements
 
 ### Requirement: Provide a PayloadParser interface with produces kind
 
-The system SHALL provide a PayloadParser abstraction that exposes a class-level
-`produces` `PayloadKind` and an async parse operation from a discovery unit
-(plus HTTP client when required) to a `ParsedPayload`.
+The system SHALL provide a PayloadParser abstraction that exposes a class-level `produces` `PayloadKind` and an async
+parse operation from a discovery unit (plus HTTP client when required) to a `ParsedPayload`.
 
 #### Scenario: Parser advertises rdf_graph for HTML JSON-LD
 
 - **WHEN** the HTML+JSON-LD parser is selected
-- **THEN** its `produces` kind is `rdf_graph` and successful parses yield
-  `ParsedPayload` with that kind
+- **THEN** its `produces` kind is `rdf_graph` and successful parses yield `ParsedPayload` with that kind
 
 ### Requirement: Register PayloadParser implementations by type key
 
-The system SHALL select PayloadParser implementations through a registry keyed
-by `parser_type` and SHALL reject unregistered keys at configuration validation.
+The system SHALL select PayloadParser implementations through a registry keyed by `parser_type` and SHALL reject
+unregistered keys at configuration validation.
 
 #### Scenario: Unknown parser_type fails closed
 
@@ -31,21 +28,18 @@ by `parser_type` and SHALL reject unregistered keys at configuration validation.
 
 ### Requirement: Keep parsers independent of Protocol discovery and DataMapper
 
-The system SHALL keep PayloadParser implementations independent of Protocol
-registry/discovery orchestration and of DataMapper mapping logic. Parsers that
-require HTTP SHALL raise a descriptive error when no client is provided.
+The system SHALL keep PayloadParser implementations independent of Protocol registry/discovery orchestration and of
+DataMapper mapping logic. Parsers that require HTTP SHALL raise a descriptive error when no client is provided.
 
 #### Scenario: HTTP-required parser without client fails the record
 
 - **WHEN** a parser that needs HTTP is invoked with no client
-- **THEN** parse fails with a descriptive error suitable for record-level
-  reporting
+- **THEN** parse fails with a descriptive error suitable for record-level reporting
 
 ### Requirement: Align produces with repository mapper accepts at the plugin
 
-The system SHALL treat `parser.produces` versus repository `mapper.accepts` as a
-fail-fast alignment check performed by the generic plugin (config and/or per
-record), not by inheritance between parser and mapper classes.
+The system SHALL treat `parser.produces` versus repository `mapper.accepts` as a fail-fast alignment check performed by
+the generic plugin (config and/or per record), not by inheritance between parser and mapper classes.
 
 #### Scenario: Alignment is by PayloadKind not class hierarchy
 

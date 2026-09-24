@@ -1,8 +1,8 @@
 ## Context
 
 See proposal.md — Why. Root `pyproject.toml` already uses `--strict-markers` with `unit` / `integration` / `asyncio`.
-API registers the same `system_local` / `system_external` strings Devinfra #120 will put in the synced pre-push
-`-m` filter.
+API registers the same `system_local` / `system_external` strings Devinfra #120 will put in the synced pre-push `-m`
+filter.
 
 ## Goals / Non-Goals
 
@@ -20,7 +20,7 @@ API registers the same `system_local` / `system_external` strings Devinfra #120 
 ## Decisions
 
 1. **Copy API marker descriptions verbatim** (`system_local`: locally runnable external services / testcontainers;
-   `system_external`: real external systems/secrets). *Alternative:* invent harvester-only wording — rejected (fleet
+   `system_external`: real external systems/secrets). _Alternative:_ invent harvester-only wording — rejected (fleet
    docs/hooks assume shared names).
 
 2. **Do not re-mark inspire `@pytest.mark.integration` in MVP** unless audit shows they would break the post-#120
