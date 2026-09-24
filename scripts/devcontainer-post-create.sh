@@ -98,16 +98,11 @@ bash "${script_dir}/setup-git-hooks.sh"
 
 # ── public GPG keys (SOPS encrypt / recipient checks) ────────────────────────
 echo "==> Import public GPG keys (if present)"
-shopt -s nullglob
-public_keys=( "${repo_root}/public_gpg_keys"/*.asc )
-if [ ${#public_keys[@]} -gt 0 ]; then
-  for key_file in "${public_keys[@]}"; do
-    gpg --batch --import "${key_file}" || echo "WARNING: failed to import ${key_file}" >&2
-  done
+if [ -f "${script_dir}/import-public-gpg-keys.sh" ]; then
+  bash "${script_dir}/import-public-gpg-keys.sh"
 else
-  echo "No public_gpg_keys/*.asc found; skipping"
+  echo "No scripts/import-public-gpg-keys.sh; skipping"
 fi
-shopt -u nullglob
 
 # ── optional SOPS: .env.integration.enc → .env (file only; no bashrc source) ─
 echo "==> Decrypt .env.integration.enc → .env (if present)"
