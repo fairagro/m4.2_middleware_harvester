@@ -16,7 +16,7 @@ reuse).
 
 #### Scenario: Plugins resolve parsers from parsing
 
-- **WHEN** a protocol plugin needs a registered PayloadParser by `parser_type`
+- **WHEN** a protocol plugin needs a registered PayloadParser by `parser.type`
 - **THEN** it resolves the implementation from `middleware.parsing` without importing another protocol plugin package
 
 ### Requirement: parsing may depend on harvester and payload
