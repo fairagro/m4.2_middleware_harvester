@@ -403,7 +403,7 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
             raise RobotsTxtDisallowedError(
                 "URL disallowed by robots.txt: https://frl.publisso.de/find?q=contentType:researchData"
             )
-            yield  # pragma: no cover — make this an async generator
+            yield  # pragma: no cover  # noqa: make this an async generator
 
         async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return None

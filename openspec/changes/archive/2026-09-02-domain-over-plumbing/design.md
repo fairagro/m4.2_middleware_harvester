@@ -1,6 +1,8 @@
 ## Context
 
-See `proposal.md` — Why. Principles today document Values, Constraints, and a Module Dependency Graph focused on orchestrator ↔ plugin ownership and INSPIRE’s client/mapper split. Linked Data now has an explicit `plugin.py` (domain wiring) → `pipeline.py` (bounded concurrency) split; that pattern is not yet stated as a project rule.
+See `proposal.md` — Why. Principles today document Values, Constraints, and a Module Dependency Graph focused on
+orchestrator ↔ plugin ownership and INSPIRE’s client/mapper split. Linked Data now has an explicit `plugin.py` (domain
+wiring) → `pipeline.py` (bounded concurrency) split; that pattern is not yet stated as a project rule.
 
 ## Goals / Non-Goals
 
@@ -19,14 +21,16 @@ See `proposal.md` — Why. Principles today document Values, Constraints, and a 
 
 ### 1. Principles prose + ADDED requirement (not a new capability)
 
-**Choice:** Modify the existing `principles` capability: ADDED requirement for normative review, and update Values / Constraints / Module Dependency Graph in the Full Principles section on apply/archive.
+**Choice:** Modify the existing `principles` capability: ADDED requirement for normative review, and update Values /
+Constraints / Module Dependency Graph in the Full Principles section on apply/archive.
 
-**Reasoning:** Structure rules belong with Values/Constraints. A separate capability would duplicate the principles home.
+**Reasoning:** Structure rules belong with Values/Constraints. A separate capability would duplicate the principles
+home.
 
 **Alternatives considered:**
 
-- *Cursor rule / AGENTS.md only* — weaker than OpenSpec source of truth; agents already defer to principles.
-- *New `code-structure` capability* — splits foundation docs without need.
+- _Cursor rule / AGENTS.md only_ — weaker than OpenSpec source of truth; agents already defer to principles.
+- _New `code-structure` capability_ — splits foundation docs without need.
 
 ### 2. YAGNI clause in the constraint
 
@@ -36,15 +40,20 @@ See `proposal.md` — Why. Principles today document Values, Constraints, and a 
 
 ### 3. Reference Linked Data in the dependency graph
 
-**Choice:** Add a short Linked Data block showing `plugin.py → pipeline.py` and domain edges; state that pipeline modules MUST NOT import mappers or perform mapping.
+**Choice:** Add a short Linked Data block showing `plugin.py → pipeline.py` and domain edges; state that pipeline
+modules MUST NOT import mappers or perform mapping.
 
-**Reasoning:** Concrete example beats abstract advice for agents. Allow type/signal imports (`DiscoveryResult`, shared error types) without treating them as domain logic.
+**Reasoning:** Concrete example beats abstract advice for agents. Allow type/signal imports (`DiscoveryResult`, shared
+error types) without treating them as domain logic.
 
 ## Risks / Trade-offs
 
-- [Subjective “substantial”] → Mitigation: scenario focuses on queue/semaphore/TaskGroup/cancellation lifecycle blocks; reviewers use judgment for tiny helpers.
-- [Over-extraction of one-liners] → Mitigation: Value says extract when plumbing obscures harvest steps, not every `asyncio` call.
-- [Graph drifts from code] → Mitigation: task updates graph to match current Linked Data layout; later refactors update principles in the same change.
+- [Subjective “substantial”] → Mitigation: scenario focuses on queue/semaphore/TaskGroup/cancellation lifecycle blocks;
+  reviewers use judgment for tiny helpers.
+- [Over-extraction of one-liners] → Mitigation: Value says extract when plumbing obscures harvest steps, not every
+  `asyncio` call.
+- [Graph drifts from code] → Mitigation: task updates graph to match current Linked Data layout; later refactors update
+  principles in the same change.
 
 ## Migration Plan
 

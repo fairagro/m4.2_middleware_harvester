@@ -15,6 +15,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "httpx>=0.28.1",
+  # IDE extensions (.vscode → .venv/bin); commit/CI gates use scripts/quality-tools-pins.txt
   "pylint>=4.0.6",
   "pytest>=9.1.1",
   "pytest-asyncio>=1.4.0",
@@ -22,15 +23,9 @@ dev = [
   "pytest-env>=1.2.0",
   "pytest-mock>=3.10.0",
   "mypy>=1.20.1",
-  "bandit>=1.7.0",
   "ruff>=0.16.0",
   "pre-commit>=4.0.0",
   "respx>=0.23.1",
-  "ggshield>=1.53.0",
-  "cryptography>=49.0.0",
-  "pyjwt>=2.12.0",
-  "pyopenssl>=26.3.0",
-  "python-dotenv>=1.2.2",
 ]
 
 [tool.uv.sources]
@@ -49,17 +44,8 @@ members = [
     "middleware/payload",
 ]
 
-# ggshield 1.51.0 pins old transitive deps; override until upstream bumps.
-[tool.uv]
-override-dependencies = [
-  "cryptography>=49.0.0",
-  "pyjwt>=2.12.0",
-  "pyopenssl>=26.3.0",
-  "python-dotenv>=1.2.2",
-  "requests>=2.33.0",
-]
-
-# Ruff / Mypy / Pylint: synced ruff.toml, mypy.ini, .pylintrc (no product ruff overlay).
+# Ruff / Mypy / Pylint configs: synced ruff.toml, mypy.ini, .pylintrc (no product ruff overlay).
+# Fleet CLIs for hooks/CI: scripts/run-quality-cli.sh + scripts/quality-tools-pins.txt.
 # Path overlays: MYPYPATH / pylint --source-roots / stubs/ — not in pyproject.
 
 [tool.pytest.ini_options]

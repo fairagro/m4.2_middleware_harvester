@@ -209,7 +209,7 @@ class NiceHttpClient:
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None, traceback: Any | None
+        self, _exc_type: type[BaseException] | None, _exc: BaseException | None, _traceback: Any | None
     ) -> None:
         """Close the underlying httpx client when the context exits."""
         if self._client is not None:

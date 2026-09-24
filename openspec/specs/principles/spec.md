@@ -2,9 +2,8 @@
 
 ## Purpose
 
-Normative module-dependency and extension-point rules for the shared
-`middleware.payload` package. Narrative product overlay remains in
-`openspec/principles.md`.
+Normative module-dependency and extension-point rules for the shared `middleware.payload` package. Narrative product
+overlay remains in `openspec/principles.md`.
 
 ## Requirements
 

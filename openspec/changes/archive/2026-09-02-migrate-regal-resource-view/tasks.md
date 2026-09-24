@@ -6,11 +6,14 @@
 
 ## 2. Port field access and delete helpers
 
-- [x] 2.1 Port title, description, dates, DOI, license, simple comments, spatial/collection/processing tables to `text` / `texts` / `labelled` / `resources`
+- [x] 2.1 Port title, description, dates, DOI, license, simple comments, spatial/collection/processing tables to `text`
+      / `texts` / `labelled` / `resources`
 - [x] 2.2 Port contacts (sorted resources + labelled prefLabel) and publications / associatedPublication / OAI paths
 - [x] 2.3 Port `_funding_values` (joinedFunding preference + flat fallbacks) onto child ResourceViews
-- [x] 2.4 Port opaque comments: filter `_KNOWN_PREDICATES`, resolve object text via StableGraph, emit in deterministic order
-- [x] 2.5 Delete `_str`, `_strs`, `_term_text`, `_labelled_nodes`, `_join_literals`; grep-gate remaining ARC-bound `graph.value` / `str(BNode)` uses
+- [x] 2.4 Port opaque comments: filter `_KNOWN_PREDICATES`, resolve object text via StableGraph, emit in deterministic
+      order
+- [x] 2.5 Delete `_str`, `_strs`, `_term_text`, `_labelled_nodes`, `_join_literals`; grep-gate remaining ARC-bound
+      `graph.value` / `str(BNode)` uses
 
 ## 3. Tests
 
@@ -22,5 +25,6 @@
 ## 4. Validation
 
 - [x] 4.1 `uv run ruff format middleware/linked_data/` and `uv run ruff check` on affected package
-- [x] 4.2 `uv run pytest middleware/linked_data/tests/unit/test_regal_mapper.py middleware/linked_data/tests/unit/test_mapper.py -v`
+- [x] 4.2
+      `uv run pytest middleware/linked_data/tests/unit/test_regal_mapper.py middleware/linked_data/tests/unit/test_mapper.py -v`
 - [x] 4.3 `openspec validate --change migrate-regal-resource-view --strict`

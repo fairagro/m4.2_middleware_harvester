@@ -97,9 +97,8 @@ renovate --version
 Python quality CLIs (ruff, mypy, pylint, bandit, vulture, import-linter, ggshield) for **hooks and reusable CI** come
 from synced [`scripts/quality-tools-pins.txt`](../scripts/quality-tools-pins.txt) via
 [`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) — products do **not** need them in `pyproject.toml` for
-gates to spawn. IDE extensions
-**MAY** still use the same tools from the project `.venv` when listed as optional deps. `pre-commit`, pytest, and
-app/runtime deps stay project-owned via `uv`.
+gates to spawn. IDE extensions **MAY** still use the same tools from the project `.venv` when listed as optional deps.
+`pre-commit`, pytest, and app/runtime deps stay project-owned via `uv`.
 
 ## Bashrc-free shell init (no `load-env.sh`)
 

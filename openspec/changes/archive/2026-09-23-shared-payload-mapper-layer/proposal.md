@@ -1,9 +1,9 @@
 ## Why
 
-The same semantic payload (e.g. an RDF graph) can arrive via different harvest protocols (HTML+sitemap today;
-OAI-PMH and others later). Vocabulary mappers still live under `middleware.linked_data.linked_data_mapper`, so other
-protocol plugins cannot share them. A cross-cutting intermediate-payload + mapper layer keeps transport in plugins and
-record→ARC mapping reusable.
+The same semantic payload (e.g. an RDF graph) can arrive via different harvest protocols (HTML+sitemap today; OAI-PMH
+and others later). Vocabulary mappers still live under `middleware.linked_data.linked_data_mapper`, so other protocol
+plugins cannot share them. A cross-cutting intermediate-payload + mapper layer keeps transport in plugins and record→ARC
+mapping reusable.
 
 Tracked as GitHub [#140](https://github.com/fairagro/m4.2_middleware_harvester/issues/140). Refreshed from draft
 [PR #162](https://github.com/fairagro/m4.2_middleware_harvester/pull/162) (OpenSpec-only, superseded) after explore on
@@ -27,7 +27,8 @@ current `main` (StableGraph / Schema.org / Regal ResourceView already landed).
 
 - Generic Protocol + PayloadParser plugin (→ [#141](https://github.com/fairagro/m4.2_middleware_harvester/issues/141))
 - OAI-PMH / EPrints mapper (→ [#142](https://github.com/fairagro/m4.2_middleware_harvester/issues/142))
-- Moving INSPIRE mapper / `inspire_record` kind (→ [#143](https://github.com/fairagro/m4.2_middleware_harvester/issues/143))
+- Moving INSPIRE mapper / `inspire_record` kind (→
+  [#143](https://github.com/fairagro/m4.2_middleware_harvester/issues/143))
 - Renaming or removing the `linked_data` plugin
 - Auto-detecting mapper from payload bytes
 - Permanent dual vocabulary (`payload_type` remains transitional only)

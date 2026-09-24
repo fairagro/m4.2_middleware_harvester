@@ -1,12 +1,13 @@
 # FAIRagro Middleware Harvester (Orchestrator)
 
-The Middleware Harvester is a high-performance, modular orchestrator designed to bridge geo-spatial and metadata infrastructures (like INSPIRE CSW) and the FAIRagro metadata ecosystem.
+The Middleware Harvester is a high-performance, modular orchestrator designed to bridge geo-spatial and metadata
+infrastructures (like INSPIRE CSW) and the FAIRagro metadata ecosystem.
 
 ## Overview
 
-The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles
-the orchestration loop, configuration management, and reliable transmission of Annotated Research
-Context (ARC) objects to the FAIRagro Middleware API.
+The Harvester runs as a central service that manages multiple **harvesting plugins**. It handles the orchestration loop,
+configuration management, and reliable transmission of Annotated Research Context (ARC) objects to the FAIRagro
+Middleware API.
 
 ### Key Features
 
@@ -18,7 +19,8 @@ Context (ARC) objects to the FAIRagro Middleware API.
 
 ## Configuration
 
-The Harvester is configured using a YAML file. Values can be overridden by Environment Variables with the prefix `HARVESTER_`.
+The Harvester is configured using a YAML file. Values can be overridden by Environment Variables with the prefix
+`HARVESTER_`.
 
 ### YAML Configuration (`config.yaml`)
 
@@ -53,42 +55,42 @@ api_client:
 
 #### 1. Global Settings
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `log_level` | string | `INFO` | Console logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. |
-| `repositories` | list | *(required)* | List of repository configurations. |
-| `api_client` | object | *(required)* | Connection settings for the FAIRagro Middleware API (see below). |
-| `otel` | object | *(required)* | OpenTelemetry configuration (see below). |
+| Field          | Type   | Default      | Description                                                             |
+| :------------- | :----- | :----------- | :---------------------------------------------------------------------- |
+| `log_level`    | string | `INFO`       | Console logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. |
+| `repositories` | list   | _(required)_ | List of repository configurations.                                      |
+| `api_client`   | object | _(required)_ | Connection settings for the FAIRagro Middleware API (see below).        |
+| `otel`         | object | _(required)_ | OpenTelemetry configuration (see below).                                |
 
 #### 2. Repository Entry (`repositories`)
 
 Each entry in the repositories list must define the target RDI and its plugin configuration.
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `rdi` | string | *(required)* | The unique RDI identifier (e.g., edaphobase). |
-| `inspire` | object | `None` | Configuration for the INSPIRE plugin (must set exactly one plugin). |
+| Field     | Type   | Default      | Description                                                         |
+| :-------- | :----- | :----------- | :------------------------------------------------------------------ |
+| `rdi`     | string | _(required)_ | The unique RDI identifier (e.g., edaphobase).                       |
+| `inspire` | object | `None`       | Configuration for the INSPIRE plugin (must set exactly one plugin). |
 
 #### 3. API Client (`api_client`)
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `api_url` | string | *(required)* | Base URL of the Middleware API. |
-| `timeout` | float | `30.0` | Request timeout in seconds. |
-| `max_concurrency` | int | `10` | Maximum parallel requests allowed to the API. |
-| `verify_ssl` | bool | `true` | Whether to verify HTTPS certificates. |
-| `max_retries` | int | `3` | Retries for transient HTTP errors. |
-| `client_cert_path` | string | `None` | Path to client TLS certificate (PEM). |
-| `client_key_path` | string | `None` | Path to client private key (PEM). |
-| `ca_cert_path` | string | `None` | Path to custom CA bundle (PEM). |
+| Field              | Type   | Default      | Description                                   |
+| :----------------- | :----- | :----------- | :-------------------------------------------- |
+| `api_url`          | string | _(required)_ | Base URL of the Middleware API.               |
+| `timeout`          | float  | `30.0`       | Request timeout in seconds.                   |
+| `max_concurrency`  | int    | `10`         | Maximum parallel requests allowed to the API. |
+| `verify_ssl`       | bool   | `true`       | Whether to verify HTTPS certificates.         |
+| `max_retries`      | int    | `3`          | Retries for transient HTTP errors.            |
+| `client_cert_path` | string | `None`       | Path to client TLS certificate (PEM).         |
+| `client_key_path`  | string | `None`       | Path to client private key (PEM).             |
+| `ca_cert_path`     | string | `None`       | Path to custom CA bundle (PEM).               |
 
 #### 4. OpenTelemetry (`otel`)
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `endpoint` | string | `None` | OTLP collector endpoint URL (e.g., <http://localhost:4318>). |
-| `log_level` | string | `INFO` | Logging level for OTLP export. |
-| `log_console_spans` | bool | `false` | Whether to print spans to stdout for debugging. |
+| Field               | Type   | Default | Description                                                  |
+| :------------------ | :----- | :------ | :----------------------------------------------------------- |
+| `endpoint`          | string | `None`  | OTLP collector endpoint URL (e.g., <http://localhost:4318>). |
+| `log_level`         | string | `INFO`  | Logging level for OTLP export.                               |
+| `log_console_spans` | bool   | `false` | Whether to print spans to stdout for debugging.              |
 
 ## Usage
 
@@ -120,13 +122,14 @@ docker run --rm \
 
 ## CLI Options
 
-| Option | Description |
-| :--- | :--- |
+| Option         | Description                          |
+| :------------- | :----------------------------------- |
 | `-c, --config` | Path to the YAML configuration file. |
-| `-h, --help` | Show help message and exit. |
+| `-h, --help`   | Show help message and exit.          |
 
 ## Documentation Links
 
-- **[Architectural Design](../../openspec/specs/harvester-orchestration/design.md)**: Details on the orchestration loop and plugin contract.
+- **[Architectural Design](../../openspec/specs/harvester-orchestration/design.md)**: Details on the orchestration loop
+  and plugin contract.
 - **[INSPIRE Plugin](../inspire/README.md)**: Metadata mapping and CSW settings.
 - **[OpenSpec / AI Workflow](../../docs/ai_workflow.md)**: Our spec-driven development approach.

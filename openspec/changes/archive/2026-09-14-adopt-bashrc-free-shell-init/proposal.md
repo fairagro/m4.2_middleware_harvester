@@ -1,15 +1,17 @@
 ## Why
 
-Devinfra [#58](https://github.com/fairagro/m4.2_middleware_devinfra/issues/58) landed the fleet **bashrc-free** shell contract
-(synced `devcontainer.json` prepends `.venv/bin` + `scripts/bin`; postCreate decrypts `.env` to a file only). Harvester
-still ships product-local `scripts/load-env.sh` / `setup-bashrc-load-env.sh` leftovers and lacks `.devcontainer/product.env`
-for `MYPYPATH` / `CST_*`. Adopt the contract cleanly so local hooks and CST match CI without mutating `~/.bashrc`.
+Devinfra [#58](https://github.com/fairagro/m4.2_middleware_devinfra/issues/58) landed the fleet **bashrc-free** shell
+contract (synced `devcontainer.json` prepends `.venv/bin` + `scripts/bin`; postCreate decrypts `.env` to a file only).
+Harvester still ships product-local `scripts/load-env.sh` / `setup-bashrc-load-env.sh` leftovers and lacks
+`.devcontainer/product.env` for `MYPYPATH` / `CST_*`. Adopt the contract cleanly so local hooks and CST match CI without
+mutating `~/.bashrc`.
 
 ## What Changes
 
 - Delete deprecated product `scripts/load-env.sh` and `scripts/setup-bashrc-load-env.sh` (and any remaining postStart /
   docs pointers that reintroduce bashrc sourcing).
-- Add product-owned `.devcontainer/product.env` with `MYPYPATH` (same roots as reusable CI) and `CST_BAKE_TARGET=harvester`.
+- Add product-owned `.devcontainer/product.env` with `MYPYPATH` (same roots as reusable CI) and
+  `CST_BAKE_TARGET=harvester`.
 - Confirm synced `remoteEnv.PATH` already includes `${workspaceFolder}/.venv/bin` and `${workspaceFolder}/scripts/bin`
   (no hand-edit of synced JSON/Compose).
 - Rely on synced `scripts/bin/{k,d,gh,git}` and shared postCreate decrypt; keep personal tokens on `scripts/bin` /

@@ -10,7 +10,8 @@ callers already use:
 
 **Goals:**
 
-- Land the five caller `concurrency` blocks per [#182](https://github.com/fairagro/m4.2_middleware_harvester/issues/182).
+- Land the five caller `concurrency` blocks per
+  [#182](https://github.com/fairagro/m4.2_middleware_harvester/issues/182).
 
 **Non-Goals:**
 
@@ -19,7 +20,7 @@ callers already use:
 
 ## Decisions
 
-1. **Match sibling group strings exactly** so fleet docs/reviews stay comparable. *Alternative:* invent harvester-only
+1. **Match sibling group strings exactly** so fleet docs/reviews stay comparable. _Alternative:_ invent harvester-only
    group names — rejected (noise).
 
 2. **Place `concurrency` after `on:` / before `jobs:`** (and after top-level `env` when present), consistent with API /

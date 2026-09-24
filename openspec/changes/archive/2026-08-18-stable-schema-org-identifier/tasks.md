@@ -5,9 +5,12 @@
 
 ## 2. Schema.org identifier resolution
 
-- [x] 2.1 Extract DOI from literal `schema:identifier` and from `PropertyValue` (`propertyID` doi / identifiers.org, `schema:value`)
-- [x] 2.2 Fall back to `schema:url`, `sameAs`, `http(s)` `@id`, then `source_url`; sanitize Receive-URLs into an `arctrl`-compatible identifier
-- [x] 2.3 Raise a mapping error when no stable identifier exists; never use blank-node `str(subject)` or title slug for `Investigation.identifier`
+- [x] 2.1 Extract DOI from literal `schema:identifier` and from `PropertyValue` (`propertyID` doi / identifiers.org,
+      `schema:value`)
+- [x] 2.2 Fall back to `schema:url`, `sameAs`, `http(s)` `@id`, then `source_url`; sanitize Receive-URLs into an
+      `arctrl`-compatible identifier
+- [x] 2.3 Raise a mapping error when no stable identifier exists; never use blank-node `str(subject)` or title slug for
+      `Investigation.identifier`
 
 ## 3. Tests
 
@@ -17,4 +20,5 @@
 
 ## 4. Validation
 
-- [x] 4.1 `uv run ruff format middleware/` and `uv run pytest middleware/linked_data middleware/inspire -v` for affected packages
+- [x] 4.1 `uv run ruff format middleware/` and `uv run pytest middleware/linked_data middleware/inspire -v` for affected
+      packages

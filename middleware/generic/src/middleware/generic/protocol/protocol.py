@@ -60,7 +60,7 @@ class Protocol(ABC):
     @abstractmethod
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
         """Discover harvest units using the shared polite HTTP client."""
-        if False:  # pragma: no cover
+        if False:  # pragma: no cover  # noqa: make this an async generator
             yield UrlDiscoveryResult("")
         raise NotImplementedError
 

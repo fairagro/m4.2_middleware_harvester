@@ -161,9 +161,9 @@ config  ←── all modules (read-only)
 
 Circular imports are forbidden. Within a plugin, the mapper must not import the source client and vice versa. Plugins
 must not import each other (except the documented temporary `linked_data` → `generic.discovery` / shim imports during
-migration). Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins
-MAY depend on `middleware.payload`; `middleware.payload` MUST NOT depend on `middleware.harvester` or on protocol plugin
-packages (`inspire`, `linked_data`, `generic`, …).
+migration). Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins MAY depend on
+`middleware.payload`; `middleware.payload` MUST NOT depend on `middleware.harvester` or on protocol plugin packages
+(`inspire`, `linked_data`, `generic`, …).
 
 ### Import policy (product; candidate for Devinfra sync)
 

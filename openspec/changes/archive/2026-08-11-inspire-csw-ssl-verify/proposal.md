@@ -1,6 +1,8 @@
 ## Why
 
-Some CSW endpoints use self-signed or privately issued TLS certificates. Today the INSPIRE plugin always lets OWSLib verify certificates (`verify=True`), so harvests against those endpoints fail at connect time with no config escape hatch. Operators need a way to disable verification or point at a custom CA bundle.
+Some CSW endpoints use self-signed or privately issued TLS certificates. Today the INSPIRE plugin always lets OWSLib
+verify certificates (`verify=True`), so harvests against those endpoints fail at connect time with no config escape
+hatch. Operators need a way to disable verification or point at a custom CA bundle.
 
 ## What Changes
 
@@ -27,7 +29,9 @@ Some CSW endpoints use self-signed or privately issued TLS certificates. Today t
 
 ## Impact
 
-- **Affected domains**: new `openspec/specs/csw-ssl-verify/`; related pattern in `csw-retry` (how connection params are forwarded to `CatalogueServiceWeb`).
-- **Code**: `middleware/inspire/src/middleware/inspire/config.py`, `csw_client.py`; unit tests under `middleware/inspire/tests/unit/`.
+- **Affected domains**: new `openspec/specs/csw-ssl-verify/`; related pattern in `csw-retry` (how connection params are
+  forwarded to `CatalogueServiceWeb`).
+- **Code**: `middleware/inspire/src/middleware/inspire/config.py`, `csw_client.py`; unit tests under
+  `middleware/inspire/tests/unit/`.
 - **Config**: optional `verify_ssl` under INSPIRE plugin YAML (default preserves current behaviour).
 - **Dependencies**: none new — uses existing OWSLib `Authentication`.

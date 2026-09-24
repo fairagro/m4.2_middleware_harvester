@@ -11,7 +11,7 @@ from middleware.linked_data.pipeline import run_bounded_pipeline
 
 
 async def _empty_discover() -> AsyncGenerator[UrlDiscoveryResult, None]:
-    if False:  # pragma: no cover - make this an async generator
+    if False:  # pragma: no cover  # noqa: make this an async generator
         yield UrlDiscoveryResult("https://example.org/unused")
 
 

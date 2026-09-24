@@ -4,11 +4,10 @@
 
 ### Requirement: Warn when the server's advertised MaxRecordDefault is below the configured page size
 
-The system SHALL inspect the `MaxRecordDefault` constraint from the CSW `GetCapabilities` response
-after connecting, and SHALL log a warning naming both the advertised cap and the configured
-`chunk_size` when the advertised cap is lower. The system SHALL continue to send the configured
-`chunk_size` as `maxRecords` without clamping it, and SHALL stay silent when the constraint is
-absent or not a positive integer.
+The system SHALL inspect the `MaxRecordDefault` constraint from the CSW `GetCapabilities` response after connecting, and
+SHALL log a warning naming both the advertised cap and the configured `chunk_size` when the advertised cap is lower. The
+system SHALL continue to send the configured `chunk_size` as `maxRecords` without clamping it, and SHALL stay silent
+when the constraint is absent or not a positive integer.
 
 #### Scenario: Server advertises a cap below the configured chunk_size
 
@@ -24,7 +23,6 @@ absent or not a positive integer.
 
 #### Scenario: Constraint is absent or unparsable
 
-- **WHEN** `GetCapabilities` omits `MaxRecordDefault`, or advertises a non-numeric or non-positive
-  value
+- **WHEN** `GetCapabilities` omits `MaxRecordDefault`, or advertises a non-numeric or non-positive value
 - **THEN** log no page-cap warning
 - **AND** connect successfully

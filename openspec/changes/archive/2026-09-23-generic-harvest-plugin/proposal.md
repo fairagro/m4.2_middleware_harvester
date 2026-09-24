@@ -1,13 +1,13 @@
 ## Why
 
 `linked_data` is already a mini generic plugin restricted to RDF discovery/fetch (`Sitemap` + `Dataset` + shared
-`DataMapper`). A true **generic** harvest plugin composing **Protocol** (discovery/transport) + **PayloadParser**
-(raw → `ParsedPayload`) + repository `mapper:` unlocks HTML+JSON-LD, later OAI+RDF (#142), and other pairs without new
-plugin packages per combination — as long as `parser.produces == mapper.accepts`. #140 landed the shared mapper layer;
-this change introduces the protocol/parser composition package.
+`DataMapper`). A true **generic** harvest plugin composing **Protocol** (discovery/transport) + **PayloadParser** (raw →
+`ParsedPayload`) + repository `mapper:` unlocks HTML+JSON-LD, later OAI+RDF (#142), and other pairs without new plugin
+packages per combination — as long as `parser.produces == mapper.accepts`. #140 landed the shared mapper layer; this
+change introduces the protocol/parser composition package.
 
-Tracked as GitHub [#141](https://github.com/fairagro/m4.2_middleware_harvester/issues/141). Explore lock-in: **option C**
-— new `middleware/generic` package beside `linked_data`, migrate sources incrementally, thin/deprecate `linked_data`
+Tracked as GitHub [#141](https://github.com/fairagro/m4.2_middleware_harvester/issues/141). Explore lock-in: **option
+C** — new `middleware/generic` package beside `linked_data`, migrate sources incrementally, thin/deprecate `linked_data`
 after parity.
 
 ## What Changes
@@ -59,8 +59,8 @@ after parity.
 
 - New package: `middleware/generic` (+ tests, workspace member, Docker/Bake metadata as for other plugins)
 - `middleware/harvester` config / plugin factory
-- `middleware/linked_data` remains until migration tasks complete; first slice may share types (`DiscoveryResult`) via
-  a neutral home (prefer `middleware.generic` or thin re-export — design decides; avoid `payload` owning discovery)
+- `middleware/linked_data` remains until migration tasks complete; first slice may share types (`DiscoveryResult`) via a
+  neutral home (prefer `middleware.generic` or thin re-export — design decides; avoid `payload` owning discovery)
 - Operator YAML: optional switch to `generic:` for migrated sources; example/demo configs
 - Specs under `openspec/specs/` as listed; principles module graph
 - Follow-on: #142 can register an OAI protocol + RDF parser against this package without a third dedicated plugin
