@@ -104,3 +104,14 @@ The system SHALL upload the yielded ARCs to the target Remote Data Infrastructur
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Upload the yielded ARCs to the target Remote Data Infrastructure (RDI) using the configured `api_client`
+
+### Requirement: Dispatch oai_pmh plugin via registry
+
+The system SHALL look up the `oai_pmh` plugin type in the plugin factory/registry, instantiate the corresponding Plugin
+implementation with the repository’s `oai_pmh` config plus sibling `mapper` and `parser` config, and consume its harvest
+AsyncGenerator like any other plugin.
+
+#### Scenario: oai_pmh repository is invoked
+
+- **WHEN** configuration contains a repository with plugin key `oai_pmh`
+- **THEN** the orchestrator runs that plugin and processes its yields for upload and reporting
