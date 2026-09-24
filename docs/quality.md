@@ -50,7 +50,7 @@ products may drop a duplicate `--extension-pkg-allow-list=lxml` CLI flag — tha
 | ----------------------- | --------------------------------------------------- | ----------------- | --- | ----------------------------------------------------------------------------------------- |
 | Ruff format/lint        | yes (`ruff.toml`)                                   | yes               | yes | Primary IDE Python lint/format                                                            |
 | basedpyright / Pylance  | yes (`pyrightconfig.json`, `typeCheckingMode: off`) | —                 | —   | Language server only; type gate is mypy                                                   |
-| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension)    | yes               | yes | Shared `.markdownlint*` + Prettier; CI via `npm run format:md:check` / `lint:md`          |
+| Prettier / markdownlint | yes (Prettier formatter; markdownlint extension)    | yes               | yes | Shared `.markdownlint*` + Prettier; hooks + CI via `npm run format:md:check` / `lint:md`  |
 | Mypy                    | yes (`mypy.ini` via `ms-python.mypy-type-checker`)  | yes (`mypy.ini`)  | yes | Same fragment; hooks/CI via `run-quality-cli.sh` (fleet pin); IDE may use project `.venv` |
 | Pylint                  | yes (`.pylintrc` via `ms-python.pylint`)            | yes (`.pylintrc`) | yes | Same fragment; hooks/CI via `run-quality-cli.sh`; `--source-roots` stays CI/env           |
 | Bandit                  | **hooks + CI only**                                 | yes (`.bandit`)   | yes | Named IDE exception; medium/high fail — see Bandit note below                             |
@@ -135,27 +135,27 @@ lazy imports solely to break cycles) stay principles / other tools / `/code-revi
 
 ## Files
 
-| Path                                                | Role                                                                                                            |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `.pre-commit-config.yaml`                           | Commit-stage + pre-push hooks — adopt **verbatim** after sync (see below)                                       |
-| `ruff.toml`                                         | Shared Ruff lint/format — **verbatim** sync (no product `extend` / ignore overlay)                              |
-| `mypy.ini`                                          | Shared Mypy strictness + fleet arctrl/fable `ignore_missing_imports` (path overlays via **env**)                |
-| `.pylintrc`                                         | Shared Pylint (`ignored-modules` for arctrl/fable; `extension-pkg-allow-list=lxml`; path overlays via CI / env) |
-| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, `scripts/ai`, `typeCheckingMode: off`) — **verbatim**                      |
-| `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                                         |
-| `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                                         |
-| `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                                             |
-| `scripts/run-import-linter.sh`                      | Thin import-linter runner (product `.importlinter`; see above)                                                  |
-| `scripts/run-quality-cli.sh`                        | `uv run --with-requirements` wrapper for fleet quality CLIs                                                     |
-| `scripts/quality-tools-pins.txt`                    | Fleet pins for ggshield/ruff/mypy/pylint/bandit/vulture/import-linter (hooks + CI)                              |
-| `scripts/run-uv-audit.sh`                           | Frozen `uv audit` + optional product `.uv-audit-ignore` (hooks + CI)                                            |
-| `.importlinter`                                     | Product-owned import-linter config (fleet-required settings in this doc) — **not** synced from Devinfra         |
-| `scripts/setup-git-hooks.sh`                        | Install dispatcher + `pre-push.d/50-quality` from `scripts/git-hooks/`                                          |
-| `scripts/git-hooks/`                                | Version-controlled `pre-push` dispatcher + `pre-push.d/`                                                        |
-| `.bandit`                                           | Bandit config (`bandit -c .bandit`)                                                                             |
-| `.markdownlint.json` (+ ignore / cli2)              | Markdownlint (also used by the markdownlint hook)                                                               |
-| `package.json` / `package-lock.json`                | Shared npm scripts + pins for Prettier/markdownlint (hooks + reusable CI) — **verbatim** sync                   |
-| [`.vscode/settings.json`](../.vscode/settings.json) | Shared IDE baseline (interpreter, Ruff, Mypy, Pylint, empty `pytestArgs`, Prettier) — adopt **verbatim**        |
+| Path                                                | Role                                                                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `.pre-commit-config.yaml`                           | Commit-stage + pre-push hooks — adopt **verbatim** after sync (see below)                                                    |
+| `ruff.toml`                                         | Shared Ruff lint/format — **verbatim** sync (no product `extend` / ignore overlay)                                           |
+| `mypy.ini`                                          | Shared Mypy strictness + fleet arctrl/fable `ignore_missing_imports` (path overlays via **env**)                             |
+| `.pylintrc`                                         | Shared Pylint (`ignored-modules` for arctrl/fable; `extension-pkg-allow-list=lxml`; path overlays via CI / env)              |
+| `pyrightconfig.json`                                | Shared basedpyright/Pylance (`venv`, `scripts/ai`, `typeCheckingMode: off`) — **verbatim**                                   |
+| `scripts/quality-check.sh`                          | Run **commit-stage** hooks only (check)                                                                                      |
+| `scripts/quality-fix.sh`                            | Run commit-stage **autofix** hooks only                                                                                      |
+| `scripts/run-container-structure-test.sh`           | Templated Docker build + `container-structure-test`                                                                          |
+| `scripts/run-import-linter.sh`                      | Thin import-linter runner (product `.importlinter`; see above)                                                               |
+| `scripts/run-quality-cli.sh`                        | `uv run --with-requirements` wrapper for fleet quality CLIs                                                                  |
+| `scripts/quality-tools-pins.txt`                    | Fleet pins for ggshield/ruff/mypy/pylint/bandit/vulture/import-linter (hooks + CI)                                           |
+| `scripts/run-uv-audit.sh`                           | Frozen `uv audit` + optional product `.uv-audit-ignore` (hooks + CI)                                                         |
+| `.importlinter`                                     | Product-owned import-linter config (fleet-required settings in this doc) — **not** synced from Devinfra                      |
+| `scripts/setup-git-hooks.sh`                        | Install dispatcher + `pre-push.d/50-quality` from `scripts/git-hooks/`                                                       |
+| `scripts/git-hooks/`                                | Version-controlled `pre-push` dispatcher + `pre-push.d/`                                                                     |
+| `.bandit`                                           | Bandit config (`bandit -c .bandit`)                                                                                          |
+| `.markdownlint.json` (+ ignore / cli2)              | Markdownlint (also used by the markdownlint hook)                                                                            |
+| `package.json` / `package-lock.json`                | Shared npm scripts + pins for Prettier/markdownlint (`prettier-md` + `markdownlint` hooks + reusable CI) — **verbatim** sync |
+| [`.vscode/settings.json`](../.vscode/settings.json) | Shared IDE baseline (interpreter, Ruff, Mypy, Pylint, empty `pytestArgs`, Prettier) — adopt **verbatim**                     |
 
 **Local artifact excludes:** repo-root `dist/` (PyInstaller onedir, etc.) is gitignored and already skipped by Ruff /
 Mypy / Pylint / Bandit. Markdown/Node tools must match: synced `.markdownlint-cli2.jsonc`, `.markdownlintignore`, and
@@ -176,6 +176,9 @@ Examples already in the shared skeleton:
 
 - `check-yaml` excludes Go-templated Helm under `helm/**/templates/` and `helmchart/**/templates/` (and vendor skill
   trees) — safe when those paths are absent.
+- Commit-stage `prettier-md` (`npm run format:md:check`) and `markdownlint` (`npm run lint:md`) share the same `files` /
+  `exclude` class for `*.md` / `*.mdc` (parity with reusable CI). Escape hatch only: `SKIP=prettier-md` or
+  `SKIP=markdownlint` (same class as other Node markdown hooks — not the normal workflow).
 - CST bake target / image tag come from env (`CST_BAKE_*`), not from a product-hardcoded hook entry.
 - pytest uses product `pyproject.toml` discovery; the shared pre-push hook runs
   `uv run pytest -m "not system_external and not system_local"` (see [Pre-push pytest scope](#pre-push-pytest-scope)).

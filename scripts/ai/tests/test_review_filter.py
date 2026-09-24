@@ -4,9 +4,12 @@ import json
 from pathlib import Path
 
 import pytest
+from m42_ai import review as review_mod
+from m42_ai.gh import GhError
 from m42_ai.issue import slugify
 from m42_ai.review import (
     CODE_REVIEW_MARKER,
+    correlate_code_quality_finding,
     extract_code_review_findings,
     extract_suppressed_comments,
     is_ai_author,
@@ -388,3 +391,139 @@ def test_latest_ai_review_null_when_no_submitted_ai() -> None:
 def test_slugify() -> None:
     assert slugify("CLI for agent GitHub/git plumbing!") == "cli-for-agent-github-git-plumbing"
     assert slugify("bad .. slug~name") == "bad-slug-name"
+
+
+def test_shape_attaches_code_quality_finding() -> None:
+    payload = {
+        "data": {
+            "repository": {
+                "pullRequest": {
+                    "number": 1,
+                    "url": "https://example.test/pr/1",
+                    "reviews": {"nodes": []},
+                    "comments": {"nodes": []},
+                    "reviewThreads": {
+                        "nodes": [
+                            {
+                                "id": "TH_CQ",
+                                "isResolved": False,
+                                "comments": {
+                                    "nodes": [
+                                        {
+                                            "databaseId": 1,
+                                            "author": {"login": "github-code-quality"},
+                                            "body": "## Unused import\n\nImport of 'owslib' is not used.",
+                                            "path": "middleware/inspire/src/middleware/inspire/xml_hardening.py",
+                                            "originalPosition": 1,
+                                        }
+                                    ]
+                                },
+                            },
+                            {
+                                "id": "TH_HUMAN",
+                                "isResolved": False,
+                                "comments": {
+                                    "nodes": [
+                                        {
+                                            "databaseId": 2,
+                                            "author": {"login": "alice"},
+                                            "body": "nit",
+                                            "path": "middleware/inspire/src/middleware/inspire/xml_hardening.py",
+                                            "originalPosition": 2,
+                                        }
+                                    ]
+                                },
+                            },
+                        ]
+                    },
+                }
+            }
+        }
+    }
+    findings = [
+        {
+            "number": 23,
+            "state": "open",
+            "rule": {"id": "py/unused-import", "title": "Unused import"},
+            "location": {
+                "path": "middleware/inspire/src/middleware/inspire/xml_hardening.py",
+                "start_line": 21,
+            },
+            "message": {"text": "Import of 'owslib' is not used."},
+        }
+    ]
+    shaped = shape_review_open(payload, code_quality_findings=findings)
+    cq = next(t for t in shaped["unresolved_ai_threads"] if t["thread_id"] == "TH_CQ")
+    human = next(t for t in shaped["unresolved_ai_threads"] if t["thread_id"] == "TH_HUMAN")
+    assert cq["code_quality_finding"] == {
+        "number": 23,
+        "state": "open",
+        "rule_id": "py/unused-import",
+    }
+    assert "code_quality_finding" not in human
+
+
+def test_shape_omits_enrichment_when_findings_empty() -> None:
+    payload = {
+        "data": {
+            "repository": {
+                "pullRequest": {
+                    "number": 1,
+                    "url": "https://example.test/pr/1",
+                    "reviews": {"nodes": []},
+                    "comments": {"nodes": []},
+                    "reviewThreads": {
+                        "nodes": [
+                            {
+                                "id": "TH_CQ",
+                                "isResolved": False,
+                                "comments": {
+                                    "nodes": [
+                                        {
+                                            "databaseId": 1,
+                                            "author": {"login": "github-code-quality"},
+                                            "body": "## Unused import\n",
+                                            "path": "a.py",
+                                            "originalPosition": 1,
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+    }
+    shaped = shape_review_open(payload, code_quality_findings=[])
+    assert "code_quality_finding" not in shaped["unresolved_ai_threads"][0]
+
+
+def test_correlate_ambiguous_path_only_returns_none() -> None:
+
+    findings = [
+        {
+            "number": 1,
+            "state": "open",
+            "rule": {"id": "py/unused-import", "title": "Unused import"},
+            "location": {"path": "a.py"},
+            "message": {"text": "Import of 'x' is not used."},
+        },
+        {
+            "number": 2,
+            "state": "open",
+            "rule": {"id": "py/unused-global-variable", "title": "Unused global variable"},
+            "location": {"path": "a.py"},
+            "message": {"text": "The global variable 'Y' is not used."},
+        },
+    ]
+    assert correlate_code_quality_finding(path="a.py", body="something unrelated", findings=findings) is None
+
+
+def test_fetch_code_quality_findings_soft_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+
+    def boom(*_a: object, **_k: object) -> object:
+        raise GhError(["gh"], 1, "nope")
+
+    monkeypatch.setattr(review_mod, "run_gh", boom)
+    assert review_mod.fetch_code_quality_findings("o", "r") == []
