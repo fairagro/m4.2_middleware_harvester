@@ -107,6 +107,14 @@ repos:
         files: ^(uv\.lock|pyproject\.toml|\.uv-audit-ignore)$
         pass_filenames: false
 
+      - id: prettier-md
+        name: prettier format:md:check
+        entry: npm run format:md:check
+        language: system
+        files: \.(md|mdc)$
+        pass_filenames: false
+        exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
+
       - id: markdownlint
         name: markdownlint-cli2
         entry: npm run lint:md
