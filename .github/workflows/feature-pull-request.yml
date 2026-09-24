@@ -48,12 +48,11 @@ jobs:
   code-quality:
     name: Code Quality
     needs: detect-changes
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@e2c2ab4cbeab6c33c36fad6fbad0cb85958efb07
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@371ac9cefdf4c36ddc906d3ddff9e92e0b7af0cf
     with:
       python_package_root: middleware
       components: '["harvester"]'
-      mypy_path: stubs:middleware/inspire/src:middleware/harvester/src:middleware/linked_data/src:middleware/generic/src:middleware/payload/src:middleware/linked_data/tests/unit:middleware/inspire/tests/unit:middleware/payload/tests/unit
-      pylint_source_roots: middleware/linked_data/tests/unit,middleware/inspire/tests/unit,middleware/payload/tests/unit
+      # MYPYPATH / PYLINT_SOURCE_ROOTS: .devcontainer/product.env (empty inputs → quality_env_file)
       skip: ${{ needs.detect-changes.outputs.code != 'true' }}
     secrets: inherit
 
