@@ -183,15 +183,24 @@ Examples already in the shared skeleton:
 - pytest uses product `pyproject.toml` discovery; the shared pre-push hook runs
   `uv run pytest -m "not system_external and not system_local"` (see [Pre-push pytest scope](#pre-push-pytest-scope)).
 
-Path overlays for Mypy/Pylint belong **outside** the synced YAML (optional `.devcontainer/product.env`, process env, and
-reusable CI inputs such as `mypy_path` and `pylint_source_roots` in [`docs/ci.md`](ci.md) — not synced JSON `remoteEnv`
-for `MYPYPATH`). Prefer generalizing into Devinfra when every product needs the same roots.
+Path overlays for Mypy/Pylint belong **outside** the synced YAML. Prefer a single product-owned
+[`.devcontainer/product.env`](devcontainer.md) with:
 
-**Pylint `--source-roots`:** the synced pre-commit entry is `pylint --rcfile .pylintrc middleware/` **without**
-`--source-roots`, because product path lists cannot live in the shared hook YAML. Reusable CI passes
-`pylint_source_roots` when a product needs import helpers under `middleware/`. That overlay is **not** the fail bar —
-`.pylintrc` uses `fail-under=8.0`, so E0401 noise alone usually does not fail the gate. Do not patch synced
-`.pre-commit-config.yaml` to add `--source-roots`; use CI inputs / process env / `product.env` instead.
+```bash
+# .devcontainer/product.env (not synced)
+MYPYPATH=middleware/foo/src:middleware/bar/src
+PYLINT_SOURCE_ROOTS=middleware/foo/tests/unit,middleware/bar/tests/unit
+```
+
+Reusable CI loads those keys when `mypy_path` / `pylint_source_roots` inputs are empty ([`docs/ci.md`](ci.md)). Synced
+[`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) applies the same file on each invoke when the vars are
+unset (so edits apply without a Dev Container rebuild). Non-empty process env or workflow inputs win. Do **not** put
+path lists in synced `mypy.ini` / `.pre-commit-config.yaml`. Adopter follow-up:
+[harvester#299](https://github.com/fairagro/m4.2_middleware_harvester/issues/299).
+
+**Pylint `--source-roots`:** when `PYLINT_SOURCE_ROOTS` is set (file or env), `run-quality-cli.sh pylint` injects
+`--source-roots=…` unless the caller already passed that flag. Do not patch synced `.pre-commit-config.yaml` to
+hard-code product roots.
 
 ## Shared Python quality fragments (B2)
 

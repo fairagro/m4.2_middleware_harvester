@@ -50,6 +50,7 @@ allow:
   - scripts/run-container-structure-test.sh
   - scripts/run-import-linter.sh
   - scripts/run-quality-cli.sh
+  - scripts/load-quality-path-env.sh
   - scripts/quality-tools-pins.txt
   - scripts/run-uv-audit.sh
   - scripts/setup-git-hooks.sh

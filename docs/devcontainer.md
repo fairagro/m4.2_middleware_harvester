@@ -6,23 +6,25 @@ This image is the **shared product Dev Container toolchain** (issue #10): base p
 `.devcontainer/Dockerfile`, generic postCreate. Products adopt **verbatim** `.devcontainer/devcontainer.json` and
 `.devcontainer/docker-compose.yml` from sync (#13,
 [#65](https://github.com/fairagro/m4.2_middleware_devinfra/issues/65)) — do **not** hand-edit those blobs after sync.
-Repo-specific container env (`MYPYPATH`, `CST_*`, …) belongs in optional product-owned `.devcontainer/product.env` (not
-synced) and/or CI/hook env inputs.
+Repo-specific container env (`MYPYPATH`, `PYLINT_SOURCE_ROOTS`, `CST_*`, …) belongs in optional product-owned
+`.devcontainer/product.env` (not synced) and/or CI/hook env inputs. Compose `env_file` applies at **container create**
+only; synced [`scripts/run-quality-cli.sh`](../scripts/run-quality-cli.sh) re-reads `MYPYPATH` / `PYLINT_SOURCE_ROOTS`
+from that file on each invoke when unset (see [quality.md](quality.md) / [ci.md](ci.md)).
 
 OpenSpec **specs/changes** for product work stay in the product repos
 ([epic #1](https://github.com/fairagro/m4.2_middleware_devinfra/issues/1)); this image provides the OpenSpec CLI.
 
 ## Layout
 
-| Path                                                | Purpose                                                                  |
-| --------------------------------------------------- | ------------------------------------------------------------------------ |
-| `.devcontainer/devcontainer.json`                   | **Verbatim** sync: Compose service, DinD, mounts, extensions, postCreate |
-| `.devcontainer/docker-compose.yml`                  | **Verbatim** sync: build args from `versions.env`, bind `..:/workspace`  |
-| `.devcontainer/product.env`                         | **Product-owned** (optional, not synced): `MYPYPATH`, `CST_*`, …         |
-| `.devcontainer/Dockerfile`                          | Pinned shared tooling image                                              |
-| [`.vscode/settings.json`](../.vscode/settings.json) | Shared workspace IDE settings (also apply on host clones)                |
-| `versions.env`                                      | Single source of truth for tool versions                                 |
-| `.devcontainer/.env`                                | Symlink → `../versions.env` (Compose build-arg substitution)             |
+| Path                                                | Purpose                                                                                                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.devcontainer/devcontainer.json`                   | **Verbatim** sync: Compose service, DinD, mounts, extensions, postCreate                                                                               |
+| `.devcontainer/docker-compose.yml`                  | **Verbatim** sync: build args from `versions.env`, bind `..:/workspace`                                                                                |
+| `.devcontainer/product.env`                         | **Product-owned** (optional, not synced): `MYPYPATH`, `PYLINT_SOURCE_ROOTS`, `CST_*`, … — re-read by quality CLI / reusable CI when hooks inputs empty |
+| `.devcontainer/Dockerfile`                          | Pinned shared tooling image                                                                                                                            |
+| [`.vscode/settings.json`](../.vscode/settings.json) | Shared workspace IDE settings (also apply on host clones)                                                                                              |
+| `versions.env`                                      | Single source of truth for tool versions                                                                                                               |
+| `.devcontainer/.env`                                | Symlink → `../versions.env` (Compose build-arg substitution)                                                                                           |
 
 ## Shared JSON + Compose contract (`/workspace`)
 
