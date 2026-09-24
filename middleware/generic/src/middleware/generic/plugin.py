@@ -9,7 +9,7 @@ from dataclasses import replace
 
 import httpx
 
-import middleware.parsing.register_builtin_parsers as _register_html_jsonld_parser
+import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.generic.config import Config, ProtocolType
 from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
@@ -29,7 +29,7 @@ from middleware.payload.linked_data_mapper import (
 )
 from middleware.payload.mapper_config import MapperConfig, MapperType
 
-_ = (_register_html_jsonld_parser, _register_xml_protocol, _register_builtin_mappers)
+_ = (_register_builtin_parsers, _register_xml_protocol, _register_builtin_mappers)
 
 logger = logging.getLogger(__name__)
 
