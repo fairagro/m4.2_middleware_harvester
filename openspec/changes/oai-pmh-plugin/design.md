@@ -9,13 +9,13 @@ See `proposal.md` for motivation. Explore lock-ins for
   `NiceHttpClientConfig`.
 - Form: dedicated **`oai_pmh` plugin** (INSPIRE-like ownership of the wire protocol), **new plugin principle**: no
   vocabulary mapper inside the plugin; shared `PayloadParser` + `DataMapper`.
-- Baseline assumption: [#339](https://github.com/fairagro/m4.2_middleware_harvester/issues/339) already moved
-  `PayloadParser` / `DiscoveryResult` into the shared layer; this design consumes that layout.
+- Baseline: [#339](https://github.com/fairagro/m4.2_middleware_harvester/issues/339) shipped `middleware.parsing`
+  (`DiscoveryResult`, `PayloadParser` registry, sibling repository `parser:`) — this design consumes that layout.
 - Deleted → `SkippedRecord`; `sets: list[str]`; `metadata_prefix` required and configurable; EPrints/aeprints mapper
   deferred.
 
-Generic already composes Protocol → Parser → Mapper. OAI does **not** register as `ProtocolType`; Scythe’s `ListRecords`
-replaces that discovery stage inside the plugin.
+Generic already composes Protocol → Parser → Mapper via shared registries. OAI does **not** register as `ProtocolType`;
+Scythe’s `ListRecords` replaces that discovery stage inside the plugin, then uses the same shared parser + mapper path.
 
 ## Goals / Non-Goals
 
@@ -24,11 +24,11 @@ replaces that discovery stage inside the plugin.
 - Ship a working `oai_pmh` plugin + shared inline RDF/XML parser + config/orchestrator wiring under the locked
   contracts.
 - Preserve polite harvesting intent (UA, timeout, retries, optional robots + rate limit) within Scythe’s constraints.
-- Keep mapper/parser registries plugin-agnostic.
+- Keep mapper/parser registries plugin-agnostic in `middleware.payload` / `middleware.parsing`.
 
 **Non-Goals:**
 
-- Implementing #339 in this change.
+- Re-implementing #339 in this change.
 - EPrints/`eprints_general` mapper or production aeprints Helm/YAML as acceptance of this PR.
 - Middleware API delete/tombstone.
 - `oai_dc` or other non-RDF metadata handlers (extension point only).
@@ -54,28 +54,33 @@ Protocol registry obscures the model and fights Scythe’s sync httpx2 client vs
 
 **Alternatives:** DIY NiceHttp ListRecords — more control, more Spec risk; Sickle — unmaintained.
 
-### 3. Own config model (supported fields only)
+### 3. Own config model (supported fields only); parser via sibling `parser:`
 
-**Fields (indicative):** `endpoint_url`, `metadata_prefix`, `sets: list[str] = []`, `parser_type`, `user_agent`,
-`timeout`, retry block (`max_retries`, `retry_status_codes`, `default_retry_after`, `retry_on_transport_error`,
-`initial_backoff`), optional `respect_robots_txt`, optional `max_requests_per_second`.
+**Plugin fields (indicative):** `endpoint_url`, `metadata_prefix`, `sets: list[str] = []`, `user_agent`, `timeout`,
+retry block (`max_retries`, `retry_status_codes`, `default_retry_after`, `retry_on_transport_error`, `initial_backoff`),
+optional `respect_robots_txt`, optional `max_requests_per_second`.
 
-**Why:** User lock-in — do not subtype/map `NiceHttpClientConfig`. Robots/rate-limit are preflight/wrapper around
-Scythe, not fake Scythe features.
+**Repository siblings (required for `oai_pmh`, same as `generic`):** `parser: { type: … }` and `mapper: { type: … }`.
+The plugin `Config` MUST NOT carry `parser_type`.
 
-### 4. Discovery unit = inline metadata + OAI identifier
+**Why:** Matches post-#339 hard-cut; Scythe policies stay on the plugin; registries stay beside the plugin key. Do not
+subtype/map `NiceHttpClientConfig`. Robots/rate-limit are preflight/wrapper around Scythe, not fake Scythe features.
 
-**Choice:** Emit a shared discovery type (post-#339) carrying OAI identifier + raw `<metadata>` XML (bytes/str). Parser
-does not fetch.
+### 4. Discovery unit = inline metadata + OAI identifier in `middleware.parsing`
 
-**Why:** Same pattern as Regal inline JSON-LD; RDF/XML parser stays reusable.
+**Choice:** Add a parsing-owned discovery subclass (e.g. XML/string inline payload + `identifier`) beside
+`UrlDiscoveryResult` / `JsonLdDiscoveryResult`. OAI emits that unit from ListRecords; the RDF/XML parser consumes it and
+MUST NOT fetch.
 
-### 5. Shared parser type key `rdf_xml` (name)
+**Why:** Same pattern as Regal inline JSON-LD; RDF/XML parser stays reusable across plugins.
 
-**Choice:** Register inline RDF/XML parser under `rdf_xml` in the shared parser registry; OAI config sets
-`parser_type: rdf_xml` with `metadata_prefix` independently (e.g. `rdf`).
+### 5. Shared parser type key `rdf_xml` in `middleware.parsing`
 
-**Why:** Prefix names vary by repo; keep wire prefix and parse handler separate.
+**Choice:** Register inline RDF/XML parser under `ParserType.rdf_xml` / `parser.type: rdf_xml` in `middleware.parsing`;
+OAI sets `metadata_prefix` independently (e.g. `rdf`). Raise `ParserError` on unusable metadata; plugin harvest loop
+catches it as record-level failure (same pattern as `GenericPlugin` + `ParserError`).
+
+**Why:** Prefix names vary by repo; keep wire prefix and parse handler separate; share error base with other parsers.
 
 ### 6. Sets as sequential ListRecords passes
 
@@ -92,9 +97,17 @@ does not fetch.
 ### 8. Mapper out of scope; kind alignment still enforced
 
 **Choice:** Tests/fixtures prove parse → `rdf_graph`; full ARC path tested with a registered `rdf_graph` mapper when
-available, or stop at ParsedPayload / kind-check in unit tests. No EPrints mapper in this PR.
+available, or stop at ParsedPayload / kind-check in unit tests. No EPrints mapper in this PR. Startup validates
+`parser.produces` vs `mapper.accepts` via repository `parser` + `mapper` blocks.
 
 **Why:** Explore deferred aeprints mapper to a follow-up.
+
+### 9. Orchestrator wiring mirrors `generic`
+
+**Choice:** `PLUGIN_FACTORIES["oai_pmh"]` constructs the plugin with `(plugin_config, mapper_config, parser_config)`.
+`RepositoryConfig` requires `mapper` and `parser` when `oai_pmh` is set; `_NON_PLUGIN_FIELDS` already excludes both.
+
+**Why:** One pattern for every shared-parser plugin.
 
 ## Risks / Trade-offs
 
@@ -103,19 +116,19 @@ available, or stop at ParsedPayload / kind-check in unit tests. No EPrints mappe
 | Scythe httpx2 ≠ NiceHttp / project httpx       | Document; map UA/timeout/retry; robots + RPS outside Scythe                                                                            |
 | XML hardening weaker than CSW (`recover=True`) | Prefer parsing metadata with project-hardened RDF/XML path in the shared parser where possible; limit trust in Scythe’s envelope parse |
 | No EPrints mapper → incomplete end-to-end demo | Explicit non-goal; follow-up issue/PR                                                                                                  |
-| #339 not actually merged when apply starts     | Apply blocked until #339 on `main`; this change assumes it                                                                             |
+| #339 not on integration base                   | Apply blocked until `middleware.parsing` + sibling `parser:` available on the merge base                                               |
 | Large repos / many sets                        | Sequential sets; pagination via Scythe; expected count often `None`                                                                    |
 
 ## Migration Plan
 
-1. Land #339 (shared parsers).
-2. Land this change: package + parser + config + tests.
+1. Land #339 (shared parsers) — done on the OAI working branch via merge.
+2. Land this change: package + parsing discovery/parser + config + tests.
 3. Follow-up: EPrints mapper + aeprints example config; Middleware API delete issue for tombstones.
 4. Rollback: remove `oai_pmh` repos from config; no data migration.
 
 ## Open Questions
 
-- Exact shared-package module path for parsers after #339 (`middleware.payload.parser` vs sibling) — follow whatever
-  #339 ships; tasks reference “shared parser registry” not a frozen path.
+- Exact name of the inline XML discovery dataclass (`XmlDiscoveryResult` vs `RdfXmlDiscoveryResult`) — pick one at apply
+  time; keep it in `middleware.parsing.discovery`.
 - Whether `get_expected_datasets` should call `Identify` / use `completeListSize` when present — prefer `None` unless
   cheap and reliable in implementation.

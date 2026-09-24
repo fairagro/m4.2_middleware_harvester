@@ -2,17 +2,17 @@
 
 ## Purpose
 
-Shared PayloadParser that turns inline RDF/XML bytes or text into an `rdf_graph` ParsedPayload for any plugin that
-discovers RDF/XML without a second HTTP fetch.
+Shared PayloadParser in `middleware.parsing` that turns inline RDF/XML bytes or text into an `rdf_graph` ParsedPayload
+for any plugin that discovers RDF/XML without a second HTTP fetch.
 
 ## ADDED Requirements
 
 ### Requirement: Provide an inline RDF/XML PayloadParser producing rdf_graph
 
-The system SHALL provide a shared PayloadParser implementation, selectable by a registered parser type key, that accepts
-a discovery unit carrying inline RDF/XML and returns `ParsedPayload` with `kind` `rdf_graph` and a graph value suitable
-for RDF `DataMapper`s. The parser MUST NOT require an HTTP client when the RDF/XML is already present on the discovery
-unit.
+The system SHALL provide a shared PayloadParser implementation in `middleware.parsing`, selectable by registry key
+`rdf_xml` (`parser.type`), that accepts a discovery unit owned by `middleware.parsing` carrying inline RDF/XML and
+returns `ParsedPayload` with `kind` `rdf_graph` and a graph value suitable for RDF `DataMapper`s. The parser MUST NOT
+require an HTTP client when the RDF/XML is already present on the discovery unit.
 
 #### Scenario: Inline RDF/XML parses to rdf_graph
 
@@ -27,8 +27,8 @@ unit.
 
 ### Requirement: Fail closed on unusable RDF/XML
 
-The system SHALL yield or raise a record-level failure (shared error type suitable for harvest reporting) when the
-inline payload is missing, empty, or not parseable as RDF/XML.
+The system SHALL raise `ParserError` (or yield a record-level failure via the composing plugin) when the inline payload
+is missing, empty, or not parseable as RDF/XML.
 
 #### Scenario: Malformed RDF/XML fails the record
 

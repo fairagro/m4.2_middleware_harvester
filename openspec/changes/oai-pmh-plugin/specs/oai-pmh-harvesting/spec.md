@@ -3,22 +3,24 @@
 ## Purpose
 
 Dedicated OAI-PMH harvest plugin that lists records from an OAI-PMH 2.0 endpoint, converts each record’s metadata via a
-shared PayloadParser, and maps through a shared DataMapper — without registering OAI as a Generic Protocol type.
+shared PayloadParser from `middleware.parsing`, and maps through a shared DataMapper — without registering OAI as a
+Generic Protocol type.
 
 ## ADDED Requirements
 
 ### Requirement: Provide an oai_pmh plugin Config as a Pydantic BaseModel
 
 The system SHALL provide a plugin-level `Config` as a Pydantic `BaseModel` under the repository plugin key `oai_pmh`.
-The config MUST require an OAI-PMH base endpoint URL, a `metadata_prefix` string, and a `parser_type` selecting a
-registered shared PayloadParser. The config MUST accept an optional `sets` list of OAI `setSpec` strings (default
-empty). The config MUST expose its own HTTP/retry fields comparable to polite harvesting needs that the chosen OAI
-client can honour (at least user agent and request timeout; retries where supported). The config MUST NOT be a subtype
-or mapped copy of `NiceHttpClientConfig`; unsupported NiceHttp-only policies MUST NOT appear as required fields.
+The config MUST require an OAI-PMH base endpoint URL and a `metadata_prefix` string. The config MUST accept an optional
+`sets` list of OAI `setSpec` strings (default empty). The config MUST expose its own HTTP/retry fields comparable to
+polite harvesting needs that the chosen OAI client can honour (at least user agent and request timeout; retries where
+supported). The config MUST NOT be a subtype or mapped copy of `NiceHttpClientConfig`; unsupported NiceHttp-only
+policies MUST NOT appear as required fields. Shared parser selection MUST use the repository-level `parser:` block (not
+a field on the `oai_pmh` plugin config).
 
 #### Scenario: Minimal valid oai_pmh config
 
-- **WHEN** a repository sets `oai_pmh` with endpoint, `metadata_prefix`, and `parser_type`, plus repository `mapper`
+- **WHEN** a repository sets `oai_pmh` with endpoint and `metadata_prefix`, plus sibling `parser` and `mapper`
 - **THEN** configuration validation succeeds
 
 #### Scenario: metadata_prefix is required
@@ -26,11 +28,16 @@ or mapped copy of `NiceHttpClientConfig`; unsupported NiceHttp-only policies MUS
 - **WHEN** `oai_pmh` omits `metadata_prefix`
 - **THEN** configuration validation fails before harvesting starts
 
+#### Scenario: Parser selected via sibling parser block
+
+- **WHEN** an `oai_pmh` repository is configured with `parser: { type: rdf_xml }`
+- **THEN** the PayloadParser implementation is selected from repository `parser.type`
+
 ### Requirement: Implement OaiPmhPlugin satisfying the Plugin harvest contract
 
 The system SHALL implement an OAI-PMH plugin that the orchestrator instantiates with plugin config plus repository
-`mapper` config and invokes via the shared `Plugin` interface (`run()` and `get_expected_datasets()`). Yields MUST be
-`HarvestedArc | HarvesterError | SkippedRecord`.
+`mapper` and `parser` config and invokes via the shared `Plugin` interface (`run()` and `get_expected_datasets()`).
+Yields MUST be `HarvestedArc | HarvesterError | SkippedRecord`.
 
 #### Scenario: Orchestrator dispatches oai_pmh repositories
 
@@ -67,11 +74,12 @@ invent set names.
 
 ### Requirement: Compose shared PayloadParser then shared DataMapper
 
-For each non-deleted OAI record with usable metadata, the system SHALL build a discovery unit carrying a stable
-identifier (OAI identifier) and the inline `<metadata>` payload, invoke the configured shared PayloadParser to obtain a
-`ParsedPayload`, fail closed when `payload.kind` differs from the repository mapper’s `accepts`, then invoke the shared
-DataMapper and yield `HarvestedArc` on success. Record-level parse/map failures MUST yield `HarvesterError` (or
-subclass) and MUST NOT abort the remainder of the harvest.
+For each non-deleted OAI record with usable metadata, the system SHALL build a `middleware.parsing` discovery unit
+carrying a stable identifier (OAI identifier) and the inline `<metadata>` payload, invoke the configured shared
+PayloadParser to obtain a `ParsedPayload`, fail closed when `payload.kind` differs from the repository mapper’s
+`accepts`, then invoke the shared DataMapper and yield `HarvestedArc` on success. Record-level parse/map failures
+(including `ParserError` from `middleware.parsing`) MUST yield `HarvesterError` (or subclass) and MUST NOT abort the
+remainder of the harvest.
 
 #### Scenario: Successful record yields HarvestedArc
 
