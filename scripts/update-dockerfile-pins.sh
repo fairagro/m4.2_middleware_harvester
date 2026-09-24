@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 #
 # Update Dockerfile pins that shared Renovate does not manage:
-#   - Alpine apk pins: name=X.Y.Z-rN (from Alpine APKINDEX main + community)
+#   - Alpine apk pins via ARG defaults (fleet style B):
+#       ARG CA_CERTIFICATES_VERSION=20260611-r0
+#       RUN apk add --no-cache "ca-certificates=${CA_CERTIFICATES_VERSION}"
+#     ARG NAME maps to apk package by stripping _VERSION, lower-casing, '_' → '-'.
 #   - Inline pip-style pins in the Dockerfile: name==X.Y.Z (from PyPI)
 #
 # Does NOT edit versions.env / .python-version (Devinfra Renovate + sync SoT).
 # Does NOT write *.bak sidecars — use git to roll back.
+# Does NOT support inline apk literals pkg=X.Y.Z-rN (style A) — those fail loud.
 #
 # Usage:
 #   ./scripts/update-dockerfile-pins.sh
@@ -84,6 +88,13 @@ detect_alpine_minor() {
   printf '%s' "$extracted"
 }
 
+# ARG CA_CERTIFICATES_VERSION → ca-certificates
+arg_name_to_apk_pkg() {
+  local arg="$1"
+  local base="${arg%_VERSION}"
+  printf '%s' "$base" | tr '[:upper:]' '[:lower:]' | tr '_' '-'
+}
+
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -140,6 +151,7 @@ latest_apk_version() {
 
 update_one_dockerfile() {
   local dockerfile="$1"
+  local failed=0
 
   if [[ ! -f "$dockerfile" ]]; then
     echo "ERROR: Dockerfile not found: $dockerfile" >&2
@@ -154,53 +166,67 @@ update_one_dockerfile() {
   fi
   echo "=== ${dockerfile} (Alpine ${alpine_minor})"
 
+  # Style A leftover: inline apk version literals are not supported.
+  local inline_apk
+  inline_apk="$(grep -oE '[a-z0-9][a-z0-9_-]*=[0-9][a-z0-9._]+-r[0-9]+' "$dockerfile" || true)"
+  if [[ -n "$inline_apk" ]]; then
+    echo "ERROR: inline apk version literals are not supported (use ARG <PKG>_VERSION=… + \"pkg=\${…}\"):" >&2
+    printf '%s\n' "$inline_apk" | sort -u | sed 's/^/  /' >&2
+    failed=1
+  fi
+
   ensure_apkindex "$alpine_minor"
 
-  echo "Updating apk pins..."
-  # Match only Alpine-style pinned packages: name=X.Y.Z-rN
-  # Hyphen must be at the END of [a-z0-9_-] to be literal in POSIX ERE.
-  while IFS= read -r match; do
-    [[ "$match" =~ ^([a-z0-9][a-z0-9_-]*)=([0-9][a-z0-9._]+-r[0-9]+)$ ]] || continue
+  echo "Updating apk ARG pins (…_VERSION=*-rN)..."
+  local arg_line arg_name current pkg latest escaped_current
+  while IFS= read -r arg_line; do
+    [[ "$arg_line" =~ ^ARG[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)=([0-9][a-z0-9._]+-r[0-9]+)[[:space:]]*$ ]] || continue
+    arg_name="${BASH_REMATCH[1]}"
+    current="${BASH_REMATCH[2]}"
+    [[ "$arg_name" == *_VERSION ]] || continue
 
-    local pkg="${BASH_REMATCH[1]}"
-    local current="${BASH_REMATCH[2]}"
-    local latest
+    pkg="$(arg_name_to_apk_pkg "$arg_name")"
     latest="$(latest_apk_version "$pkg" || true)"
 
     if [[ -z "$latest" ]]; then
-      echo "  skip ${pkg}: not in APKINDEX"
+      echo "ERROR: ${arg_name} → apk '${pkg}' not in APKINDEX (Alpine ${alpine_minor})" >&2
+      failed=1
       continue
     fi
     if [[ "$latest" == "$current" ]]; then
-      echo "  ok   ${pkg}=${current}"
+      echo "  ok   ${arg_name}=${current} (${pkg})"
       continue
     fi
-    echo "  bump ${pkg}: ${current} -> ${latest}"
-    local escaped_current="${current//./\\.}"
-    sed -i "s#\(^\|[[:space:]]\)${pkg}=${escaped_current}\([[:space:]]\|$\)#\1${pkg}=${latest}\2#g" "$dockerfile"
-  done < <(grep -oE '[a-z0-9][a-z0-9_-]*=[0-9][a-z0-9._]+-r[0-9]+' "$dockerfile" || true)
+    echo "  bump ${arg_name}: ${current} -> ${latest} (${pkg})"
+    escaped_current="${current//./\\.}"
+    sed -i -E "s|^(ARG[[:space:]]+${arg_name}=)${escaped_current}([[:space:]]*)$|\1${latest}\2|" "$dockerfile"
+  done < <(grep -E '^ARG[[:space:]]+[A-Za-z_][A-Za-z0-9_]*=[0-9][a-z0-9._]+-r[0-9]+[[:space:]]*$' "$dockerfile" || true)
 
   echo "Updating inline pip pins (name==…)..."
   while IFS= read -r match; do
     [[ "$match" =~ ^([a-zA-Z0-9][a-zA-Z0-9_-]*)==([0-9][a-z0-9._]*)$ ]] || continue
 
-    local pkg="${BASH_REMATCH[1]}"
-    local current="${BASH_REMATCH[2]}"
-    local latest
-    latest="$(pypi_latest "$pkg" || true)"
+    local pkg_pip="${BASH_REMATCH[1]}"
+    local current_pip="${BASH_REMATCH[2]}"
+    local latest_pip
+    latest_pip="$(pypi_latest "$pkg_pip" || true)"
 
-    if [[ -z "$latest" ]]; then
-      echo "  skip ${pkg}: PyPI lookup failed"
+    if [[ -z "$latest_pip" ]]; then
+      echo "  skip ${pkg_pip}: PyPI lookup failed"
       continue
     fi
-    if [[ "$latest" == "$current" ]]; then
-      echo "  ok   ${pkg}==${current}"
+    if [[ "$latest_pip" == "$current_pip" ]]; then
+      echo "  ok   ${pkg_pip}==${current_pip}"
       continue
     fi
-    echo "  bump ${pkg}: ${current} -> ${latest}"
-    sed -i "s|${pkg}==${current}|${pkg}==${latest}|g" "$dockerfile"
+    echo "  bump ${pkg_pip}: ${current_pip} -> ${latest_pip}"
+    sed -i "s|${pkg_pip}==${current_pip}|${pkg_pip}==${latest_pip}|g" "$dockerfile"
   done < <(grep -oE '[a-zA-Z0-9][a-zA-Z0-9_-]*==[0-9][a-z0-9._]*' "$dockerfile" || true)
 
+  if [[ "$failed" -ne 0 ]]; then
+    echo "ERROR: pin update failed for ${dockerfile}" >&2
+    return 1
+  fi
   echo "Done: ${dockerfile} (no .bak; roll back with git if needed)"
 }
 
@@ -211,6 +237,10 @@ if ((${#DOCKERFILES[@]} == 0)); then
   echo "ERROR: no Dockerfiles to update" >&2
   exit 1
 fi
+OVERALL=0
 for DOCKERFILE in "${DOCKERFILES[@]}"; do
-  update_one_dockerfile "$DOCKERFILE"
+  if ! update_one_dockerfile "$DOCKERFILE"; then
+    OVERALL=1
+  fi
 done
+exit "$OVERALL"
