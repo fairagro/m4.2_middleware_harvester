@@ -1,0 +1,52 @@
+# Thin product caller for Devinfra reusable-registry-retry (issue #251 / Devinfra #34).
+# Re-pushes Docker images or a Helm final chart for an *existing* release tag — no new semver/tag.
+# Operator guide: docs/ci.md → reusable-registry-retry.yml (list tags with `gh release list`).
+name: Registry Retry
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_tag:
+        description: "Existing release tag (gh release list / git tag -l '*-docker-v*'|'*-chart-v*')"
+        required: true
+        type: string
+      release_kind:
+        description: "docker or helm (final chart only; pre-release out of scope)"
+        type: choice
+        options:
+          - docker
+          - helm
+        required: true
+      retry_dockerhub:
+        description: "Retry push to DockerHub (needs DOCKERHUB_USER / DOCKERHUB_TOKEN)"
+        type: boolean
+        default: false
+      retry_ghcr:
+        description: "Retry push to GHCR"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-registry-retry.yml@main
+    with:
+      git_tag: ${{ inputs.git_tag }}
+      release_kind: ${{ inputs.release_kind }}
+      retry_dockerhub: ${{ inputs.retry_dockerhub }}
+      retry_ghcr: ${{ inputs.retry_ghcr }}
+      components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
+      chart_name: fairagro-advanced-middleware-harvester-chart
+      dockerhub_namespace: zalf
+    secrets: inherit
