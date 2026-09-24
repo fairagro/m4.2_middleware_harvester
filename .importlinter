@@ -3,10 +3,11 @@
 # Inventory (top-level middleware.* portions / intended roles) — issue #302:
 #   middleware.shared / middleware.api_client — shared libs (git deps)
 #   middleware.payload                      — PayloadKind / DataMapper / RDF mappers (no plugin deps)
-#   middleware.harvester                    — orchestrator; imports plugins + payload
+#   middleware.parsing                      — DiscoveryResult / PayloadParser registry (may use harvester HTTP/errors)
+#   middleware.harvester                    — orchestrator; imports plugins + payload + parsing
 #   middleware.inspire                      — INSPIRE/CSW plugin
 #   middleware.linked_data                  — sitemap/HTML JSON-LD plugin (shim→generic during migration)
-#   middleware.generic                      — Protocol + PayloadParser + shared pipeline
+#   middleware.generic                      — Protocol + shared pipeline (consumes parsing)
 #
 # PEP 420: grimp raises NamespacePackageEncountered for package `middleware`, so
 # `ancestors = middleware` (fleet template) cannot run here. Ancestors are the
@@ -26,6 +27,7 @@ root_packages =
     middleware.harvester
     middleware.inspire
     middleware.linked_data
+    middleware.parsing
     middleware.payload
     middleware.shared
 
@@ -38,17 +40,30 @@ ancestors =
     middleware.harvester
     middleware.inspire
     middleware.linked_data
+    middleware.parsing
     middleware.payload
     middleware.shared
 
-# payload MUST NOT depend on harvester or protocol plugins (principles.md).
+# payload MUST NOT depend on harvester, parsing, or protocol plugins (principles.md).
 [importlinter:contract:payload-isolation]
-name = payload must not import harvester or protocol plugins
+name = payload must not import harvester, parsing, or protocol plugins
 type = forbidden
 source_modules =
     middleware.payload
 forbidden_modules =
     middleware.harvester
+    middleware.inspire
+    middleware.linked_data
+    middleware.generic
+    middleware.parsing
+
+# parsing MAY import harvester + payload; MUST NOT import protocol plugins.
+[importlinter:contract:parsing-plugin-isolation]
+name = parsing must not import protocol plugins
+type = forbidden
+source_modules =
+    middleware.parsing
+forbidden_modules =
     middleware.inspire
     middleware.linked_data
     middleware.generic

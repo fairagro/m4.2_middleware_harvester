@@ -1,6 +1,7 @@
 """Errors for the generic harvest plugin."""
 
 from middleware.harvester.errors import HarvesterError
+from middleware.parsing.errors import ParserError
 
 
 class GenericError(HarvesterError):
@@ -11,5 +12,5 @@ class GenericProtocolError(GenericError):
     """Protocol discovery failed."""
 
 
-class GenericParserError(GenericError):
-    """Payload parse failed."""
+# Backward-compatible alias for shared parser failures (owned by middleware.parsing).
+GenericParserError = ParserError
