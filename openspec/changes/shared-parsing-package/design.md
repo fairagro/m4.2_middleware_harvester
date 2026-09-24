@@ -45,11 +45,12 @@ HTTP/harvester deps.
 
 **Optional:** thin deprecated re-exports in `generic` only if needed for in-flight branches — default is delete + fix.
 
-### 4. `ParserType` lives in `parsing`; `ProtocolType` stays in `generic.config`
+### 4. `ParserType` / `ParserConfig` live in `parsing`; `ProtocolType` stays in `generic.config`
 
-**Why:** Protocol registry remains generic-owned; parser keys are shared.
+**Why:** Protocol registry remains generic-owned; parser keys are shared. Repository sibling `parser: { type }` mirrors
+`mapper: { type }` so future plugins (OAI) select parsers without nesting under `generic:`.
 
-Generic `Config.parser_type` imports `ParserType` from `parsing`.
+Generic plugin config does not carry `parser_type`; operators set sibling `parser: { type }` only.
 
 ### 5. Errors: `middleware.parsing.errors.ParserError(HarvesterError)`
 

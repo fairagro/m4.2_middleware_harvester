@@ -9,19 +9,18 @@ from dataclasses import replace
 
 import httpx
 
-from middleware.generic.config import Config, ParserType, ProtocolType
-from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
+import middleware.parsing.register_builtin_parsers as _register_html_jsonld_parser
+from middleware.generic.config import Config, ProtocolType
 from middleware.generic.errors import GenericError, GenericProtocolError
-
-# Side-effect imports: Protocol / PayloadParser / DataMapper registries.
-from middleware.generic.parser import html_jsonld as _register_html_jsonld_parser
-from middleware.generic.parser.parser import PayloadParser
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.generic.protocol import xml as _register_xml_protocol
 from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.parser.parser import PayloadParser
+from middleware.parsing.parser_config import ParserConfig
 from middleware.payload.linked_data_mapper import (
     LinkedDataMapper,
     MappingContext,
@@ -37,14 +36,14 @@ logger = logging.getLogger(__name__)
 class GenericPlugin:
     """Stateful generic plugin (structurally satisfies ``Plugin``)."""
 
-    def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
-        """Initialize with plugin + repository mapper configuration."""
+    def __init__(self, config: Config, mapper_config: MapperConfig, parser_config: ParserConfig) -> None:
+        """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
         self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
-        self._parser_cls: type[PayloadParser] = self.create_parser_class(config)
+        self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
             raise ValueError(
-                f"parser {config.parser_type} produces {self._parser_cls.produces!r}, "
+                f"parser {parser_config.type} produces {self._parser_cls.produces!r}, "
                 f"but mapper accepts {self._mapper.accepts!r}"
             )
 
@@ -58,12 +57,12 @@ class GenericPlugin:
         return protocol_cls(config, client)
 
     @staticmethod
-    def create_parser_class(config: Config) -> type[PayloadParser]:
+    def create_parser_class(parser_config: ParserConfig) -> type[PayloadParser]:
         """Resolve the PayloadParser implementation for the configured parser type."""
         try:
-            return PayloadParser.registry[config.parser_type]
+            return PayloadParser.registry[parser_config.type]
         except KeyError as exc:
-            raise ValueError(f"Unsupported parser type: {config.parser_type}") from exc
+            raise ValueError(f"Unsupported parser type: {parser_config.type}") from exc
 
     @staticmethod
     def create_mapper(config: Config, mapper_config: MapperConfig) -> LinkedDataMapper:
@@ -205,4 +204,4 @@ class GenericPlugin:
 
 
 # Re-export enums for tests / registration checks.
-__all__ = ["GenericPlugin", "ParserType", "ProtocolType"]
+__all__ = ["GenericPlugin", "ProtocolType"]

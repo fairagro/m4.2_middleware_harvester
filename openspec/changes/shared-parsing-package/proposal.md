@@ -19,6 +19,8 @@ HTTP Protocols or error-wrapping in `payload`.
 - **BREAKING (import paths):** Move those symbols out of `middleware.generic`; update `generic`, `linked_data`, and
   `harvester` config imports. Temporary re-exports MAY exist only if needed for a short coexistence window; prefer
   updating call sites in the same change.
+- **BREAKING (config):** Lift shared parser selection to repository sibling `parser: { type: ... }` (like `mapper:`). Do
+  not keep `generic.parser_type` (plugin unused in production; hard cut).
 - `middleware.generic` retains Protocol registry, generic pipeline, and plugin orchestration; it **consumes** shared
   parsers.
 - `linked_data` stops importing discovery/parsers from `generic` for those concerns (Protocol/sitemap shims to generic
@@ -41,7 +43,9 @@ HTTP Protocols or error-wrapping in `payload`.
 - `principles`: Module graph — `parsing` between plugins and payload; `parsing` MAY import `harvester` + `payload`;
   plugins MAY import `parsing`; `payload` MUST NOT import `parsing` or plugins; plugins MUST NOT import each other for
   parsers.
-- `generic-harvesting`: Generic plugin consumes shared parser registry from `middleware.parsing`.
+- `generic-harvesting`: Generic plugin consumes shared parser registry from `middleware.parsing`; config no longer
+  requires `parser_type` on the plugin block.
+- `harvester-configuration`: Repository sibling `parser:` block (required for `generic`).
 - `harvest-protocol`: Discovery unit types are shared via `middleware.parsing` (Protocols still live in generic /
   linked_data as today).
 

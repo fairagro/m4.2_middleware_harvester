@@ -175,24 +175,39 @@ def _minimal_generic() -> dict[str, object]:
     return {
         "sitemap_url": "https://example.org/sitemap.xml",
         "protocol_type": "xml",
-        "parser_type": "html_jsonld",
     }
 
 
 def test_generic_repository_requires_mapper() -> None:
     with pytest.raises(ValidationError, match="mapper"):
-        RepositoryConfig.model_validate({"rdi": "g", "generic": _minimal_generic()})
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": _minimal_generic(),
+            "parser": {"type": "html_jsonld"},
+        })
+
+
+def test_generic_repository_requires_parser() -> None:
+    with pytest.raises(ValidationError, match="parser"):
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": _minimal_generic(),
+            "mapper": {"type": "schema_org_general"},
+        })
 
 
 def test_generic_repository_accepts_schema_org_mapper() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "g",
         "generic": _minimal_generic(),
+        "parser": {"type": "html_jsonld"},
         "mapper": {"type": "schema_org_general"},
     })
     assert repo.plugin_type == "generic"
     assert repo.mapper is not None
     assert repo.mapper.type == "schema_org_general"
+    assert repo.parser is not None
+    assert repo.parser.type == "html_jsonld"
     assert repo.source_url == "https://example.org/sitemap.xml"
 
 
@@ -202,6 +217,7 @@ def test_generic_and_linked_data_mutual_exclusion() -> None:
             "rdi": "both",
             "generic": _minimal_generic(),
             "linked_data": _minimal_linked_data(),
+            "parser": {"type": "html_jsonld"},
             "mapper": {"type": "schema_org_general"},
         })
 
@@ -213,5 +229,6 @@ def test_generic_unregistered_protocol_type_fails_closed(monkeypatch: pytest.Mon
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
+            "parser": {"type": "html_jsonld"},
             "mapper": {"type": "schema_org_general"},
         })
