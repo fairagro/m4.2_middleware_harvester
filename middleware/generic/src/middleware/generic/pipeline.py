@@ -13,10 +13,10 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from middleware.generic.discovery import DiscoveryResult
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
 from middleware.harvester.plugin_base import HarvestedArc
+from middleware.parsing.discovery import DiscoveryResult
 
 PipelineResult = HarvestedArc | HarvesterError | SkippedRecord
 ProcessFn = Callable[

@@ -1,7 +1,7 @@
-"""Generic harvest plugin: Protocol + PayloadParser composition."""
+"""Generic harvest plugin: Protocol + shared PayloadParser composition."""
 
-from middleware.generic.config import Config, ParserType, ProtocolType
-from middleware.generic.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
+from middleware.generic.config import Config, ProtocolType
+from middleware.parsing import DiscoveryResult, JsonLdDiscoveryResult, ParserType, UrlDiscoveryResult
 
 __all__ = [
     "Config",
