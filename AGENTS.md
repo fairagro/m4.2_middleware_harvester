@@ -106,6 +106,12 @@ Cursor fixes [forum #167719](https://forum.cursor.com/t/167719).
 uv run python -m middleware.harvester.main -c config.yaml
 ```
 
+### Registry retry (existing release)
+
+Re-push Docker/Helm for an **existing** git tag (no new semver): Actions → **Registry Retry**
+(`.github/workflows/registry-retry.yml`). Tag picker: `gh release list`. Contract: [`docs/ci.md`](docs/ci.md)
+(`reusable-registry-retry.yml`).
+
 ### OpenSpec
 
 ```bash
