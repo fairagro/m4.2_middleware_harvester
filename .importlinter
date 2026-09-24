@@ -1,11 +1,22 @@
 # Product-owned import-linter config (not synced). Fleet baseline: docs/quality.md.
 #
+# Inventory (top-level middleware.* portions / intended roles) — issue #302:
+#   middleware.shared / middleware.api_client — shared libs (git deps)
+#   middleware.payload                      — PayloadKind / DataMapper / RDF mappers (no plugin deps)
+#   middleware.harvester                    — orchestrator; imports plugins + payload
+#   middleware.inspire                      — INSPIRE/CSW plugin
+#   middleware.linked_data                  — sitemap/HTML JSON-LD plugin (shim→generic during migration)
+#   middleware.generic                      — Protocol + PayloadParser + shared pipeline
+#
 # PEP 420: grimp raises NamespacePackageEncountered for package `middleware`, so
 # `ancestors = middleware` (fleet template) cannot run here. Ancestors are the
 # installed portions instead — that still uses contract type `acyclic_siblings`
-# and checks cycles among each portion's children. Cross-portion edges
-# (harvester ↔ plugins) are an existing architecture shape; tightening that DAG
-# is out of scope for #319 (see openspec/principles.md / follow-ups).
+# and checks cycles among each portion's children.
+#
+# Cross-portion edges (harvester ↔ plugins) are an existing architecture shape
+# (plugins import harvester errors/HTTP/Plugin; orchestrator imports plugins).
+# A strict `layers` stack across those packages would fail; we encode enforceable
+# boundaries with `forbidden` / `independence` instead (openspec/principles.md).
 
 [importlinter]
 exclude_type_checking_imports = True
@@ -29,3 +40,51 @@ ancestors =
     middleware.linked_data
     middleware.payload
     middleware.shared
+
+# payload MUST NOT depend on harvester or protocol plugins (principles.md).
+[importlinter:contract:payload-isolation]
+name = payload must not import harvester or protocol plugins
+type = forbidden
+source_modules =
+    middleware.payload
+forbidden_modules =
+    middleware.harvester
+    middleware.inspire
+    middleware.linked_data
+    middleware.generic
+
+# Protocol plugins must not import each other, except the documented temporary
+# linked_data → generic discovery/parser/pipeline shims (principles.md).
+[importlinter:contract:inspire-plugin-isolation]
+name = inspire must not import linked_data or generic
+type = forbidden
+source_modules =
+    middleware.inspire
+forbidden_modules =
+    middleware.linked_data
+    middleware.generic
+
+[importlinter:contract:generic-plugin-isolation]
+name = generic must not import linked_data or inspire
+type = forbidden
+source_modules =
+    middleware.generic
+forbidden_modules =
+    middleware.linked_data
+    middleware.inspire
+
+[importlinter:contract:linked-data-not-inspire]
+name = linked_data must not import inspire
+type = forbidden
+source_modules =
+    middleware.linked_data
+forbidden_modules =
+    middleware.inspire
+
+# inspire and generic have no shared migration edge — keep them independent.
+[importlinter:contract:inspire-generic-independence]
+name = inspire and generic plugins are independent
+type = independence
+modules =
+    middleware.inspire
+    middleware.generic
