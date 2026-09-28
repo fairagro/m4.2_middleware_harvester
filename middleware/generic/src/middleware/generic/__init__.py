@@ -1,13 +1,13 @@
-"""Generic harvest plugin: Protocol + PayloadParser composition."""
+"""Generic harvest plugin: Protocol + shared PayloadParser composition.
 
-from middleware.generic.config import Config, ParserType, ProtocolType
-from middleware.generic.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
+Discovery units and PayloadParsers are owned by ``middleware.parsing`` and are
+deliberately not re-exported here — plugins must import them from the shared
+package so no cross-plugin parser edge can form via ``middleware.generic``.
+"""
+
+from middleware.generic.config import Config, ProtocolType
 
 __all__ = [
     "Config",
-    "DiscoveryResult",
-    "JsonLdDiscoveryResult",
-    "ParserType",
     "ProtocolType",
-    "UrlDiscoveryResult",
 ]

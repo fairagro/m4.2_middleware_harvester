@@ -10,7 +10,8 @@ repositories:
     generic:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
       protocol_type: xml
-      parser_type: html_jsonld
+    parser:
+      type: html_jsonld
     mapper:
       type: schema_org_general
   # Legacy linked_data form (still supported during migration):

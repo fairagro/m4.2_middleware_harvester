@@ -9,7 +9,3 @@ class GenericError(HarvesterError):
 
 class GenericProtocolError(GenericError):
     """Protocol discovery failed."""
-
-
-class GenericParserError(GenericError):
-    """Payload parse failed."""
