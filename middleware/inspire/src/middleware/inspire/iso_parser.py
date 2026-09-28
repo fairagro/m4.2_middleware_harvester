@@ -18,6 +18,15 @@ from middleware.inspire.models import (
     ResourceIdentifier,
     SpatialResolutionDistance,
 )
+from middleware.inspire.value_bounds import (
+    MAX_LIST_ITEMS,
+    MAX_STR_LONG,
+    MAX_STR_MEDIUM,
+    MAX_STR_SHORT,
+    bounded_str,
+    truncate,
+    valid_http_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +40,7 @@ class IsoParser:
         if not iso.identifier or not isinstance(iso.identifier, str):
             raise SemanticError(f"Record {record_uuid} is missing a valid identifier (gmd:fileIdentifier).")
 
-        identifier = iso.identifier
+        identifier = truncate(iso.identifier, MAX_STR_MEDIUM)
         identification = self._extract_identification(iso)
 
         return InspireRecord(
@@ -48,19 +57,19 @@ class IsoParser:
             temporal_extent=self._extract_temporal_extent(iso),
             constraints=self._extract_constraints(iso),
             # Metadata-level fields (new)
-            parent_identifier=getattr(iso, "parentidentifier", None),
-            language=getattr(iso, "language", None) or getattr(iso, "languagecode", None),
-            charset=getattr(iso, "charset", None),
-            hierarchy=getattr(iso, "hierarchy", None),
-            metadata_standard_name=getattr(iso, "stdname", None),
-            metadata_standard_version=getattr(iso, "stdver", None),
-            dataset_uri=getattr(iso, "dataseturi", None),
+            parent_identifier=bounded_str(getattr(iso, "parentidentifier", None), MAX_STR_MEDIUM),
+            language=bounded_str(getattr(iso, "language", None) or getattr(iso, "languagecode", None), MAX_STR_SHORT),
+            charset=bounded_str(getattr(iso, "charset", None), MAX_STR_SHORT),
+            hierarchy=bounded_str(getattr(iso, "hierarchy", None), MAX_STR_SHORT),
+            metadata_standard_name=bounded_str(getattr(iso, "stdname", None), MAX_STR_MEDIUM),
+            metadata_standard_version=bounded_str(getattr(iso, "stdver", None), MAX_STR_SHORT),
+            dataset_uri=valid_http_url(getattr(iso, "dataseturi", None)),
             # Identification - Core (new)
             alternate_title=self._extract_identification_str("alternatetitle", identification),
             resource_identifiers=self._extract_resource_identifiers(identification),
-            edition=self._extract_identification_str("edition", identification),
+            edition=self._extract_identification_str("edition", identification, MAX_STR_SHORT),
             purpose=self._extract_identification_str("purpose", identification),
-            status=self._extract_identification_str("status", identification),
+            status=self._extract_identification_str("status", identification, MAX_STR_SHORT),
             resource_language=self._extract_resource_language(identification),
             graphic_overviews=self._extract_graphic_overviews(identification),
             # Identification - Dates (new)
@@ -87,7 +96,9 @@ class IsoParser:
             # Reference System (new)
             reference_systems=self._extract_reference_systems(iso),
             # Supplemental (new)
-            supplemental_information=self._extract_identification_str("supplementalinformation", identification),
+            supplemental_information=self._extract_identification_str(
+                "supplementalinformation", identification, MAX_STR_LONG
+            ),
         )
 
     @staticmethod
@@ -106,7 +117,7 @@ class IsoParser:
             raise SemanticError("Record is missing a title in its identification section.")
         if not isinstance(identification.title, str):
             raise SemanticError("Record title is not a string.")
-        return identification.title
+        return truncate(identification.title, MAX_STR_MEDIUM)
 
     @staticmethod
     def _extract_abstract(identification: MD_DataIdentification | None) -> str:
@@ -115,17 +126,19 @@ class IsoParser:
             raise SemanticError("Record is missing an abstract in its identification section.")
         if not isinstance(identification.abstract, str):
             raise SemanticError("Record abstract is not a string.")
-        return identification.abstract
+        return truncate(identification.abstract, MAX_STR_LONG)
 
     @staticmethod
-    def _extract_identification_str(item: str, identification: MD_DataIdentification | None) -> str | None:
+    def _extract_identification_str(
+        item: str, identification: MD_DataIdentification | None, max_len: int = MAX_STR_MEDIUM
+    ) -> str | None:
         """Extract a string attribute from ISO record."""
         if identification is None:
             return None
         value = getattr(identification, item, None)
         # Ensure we only return actual strings, not MagicMock or other objects
         if value and isinstance(value, str):
-            return value  # type: ignore[no-any-return]
+            return truncate(value, max_len)
         return None
 
     @staticmethod
@@ -137,9 +150,9 @@ class IsoParser:
         if hasattr(identification, item):
             attr = getattr(identification, item)
             if isinstance(attr, list):
-                result.extend([str(i) for i in attr if isinstance(i, str)])
+                result.extend([truncate(i, MAX_STR_MEDIUM) for i in attr[:MAX_LIST_ITEMS] if isinstance(i, str)])
             elif isinstance(attr, str):
-                result.append(attr)
+                result.append(truncate(attr, MAX_STR_MEDIUM))
         return result
 
     def _extract_contacts(self, iso: MD_Metadata) -> list[Contact]:
@@ -157,13 +170,13 @@ class IsoParser:
         """Format contact list."""
         return [
             Contact(
-                name=c.name,
-                organization=c.organization,
+                name=bounded_str(c.name, MAX_STR_MEDIUM),
+                organization=bounded_str(c.organization, MAX_STR_MEDIUM),
                 email=c.email,
                 role=c.role,
                 type=contact_type,
             )
-            for c in contact_list
+            for c in contact_list[:MAX_LIST_ITEMS]
         ]
 
     @staticmethod
@@ -172,10 +185,10 @@ class IsoParser:
         if iso.dataquality and iso.dataquality.lineage:
             lineage = iso.dataquality.lineage
             if isinstance(lineage, str):
-                return lineage
+                return truncate(lineage, MAX_STR_LONG)
             if hasattr(lineage, "statement"):
                 statement = lineage.statement
-                return statement if isinstance(statement, str) else None
+                return truncate(statement, MAX_STR_LONG) if isinstance(statement, str) else None
         return None
 
     def _extract_spatial_extent(self, iso: MD_Metadata) -> list[float] | None:
@@ -216,12 +229,12 @@ class IsoParser:
             resource_constraints = getattr(identification, "resourceconstraint", None)
             if resource_constraints:
                 if isinstance(resource_constraints, list):
-                    for c in resource_constraints:
+                    for c in resource_constraints[:MAX_LIST_ITEMS]:
                         if hasattr(c, "use_limitation") and c.use_limitation:
                             constraints.extend(c.use_limitation)
                 elif hasattr(resource_constraints, "use_limitation") and resource_constraints.use_limitation:
                     constraints.extend(resource_constraints.use_limitation)
-        return constraints
+        return [truncate(c, MAX_STR_MEDIUM) for c in constraints[:MAX_LIST_ITEMS] if isinstance(c, str)]
 
     # === Extended INSPIRE Field Extraction ===
 
@@ -237,13 +250,17 @@ class IsoParser:
         uricodespace_list = getattr(identification, "uricodespace", [])
 
         # Zip them together, padding shorter list with None
-        max_len = max(len(uricode_list), len(uricodespace_list))
+        max_len = min(max(len(uricode_list), len(uricodespace_list)), MAX_LIST_ITEMS)
         for i in range(max_len):
             code = uricode_list[i] if i < len(uricode_list) else None
             codespace = uricodespace_list[i] if i < len(uricodespace_list) else None
             if code:
                 identifiers.append(
-                    ResourceIdentifier(code=code, codespace=codespace, url=code if code.startswith("http") else None)
+                    ResourceIdentifier(
+                        code=truncate(code, MAX_STR_MEDIUM),
+                        codespace=bounded_str(codespace, MAX_STR_MEDIUM),
+                        url=valid_http_url(code),
+                    )
                 )
         return identifiers
 
@@ -255,9 +272,9 @@ class IsoParser:
             return dates
 
         ci_dates = getattr(identification, "date", [])
-        for ci_date in ci_dates:
+        for ci_date in ci_dates[:MAX_LIST_ITEMS]:
             if hasattr(ci_date, "date") and hasattr(ci_date, "type"):
-                dates.append(InspireDate(date=ci_date.date, datetype=ci_date.type))
+                dates.append(InspireDate(date=truncate(ci_date.date, MAX_STR_SHORT), datetype=ci_date.type))
         return dates
 
     @staticmethod
@@ -270,7 +287,9 @@ class IsoParser:
         # OWSLib has both resourcelanguage and resourcelanguagecode
         langs.extend(getattr(identification, "resourcelanguagecode", []))
         langs.extend(getattr(identification, "resourcelanguage", []))
-        return [lang for lang in langs if lang]  # Filter out None/empty
+        return [
+            truncate(lang, MAX_STR_SHORT) for lang in langs[:MAX_LIST_ITEMS] if lang and isinstance(lang, str)
+        ]  # Filter out None/empty/non-string
 
     @staticmethod
     def _extract_graphic_overviews(identification: MD_DataIdentification | None) -> list[str]:
@@ -278,15 +297,26 @@ class IsoParser:
         if identification is None:
             return []
         urls = getattr(identification, "graphicoverview", [])
-        return [str(u) for u in urls if u]
+        valid_urls = [valid_http_url(u) for u in urls[:MAX_LIST_ITEMS]]
+        return [u for u in valid_urls if u is not None]
 
     @staticmethod
     def _extract_resolution_denominators(identification: MD_DataIdentification | None) -> list[int]:
-        """Extract spatial resolution as scale denominators."""
+        """Extract spatial resolution as scale denominators.
+
+        A malformed denominator is dropped, not fatal: unlike a missing identifier/title/
+        abstract, one bad scale value does not make the whole record unusable.
+        """
         if identification is None:
             return []
         denoms = getattr(identification, "denominators", [])
-        return [int(d) for d in denoms if d]
+        result: list[int] = []
+        for d in denoms[:MAX_LIST_ITEMS]:
+            if not d:
+                continue
+            with contextlib.suppress(ValueError, TypeError):
+                result.append(int(d))
+        return result
 
     @staticmethod
     def _extract_resolution_distances(
@@ -300,11 +330,13 @@ class IsoParser:
         distance_vals = getattr(identification, "distance", [])
         uom_vals = getattr(identification, "uom", [])
 
-        for i, dist in enumerate(distance_vals):
+        for i, dist in enumerate(distance_vals[:MAX_LIST_ITEMS]):
             uom = uom_vals[i] if i < len(uom_vals) else "m"
             if dist:
                 with contextlib.suppress(ValueError, TypeError):
-                    distances.append(SpatialResolutionDistance(value=float(dist), uom=uom or "m"))
+                    distances.append(
+                        SpatialResolutionDistance(value=float(dist), uom=truncate(uom or "m", MAX_STR_SHORT))
+                    )
         return distances
 
     def _extract_contacts_by_role(self, identification: MD_DataIdentification | None, role_name: str) -> list[Contact]:
@@ -331,7 +363,7 @@ class IsoParser:
         if identification is None:
             return []
         constraints = getattr(identification, "accessconstraints", [])
-        return [str(c) for c in constraints if c]
+        return [truncate(c, MAX_STR_MEDIUM) for c in constraints[:MAX_LIST_ITEMS] if isinstance(c, str) and c]
 
     @staticmethod
     def _extract_use_constraints(identification: MD_DataIdentification | None) -> list[str]:
@@ -339,7 +371,7 @@ class IsoParser:
         if identification is None:
             return []
         constraints = getattr(identification, "useconstraints", [])
-        return [str(c) for c in constraints if c]
+        return [truncate(c, MAX_STR_MEDIUM) for c in constraints[:MAX_LIST_ITEMS] if isinstance(c, str) and c]
 
     @staticmethod
     def _extract_classification(identification: MD_DataIdentification | None) -> list[str]:
@@ -347,7 +379,7 @@ class IsoParser:
         if identification is None:
             return []
         constraints = getattr(identification, "classification", [])
-        return [str(c) for c in constraints if c]
+        return [truncate(c, MAX_STR_MEDIUM) for c in constraints[:MAX_LIST_ITEMS] if isinstance(c, str) and c]
 
     @staticmethod
     def _extract_other_constraints(identification: MD_DataIdentification | None) -> list[str]:
@@ -355,7 +387,7 @@ class IsoParser:
         if identification is None:
             return []
         constraints = getattr(identification, "otherconstraints", [])
-        return [str(c) for c in constraints if c]
+        return [truncate(c, MAX_STR_MEDIUM) for c in constraints[:MAX_LIST_ITEMS] if isinstance(c, str) and c]
 
     @staticmethod
     def _extract_other_constraints_url(identification: MD_DataIdentification | None) -> list[str]:
@@ -363,7 +395,8 @@ class IsoParser:
         if identification is None:
             return []
         urls = getattr(identification, "otherconstraints_url", [])
-        return [str(u) for u in urls if u]
+        valid_urls = [valid_http_url(u) for u in urls[:MAX_LIST_ITEMS]]
+        return [u for u in valid_urls if u is not None]
 
     @staticmethod
     def _extract_distribution_formats(iso: MD_Metadata) -> list[DistributionFormat]:
@@ -376,12 +409,12 @@ class IsoParser:
         if hasattr(dist, "format") and dist.format:
             formats.append(
                 DistributionFormat(
-                    name=dist.format,
-                    version=getattr(dist, "version", None),
-                    specification=getattr(dist, "specification", None),
-                    name_url=getattr(dist, "format_url", None),
-                    version_url=getattr(dist, "version_url", None),
-                    specification_url=getattr(dist, "specification_url", None),
+                    name=truncate(dist.format, MAX_STR_MEDIUM),
+                    version=bounded_str(getattr(dist, "version", None), MAX_STR_SHORT),
+                    specification=bounded_str(getattr(dist, "specification", None), MAX_STR_MEDIUM),
+                    name_url=valid_http_url(getattr(dist, "format_url", None)),
+                    version_url=valid_http_url(getattr(dist, "version_url", None)),
+                    specification_url=valid_http_url(getattr(dist, "specification_url", None)),
                 )
             )
         return formats
@@ -395,20 +428,24 @@ class IsoParser:
             return resources
 
         online_list = getattr(dist, "online", [])
-        for ol in online_list:
-            if hasattr(ol, "url") and ol.url:
-                resources.append(
-                    OnlineResource(
-                        url=ol.url,
-                        protocol=getattr(ol, "protocol", None),
-                        protocol_url=getattr(ol, "protocol_url", None),
-                        name=getattr(ol, "name", None),
-                        name_url=getattr(ol, "name_url", None),
-                        description=getattr(ol, "description", None),
-                        description_url=getattr(ol, "description_url", None),
-                        function=getattr(ol, "function", None),
-                    )
+        for ol in online_list[:MAX_LIST_ITEMS]:
+            url = valid_http_url(getattr(ol, "url", None))
+            if url is None:
+                # OnlineResource.url is required; an invalid-scheme/oversized URL means
+                # the whole entry is dropped rather than constructed with a bad URL.
+                continue
+            resources.append(
+                OnlineResource(
+                    url=url,
+                    protocol=bounded_str(getattr(ol, "protocol", None), MAX_STR_SHORT),
+                    protocol_url=valid_http_url(getattr(ol, "protocol_url", None)),
+                    name=bounded_str(getattr(ol, "name", None), MAX_STR_MEDIUM),
+                    name_url=valid_http_url(getattr(ol, "name_url", None)),
+                    description=bounded_str(getattr(ol, "description", None), MAX_STR_LONG),
+                    description_url=valid_http_url(getattr(ol, "description_url", None)),
+                    function=bounded_str(getattr(ol, "function", None), MAX_STR_SHORT),
                 )
+            )
         return resources
 
     @staticmethod
@@ -425,17 +462,17 @@ class IsoParser:
         datetypes = getattr(dq, "conformancedatetype", [])
         degrees = getattr(dq, "conformancedegree", [])
 
-        max_len = max(len(titles), len(dates), len(degrees)) if titles or dates or degrees else 0
+        max_len = min(max(len(titles), len(dates), len(degrees)) if titles or dates or degrees else 0, MAX_LIST_ITEMS)
         for i in range(max_len):
             title = titles[i] if i < len(titles) else None
             if title:
                 results.append(
                     ConformanceResult(
-                        specification_title=title,
-                        specification_title_url=title_urls[i] if i < len(title_urls) else None,
-                        specification_date=dates[i] if i < len(dates) else None,
-                        specification_datetype=datetypes[i] if i < len(datetypes) else None,
-                        degree=degrees[i] if i < len(degrees) else None,
+                        specification_title=truncate(title, MAX_STR_MEDIUM),
+                        specification_title_url=valid_http_url(title_urls[i] if i < len(title_urls) else None),
+                        specification_date=bounded_str(dates[i] if i < len(dates) else None, MAX_STR_SHORT),
+                        specification_datetype=bounded_str(datetypes[i] if i < len(datetypes) else None, MAX_STR_SHORT),
+                        degree=bounded_str(degrees[i] if i < len(degrees) else None, MAX_STR_SHORT),
                     )
                 )
         return results
@@ -447,10 +484,7 @@ class IsoParser:
         if dq is None:
             return None
         value = getattr(dq, "lineage_url", None)
-        # Ensure we only return actual strings, not MagicMock or other objects
-        if value and isinstance(value, str):
-            return value  # type: ignore[no-any-return]
-        return None
+        return valid_http_url(value)
 
     @staticmethod
     def _extract_reference_systems(iso: MD_Metadata) -> list[ReferenceSystem]:
@@ -463,12 +497,12 @@ class IsoParser:
         if hasattr(rs, "code") and rs.code:
             systems.append(
                 ReferenceSystem(
-                    code=rs.code,
-                    code_url=getattr(rs, "code_url", None),
-                    codespace=getattr(rs, "codeSpace", None),
-                    codespace_url=getattr(rs, "codeSpace_url", None),
-                    version=getattr(rs, "version", None),
-                    version_url=getattr(rs, "version_url", None),
+                    code=truncate(rs.code, MAX_STR_MEDIUM),
+                    code_url=valid_http_url(getattr(rs, "code_url", None)),
+                    codespace=bounded_str(getattr(rs, "codeSpace", None), MAX_STR_MEDIUM),
+                    codespace_url=valid_http_url(getattr(rs, "codeSpace_url", None)),
+                    version=bounded_str(getattr(rs, "version", None), MAX_STR_SHORT),
+                    version_url=valid_http_url(getattr(rs, "version_url", None)),
                 )
             )
         return systems

@@ -4,8 +4,6 @@ This module provides the InspireMapper class, which maps InspireRecord data
 to ARC Investigation, Study, Assay, and related objects.
 """
 
-import re
-
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
     ArcAssay,
@@ -23,6 +21,7 @@ from arctrl import (  # type: ignore[import-untyped]
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
 from middleware.inspire.models import Contact, InspireRecord
+from middleware.payload.identifier_sanitizer import sanitize_identifier, to_identifier_slug
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 
@@ -61,18 +60,6 @@ class InspireMapper:
 
         # 4. Wrap in ARC
         return ARC.from_arc_investigation(investigation)
-
-    @staticmethod
-    def _to_identifier_slug(title: str) -> str:
-        """Convert a title to a machine-readable identifier slug."""
-        if not title:
-            return "untitled"
-        # Lowercase, replace non-alphanumeric with underscores
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower())
-        # Remove leading/trailing underscores
-        slug = slug.strip("_")
-        # Truncate to a reasonable length
-        return slug[:80]
 
     def map_person(self, contact: Contact) -> Person | None:
         """Map an ISO individualName contact to Person.
@@ -167,7 +154,11 @@ class InspireMapper:
         # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
         if identifier and ("://" in identifier or "/" in identifier):
-            identifier = self._to_identifier_slug(record.title) or identifier.split("/")[-1]
+            identifier = to_identifier_slug(record.title) or identifier.split("/")[-1]
+        if identifier:
+            # A raw (non-URL-shaped) fileIdentifier still needs character-allowlisting —
+            # sanitize_identifier is idempotent on an already-slugified value.
+            identifier = sanitize_identifier(identifier)
 
         title = record.title
         description = record.abstract
@@ -323,7 +314,7 @@ class InspireMapper:
 
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = to_identifier_slug(record.title) or "untitled"
         title = record.title
 
         # Enhanced description with lineage, purpose, and supplemental info
@@ -597,7 +588,7 @@ class InspireMapper:
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = to_identifier_slug(record.title) or "untitled"
         title = record.title
 
         measurement_type = self._get_measurement_type(record)
@@ -618,7 +609,8 @@ class InspireMapper:
 
         return assay
 
-    def _create_assay_table(self, record: InspireRecord) -> ArcTable:
+    @staticmethod
+    def _create_assay_table(record: InspireRecord) -> ArcTable:
         """Create the assay annotation table (always exactly one row).
 
         Columns:
@@ -644,7 +636,7 @@ class InspireMapper:
             output_uri = record.online_resources[0].url
             fallback_used = True
         else:
-            output_uri = f"{self._to_identifier_slug(record.title)}_dataset"
+            output_uri = f"{to_identifier_slug(record.title) or 'untitled'}_dataset"
 
         table = ArcTable.init("Measurement")
         table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])

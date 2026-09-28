@@ -30,6 +30,7 @@ from middleware.inspire.models import (
     ResourceIdentifier,
     SpatialResolutionDistance,
 )
+from middleware.payload.identifier_sanitizer import to_identifier_slug
 
 
 @pytest.fixture
@@ -539,8 +540,14 @@ def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_recor
     assert lineage_url_params[0].cells[0].AsTerm.Name == "https://example.com/lineage"
 
 
-def test_to_identifier_slug(mapper: InspireMapper) -> None:
-    """Test conversion of titles to identifier slugs."""
+def test_to_identifier_slug() -> None:
+    """Test conversion of titles to identifier slugs (shared middleware.payload helper).
+
+    InspireMapper no longer has its own private slugifier — it imports
+    ``middleware.payload.identifier_sanitizer.to_identifier_slug`` directly. Unlike the
+    old private duplicate, an empty title returns ``None`` here; the "untitled" fallback
+    now lives at each mapper call site (see ``test_map_study_falls_back_to_untitled...``).
+    """
     test_cases = [
         ("Test Dataset", "test_dataset"),
         ("Dataset with Spaces", "dataset_with_spaces"),
@@ -548,15 +555,53 @@ def test_to_identifier_slug(mapper: InspireMapper) -> None:
         ("Dataset_with_underscores", "dataset_with_underscores"),
         ("Dataset with numbers 123", "dataset_with_numbers_123"),
         ("Dataset with special chars!@#", "dataset_with_special_chars"),
-        ("", "untitled"),
         ("http://example.com/dataset", "http_example_com_dataset"),  # URL should be converted
         ("dataset/with/slashes", "dataset_with_slashes"),  # Slashes should be converted
     ]
 
     for title, expected in test_cases:
-        result = mapper._to_identifier_slug(title)
+        result = to_identifier_slug(title)
         assert result == expected
+        assert result is not None
         assert len(result) <= 80  # Should be truncated to 80 chars
+
+    assert to_identifier_slug("") is None
+    assert to_identifier_slug("   ") is None
+
+
+def test_map_study_falls_back_to_untitled_when_title_empty(sample_record: InspireRecord, mapper: InspireMapper) -> None:
+    """Parity check: an empty title still yields identifier "untitled", not None."""
+    sample_record.title = ""
+
+    study = mapper.map_study(sample_record)
+
+    assert study.Identifier == "untitled"
+
+
+def test_map_assay_falls_back_to_untitled_when_title_empty(sample_record: InspireRecord, mapper: InspireMapper) -> None:
+    """Parity check: an empty title still yields identifier "untitled", not None."""
+    sample_record.title = ""
+
+    assay = mapper.map_assay(sample_record)
+
+    assert assay.Identifier == "untitled"
+
+
+def test_map_investigation_sanitizes_raw_non_url_identifier(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A raw fileIdentifier with disallowed characters gets allowlist-sanitized too.
+
+    Previously only identifiers that "looked like a URL" (contained ``://`` or ``/``) were
+    sanitized at all; a plain fileIdentifier reached ArcInvestigation.create unsanitized.
+    """
+    sample_record.identifier = "weird id!@#"
+
+    inv = mapper.map_investigation(sample_record)
+
+    # sanitize_identifier allowlists [a-zA-Z0-9 _-] (space included), collapses runs of
+    # "_" and trims — "!@#" become "_", collapse to one, then get trimmed off the end.
+    assert inv.Identifier == "weird id"
 
 
 def test_split_name(mapper: InspireMapper) -> None:

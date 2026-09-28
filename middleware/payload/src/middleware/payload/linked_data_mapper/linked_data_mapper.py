@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -12,6 +11,7 @@ from rdflib import Graph
 
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.identifier_sanitizer import sanitize_identifier, to_identifier_slug
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
@@ -48,8 +48,6 @@ class LinkedDataMapper(DataMapper[MappingContext]):
     """
 
     accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
-
-    _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
     @classmethod
     def registered_class(cls, mapper_type: MapperType) -> type[LinkedDataMapper]:
@@ -102,20 +100,23 @@ class LinkedDataMapper(DataMapper[MappingContext]):
         """
         return StableGraph.wrap(graph)
 
-    @classmethod
-    def sanitize_identifier(cls, raw: str) -> str:
-        """Make *raw* safe for arctrl ``Investigation.identifier``."""
-        stripped = re.sub(r"^https?://", "", raw)
-        sanitized = cls._FORBIDDEN_ID_CHARS.sub("_", stripped)
-        return re.sub(r"_{2,}", "_", sanitized).strip("_")
+    @staticmethod
+    def sanitize_identifier(raw: str) -> str:
+        """Make *raw* safe for arctrl ``Investigation.identifier``.
+
+        Delegates to ``middleware.payload.identifier_sanitizer`` — kept here as a thin
+        wrapper for existing callers/tests.
+        """
+        return sanitize_identifier(raw)
 
     @staticmethod
     def to_identifier_slug(title: str) -> str | None:
-        """Slugify a non-empty title for ARC identifiers (max 80 chars)."""
-        if not title or not title.strip():
-            return None
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
-        return slug[:80] or None
+        """Slugify a non-empty title for ARC identifiers (max 80 chars).
+
+        Delegates to ``middleware.payload.identifier_sanitizer`` — kept here as a thin
+        wrapper for existing callers/tests.
+        """
+        return to_identifier_slug(title)
 
     @staticmethod
     def pick_canonical_doi(dois: list[str]) -> str | None:

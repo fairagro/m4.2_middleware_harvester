@@ -4,6 +4,8 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from middleware.inspire.value_bounds import valid_http_url
+
 
 class Config(BaseModel):
     """Configuration model for the Inspire to ARC middleware."""
@@ -13,6 +15,15 @@ class Config(BaseModel):
     }
 
     csw_url: Annotated[str, Field(description="URL of the CSW endpoint")]
+
+    @field_validator("csw_url")
+    @classmethod
+    def csw_url_must_be_http_or_https(cls, v: str) -> str:
+        """Reject non-http(s) CSW endpoints (e.g. file:// or ftp://)."""
+        if valid_http_url(v) is None:
+            raise ValueError(f"csw_url must be an http(s) URL, got {v!r}")
+        return v
+
     cql_query: Annotated[
         str | None,
         Field(alias="query", description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),
@@ -46,6 +57,8 @@ class Config(BaseModel):
                 "Maximum number of records to harvest across all pages (None = all records). "
                 "Debug/test limit for every query mode; not the CSW per-request maxRecords page size."
             ),
+            ge=1,
+            le=1_000_000,
         ),
     ] = None
 
