@@ -1,10 +1,60 @@
 """Configuration module for the Inspire to ARC middleware."""
 
 from typing import Annotated, Self
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from middleware.inspire.value_bounds import valid_http_url
+# Functional constraint, not policy: OWSLib talks to the CSW through `requests`, which
+# only speaks http(s).
+_CSW_URL_SCHEMES = frozenset({"http", "https"})
+
+
+class ValueBounds(BaseModel):
+    """Validation limits applied to every harvested CSW/ISO-19139 value.
+
+    A record whose values exceed these limits fails validation (``InspireRecord``) and is
+    reported as a failed record — values are never truncated or dropped.
+    """
+
+    max_str_short: Annotated[
+        int,
+        Field(description="Maximum length of short code/label fields (edition, version, protocol, phone).", ge=1),
+    ] = 200
+    max_str_medium: Annotated[
+        int,
+        Field(
+            description=(
+                "Maximum length of single-line fields: identifiers, titles, list-element strings, "
+                "contact fields and URLs."
+            ),
+            ge=1,
+        ),
+    ] = 1_000
+    max_str_long: Annotated[
+        int,
+        Field(description="Maximum length of paragraph fields: abstract, lineage, purpose, descriptions.", ge=1),
+    ] = 10_000
+    max_list_items: Annotated[
+        int,
+        Field(description="Maximum number of items in any list field of a record.", ge=1),
+    ] = 500
+    allowed_url_schemes: Annotated[
+        frozenset[str],
+        Field(
+            description=(
+                "URL schemes accepted in harvested URL fields. The harvester never dereferences these "
+                "URLs; they are copied into the ARC, so this is a security policy (rejects e.g. "
+                "javascript:, data:, file:)."
+            ),
+            min_length=1,
+        ),
+    ] = frozenset({"http", "https", "ftp"})
+
+    @field_validator("allowed_url_schemes")
+    @classmethod
+    def _lowercase_schemes(cls, v: frozenset[str]) -> frozenset[str]:
+        return frozenset(s.lower() for s in v)
 
 
 class Config(BaseModel):
@@ -19,10 +69,16 @@ class Config(BaseModel):
     @field_validator("csw_url")
     @classmethod
     def csw_url_must_be_http_or_https(cls, v: str) -> str:
-        """Reject non-http(s) CSW endpoints (e.g. file:// or ftp://)."""
-        if valid_http_url(v) is None:
+        """Reject non-http(s) CSW endpoints (e.g. file:// or ftp://) — OWSLib cannot use them."""
+        parsed = urlsplit(v.strip())
+        if parsed.scheme.lower() not in _CSW_URL_SCHEMES or not parsed.netloc:
             raise ValueError(f"csw_url must be an http(s) URL, got {v!r}")
         return v
+
+    value_bounds: Annotated[
+        ValueBounds,
+        Field(description="Validation limits for harvested record values."),
+    ] = ValueBounds()
 
     cql_query: Annotated[
         str | None,
@@ -58,7 +114,6 @@ class Config(BaseModel):
                 "Debug/test limit for every query mode; not the CSW per-request maxRecords page size."
             ),
             ge=1,
-            le=1_000_000,
         ),
     ] = None
 

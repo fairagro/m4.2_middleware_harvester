@@ -1,64 +1,48 @@
-## 1. Value-bounds module
+## 1. Configuration
 
-- [x] 1.1 New `middleware/inspire/src/middleware/inspire/value_bounds.py`: `MAX_STR_SHORT/MEDIUM/LONG`,
-      `MAX_LIST_ITEMS`, `truncate`, `bounded_str`, `bounded_list`, `valid_http_url`
-- [x] 1.2 `valid_http_url` rejects non-http(s) schemes, protocol-relative URLs, and oversized values; drops rather than
-      raises
+- [x] 1.1 `ValueBounds` model in `middleware/inspire/src/middleware/inspire/config.py` (`max_str_short/medium/long`,
+      `max_list_items`, `allowed_url_schemes`), exposed as `Config.value_bounds` with defaults
+- [x] 1.2 `Config.csw_url` http(s)-only validator (hardcoded: functional OWSLib constraint)
+- [x] 1.3 `Config.max_records`: arbitrary `le=1_000_000` ceiling removed (`ge=1` kept)
 
-## 2. `iso_parser.py` — bound every extraction site
+## 2. Model validation (`models.py`)
 
-- [x] 2.1 Free-text fields (`title`, `abstract`, `identifier`, `lineage`, `supplemental_information`, `purpose`,
-      `edition`, `alternate_title`, `status`, metadata-level fields, `Contact.name`/`organization`) truncated per tier
-- [x] 2.2 Every unbounded list field capped at `MAX_LIST_ITEMS`, with per-element string truncation and loop-iteration
-      capping at the source (`items[:MAX_LIST_ITEMS]`)
-- [x] 2.3 Every URL field routed through `valid_http_url` (drop on failure); `OnlineResource.url` — the one non-optional
-      URL field — drops the whole entry when invalid, not just the URL
-- [x] 2.4 `_extract_resolution_denominators`'s `int()` guarded with `contextlib.suppress(ValueError, TypeError)` —
-      malformed denominator dropped, not record-fatal
+- [x] 2.1 Context-aware annotated types: `ShortStr`/`MediumStr`/`LongStr`, required variants, `HarvestedUrl`,
+      `OptionalUrl` (blank → absent), `OptionalUri` (URL or URN, `dataset_uri`), `MaxItems` (before-validator)
+- [x] 2.2 Codelist `Literal`s (MD_CharacterSetCode, MD_ScopeCode, MD_ProgressCode, CI_RoleCode, CI_DateTypeCode,
+      MD_TopicCategoryCode, incl. ISO 19115-1), ISO 639-2 `LanguageCode`, ISO 8601 `IsoDate`, loose `Email`,
+      `gco:Boolean` degree
+- [x] 2.3 Applied to every field of `InspireRecord` and nested models
 
-## 3. Identifier sanitization reuse
+## 3. Parser (`iso_parser.py`)
 
-- [x] 3.1 New `middleware/payload/src/middleware/payload/identifier_sanitizer.py`: `sanitize_identifier`,
-      `to_identifier_slug` (plain functions)
-- [x] 3.2 `LinkedDataMapper.sanitize_identifier`/`.to_identifier_slug` become thin delegating wrappers; unused `re`
-      import removed
-- [x] 3.3 `middleware/inspire/src/middleware/inspire/mapper.py`: private `_to_identifier_slug` removed; imports the
-      shared functions; all 4 call sites keep `"untitled"` fallback parity (`to_identifier_slug(...) or "untitled"`)
-- [x] 3.4 `map_investigation` sanitizes every identifier (URL-shaped and raw), not only URL-shaped ones
+- [x] 3.1 Truncate/drop layer and `value_bounds.py` removed; extractors return raw values, nested entries as dicts
+- [x] 3.2 `IsoParser(value_bounds)` validates via `InspireRecord.model_validate(..., context=...)`; `CSWClient` passes
+      `config.value_bounds`
+- [x] 3.3 Denominators passed raw, validated as `list[int]`
 
-## 4. Config-level bounds
+## 4. Identifiers
 
-- [x] 4.1 `Config.csw_url` gains an http(s)-only `field_validator` (raises on invalid)
-- [x] 4.2 `Config.max_records` gains `ge=1, le=1_000_000`; `None` (unbounded) untouched
+- [x] 4.1 `middleware/payload/src/middleware/payload/identifier_sanitizer.py` extracted; `LinkedDataMapper` delegates
+- [x] 4.2 `InspireMapper` uses the shared functions; `map_investigation` sanitizes every identifier and raises
+      `SemanticError` when empty
+- [x] 4.3 `"untitled"` removed: study/assay/output-URI use title slug → sanitized `fileIdentifier` → `SemanticError`
 
 ## 5. Tests
 
-- [x] 5.1 New `middleware/inspire/tests/unit/test_value_bounds.py`
-- [x] 5.2 New `middleware/inspire/tests/unit/test_iso_parser.py`: oversized title/ abstract truncated; oversized list
-      capped; bad-scheme URL dropped, good one kept; bad-scheme `OnlineResource.url` drops the whole entry; **key
-      regression** — malformed denominator dropped, record still parses; `dataset_uri` scheme check
-- [x] 5.3 `test_mapper_comprehensive.py`: `test_to_identifier_slug` updated for the extracted function (empty title →
-      `None`, not `"untitled"`); new `test_map_study_falls_back_to_untitled_when_title_empty`,
-      `test_map_assay_falls_back_to_untitled_when_title_empty`,
-      `test_map_investigation_sanitizes_raw_non_url_identifier`
-- [x] 5.4 New `middleware/inspire/tests/unit/test_inspire_config.py` (named to avoid a module-basename collision with
-      `middleware/linked_data/tests/unit/test_config.py` under the shared root `pythonpath`): `csw_url` scheme
-      rejection/acceptance, `max_records` ceiling rejection/acceptance, `max_records=None` stays unbounded
-- [x] 5.5 New `middleware/payload/tests/unit/test_identifier_sanitizer.py`
-- [x] 5.6 Existing `middleware/payload/tests/unit/test_regal_mapper.py` (already exercises `sanitize_identifier` via
-      `RegalMapper`) passes unmodified against the delegating wrapper
+- [x] 5.1 `test_iso_parser.py`: rejection (not truncation) of oversized identifier/title/abstract/list; configured
+      bounds incl. nested models; URL schemes (dangerous rejected, ftp accepted, blank absent, URN dataset URI);
+      codelist and format violations; denominators; error message size
+- [x] 5.2 `test_inspire_config.py`: `csw_url` scheme, no `max_records` ceiling, `value_bounds` defaults/override/invalid
+- [x] 5.3 `test_mapper_comprehensive.py`: fileIdentifier fallback and `SemanticError` instead of `"untitled"`; fixtures
+      use valid codelist values
+- [x] 5.4 `test_identifier_sanitizer.py`; integration fixtures use real-world `ger`/`utf8`
 
 ## 6. Validation
 
-- [x] 6.1 `uv run pytest -m "not integration and not system_local and not system_external"` green — full repo: 520
-      passed
-- [x] 6.2 `bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/` clean
-- [x] 6.3 `uv run ruff check` / `uv run ruff format --check` clean for touched files (two pre-existing, untouched
-      `no-self-use` findings elsewhere in the tree, unrelated to this change)
-- [x] 6.4 `bash scripts/run-quality-cli.sh pylint --rcfile .pylintrc middleware/` — 9.96/10, only the pre-existing known
-      local-only `E0401` test-helper import noise
-- [x] 6.5
-      `bash scripts/run-quality-cli.sh bandit -c pyproject.toml -r     middleware/inspire/src middleware/payload/src`
-      clean (one pre-existing, unrelated low-severity finding at `csw_client.py:986`, not touched by this change)
-- [x] 6.6 `openspec validate 2026-09-28-bound-inspire-harvested-values --strict`
-- [x] 6.7 `npx prettier --check` on all new `.md` files before pushing
+- [x] 6.1 Live survey: 1,500 GDI-DE records + ZALF repository parsed with the new model — 3 new rejections (0.2%), all
+      junk `dataSetURI`
+- [x] 6.2 `uv run pytest middleware/` green (except the pre-existing, macOS-only
+      `test_external_entities_do_not_leak_file_contents`, which needs `/etc/hostname`)
+- [x] 6.3 ruff format/check, mypy, pylint (10.00/10), bandit clean
+- [x] 6.4 `openspec validate 2026-09-28-bound-inspire-harvested-values --strict`

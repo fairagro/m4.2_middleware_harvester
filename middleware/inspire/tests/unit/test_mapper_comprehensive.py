@@ -18,6 +18,7 @@ from arctrl import (  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
+from middleware.inspire.errors import SemanticError
 from middleware.inspire.mapper import InspireMapper
 from middleware.inspire.models import (
     ConformanceResult,
@@ -60,7 +61,7 @@ def sample_record() -> InspireRecord:
                 name="Jane Doe",
                 organization="Test Org",
                 email="jane@example.com",
-                role="creator",
+                role="originator",
                 type="resource",
             )
         ],
@@ -77,7 +78,7 @@ def sample_record() -> InspireRecord:
         language="eng",
         metadata_standard_name="ISO 19115",
         metadata_standard_version="2003/Cor.1:2006",
-        resource_language=["en"],
+        resource_language=["eng"],
         graphic_overviews=["https://example.com/graphic.png"],
         dates=[InspireDate(date="2023-10-27", datetype="creation")],
         spatial_resolution_denominators=[10000],
@@ -430,13 +431,13 @@ def test_add_role_with_ontology_mapping(mapper: InspireMapper) -> None:
     assert role_annotation.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C70908"
     assert role_annotation.TermSourceREF == "NCIT"
 
-    # Test unknown role (fallback)
-    contact = Contact(role="unknownRole", name="Empty Role")
+    # Test a valid CI_RoleCode without an ontology mapping (name-only fallback)
+    contact = Contact(role="resourceProvider", name="Empty Role")
     person = mapper.map_person(contact)
 
     assert person is not None
     assert len(person.Roles) == 1
-    assert person.Roles[0].Name == "unknownRole"
+    assert person.Roles[0].Name == "resourceProvider"
     assert person.Roles[0].TermAccessionNumber is None
     assert person.Roles[0].TermSourceREF is None
 
@@ -544,9 +545,9 @@ def test_to_identifier_slug() -> None:
     """Test conversion of titles to identifier slugs (shared middleware.payload helper).
 
     InspireMapper no longer has its own private slugifier — it imports
-    ``middleware.payload.identifier_sanitizer.to_identifier_slug`` directly. Unlike the
-    old private duplicate, an empty title returns ``None`` here; the "untitled" fallback
-    now lives at each mapper call site (see ``test_map_study_falls_back_to_untitled...``).
+    ``middleware.payload.identifier_sanitizer.to_identifier_slug`` directly. An empty title
+    returns ``None``; the mapper then falls back to the sanitized fileIdentifier, never to a
+    placeholder (see ``test_map_study_falls_back_to_file_identifier...``).
     """
     test_cases = [
         ("Test Dataset", "test_dataset"),
@@ -569,22 +570,49 @@ def test_to_identifier_slug() -> None:
     assert to_identifier_slug("   ") is None
 
 
-def test_map_study_falls_back_to_untitled_when_title_empty(sample_record: InspireRecord, mapper: InspireMapper) -> None:
-    """Parity check: an empty title still yields identifier "untitled", not None."""
-    sample_record.title = ""
+def test_map_study_falls_back_to_file_identifier_when_title_does_not_slugify(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A title with no slug-able characters yields the sanitized fileIdentifier, never "untitled"."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "rec-42"
 
     study = mapper.map_study(sample_record)
 
-    assert study.Identifier == "untitled"
+    assert study.Identifier == "rec-42"
 
 
-def test_map_assay_falls_back_to_untitled_when_title_empty(sample_record: InspireRecord, mapper: InspireMapper) -> None:
-    """Parity check: an empty title still yields identifier "untitled", not None."""
-    sample_record.title = ""
+def test_map_assay_falls_back_to_file_identifier_when_title_does_not_slugify(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A title with no slug-able characters yields the sanitized fileIdentifier, never "untitled"."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "rec-42"
 
     assay = mapper.map_assay(sample_record)
 
-    assert assay.Identifier == "untitled"
+    assert assay.Identifier == "rec-42"
+
+
+def test_map_study_raises_when_no_identifier_can_be_derived(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """Title and fileIdentifier both sanitize to nothing: mapping fails instead of inventing an id."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "@@@"
+
+    with pytest.raises(SemanticError, match="usable identifier"):
+        mapper.map_study(sample_record)
+
+
+def test_map_investigation_raises_when_identifier_sanitizes_to_empty(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A fileIdentifier of only disallowed characters fails mapping — no placeholder id."""
+    sample_record.identifier = "!!!"
+
+    with pytest.raises(SemanticError, match="empty Investigation identifier"):
+        mapper.map_investigation(sample_record)
 
 
 def test_map_investigation_sanitizes_raw_non_url_identifier(
@@ -669,7 +697,7 @@ def test_add_contacts(mapper: InspireMapper) -> None:
     """Test adding multiple contacts to investigation."""
     record = _create_minimal_record(
         contacts=[Contact(name="Ann Author", role="author")],
-        creators=[Contact(name="Chris Creator", role="creator")],
+        creators=[Contact(name="Chris Creator", role="custodian")],
         publishers=[Contact(name="Pat Publisher", role="publisher")],
         contributors=[Contact(name="Con Tributor", role="contributor")],
     )
@@ -682,7 +710,7 @@ def test_add_contacts(mapper: InspireMapper) -> None:
     # Check that roles are properly mapped
     roles = [role.Name for contact in inv.Contacts for role in contact.Roles]
     assert "Author" in roles
-    assert "creator" in roles
+    assert "Custodian" in roles
     assert "Publisher" in roles
     assert "contributor" in roles
 
@@ -796,11 +824,11 @@ def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
         assert measurement_type.TermAccessionNumber == expected_tan
         assert measurement_type.TermSourceREF == expected_tsr
 
-    # Test unknown topic category: name only, no TAN/TSR
-    record = _create_minimal_record(topic_categories=["unknownTopic"])
+    # Test a valid topic category without an ontology mapping: name only, no TAN/TSR
+    record = _create_minimal_record(topic_categories=["extraTerrestrial"])
 
     measurement_type = mapper._get_measurement_type(record)
-    assert measurement_type.Name == "unknownTopic"
+    assert measurement_type.Name == "extraTerrestrial"
     assert measurement_type.TermAccessionNumber is None
     assert measurement_type.TermSourceREF is None
 

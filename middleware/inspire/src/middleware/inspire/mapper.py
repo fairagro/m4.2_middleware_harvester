@@ -20,6 +20,7 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
+from middleware.inspire.errors import SemanticError
 from middleware.inspire.models import Contact, InspireRecord
 from middleware.payload.identifier_sanitizer import sanitize_identifier, to_identifier_slug
 from middleware.payload.person_contacts import require_nonempty_person_given_names
@@ -153,12 +154,13 @@ class InspireMapper:
         """Map to ArcInvestigation with enhanced metadata-level fields."""
         # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
-        if identifier and ("://" in identifier or "/" in identifier):
+        if "://" in identifier or "/" in identifier:
             identifier = to_identifier_slug(record.title) or identifier.split("/")[-1]
-        if identifier:
-            # A raw (non-URL-shaped) fileIdentifier still needs character-allowlisting —
-            # sanitize_identifier is idempotent on an already-slugified value.
-            identifier = sanitize_identifier(identifier)
+        # A raw (non-URL-shaped) fileIdentifier still needs character-allowlisting —
+        # sanitize_identifier is idempotent on an already-slugified value.
+        identifier = sanitize_identifier(identifier)
+        if not identifier:
+            raise SemanticError(f"fileIdentifier {record.identifier!r} yields an empty Investigation identifier.")
 
         title = record.title
         description = record.abstract
@@ -312,9 +314,23 @@ class InspireMapper:
         if record.other_constraints_url:
             comments.append(Comment.create("Other Constraints URLs", "; ".join(record.other_constraints_url[:3])))
 
+    @staticmethod
+    def _record_slug(record: InspireRecord) -> str:
+        """Study/assay identifier: title slug, else the sanitized fileIdentifier.
+
+        Never a placeholder — a record whose title and fileIdentifier both sanitize to
+        nothing fails mapping instead.
+        """
+        slug = to_identifier_slug(record.title) or sanitize_identifier(record.identifier)
+        if not slug:
+            raise SemanticError(
+                f"Record {record.identifier!r}: neither title nor fileIdentifier yields a usable identifier."
+            )
+        return slug
+
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
-        identifier = to_identifier_slug(record.title) or "untitled"
+        identifier = self._record_slug(record)
         title = record.title
 
         # Enhanced description with lineage, purpose, and supplemental info
@@ -588,7 +604,7 @@ class InspireMapper:
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""
-        identifier = to_identifier_slug(record.title) or "untitled"
+        identifier = self._record_slug(record)
         title = record.title
 
         measurement_type = self._get_measurement_type(record)
@@ -636,7 +652,7 @@ class InspireMapper:
             output_uri = record.online_resources[0].url
             fallback_used = True
         else:
-            output_uri = f"{to_identifier_slug(record.title) or 'untitled'}_dataset"
+            output_uri = f"{InspireMapper._record_slug(record)}_dataset"
 
         table = ArcTable.init("Measurement")
         table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])

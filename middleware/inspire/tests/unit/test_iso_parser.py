@@ -1,8 +1,8 @@
-"""Regression tests for defensive bounds applied during ISO 19139 parsing.
+"""Regression tests for value validation applied during ISO 19139 parsing.
 
 These guard `openspec/specs/inspire-value-bounds/`. Behavioral: build a hostile/oversized
-mock `MD_Metadata` and assert what `IsoParser.parse_record` returns, not which helper it
-called internally.
+mock `MD_Metadata` and assert that `IsoParser.parse_record` rejects it with a
+`ValidationError` (values are never truncated or dropped), or accepts well-formed input.
 """
 
 # ruff: noqa: SLF001, PLR2004
@@ -11,9 +11,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
+from pydantic import ValidationError
 
+from middleware.inspire.config import ValueBounds
 from middleware.inspire.iso_parser import IsoParser
-from middleware.inspire.value_bounds import MAX_LIST_ITEMS, MAX_STR_LONG, MAX_STR_MEDIUM
 
 
 @pytest.fixture
@@ -74,102 +75,153 @@ def mock_iso_record(create_mock_identification: MagicMock) -> MagicMock:
     return record
 
 
+DEFAULTS = ValueBounds()
+
+
 @pytest.fixture
 def parser() -> IsoParser:
     return IsoParser()
 
 
-def test_oversized_title_is_truncated_not_rejected(mock_iso_record: MagicMock, parser: IsoParser) -> None:
-    mock_iso_record.identification.title = "x" * (MAX_STR_MEDIUM + 500)
-
-    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
-
-    assert len(rec.title) == MAX_STR_MEDIUM
-
-
-def test_oversized_abstract_is_truncated_not_rejected(mock_iso_record: MagicMock, parser: IsoParser) -> None:
-    mock_iso_record.identification.abstract = "x" * (MAX_STR_LONG + 5_000)
-
-    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
-
-    assert len(rec.abstract) == MAX_STR_LONG
+def _online(url: str) -> MagicMock:
+    ol = MagicMock()
+    ol.url = url
+    ol.protocol = "WWW:DOWNLOAD"
+    ol.protocol_url = None
+    ol.name = "Data"
+    ol.name_url = None
+    ol.description = None
+    ol.description_url = None
+    ol.function = None
+    return ol
 
 
-def test_oversized_keyword_list_is_capped(mock_iso_record: MagicMock, parser: IsoParser) -> None:
-    mock_iso_record.identification.keywords = [f"kw{i}" for i in range(MAX_LIST_ITEMS + 100)]
-
-    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
-
-    assert len(rec.keywords) == MAX_LIST_ITEMS
-
-
-def test_graphic_overview_with_dangerous_scheme_is_dropped_good_one_kept(
-    mock_iso_record: MagicMock, parser: IsoParser
-) -> None:
-    mock_iso_record.identification.graphicoverview = [
-        "javascript:alert(1)",
-        "http://ok.example/thumb.png",
-        "file:///etc/passwd",
-    ]
-
-    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
-
-    assert rec.graphic_overviews == ["http://ok.example/thumb.png"]
-
-
-def test_online_resource_with_bad_scheme_url_is_dropped_entirely(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+def _with_online(record: MagicMock, *urls: str) -> None:
     dist = MagicMock()
     dist.format = None
-    bad = MagicMock()
-    bad.url = "javascript:alert(1)"
-    good = MagicMock()
-    good.url = "https://example.com/data.csv"
-    good.protocol = "WWW:DOWNLOAD"
-    good.protocol_url = None
-    good.name = "Data"
-    good.name_url = None
-    good.description = None
-    good.description_url = None
-    good.function = None
-    dist.online = [bad, good]
-    mock_iso_record.distribution = dist
+    dist.online = [_online(u) for u in urls]
+    record.distribution = dist
+
+
+def test_well_formed_record_parses(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.language = "ger"
+    mock_iso_record.charset = "utf8"
+    mock_iso_record.hierarchy = "dataset"
+    mock_iso_record.identification.topiccategory = ["farming"]
 
     rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
-    assert len(rec.online_resources) == 1
-    assert rec.online_resources[0].url == "https://example.com/data.csv"
+    assert rec.identifier == "uuid-123"
+    assert rec.language == "ger"
 
 
-def test_resource_identifier_url_rejects_non_http_scheme(mock_iso_record: MagicMock, parser: IsoParser) -> None:
-    mock_iso_record.identification.uricode = ["ftp://example.com/doi"]
-    mock_iso_record.identification.uricodespace = ["DOI"]
+@pytest.mark.parametrize(
+    ("attr", "value", "field"),
+    [
+        ("title", "x" * (DEFAULTS.max_str_medium + 1), "title"),
+        ("abstract", "x" * (DEFAULTS.max_str_long + 1), "abstract"),
+        ("keywords", [f"kw{i}" for i in range(DEFAULTS.max_list_items + 1)], "keywords"),
+    ],
+)
+def test_oversized_identification_value_is_rejected_not_truncated(
+    mock_iso_record: MagicMock, parser: IsoParser, attr: str, value: object, field: str
+) -> None:
+    setattr(mock_iso_record.identification, attr, value)
+
+    with pytest.raises(ValidationError, match=field):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_oversized_identifier_is_rejected_not_truncated(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """Truncating would let two distinct fileIdentifiers collide on the same ARC."""
+    mock_iso_record.identifier = "x" * (DEFAULTS.max_str_medium + 1)
+
+    with pytest.raises(ValidationError, match="identifier"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_error_message_does_not_echo_huge_value(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.abstract = "y" * 50_000
+
+    with pytest.raises(ValidationError) as exc_info:
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert len(str(exc_info.value)) < 1_000
+
+
+def test_configured_bounds_are_enforced(mock_iso_record: MagicMock) -> None:
+    mock_iso_record.identification.keywords = ["a", "b", "c"]
+
+    with pytest.raises(ValidationError, match="max_list_items=2"):
+        IsoParser(ValueBounds(max_list_items=2)).parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_configured_bounds_reach_nested_models(mock_iso_record: MagicMock) -> None:
+    """Context must propagate into OnlineResource, not only top-level InspireRecord fields."""
+    _with_online(mock_iso_record, "https://example.com/data.csv")
+
+    with pytest.raises(ValidationError, match="online_resources"):
+        IsoParser(ValueBounds(allowed_url_schemes=frozenset({"ftp"}))).parse_record(
+            mock_iso_record, record_uuid="uuid-123"
+        )
+
+
+@pytest.mark.parametrize("url", ["javascript:alert(1)", "file:///etc/passwd", "data:text/html,x", "//evil/x"])
+def test_graphic_overview_with_dangerous_scheme_is_rejected(
+    mock_iso_record: MagicMock, parser: IsoParser, url: str
+) -> None:
+    mock_iso_record.identification.graphicoverview = ["http://ok.example/thumb.png", url]
+
+    with pytest.raises(ValidationError, match="graphic_overviews"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_online_resource_with_bad_scheme_url_is_rejected(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    _with_online(mock_iso_record, "javascript:alert(1)", "https://example.com/data.csv")
+
+    with pytest.raises(ValidationError, match="online_resources"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_ftp_online_resource_is_accepted_by_default(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """INSPIRE download links are commonly ftp://; the default scheme policy keeps them."""
+    _with_online(mock_iso_record, "ftp://ftp.example.com/data.zip")
 
     rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
-    assert len(rec.resource_identifiers) == 1
-    assert rec.resource_identifiers[0].code == "ftp://example.com/doi"
-    assert rec.resource_identifiers[0].url is None
+    assert rec.online_resources[0].url == "ftp://ftp.example.com/data.zip"
 
 
-def test_malformed_denominator_is_dropped_record_still_parses(mock_iso_record: MagicMock, parser: IsoParser) -> None:
-    """Key regression.
+def test_resource_identifier_url_code_is_validated(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.uricode = ["https://doi.org/10.1234/x", "10.1234/plain-doi"]
+    mock_iso_record.identification.uricodespace = ["DOI", "DOI"]
 
-    Today this raises ValueError uncaught -> RecordProcessingError for the whole record.
-    After bounding, one bad denominator is dropped, not fatal.
-    """
-    mock_iso_record.identification.denominators = ["5000", "not-a-number", "3000"]
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert rec.resource_identifiers[0].url == "https://doi.org/10.1234/x"
+    assert rec.resource_identifiers[1].url is None
+
+
+def test_malformed_denominator_is_rejected(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.denominators = ["5000", "not-a-number"]
+
+    with pytest.raises(ValidationError, match="spatial_resolution_denominators"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_numeric_string_denominators_are_converted(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.denominators = ["5000", "3000"]
 
     rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
     assert rec.spatial_resolution_denominators == [5000, 3000]
 
 
-def test_dataset_uri_with_dangerous_scheme_is_dropped(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+def test_dataset_uri_with_dangerous_scheme_is_rejected(mock_iso_record: MagicMock, parser: IsoParser) -> None:
     mock_iso_record.dataseturi = "javascript:alert(1)"
 
-    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
-
-    assert rec.dataset_uri is None
+    with pytest.raises(ValidationError, match="dataset_uri"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
 
 def test_dataset_uri_with_http_scheme_is_kept(mock_iso_record: MagicMock, parser: IsoParser) -> None:
@@ -178,3 +230,94 @@ def test_dataset_uri_with_http_scheme_is_kept(mock_iso_record: MagicMock, parser
     rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
     assert rec.dataset_uri == "https://example.com/dataset/1"
+
+
+@pytest.mark.parametrize(
+    ("attr", "value", "field"),
+    [
+        ("language", "de", "language"),  # ISO 639-1, INSPIRE mandates ISO 639-2
+        ("language", "German", "language"),
+        ("charset", "utf-8", "charset"),  # MD_CharacterSetCode is "utf8"
+        ("hierarchy", "folder", "hierarchy"),
+        ("datestamp", "yesterday", "date_stamp"),
+    ],
+)
+def test_metadata_codelist_violation_is_rejected(
+    mock_iso_record: MagicMock, parser: IsoParser, attr: str, value: str, field: str
+) -> None:
+    setattr(mock_iso_record, attr, value)
+
+    with pytest.raises(ValidationError, match=field):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+@pytest.mark.parametrize(
+    ("attr", "value", "field"),
+    [
+        ("status", "done", "status"),
+        ("topiccategory", ["agriculture"], "topic_categories"),
+        ("resourcelanguagecode", ["en"], "resource_language"),
+    ],
+)
+def test_identification_codelist_violation_is_rejected(
+    mock_iso_record: MagicMock, parser: IsoParser, attr: str, value: object, field: str
+) -> None:
+    setattr(mock_iso_record.identification, attr, value)
+
+    with pytest.raises(ValidationError, match=field):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_citation_date_type_and_format_are_validated(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    good = MagicMock(date="2023-05-01T10:00:00Z", type="publication")
+    bad = MagicMock(date="2023-05-01", type="published")
+    mock_iso_record.identification.date = [good, bad]
+
+    with pytest.raises(ValidationError, match=r"dates\.1\.datetype"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_contact_role_and_email_are_validated(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    contact = MagicMock()
+    contact.name = "Jane Doe"
+    contact.organization = "Org"
+    contact.email = "not an email"
+    contact.role = "boss"
+    mock_iso_record.contact = [contact]
+
+    with pytest.raises(ValidationError) as exc_info:
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    locs = {err["loc"] for err in exc_info.value.errors()}
+    assert ("contacts", 0, "email") in locs
+    assert ("contacts", 0, "role") in locs
+
+
+def test_dataset_uri_accepts_urn(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """gmd:dataSetURI is a URI: a URN (seen on GDI-DE) is legitimate, not a bad URL."""
+    mock_iso_record.dataseturi = "urn:sde:WAGIS1::sde:sde.GISADMIN.NSW_Einleitung_Pkt"
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert rec.dataset_uri == "urn:sde:WAGIS1::sde:sde.GISADMIN.NSW_Einleitung_Pkt"
+
+
+@pytest.mark.parametrize("junk", ["I", "?ResourceName=", "G:\\data\\x.shp"])
+def test_dataset_uri_rejects_non_uri_junk(mock_iso_record: MagicMock, parser: IsoParser, junk: str) -> None:
+    """Values observed on GDI-DE that are neither URL nor URN."""
+    mock_iso_record.dataseturi = junk
+
+    with pytest.raises(ValidationError, match="dataset_uri"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_blank_optional_url_means_absent(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """OWSLib reports an absent gmx:Anchor href as "" — that must not reject the record."""
+    _with_online(mock_iso_record, "https://example.com/data.csv")
+    mock_iso_record.distribution.online[0].name_url = ""
+    mock_iso_record.distribution.online[0].protocol_url = "  "
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert rec.online_resources[0].name_url is None
+    assert rec.online_resources[0].protocol_url is None
