@@ -26,8 +26,8 @@ on `middleware.payload` for mapper config types and on `middleware.parsing` when
 #### Scenario: Parsing package is the parser home
 
 - **WHEN** a shared PayloadParser is registered
-- **THEN** it is owned by `middleware.parsing` and selectable via repository `parser.type` without residing under
-  `middleware.generic`
+- **THEN** it is owned by `middleware.parsing` and selectable via the repository `parser.type` value without residing
+  under `middleware.generic`
 
 #### Scenario: oai_pmh does not own vocabulary mappers
 
