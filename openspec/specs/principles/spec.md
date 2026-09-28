@@ -26,8 +26,8 @@ for mapper config types and on `middleware.parsing` when validating parser regis
 #### Scenario: Parsing package is the parser home
 
 - **WHEN** a shared PayloadParser is registered
-- **THEN** it is owned by `middleware.parsing` and selectable via `parser_type` without residing under
-  `middleware.generic`
+- **THEN** it is owned by `middleware.parsing` and selectable via the repository `parser.type` value without residing
+  under `middleware.generic`
 
 ### Requirement: Extension point for new mapper types
 

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 # Side-effect: register shared parsers + generic protocols + mappers for config validation.
 import middleware.generic.protocol.xml as _register_generic_xml
-import middleware.parsing.register_builtin_parsers as _register_html_jsonld_parser
+import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
@@ -25,7 +25,7 @@ from middleware.payload import (
 from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
 
-_ = (_register_html_jsonld_parser, _register_generic_xml, _register_builtin_mappers)
+_ = (_register_builtin_parsers, _register_generic_xml, _register_builtin_mappers)
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig

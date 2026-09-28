@@ -18,12 +18,12 @@ The system SHALL provide a PayloadParser abstraction in `middleware.parsing` tha
 
 ### Requirement: Register PayloadParser implementations by type key
 
-The system SHALL select PayloadParser implementations through a registry in `middleware.parsing` keyed by `parser_type`
-and SHALL reject unregistered keys at configuration validation.
+The system SHALL select PayloadParser implementations through a registry in `middleware.parsing` keyed by the repository
+`parser.type` value and SHALL reject unregistered keys at configuration validation.
 
-#### Scenario: Unknown parser_type fails closed
+#### Scenario: Unknown parser.type fails closed
 
-- **WHEN** `parser_type` is not registered
+- **WHEN** `parser.type` is not registered
 - **THEN** configuration validation fails before harvesting starts
 
 ### Requirement: Keep parsers independent of Protocol discovery and DataMapper
