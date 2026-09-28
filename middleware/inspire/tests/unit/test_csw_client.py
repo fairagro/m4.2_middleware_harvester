@@ -118,7 +118,10 @@ async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() 
     config = _make_csw_config()
     client = CSWClient(config)
 
-    with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
+    with (
+        patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory,
+        patch("middleware.inspire.csw_client.close_pooled") as mock_close_pooled,
+    ):
         fake_executor = MagicMock()
         executor_factory.return_value = fake_executor
 
@@ -126,6 +129,7 @@ async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() 
             executor_factory.assert_called_once_with(max_workers=4)
 
         fake_executor.shutdown.assert_called_once_with(wait=False)
+        mock_close_pooled.assert_called_once_with(fake_executor)
 
 
 @pytest.mark.asyncio
@@ -375,3 +379,25 @@ async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
     assert records == ["record1"]
     assert mock_sync.called
     assert fake_loop.run_in_executor.called
+
+
+@pytest.mark.asyncio
+async def test_run_in_executor_dispatches_through_run_pooled() -> None:
+    """`_run_in_executor` must route every OWSLib call through the pooled-session helper."""
+    config = _make_csw_config()
+    client = CSWClient(config)
+    fake_executor = MagicMock()
+
+    with (
+        patch.object(CSWClient, "_get_executor", return_value=fake_executor),
+        patch("middleware.inspire.csw_client.run_pooled", return_value="result") as mock_run_pooled,
+    ):
+        result = await client._run_in_executor(str, 42)
+
+    assert result == "result"
+    mock_run_pooled.assert_awaited_once()
+    assert mock_run_pooled.await_args is not None
+    args, _kwargs = mock_run_pooled.await_args
+    assert args[1] is fake_executor
+    assert args[2] is str
+    assert args[3:] == (42,)

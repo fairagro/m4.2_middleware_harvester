@@ -585,6 +585,7 @@ dependencies = [
     { name = "owslib" },
     { name = "payload" },
     { name = "pydantic" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -595,6 +596,7 @@ requires-dist = [
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "requests", specifier = ">=2.31.0" },
 ]
 
 [[package]]

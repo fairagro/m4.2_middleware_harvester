@@ -21,6 +21,7 @@ from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.capabilities import describe_service, warn_if_server_caps_page_size
 from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.http_pooling import close_pooled, run_pooled
 from middleware.inspire.iso_parser import IsoParser
 from middleware.inspire.models import InspireRecord
 from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
@@ -106,6 +107,7 @@ class CSWClient:
         executor = self._executor
         self._executor = None
         executor.shutdown(wait=False)
+        close_pooled(executor)
 
     async def __aenter__(self) -> "CSWClient":
         """Prepare the executor and return the active CSWClient."""
@@ -124,9 +126,9 @@ class CSWClient:
             self._shutdown_executor()
 
     async def _run_in_executor(self, fn: Callable[..., T], *args: object, **kwargs: object) -> T:
-        """Run a function in the owned executor."""
+        """Run a function in the owned executor, on a worker thread with a pooled HTTP session."""
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self._get_executor(), fn, *args, **kwargs)
+        return await run_pooled(loop, self._get_executor(), fn, *args, **kwargs)
 
     def get_record_url(self, record_id: str) -> str:
         """
