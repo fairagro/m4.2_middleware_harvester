@@ -51,3 +51,23 @@
    value despite advertising a smaller default, and clamping would make paging worse against those servers to fix
    nothing. The readers live in `capabilities.py` rather than `csw_client.py` because that module sits at the 1000-line
    pylint ceiling.
+
+7. **Connection pooling for CSW (issue #19, PR #347) is not adopted — production CSW volume does not justify it
+   today.** A prototype rebinding `owslib.util.requests` to a thread-local pooled `requests.Session` measured
+   17 → 1 TCP connections and ~17% faster wall clock against `atlas.thuenen.de` (151 records, ~7s harvest, so ~1.2s
+   absolute). That benchmark is a one-off external endpoint used to investigate the issue, not a deployed repository.
+   The only currently-working production CSW source, `bonares` (`dev_environment/config.all-rdis.yaml`), returns ~27
+   records; at a page cap similar to decision 6's (`MaxRecordDefault = 10`), that is ~3 pages — about 4 connections
+   today, not 17 — so pooling saves on the order of 0.2-0.3 seconds, once, on a daily cron harvest
+   (`0 2 * * *`, `concurrencyPolicy: Forbid`). `csw_thread_pool_size`'s own design rationale
+   (`openspec/specs/csw-threadpool/design.md` decision 4) assumes "`<10` concurrent CSW repositories" as the expected
+   scale, consistent with CSW being a low-volume path here. A sub-second, once-daily saving does not justify a
+   process-wide monkeypatch of `owslib.util.requests` (thread-local session factory, per-executor registry, request
+   shim) — the kind of speculative infrastructure `openspec/principles.md` argues against building ahead of need.
+   _Revisit if_ a CSW repository with a materially larger record count is onboarded, at which point handshake count —
+   and the case for pooling — scales with page count. The prototype implementation and its measurement remain
+   available at `feat/pool-csw-http-sessions-19` (PR #347, closed unmerged) as a starting point; that review also
+   found the implementation only pooled within one paging sequence (`connect()` ran as a separate executor job from
+   the paged fetch, so the two could land on different worker threads), left closed sessions in thread-locals, and
+   never registered sessions created by the synchronous `connect()`/`get_records()` paths — all worth fixing if
+   revived. Full reasoning: `openspec/changes/archive/2026-09-28-defer-csw-http-pooling/design.md`.

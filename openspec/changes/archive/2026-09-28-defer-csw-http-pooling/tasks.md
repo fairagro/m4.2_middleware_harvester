@@ -10,14 +10,14 @@
 
 ## 2. Close out PR #347 and issue #19
 
-- [ ] 2.1 Reply on PR #347 conceding the review, with the concrete numbers (bonares ~27 records / ~10
+- [x] 2.1 Reply on PR #347 conceding the review, with the concrete numbers (bonares ~27 records / ~10
       per page ⇒ ~0.2-0.3s once daily, vs. the 151-record benchmark's ~1.2s).
-- [ ] 2.2 Close PR #347 without merging.
-- [ ] 2.3 Close issue #19's pooling half, linking this change once archived.
+- [x] 2.2 Close PR #347 without merging.
+- [x] 2.3 Close issue #19's pooling half, linking this change once archived.
 
 ## 3. Land and archive
 
-- [ ] 3.1 Commit on `chore/defer-csw-http-pooling`, open a PR, get it merged (no code changes, so no
-      quality-gate run beyond `openspec validate`).
-- [ ] 3.2 `openspec archive defer-csw-http-pooling`, confirm decision 7 lands in
+- [x] 3.1 Commit on `chore/defer-csw-http-pooling`, open a PR (#355), get it merged (no code changes, so
+      no quality-gate run beyond `openspec validate`).
+- [x] 3.2 `openspec archive defer-csw-http-pooling`, confirm decision 7 lands in
       `openspec/specs/csw-harvesting/design.md`.
