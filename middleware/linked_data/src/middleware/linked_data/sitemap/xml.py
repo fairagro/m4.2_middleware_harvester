@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
-from middleware.generic.discovery import DiscoveryResult
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.xml import XmlProtocol
 from middleware.harvester.errors import RecordProcessingError
@@ -12,6 +11,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import SitemapType
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.sitemap.sitemap import Sitemap
+from middleware.parsing.discovery import DiscoveryResult
 
 
 @Sitemap.register(SitemapType.xml)

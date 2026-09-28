@@ -8,11 +8,11 @@ from xml.etree.ElementTree import ParseError
 from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
 from middleware.generic.config import ProtocolType
-from middleware.generic.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 
 
 @Protocol.register(ProtocolType.xml)

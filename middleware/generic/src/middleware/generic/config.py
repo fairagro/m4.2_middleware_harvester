@@ -15,19 +15,15 @@ class ProtocolType(StrEnum):
     xml = "xml"
 
 
-class ParserType(StrEnum):
-    """Registered PayloadParser kinds for generic harvesting."""
-
-    html_jsonld = "html_jsonld"
-
-
 class Config(BaseModel):
-    """Configuration for the generic Protocol + PayloadParser plugin."""
+    """Configuration for the generic Protocol + shared PayloadParser plugin.
+
+    Shared parser selection uses the repository-level ``parser:`` block.
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
     protocol_type: Annotated[ProtocolType, Field(description="Registered Protocol implementation key.")]
-    parser_type: Annotated[ParserType, Field(description="Registered PayloadParser implementation key.")]
     sitemap_url: Annotated[
         str,
         Field(

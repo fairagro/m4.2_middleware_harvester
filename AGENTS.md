@@ -51,6 +51,7 @@ middleware/
 │       ├── nice_http_client.py
 │       └── healthcheck.py
 ├── payload/               # Shared PayloadKind / DataMapper registry + RDF mappers
+├── parsing/               # Shared DiscoveryResult / PayloadParser registry
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
 │   ├── src/middleware/inspire/
 │   │   ├── plugin.py      # Plugin generator (run_plugin AsyncGenerator)
@@ -82,7 +83,7 @@ bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/
 bash scripts/run-quality-cli.sh pylint \
   --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
-  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/generic
+  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/generic middleware/parsing
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

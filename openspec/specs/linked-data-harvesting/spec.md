@@ -239,7 +239,7 @@ harvest outcomes for that source.
 #### Scenario: First migrated pair xml + html_jsonld via generic
 
 - **WHEN** a repository that previously used linked_data xml sitemap + html_jsonld is reconfigured to `generic` with the
-  corresponding `protocol_type` / `parser_type` and the same `mapper`
+  corresponding `protocol_type`, a sibling `parser.type`, and the same `mapper`
 - **THEN** harvest yields remain observationally equivalent for successful records (same PayloadKind path into the
   shared DataMapper)
 
