@@ -144,12 +144,33 @@ class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
     """Opaque handle for a subject; ``iri`` is None for blank nodes.
 
     Many small accessors are intentional (RDF access facade / DSL surface).
+
+    A view MAY carry an ordered chain of fallback subjects (see
+    :meth:`with_fallback`). Property reads then fall through to the next subject
+    in the chain when the primary subject provides nothing. Identity
+    (:attr:`node`, :attr:`iri`, :meth:`is_type`) never falls back, and views
+    handed out by resource accessors are plain.
     """
 
-    def __init__(self, stable: StableGraph, subject: Node) -> None:
-        """Bind this view to ``subject`` within ``stable``."""
+    def __init__(self, stable: StableGraph, subject: Node, fallbacks: tuple[Node, ...] = ()) -> None:
+        """Bind this view to ``subject`` within ``stable``, optionally over ``fallbacks``."""
         self._stable = stable
         self._subject = subject
+        self._fallbacks = fallbacks
+
+    def with_fallback(self, *subjects: Node) -> ResourceView:
+        """Return a view of the same subject whose reads fall through to ``subjects``.
+
+        Per-property, first-non-empty-wins; values from different subjects are
+        never merged. The chain is one hop deep — it replaces any chain this
+        view already carries rather than extending it, so a fallback subject's
+        own chain is never consulted.
+        """
+        chain = tuple(dict.fromkeys(subject for subject in subjects if subject != self._subject))
+        return ResourceView(self._stable, self._subject, chain)
+
+    def _subject_chain(self) -> tuple[Node, ...]:
+        return (self._subject, *self._fallbacks)
 
     @property
     def node(self) -> Node:
@@ -242,18 +263,7 @@ class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
 
     def schema_objects(self, term: str) -> list[Node]:
         """Objects for a Schema.org term under configured http/https namespaces."""
-        namespaces = self._stable.policy.term_namespaces
-        if not namespaces:
-            return []
-        seen: set[Node] = set()
-        objects: list[Node] = []
-        for schema in namespaces:
-            predicate = getattr(schema, term)
-            for obj in self._stable.graph.objects(self._subject, predicate):
-                if obj not in seen:
-                    seen.add(obj)
-                    objects.append(obj)
-        return objects
+        return self._all_objects(*self._schema_predicates(term))
 
     def schema_text(self, term: str) -> str | None:
         """``text`` over dual Schema.org namespaces for ``term``."""
@@ -325,36 +335,46 @@ class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
         return doi_from_node(self._stable, self._subject)
 
     def dois_from(self, *predicates: Node) -> list[str]:
-        """Collect DOIs from objects of ``predicates`` (deduped, casefold-sorted)."""
-        by_fold: dict[str, str] = {}
-        for obj in self._all_objects(*predicates):
-            doi = doi_from_node(self._stable, obj)
-            if not doi:
-                continue
-            fold = doi.casefold()
-            previous = by_fold.get(fold)
-            if previous is None or doi < previous:
-                by_fold[fold] = doi
-        return sorted(by_fold.values(), key=lambda doi: (doi.casefold(), doi))
+        """Collect DOIs from objects of ``predicates`` (deduped, casefold-sorted).
+
+        Falls back on *no parsed DOI*, not merely on no objects: a subject may
+        carry an identifier node that holds no DOI, and that must not stop the
+        chain.
+        """
+        for subject in self._subject_chain():
+            dois = self._sorted_dois(self._dois_of(self._objects_for(subject, predicates)))
+            if dois:
+                return dois
+        return []
 
     def schema_dois(self, term: str = "identifier") -> list[str]:
-        """Collect DOIs from Schema.org ``term`` objects (and subject IRI if DOI-like)."""
+        """Collect DOIs from Schema.org ``term`` objects (and subject IRI if DOI-like).
+
+        Like :meth:`dois_from`, falls back on no *parsed* DOI rather than on no
+        objects, so an identifier node that carries no DOI does not stop the
+        chain.
+        """
+        predicates = self._schema_predicates(term)
+        for subject in self._subject_chain():
+            candidates = self._dois_of(self._objects_for(subject, predicates))
+            if isinstance(subject, URIRef) and (subject_doi := normalize_doi(str(subject))):
+                candidates.append(subject_doi)
+            dois = self._sorted_dois(candidates)
+            if dois:
+                return dois
+        return []
+
+    def _dois_of(self, objects: Iterable[Node]) -> list[str]:
+        return [doi for obj in objects if (doi := doi_from_node(self._stable, obj))]
+
+    @staticmethod
+    def _sorted_dois(dois: Iterable[str]) -> list[str]:
         by_fold: dict[str, str] = {}
-        for obj in self.schema_objects(term):
-            doi = doi_from_node(self._stable, obj)
-            if not doi:
-                continue
+        for doi in dois:
             fold = doi.casefold()
             previous = by_fold.get(fold)
             if previous is None or doi < previous:
                 by_fold[fold] = doi
-        if isinstance(self._subject, URIRef):
-            subject_doi = normalize_doi(str(self._subject))
-            if subject_doi:
-                fold = subject_doi.casefold()
-                previous = by_fold.get(fold)
-                if previous is None or subject_doi < previous:
-                    by_fold[fold] = subject_doi
         return sorted(by_fold.values(), key=lambda doi: (doi.casefold(), doi))
 
     def _schema_predicates(self, term: str) -> tuple[Node, ...]:
@@ -363,11 +383,18 @@ class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
     def _all_objects(self, *predicates: Node) -> list[Node]:
         if not predicates:
             return []
+        for subject in self._subject_chain():
+            objects = self._objects_for(subject, predicates)
+            if objects:
+                return objects
+        return []
+
+    def _objects_for(self, subject: Node, predicates: tuple[Node, ...]) -> list[Node]:
         seen: set[Node] = set()
         objects: list[Node] = []
         graph = self._stable.graph
         for predicate in predicates:
-            for obj in graph.objects(self._subject, predicate):
+            for obj in graph.objects(subject, predicate):
                 if obj not in seen:
                     seen.add(obj)
                     objects.append(obj)

@@ -44,6 +44,22 @@ from middleware.payload.person_names import split_display_name
 
 logger = logging.getLogger(__name__)
 
+# Terms recovered from an `isBasedOn` target when the Dataset itself carries
+# none. Deliberately excludes `name`/`headline`/`alternativeHeadline`: the title
+# cascade must stay on the Dataset, because a provider placeholder title is a
+# non-empty value that no general rule can recognise as a placeholder.
+_BRIDGED_TERMS: tuple[str, ...] = (
+    "contributor",
+    "creator",
+    "author",
+    "datePublished",
+    "dateModified",
+    "description",
+    "identifier",
+    "license",
+    "url",
+)
+
 
 @dataclass(frozen=True)
 class _IdentifierPlan:
@@ -87,7 +103,7 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
         use_page_harvest_id = len(dataset_views) == 1
         for dataset in dataset_views:
-            arc = _SchemaOrgRun(self, stable).map_arc(
+            arc = _SchemaOrgRun.for_dataset(self, stable, dataset.node).map_arc(
                 dataset.node,
                 context,
                 use_page_harvest_id=use_page_harvest_id,
@@ -101,9 +117,31 @@ class _SchemaOrgRun:
 
     mapper: GeneralSchemaOrgMapper
     stable: StableGraph
+    dataset: Node | None = None
+    bridge: tuple[Node, ...] = ()
+
+    @classmethod
+    def for_dataset(cls, mapper: GeneralSchemaOrgMapper, stable: StableGraph, dataset: Node) -> _SchemaOrgRun:
+        """Build a run whose Dataset reads fall back to its ``schema:isBasedOn`` targets.
+
+        BonaRes Klib and similar literature-extraction sources put the record's
+        descriptive metadata on the work the record is derived from, leaving the
+        ``schema:Dataset`` node itself almost empty. Targets are ordered by
+        ``sort_key`` so a Dataset with several ``isBasedOn`` links resolves the
+        same way on every harvest.
+        """
+        targets = tuple(target.node for target in stable.view(dataset).schema_resources("isBasedOn"))
+        return cls(mapper, stable, dataset, targets)
 
     def view(self, subject: Node) -> ResourceView:
-        """ResourceView for ``subject`` on this call's StableGraph."""
+        """ResourceView for ``subject``; the Dataset's view carries the ``isBasedOn`` chain."""
+        view = self.stable.view(subject)
+        if self.bridge and subject == self.dataset:
+            return view.with_fallback(*self.bridge)
+        return view
+
+    def plain_view(self, subject: Node) -> ResourceView:
+        """ResourceView for ``subject`` with no fallback chain (title and identity reads)."""
         return self.stable.view(subject)
 
     def map_arc(
@@ -146,11 +184,11 @@ class _SchemaOrgRun:
         as a Comment by the caller, since a title fallback should never be
         silent).
         """
-        name = (self.view(subject)["name"] or "").strip()
+        name = (self.plain_view(subject)["name"] or "").strip()
         if name:
             return name, None
 
-        headline = (self.view(subject)["headline"] or "").strip()
+        headline = (self.plain_view(subject)["headline"] or "").strip()
         if headline:
             return headline, "headline"
 
@@ -163,7 +201,7 @@ class _SchemaOrgRun:
         # binary, which would make the same record map to different titles in
         # development and in production. schema_texts() is deduped and sorted,
         # so it is stable everywhere.
-        for alternative in self.view(subject).schema_texts("alternativeHeadline"):
+        for alternative in self.plain_view(subject).schema_texts("alternativeHeadline"):
             text = str(alternative).strip()
             if text:
                 return text, "alternativeHeadline"
@@ -177,6 +215,35 @@ class _SchemaOrgRun:
             "Schema.org Dataset has no usable title "
             "(schema:name, headline, alternativeHeadline, or page title); refusing Untitled fallback"
         )
+
+    def _bridged_terms(self, subject: Node) -> tuple[str, ...]:
+        """Terms this Dataset provides nothing for but recovers from ``isBasedOn``."""
+        if not self.bridge or subject != self.dataset:
+            return ()
+        plain, bridged = self.plain_view(subject), self.view(subject)
+        recovered = []
+        for term in _BRIDGED_TERMS:
+            # DOIs resolve on "no parsed DOI", not "no objects" — an identifier
+            # node holding only a landing-page URL still counts as absent here.
+            if term == "identifier":
+                if not plain.schema_dois(term) and bridged.schema_dois(term):
+                    recovered.append(term)
+            elif not plain.schema_objects(term) and bridged.schema_objects(term):
+                recovered.append(term)
+        return tuple(recovered)
+
+    def _add_bridged_metadata_comment(self, inv: ArcInvestigation, subject: Node) -> None:
+        """Record which fields came from ``isBasedOn`` — a thin record is never dressed up silently."""
+        recovered = self._bridged_terms(subject)
+        if not recovered:
+            return
+        terms = ", ".join(recovered)
+        logger.warning(
+            "Schema.org Dataset %s recovered %s from schema:isBasedOn",
+            self.view(subject).iri or "<blank node>",
+            terms,
+        )
+        inv.Comments.append(Comment.create("Metadata Source", f"isBasedOn: {terms}"))
 
     def _add_title_fallback_comment(self, inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
         """Warn and record a Comment when the title came from a fallback, not schema:name."""
@@ -196,15 +263,18 @@ class _SchemaOrgRun:
             raise ValueError(f"Schema.org Dataset title {title!r} does not yield a usable Study/Assay identifier slug")
         return identifier
 
-    def _canonical_http_identifier(self, subject: Node, term: str) -> str | None:
-        iris = [iri for obj in self.view(subject).schema_objects(term) if (iri := http_iri(obj))]
+    def _canonical_http_identifier(self, view: ResourceView, term: str) -> str | None:
+        iris = [iri for obj in view.schema_objects(term) if (iri := http_iri(obj))]
         if not iris:
             return None
         return min(iris, key=lambda iri: (iri.casefold(), iri))
 
     def _resolve_graph_url_identifier(self, subject: Node) -> str | None:
+        # Identity stays on the Dataset. If ``url`` could fall back to an
+        # ``isBasedOn`` work, two Datasets derived from the same work would
+        # collide on Investigation.identifier.
         for term in ("url", "sameAs"):
-            identifier = self._canonical_http_identifier(subject, term)
+            identifier = self._canonical_http_identifier(self.plain_view(subject), term)
             if identifier:
                 return self.mapper.sanitize_identifier(identifier)
         subject_iri = http_iri(subject)
@@ -263,6 +333,7 @@ class _SchemaOrgRun:
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
         self._add_alternate_identifier_comments(inv, plan.alternate_dois)
         self._add_title_fallback_comment(inv, subject, title_fallback_source, title)
+        self._add_bridged_metadata_comment(inv, subject)
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
         return inv
@@ -605,7 +676,7 @@ class _SchemaOrgRun:
     def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str:
         """Resolve the landing-page URL for the Measurement output URI cell."""
         for term in ("url", "sameAs"):
-            iri = self._canonical_http_identifier(subject, term)
+            iri = self._canonical_http_identifier(self.view(subject), term)
             if iri:
                 return iri
 
