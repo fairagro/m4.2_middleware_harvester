@@ -16,6 +16,7 @@ from middleware.linked_data.dataset import (
     Dataset,
     DiscoveryResult,
     UrlDiscoveryResult,
+    dcat_ap as _register_dcat_ap_dataset,
     html_jsonld as _register_html_jsonld_dataset,
     regal_jsonld as _register_regal_jsonld_dataset,
 )
@@ -33,7 +34,12 @@ from middleware.payload.mapping_context import as_source_url
 
 # Side-effect imports: @Dataset.register / @DataMapper.register hooks (also pulled in when
 # harvester.config imports LinkedDataPlugin for mapper/produces validation).
-_ = (_register_html_jsonld_dataset, _register_regal_jsonld_dataset, _register_builtin_mappers)
+_ = (
+    _register_html_jsonld_dataset,
+    _register_regal_jsonld_dataset,
+    _register_dcat_ap_dataset,
+    _register_builtin_mappers,
+)
 
 logger = logging.getLogger(__name__)
 

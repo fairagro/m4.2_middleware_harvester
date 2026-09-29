@@ -43,6 +43,19 @@ repositories:
         # machine API, so robots checks are disabled for this RDI.
         respect_robots_txt: false
 
+  # DCAT-AP (ckanext-dcat, Hydra-paginated). SRADI is the first RDI on this
+  # path; the mapper/sitemap/dataset trio is generic -- a second DCAT-AP RDI
+  # only needs a new repository entry, no new code. See m4_rdi_portfolio#8.
+  - rdi: "sradi"
+    linked_data:
+      sitemap_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld"
+      sitemap_type: dcat_ap
+      dataset_type: dcat_ap
+    mapper:
+      type: dcat_ap_general
+      catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
+      catalog_url: "https://agrihub.gis.lrg.tum.de"
+
   # Static stand-in for OpenAgrar; see fixtures/openagrar/README.md.
   - rdi: "openagrar-fixture"
     linked_data:
