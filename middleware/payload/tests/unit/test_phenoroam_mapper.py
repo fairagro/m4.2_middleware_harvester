@@ -17,11 +17,14 @@ from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.phenoroam.mapper import PhenoroamMapper
-from middleware.payload.phenoroam.models import PhenoroamPerson, PhenoroamRecord, PhenoroamStudyBlock
+from middleware.payload.phenoroam.models import PhenoroamBBox, PhenoroamPerson, PhenoroamRecord, PhenoroamStudyBlock
 
 _ = (_register_parsers, _register_mappers)
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "phenoroam_metadata_sample.xml"
+_BBOX_FIXTURE = (
+    Path(__file__).resolve().parents[3] / "parsing" / "tests" / "unit" / "fixtures" / "phenoroam_metadata_bbox.xml"
+)
 
 
 def test_phenoroam_mapper_registered() -> None:
@@ -152,6 +155,45 @@ def test_datafile_links_are_comments_not_file_outputs() -> None:
     assert "Processed Data" not in blob
 
 
+def test_keywords_map_to_study_annotation_table() -> None:
+    record = PhenoroamRecord(
+        item_uuid="abc-uuid",
+        title="Dataset",
+        keywords=["nutrient deficiency", "RGB image", "soil mini plots"],
+    )
+    harvested = next(
+        iter(
+            PhenoroamMapper().map(
+                ParsedPayload(kind=PayloadKind.phenoroam_record, value=record, identifier="abc-uuid"),
+                MappingContext(harvest_source_id="abc-uuid"),
+            )
+        )
+    )
+    assert "nutrient deficiency, RGB image, soil mini plots" in harvested.arc_json
+    assert "Keywords" in harvested.arc_json
+
+
+def test_bbox_maps_to_assay_geographic_comment() -> None:
+    record = PhenoroamRecord(
+        item_uuid="abc-uuid",
+        title="Dataset",
+        bbox=PhenoroamBBox(west="6.9895", east="6.9922", south="50.6152", north="50.6165"),
+    )
+    harvested = next(
+        iter(
+            PhenoroamMapper().map(
+                ParsedPayload(kind=PayloadKind.phenoroam_record, value=record, identifier="abc-uuid"),
+                MappingContext(harvest_source_id="abc-uuid"),
+            )
+        )
+    )
+    assert "Geographic Bounding Box" in harvested.arc_json
+    assert "W:6.9895" in harvested.arc_json
+    assert "E:6.9922" in harvested.arc_json
+    assert "S:50.6152" in harvested.arc_json
+    assert "N:50.6165" in harvested.arc_json
+
+
 @pytest.mark.asyncio
 async def test_fixture_round_trip_parse_and_map() -> None:
     xml = _FIXTURE.read_text(encoding="utf-8")
@@ -174,3 +216,31 @@ async def test_fixture_round_trip_parse_and_map() -> None:
     assert harvested[0].studies == 1
     assert harvested[0].assays == 1
     assert "Marion" in harvested[0].arc_json
+    assert "nutrient deficiency, RGB image, soil mini plots" in harvested[0].arc_json
+
+
+@pytest.mark.asyncio
+async def test_bbox_fixture_round_trip_parse_and_map() -> None:
+    xml = _BBOX_FIXTURE.read_text(encoding="utf-8")
+    payload = await PhenoroamXmlParser().parse(
+        XmlDiscoveryResult(identifier="bbox-record", xml=xml),
+        client=None,
+        config=object(),
+    )
+    assert isinstance(payload.value, PhenoroamRecord)
+    assert payload.value.bbox is not None
+    assert payload.value.keywords
+    harvested = list(
+        PhenoroamMapper().map(
+            payload,
+            MappingContext(harvest_source_id=payload.identifier),
+        )
+    )
+    assert len(harvested) == 1
+    blob = harvested[0].arc_json
+    assert "multi-temporal, orthomosaic, mixed cropping, rgb imagery" in blob
+    assert "Geographic Bounding Box" in blob
+    assert "W:6.9895" in blob
+    assert "E:6.9922" in blob
+    assert "S:50.6152" in blob
+    assert "N:50.6165" in blob
