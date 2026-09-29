@@ -40,3 +40,10 @@ class JsonLdDiscoveryResult(DiscoveryResult):
     """Discovery result carrying an inline JSON-LD record payload."""
 
     payload: dict[str, object]
+
+
+@dataclass
+class XmlDiscoveryResult(DiscoveryResult):
+    """Discovery result carrying inline XML (e.g. OAI ``<metadata>`` RDF/XML)."""
+
+    xml: str
