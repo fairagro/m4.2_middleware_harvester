@@ -183,3 +183,41 @@ async def test_plugin_kind_mismatch_record_error() -> None:
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
     assert "incompatible" in str(results[0])
+
+
+@pytest.mark.asyncio
+async def test_plugin_yields_all_mapper_arcs() -> None:
+    class _OkParser(PayloadParser):
+        produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        async def parse(
+            self,
+            discovery_result: DiscoveryResult,
+            client: object,
+            config: object,
+        ) -> ParsedPayload:
+            _ = client, config
+            return ParsedPayload(kind=PayloadKind.rdf_graph, value=Graph(), identifier=discovery_result.identifier)
+
+    stub_mapper = MagicMock()
+    stub_mapper.accepts = PayloadKind.rdf_graph
+    stub_mapper.map.return_value = [
+        HarvestedArc(arc_json="arc-a"),
+        HarvestedArc(arc_json="arc-b"),
+    ]
+
+    plugin = OaiPmhPlugin(_config(), _mapper_config(), _parser_config())
+    plugin._parser_cls = _OkParser  # noqa: SLF001
+    plugin._mapper = stub_mapper  # noqa: SLF001
+
+    with patch.object(
+        plugin,
+        "_sync_discover",
+        return_value=iter([XmlDiscoveryResult(identifier="oai:ex:multi", xml="<rdf:RDF/>")]),
+    ):
+        results = [item async for item in plugin.run()]
+
+    arcs = [r for r in results if isinstance(r, HarvestedArc)]
+    assert [a.arc_json for a in arcs] == ["arc-a", "arc-b"]
+    assert all(a.source_url == "oai:ex:multi" for a in arcs)

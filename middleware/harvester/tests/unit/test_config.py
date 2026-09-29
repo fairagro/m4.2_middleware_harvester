@@ -10,6 +10,8 @@ from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
 from middleware.inspire.config import Config as InspireConfig
+from middleware.parsing.parser.parser import PayloadParser
+from middleware.parsing.parser_type import ParserType
 from middleware.payload.registry import Registry
 
 
@@ -271,6 +273,19 @@ def test_oai_pmh_repository_accepts_parser_and_mapper() -> None:
     assert repo.parser.type == "rdf_xml"
     assert repo.mapper is not None
     assert repo.source_url == "https://example.org/oai"
+
+
+def test_oai_pmh_repository_rejects_kind_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Startup kind alignment must fail when parser.produces != mapper.accepts."""
+    parser_cls = PayloadParser.registry[ParserType.rdf_xml]
+    monkeypatch.setattr(parser_cls, "produces", "not-rdf-graph")
+    with pytest.raises(ValidationError, match="accepts"):
+        RepositoryConfig.model_validate({
+            "rdi": "oai",
+            "oai_pmh": _minimal_oai_pmh(),
+            "parser": {"type": "rdf_xml"},
+            "mapper": {"type": "schema_org_general"},
+        })
 
 
 def test_oai_pmh_and_generic_mutual_exclusion() -> None:
