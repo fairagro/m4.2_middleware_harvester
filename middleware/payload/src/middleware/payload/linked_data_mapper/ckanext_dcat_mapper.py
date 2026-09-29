@@ -53,12 +53,12 @@ def _present(values: Iterable[str | None]) -> list[str]:
     return [v for v in values if v]
 
 
-@LinkedDataMapper.register(MapperType.dcat_ap_general)
-class DcatApMapper(LinkedDataMapper):
+@LinkedDataMapper.register(MapperType.ckanext_dcat)
+class CkanextDcatMapper(LinkedDataMapper):
     """Maps a DCAT-AP RDF graph (one ``dcat:Dataset`` per call) to ARC objects.
 
     RDF reads use the ``StableGraph`` passed into ``_map_graph`` (via a per-call
-    ``_DcatApRun``); DCAT-AP ARC policy stays here.
+    ``_CkanextDcatRun``); DCAT-AP ARC policy stays here.
     """
 
     def __init__(self, catalog_name: str | None = None, catalog_url: str | None = None) -> None:
@@ -68,7 +68,7 @@ class DcatApMapper(LinkedDataMapper):
 
     @classmethod
     @override
-    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> DcatApMapper:
+    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> CkanextDcatMapper:
         """Construct a mapper from repository mapper configuration."""
         _ = resource_base_url  # DCAT-AP subjects are already absolute IRIs; unused here.
         return cls(
@@ -90,15 +90,15 @@ class DcatApMapper(LinkedDataMapper):
         if not subjects:
             raise ValueError("Graph does not contain a dcat:Dataset entity")
 
-        run = _DcatApRun(self, stable, self._catalog_name, self._catalog_url)
+        run = _CkanextDcatRun(self, stable, self._catalog_name, self._catalog_url)
         return [HarvestedArc.from_arctrl(run.map_arc(subject.node)) for subject in subjects]
 
 
 @dataclass(frozen=True)
-class _DcatApRun:
+class _CkanextDcatRun:
     """One ``map_graph`` call: owns the StableGraph explicitly (not on the mapper)."""
 
-    mapper: DcatApMapper
+    mapper: CkanextDcatMapper
     stable: StableGraph
     catalog_name: str | None
     catalog_url: str | None

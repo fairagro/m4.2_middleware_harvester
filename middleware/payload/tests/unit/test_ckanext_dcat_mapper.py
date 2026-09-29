@@ -15,17 +15,17 @@ from mapper_test_helpers import (
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
-from middleware.payload.linked_data_mapper.dcat_ap_mapper import DCAT, FOAF, VCARD, DcatApMapper
+from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
 _LOCN = Namespace("http://www.w3.org/ns/locn#")
 
 
-def _mapper(catalog_name: str | None = None, catalog_url: str | None = None) -> DcatApMapper:
-    return DcatApMapper(catalog_name=catalog_name, catalog_url=catalog_url)
+def _mapper(catalog_name: str | None = None, catalog_url: str | None = None) -> CkanextDcatMapper:
+    return CkanextDcatMapper(catalog_name=catalog_name, catalog_url=catalog_url)
 
 
-def _mapped_arc_json(graph: Graph, mapper: DcatApMapper | None = None) -> str:
+def _mapped_arc_json(graph: Graph, mapper: CkanextDcatMapper | None = None) -> str:
     results = list((mapper or _mapper()).map_graph(graph, NO_DISCOVERY))
     assert len(results) == 1
     arc_json = results[0].arc_json
@@ -54,30 +54,30 @@ def _comment_text(arc_json: str, name: str) -> str | None:
     return None
 
 
-def test_dcat_ap_mapper_requires_a_dataset_subject() -> None:
+def test_ckanext_dcat_mapper_requires_a_dataset_subject() -> None:
     graph = Graph()
     graph.add((SUBJECT, DCTERMS.title, Literal("Not typed as dcat:Dataset")))
     with pytest.raises(ValueError, match="dcat:Dataset"):
         list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
-def test_dcat_ap_mapper_maps_core_fields() -> None:
+def test_ckanext_dcat_mapper_maps_core_fields() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert root_title(arc_json) == "Soil³ - Sustainable Subsoil Management"
     assert root_identifier(arc_json)
 
 
-def test_dcat_ap_mapper_identifier_uses_shared_sanitize() -> None:
+def test_ckanext_dcat_mapper_identifier_uses_shared_sanitize() -> None:
     subject = URIRef("https://example.org/dataset/abc.123")
     graph = Graph()
     graph.add((subject, RDF.type, DCAT.Dataset))
     graph.add((subject, DCTERMS.title, Literal("Example")))
 
     harvested = list(_mapper().map_graph(graph, NO_DISCOVERY))[0]
-    assert harvested.identifier == DcatApMapper.sanitize_identifier(str(subject))
+    assert harvested.identifier == CkanextDcatMapper.sanitize_identifier(str(subject))
 
 
-def test_dcat_ap_mapper_maps_keywords_and_language_comments() -> None:
+def test_ckanext_dcat_mapper_maps_keywords_and_language_comments() -> None:
     graph = _base_graph()
     graph.add((SUBJECT, DCAT.keyword, Literal("crop yield")))
     graph.add((SUBJECT, DCAT.keyword, Literal("nutrient efficiency")))
@@ -91,7 +91,7 @@ def test_dcat_ap_mapper_maps_keywords_and_language_comments() -> None:
     assert _comment_text(arc_json, "Language") == "en"
 
 
-def test_dcat_ap_mapper_maps_publisher_org_name() -> None:
+def test_ckanext_dcat_mapper_maps_publisher_org_name() -> None:
     graph = _base_graph()
     org = URIRef("https://agrihub.example.org/organization/1")
     graph.add((SUBJECT, DCTERMS.publisher, org))
@@ -101,7 +101,7 @@ def test_dcat_ap_mapper_maps_publisher_org_name() -> None:
     assert _comment_text(arc_json, "Publisher") == "WZW - Lehrstuhl für Bodenkunde"
 
 
-def test_dcat_ap_mapper_unwraps_ckan_raw_json_contact_point() -> None:
+def test_ckanext_dcat_mapper_unwraps_ckan_raw_json_contact_point() -> None:
     """ckanext-dcat sometimes serializes CKAN's raw maintainer JSON string as vcard:fn."""
     graph = _base_graph()
     contact = URIRef("https://agrihub.example.org/dataset/0555406d#contact")
@@ -117,7 +117,7 @@ def test_dcat_ap_mapper_unwraps_ckan_raw_json_contact_point() -> None:
     assert contact_text == "Merve Mentese <hilal.mentese@tum.de>"
 
 
-def test_dcat_ap_mapper_unwraps_ckan_raw_json_array_publisher() -> None:
+def test_ckanext_dcat_mapper_unwraps_ckan_raw_json_array_publisher() -> None:
     """CKAN's raw ``author``/``maintainer`` package fields are single-element JSON arrays."""
     graph = _base_graph()
     org = URIRef("https://agrihub.example.org/organization/3")
@@ -135,7 +135,7 @@ def test_dcat_ap_mapper_unwraps_ckan_raw_json_array_publisher() -> None:
     assert _comment_text(arc_json, "Publisher") == "David Gackstetter <david.gackstetter@tum.de>"
 
 
-def test_dcat_ap_mapper_falls_back_to_raw_text_for_unparseable_org_label() -> None:
+def test_ckanext_dcat_mapper_falls_back_to_raw_text_for_unparseable_org_label() -> None:
     graph = _base_graph()
     org = URIRef("https://agrihub.example.org/organization/2")
     graph.add((SUBJECT, DCTERMS.publisher, org))
@@ -145,7 +145,7 @@ def test_dcat_ap_mapper_falls_back_to_raw_text_for_unparseable_org_label() -> No
     assert _comment_text(arc_json, "Publisher") == "{not valid json"
 
 
-def test_dcat_ap_mapper_maps_distribution_table_details() -> None:
+def test_ckanext_dcat_mapper_maps_distribution_table_details() -> None:
     graph = _base_graph()
     dist = URIRef("https://agrihub.example.org/dataset/0555406d/resource/a")
     graph.add((SUBJECT, DCAT.distribution, dist))
@@ -160,7 +160,7 @@ def test_dcat_ap_mapper_maps_distribution_table_details() -> None:
     assert "https://example.org/soil3" in arc_json
 
 
-def test_dcat_ap_mapper_adds_catalog_comment_when_configured() -> None:
+def test_ckanext_dcat_mapper_adds_catalog_comment_when_configured() -> None:
     arc_json = _mapped_arc_json(
         _base_graph(),
         mapper=_mapper(catalog_name="SRADI", catalog_url="https://agrihub.example.org"),
@@ -168,12 +168,12 @@ def test_dcat_ap_mapper_adds_catalog_comment_when_configured() -> None:
     assert _comment_text(arc_json, "Data Catalog") == "SRADI (https://agrihub.example.org)"
 
 
-def test_dcat_ap_mapper_omits_catalog_comment_when_unconfigured() -> None:
+def test_ckanext_dcat_mapper_omits_catalog_comment_when_unconfigured() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _comment_text(arc_json, "Data Catalog") is None
 
 
-def test_dcat_ap_mapper_flags_spatial_extent_without_embedding_raw_geometry() -> None:
+def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry() -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))

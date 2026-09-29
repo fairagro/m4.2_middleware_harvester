@@ -16,7 +16,6 @@ class SitemapType(StrEnum):
     xml = "xml"
     mycore_solr = "mycore_solr"
     regal_find = "regal_find"
-    dcat_ap = "dcat_ap"
 
 
 class DatasetType(StrEnum):
@@ -24,7 +23,6 @@ class DatasetType(StrEnum):
 
     html_jsonld = "html_jsonld"
     regal_jsonld = "regal_jsonld"
-    dcat_ap = "dcat_ap"
 
 
 class Config(BaseModel):

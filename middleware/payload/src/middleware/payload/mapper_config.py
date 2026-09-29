@@ -12,7 +12,7 @@ class MapperType(StrEnum):
     schema_org_general = "schema_org_general"
     regal_general = "regal_general"
     phenoroam_general = "phenoroam_general"
-    dcat_ap_general = "dcat_ap_general"
+    ckanext_dcat = "ckanext_dcat"
 
 
 class MapperConfig(BaseModel):
