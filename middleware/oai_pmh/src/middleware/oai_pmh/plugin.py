@@ -78,27 +78,31 @@ class OaiPmhPlugin:
     async def _process_unit(
         self,
         discovery: XmlDiscoveryResult,
-    ) -> HarvestedArc | RecordProcessingError:
+    ) -> list[HarvestedArc | RecordProcessingError]:
         parser = self._parser_cls()
         try:
             payload = await parser.parse(discovery, client=None, config=self._config)
         except (ParserError, OaiPmhError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                f"Failed to parse OAI record {discovery.identifier}: {exc}",
-                discovery.identifier,
-                exc,
-                url=discovery.identifier,
-            )
+            return [
+                RecordProcessingError(
+                    f"Failed to parse OAI record {discovery.identifier}: {exc}",
+                    discovery.identifier,
+                    exc,
+                    url=discovery.identifier,
+                )
+            ]
 
         if payload.kind != self._mapper.accepts:
-            return RecordProcessingError(
-                (
-                    f"Payload kind {payload.kind!r} incompatible with mapper "
-                    f"accepts {self._mapper.accepts!r} for {payload.identifier}"
-                ),
-                payload.identifier,
-                url=discovery.identifier,
-            )
+            return [
+                RecordProcessingError(
+                    (
+                        f"Payload kind {payload.kind!r} incompatible with mapper "
+                        f"accepts {self._mapper.accepts!r} for {payload.identifier}"
+                    ),
+                    payload.identifier,
+                    url=discovery.identifier,
+                )
+            ]
 
         try:
             mapping_context = MappingContext(source_url=discovery.identifier, harvest_source_id=discovery.identifier)
@@ -106,21 +110,24 @@ class OaiPmhPlugin:
                 lambda: list(self._mapper.map(payload, mapping_context)),
             )
             if not harvested_items:
-                return RecordProcessingError(
-                    f"Mapper produced no ARC for {payload.identifier}",
+                return [
+                    RecordProcessingError(
+                        f"Mapper produced no ARC for {payload.identifier}",
+                        payload.identifier,
+                        url=discovery.identifier,
+                    )
+                ]
+            # Parity with generic/linked_data: yield every mapper ARC (e.g. multi-Dataset RDF).
+            return [replace(harvested, source_url=discovery.identifier) for harvested in harvested_items]
+        except (OaiPmhError, RuntimeError, ValueError, OSError) as exc:
+            return [
+                RecordProcessingError(
+                    f"Failed to map OAI record {payload.identifier}: {exc}",
                     payload.identifier,
+                    exc,
                     url=discovery.identifier,
                 )
-            # OAI typically maps 1:1; yield the first harvested item with source identity.
-            first = harvested_items[0]
-            return replace(first, source_url=discovery.identifier)
-        except (OaiPmhError, RuntimeError, ValueError, OSError) as exc:
-            return RecordProcessingError(
-                f"Failed to map OAI record {payload.identifier}: {exc}",
-                payload.identifier,
-                exc,
-                url=discovery.identifier,
-            )
+            ]
 
     async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the plugin and yield harvested ARCs, errors, or skips."""
@@ -140,4 +147,5 @@ class OaiPmhPlugin:
             if isinstance(unit, (SkippedRecord, RecordProcessingError)):
                 yield unit
                 continue
-            yield await self._process_unit(unit)
+            for item in await self._process_unit(unit):
+                yield item
