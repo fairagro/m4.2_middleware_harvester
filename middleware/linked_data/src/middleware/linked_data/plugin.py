@@ -22,13 +22,14 @@ from middleware.linked_data.dataset import (
 from middleware.linked_data.errors import LinkedDataError, LinkedDataSitemapError
 from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.linked_data.sitemap import Sitemap
+from middleware.payload import register_builtin_mappers as _register_builtin_mappers
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper import (
     LinkedDataMapper,
     MappingContext,
-    register_builtins as _register_builtin_mappers,
 )
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import as_source_url
 
 # Side-effect imports: @Dataset.register / @DataMapper.register hooks (also pulled in when
 # harvester.config imports LinkedDataPlugin for mapper/produces validation).
@@ -127,7 +128,7 @@ class LinkedDataPlugin:
         try:
             graph = await dataset.to_graph()
             mapping_context = MappingContext(
-                source_url=source_url,
+                source_url=as_source_url(source_url),
                 harvest_source_id=harvest_source_id,
                 html_title=dataset.title_hint_from_cache,
             )

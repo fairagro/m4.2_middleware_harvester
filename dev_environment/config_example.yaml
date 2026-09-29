@@ -5,6 +5,8 @@ repositories:
   - rdi: "bonares"
     inspire:
       csw_url: "https://repository-staging.dataservice.zalf.de/catalogue/csw"
+    mapper:
+      type: inspire_general
 
   - rdi: "edal"
     generic:
@@ -147,6 +149,8 @@ repositories:
 #           </csw:Query>
 
 #         </csw:GetRecords>
+#     mapper:
+#       type: inspire_general
 
 api_client:
   api_url: "https://middleware-test.fairagro.net"

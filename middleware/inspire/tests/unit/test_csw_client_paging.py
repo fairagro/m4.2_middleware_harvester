@@ -10,7 +10,7 @@ from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
-from middleware.inspire.models import InspireRecord
+from middleware.payload.inspire.models import InspireRecord
 
 
 def test_get_records_uses_fes_constraints() -> None:

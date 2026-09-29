@@ -16,7 +16,7 @@ from mapper_test_helpers import (
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
-from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext, as_source_url
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES
 
@@ -33,7 +33,7 @@ def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:
         GeneralSchemaOrgMapper().map_graph(
             parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI),
             MappingContext(
-                source_url=source_url,
+                source_url=as_source_url(source_url),
                 harvest_source_id="openagrar_mods_00107322",
             ),
         )
@@ -89,7 +89,9 @@ def test_openagrar_without_doi_uses_sanitized_source_url_without_pattern() -> No
         """
     )
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
-    harvested = first_harvest(GeneralSchemaOrgMapper().map_graph(graph, MappingContext(source_url=source_url)))
+    harvested = first_harvest(
+        GeneralSchemaOrgMapper().map_graph(graph, MappingContext(source_url=as_source_url(source_url)))
+    )
     identifier = root_identifier(harvested.arc_json)
     assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
     assert not BLANK_NODE_ID.fullmatch(identifier)
@@ -110,7 +112,7 @@ def test_openagrar_with_harvest_source_id_uses_catalog_id() -> None:
         GeneralSchemaOrgMapper().map_graph(
             graph,
             MappingContext(
-                source_url=source_url,
+                source_url=as_source_url(source_url),
                 harvest_source_id="openagrar_mods_00107322",
             ),
         )
@@ -284,7 +286,7 @@ def test_multi_doi_with_source_url_uses_harvest_identifier_and_preserves_alterna
         mapper.map_graph(
             parse_jsonld(payload),
             MappingContext(
-                source_url=source_url,
+                source_url=as_source_url(source_url),
                 harvest_source_id="openagrar_mods_00107508",
             ),
         )
@@ -299,7 +301,7 @@ def test_multi_doi_harvest_identifier_stable_under_permuted_jsonld_order() -> No
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107508"
     first_payload = dual_doi_payload("10.5281/zenodo.15672440", "10.3220/253-2025-54")
     second_payload = dual_doi_payload("10.3220/253-2025-54", "10.5281/zenodo.15672440")
-    ctx = MappingContext(source_url=source_url, harvest_source_id="openagrar_mods_00107508")
+    ctx = MappingContext(source_url=as_source_url(source_url), harvest_source_id="openagrar_mods_00107508")
     first = root_identifier(first_harvest(mapper.map_graph(parse_jsonld(first_payload), ctx)).arc_json)
     second = root_identifier(first_harvest(mapper.map_graph(parse_jsonld(second_payload), ctx)).arc_json)
     assert first == second == "openagrar_mods_00107508"
@@ -320,12 +322,16 @@ def test_shared_doi_on_two_pages_uses_distinct_harvest_identifiers() -> None:
     url_b = "https://www.openagrar.de/receive/openagrar_mods_00109919"
     id_a = root_identifier(
         first_harvest(
-            mapper.map_graph(graph, MappingContext(source_url=url_a, harvest_source_id="openagrar_mods_00088718"))
+            mapper.map_graph(
+                graph, MappingContext(source_url=as_source_url(url_a), harvest_source_id="openagrar_mods_00088718")
+            )
         ).arc_json
     )
     id_b = root_identifier(
         first_harvest(
-            mapper.map_graph(graph, MappingContext(source_url=url_b, harvest_source_id="openagrar_mods_00109919"))
+            mapper.map_graph(
+                graph, MappingContext(source_url=as_source_url(url_b), harvest_source_id="openagrar_mods_00109919")
+            )
         ).arc_json
     )
     assert id_a == "openagrar_mods_00088718"
@@ -334,7 +340,9 @@ def test_shared_doi_on_two_pages_uses_distinct_harvest_identifiers() -> None:
     assert (
         "10.1594/PANGAEA.957630"
         in first_harvest(
-            mapper.map_graph(graph, MappingContext(source_url=url_a, harvest_source_id="openagrar_mods_00088718"))
+            mapper.map_graph(
+                graph, MappingContext(source_url=as_source_url(url_a), harvest_source_id="openagrar_mods_00088718")
+            )
         ).arc_json
     )
 
@@ -343,7 +351,9 @@ def test_shared_doi_with_generic_source_url_uses_sanitized_page_url() -> None:
     mapper = GeneralSchemaOrgMapper()
     graph = pangaea_doi_graph()
     identifier = root_identifier(
-        first_harvest(mapper.map_graph(graph, MappingContext(source_url="https://example.org/generic-page"))).arc_json
+        first_harvest(
+            mapper.map_graph(graph, MappingContext(source_url=as_source_url("https://example.org/generic-page")))
+        ).arc_json
     )
     assert identifier == "example_org_generic-page"
     assert identifier != "10.1594/PANGAEA.957630"
@@ -383,12 +393,16 @@ def test_sorcering_pair_pages_keep_distinct_harvest_identifiers() -> None:
     url_b = "https://www.openagrar.de/receive/openagrar_mods_00108456"
     id_a = root_identifier(
         first_harvest(
-            mapper.map_graph(graph_a, MappingContext(source_url=url_a, harvest_source_id="openagrar_mods_00100605"))
+            mapper.map_graph(
+                graph_a, MappingContext(source_url=as_source_url(url_a), harvest_source_id="openagrar_mods_00100605")
+            )
         ).arc_json
     )
     id_b = root_identifier(
         first_harvest(
-            mapper.map_graph(graph_b, MappingContext(source_url=url_b, harvest_source_id="openagrar_mods_00108456"))
+            mapper.map_graph(
+                graph_b, MappingContext(source_url=as_source_url(url_b), harvest_source_id="openagrar_mods_00108456")
+            )
         ).arc_json
     )
     assert id_a == "openagrar_mods_00100605"
@@ -396,13 +410,17 @@ def test_sorcering_pair_pages_keep_distinct_harvest_identifiers() -> None:
     assert (
         "10.1234/sorcering-a"
         in first_harvest(
-            mapper.map_graph(graph_a, MappingContext(source_url=url_a, harvest_source_id="openagrar_mods_00100605"))
+            mapper.map_graph(
+                graph_a, MappingContext(source_url=as_source_url(url_a), harvest_source_id="openagrar_mods_00100605")
+            )
         ).arc_json
     )
     assert (
         "10.1234/sorcering-b"
         in first_harvest(
-            mapper.map_graph(graph_b, MappingContext(source_url=url_b, harvest_source_id="openagrar_mods_00108456"))
+            mapper.map_graph(
+                graph_b, MappingContext(source_url=as_source_url(url_b), harvest_source_id="openagrar_mods_00108456")
+            )
         ).arc_json
     )
 
@@ -421,7 +439,7 @@ def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> 
         GeneralSchemaOrgMapper().map_graph(
             graph,
             MappingContext(
-                source_url="https://example.org/catalog/page",
+                source_url=as_source_url("https://example.org/catalog/page"),
                 harvest_source_id="catalog_page_1",
             ),
         )
@@ -447,7 +465,7 @@ def test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug() -
             first_harvest(
                 mapper.map_graph(
                     parse_jsonld(edal_pgp_replicate_payload(n)),
-                    MappingContext(source_url=f"https://doi.org/10.5447/ipk/2012/{n}"),
+                    MappingContext(source_url=as_source_url(f"https://doi.org/10.5447/ipk/2012/{n}")),
                 )
             ).arc_json
         )

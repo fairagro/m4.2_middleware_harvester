@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod
-from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import ClassVar, override
 
 from rdflib import Graph
@@ -15,23 +14,8 @@ from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
-
-
-@dataclass(frozen=True)
-class MappingContext:
-    """Discovery context for one ``map_graph`` call (not part of StableGraph).
-
-    ``html_title`` lazily recovers a page-title hint from the dataset's raw
-    payload (e.g. ``html_jsonld``'s ``citation_title`` / ``<title>``), which
-    lives outside the RDF graph. It is a callable rather than a precomputed
-    value so the HTML re-parse only happens when a mapper actually reaches that
-    last-resort step of the title cascade.
-    """
-
-    source_url: str | None = None
-    harvest_source_id: str | None = None
-    html_title: Callable[[], str | None] | None = None
 
 
 class LinkedDataMapper(DataMapper[MappingContext]):
@@ -126,6 +110,6 @@ class LinkedDataMapper(DataMapper[MappingContext]):
         """Stable harvest-unit identifier from discovery (catalog id or page URL)."""
         if context.harvest_source_id and context.harvest_source_id.strip():
             return context.harvest_source_id.strip()
-        if context.source_url and context.source_url.strip().startswith(("http://", "https://")):
-            return self.sanitize_identifier(context.source_url.strip())
+        if context.source_url is not None:
+            return self.sanitize_identifier(str(context.source_url))
         return None

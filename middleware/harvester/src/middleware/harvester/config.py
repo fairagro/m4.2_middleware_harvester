@@ -22,8 +22,9 @@ from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import (
     DataMapper,
     MapperConfig,
+    register_builtin_mappers as _register_builtin_mappers,
 )
-from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
+from middleware.payload.kinds import PayloadKind
 from middleware.shared.config.config_base import ConfigBase
 
 _ = (_register_builtin_parsers, _register_generic_xml, _register_builtin_mappers)
@@ -45,7 +46,7 @@ class RepositoryConfig(BaseModel):
     """Configuration for an individual harvesting plugin/repository.
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
-    selected via an optional sibling ``mapper:`` block (required for
+    selected via a sibling ``mapper:`` block (required for ``inspire`` /
     ``linked_data`` / ``generic`` / ``oai_pmh``). Shared PayloadParsers use sibling
     ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
     ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
@@ -74,7 +75,7 @@ class RepositoryConfig(BaseModel):
     ] = None
     mapper: Annotated[
         MapperConfig | None,
-        Field(description="Shared DataMapper selection (required for linked_data, generic, oai_pmh)."),
+        Field(description="Shared DataMapper selection (required for inspire, linked_data, generic, oai_pmh)."),
     ] = None
     parser: Annotated[
         ParserConfig | None,
@@ -204,6 +205,25 @@ class RepositoryConfig(BaseModel):
             raise ValueError(
                 f"mapper.type {self.mapper.type} accepts {accepts!r}, "
                 f"but parser.type {self.parser.type} produces {produced!r}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_mapper_for_inspire(self) -> Self:
+        """Require and validate ``mapper`` for inspire repositories."""
+        if self.inspire is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("inspire repositories require a sibling mapper: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        if accepts != PayloadKind.inspire_record:
+            raise ValueError(
+                f"mapper.type {self.mapper.type} accepts {accepts!r}, "
+                f"but inspire produces {PayloadKind.inspire_record!r}"
             )
         return self
 

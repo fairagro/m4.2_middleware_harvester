@@ -12,7 +12,7 @@ from rdflib import Graph
 import middleware.generic.plugin as plugin_mod
 import middleware.generic.protocol.xml as _register_xml
 import middleware.parsing.register_builtin_parsers as _register_parsers
-import middleware.payload.linked_data_mapper.register_builtins as _register_builtin_mappers
+import middleware.payload.register_builtin_mappers as _register_builtin_mappers
 from middleware.generic.config import Config, ProtocolType
 from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.protocol import Protocol

@@ -9,6 +9,7 @@ from rdflib import Graph
 
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
@@ -21,6 +22,10 @@ def test_payload_kind_rdf_graph_available() -> None:
     assert PayloadKind.rdf_graph == "rdf_graph"
 
 
+def test_payload_kind_inspire_record_available() -> None:
+    assert PayloadKind.inspire_record == "inspire_record"
+
+
 def test_parsed_payload_rejects_empty_identifier() -> None:
     with pytest.raises(ValueError, match="identifier"):
         ParsedPayload(kind=PayloadKind.rdf_graph, value=Graph(), identifier="  ")
@@ -31,6 +36,11 @@ def test_registry_resolves_schema_org_and_regal() -> None:
     assert DataMapper.registry[MapperType.regal_general] is RegalMapper
     assert LinkedDataMapper.registered_class(MapperType.schema_org_general) is GeneralSchemaOrgMapper
     assert LinkedDataMapper.registry is DataMapper.registry
+
+
+def test_registry_resolves_inspire_general() -> None:
+    assert DataMapper.registry[MapperType.inspire_general] is InspireMapper
+    assert InspireMapper.accepts == PayloadKind.inspire_record
 
 
 def test_registered_rdf_mappers_accept_rdf_graph() -> None:

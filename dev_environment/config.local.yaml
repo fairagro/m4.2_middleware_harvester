@@ -7,6 +7,8 @@ repositories:
       # csw_url: https://stable.demo.geonode.org/catalogue/csw
       cql_query: ~
       xml_query: ~
+    mapper:
+      type: inspire_general
   - rdi: "edal"
     linked_data:
       sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml

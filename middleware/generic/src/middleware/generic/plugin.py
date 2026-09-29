@@ -22,12 +22,13 @@ from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
+from middleware.payload import register_builtin_mappers as _register_builtin_mappers
 from middleware.payload.linked_data_mapper import (
     LinkedDataMapper,
     MappingContext,
-    register_builtins as _register_builtin_mappers,
 )
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import as_source_url
 
 _ = (_register_builtin_parsers, _register_xml_protocol, _register_builtin_mappers)
 
@@ -129,7 +130,7 @@ class GenericPlugin:
 
         try:
             mapping_context = MappingContext(
-                source_url=source_url,
+                source_url=as_source_url(source_url),
                 harvest_source_id=harvest_source_id,
             )
             harvested_items = await asyncio.to_thread(

@@ -41,7 +41,7 @@ def _create_plugin(repo: RepositoryConfig) -> Plugin:
         if repo.mapper is None or repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
             raise ValueError(f"{repo.plugin_type} repositories require mapper and parser config")
         return factory(repo.plugin_config, repo.mapper, repo.parser)
-    if repo.plugin_type == "linked_data":
+    if repo.plugin_type in {"linked_data", "inspire"}:
         if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
             raise ValueError(f"{repo.plugin_type} repositories require mapper config")
         return factory(repo.plugin_config, repo.mapper)

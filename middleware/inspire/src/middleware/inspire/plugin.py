@@ -1,14 +1,24 @@
 """Plugin integration for INSPIRE-to-ARC harvesting."""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import AsyncGenerator
+from typing import cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
-from middleware.inspire.mapper import InspireMapper
-from middleware.inspire.models import InspireRecord
+from middleware.payload import register_builtin_mappers as _register_builtin_mappers
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.kinds import PayloadKind
+from middleware.payload.mapper_config import MapperConfig
+from middleware.payload.mapping_context import MappingContext, as_source_url
+from middleware.payload.parsed_payload import ParsedPayload
+
+_ = _register_builtin_mappers
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +28,27 @@ _HARVESTABLE_HIERARCHIES = frozenset({"dataset", "series", "nongeographicdataset
 class InspirePlugin:
     """Stateful INSPIRE plugin implementation (structurally satisfies ``Plugin``)."""
 
-    def __init__(self, config: Config) -> None:
-        """Initialize the plugin with its parsed configuration."""
+    def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
+        """Initialize the plugin with CSW config and repository mapper config."""
         self._config: Config = config
+        self._mapper: DataMapper[MappingContext] = self.create_mapper(mapper_config)
+        if self._mapper.accepts != PayloadKind.inspire_record:
+            raise ValueError(
+                f"inspire plugin requires mapper accepting {PayloadKind.inspire_record!r}, got {self._mapper.accepts!r}"
+            )
+
+    @staticmethod
+    def create_mapper(mapper_config: MapperConfig) -> DataMapper[MappingContext]:
+        """Create the shared DataMapper from repository ``mapper`` config."""
+        try:
+            mapper_cls = DataMapper.registry[mapper_config.type]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
+        return cast(DataMapper[MappingContext], mapper_cls.from_config(mapper_config))
 
     async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the harvest process and yield harvested ARCs, errors, or skips."""
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
-        mapper = InspireMapper()
         count = 0
 
         async with CSWClient(self._config) as csw_client:
@@ -48,14 +71,31 @@ class InspirePlugin:
                 logger.debug("Processing record %s (URL: %s)", record.identifier, record_url)
 
                 try:
-                    arc = mapper.map_record(record)
-                    yield HarvestedArc.from_arctrl(arc, source_url=record_url)
-                    logger.info(
-                        "Successfully generated ARC for record %s - URL: %s",
-                        record.identifier,
-                        record_url,
+                    payload = ParsedPayload(
+                        kind=PayloadKind.inspire_record,
+                        value=record,
+                        identifier=record.identifier,
                     )
-                    count += 1
+                    context = MappingContext(
+                        source_url=as_source_url(record_url),
+                        harvest_source_id=record.identifier,
+                    )
+                    harvested_items = list(self._mapper.map(payload, context))
+                    if not harvested_items:
+                        yield RecordProcessingError(
+                            f"Mapper produced no ARC for {record.identifier}",
+                            record.identifier,
+                            url=record_url,
+                        )
+                        continue
+                    for harvested in harvested_items:
+                        yield harvested
+                        logger.info(
+                            "Successfully generated ARC for record %s - URL: %s",
+                            record.identifier,
+                            record_url,
+                        )
+                        count += 1
                 except Exception as exc:  # noqa: BLE001
                     yield RecordProcessingError(
                         f"Failed to map record: {exc}",
