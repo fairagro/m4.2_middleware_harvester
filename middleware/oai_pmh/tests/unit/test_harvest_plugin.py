@@ -11,7 +11,7 @@ import pytest
 from rdflib import Graph
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
-import middleware.payload.linked_data_mapper.register_builtins as _register_mappers
+import middleware.payload.register_builtin_mappers as _register_mappers
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.oai_pmh.config import Config
@@ -150,7 +150,10 @@ async def test_plugin_run_success_and_parser_error_continue() -> None:
     assert len(errors) == 1
     assert len(arcs) == 1
     assert len(skips) == 1
-    assert arcs[0].source_url == "oai:ex:good"
+    assert arcs[0].source_url is None
+    _payload, ctx = stub_mapper.map.call_args.args
+    assert ctx.source_url is None
+    assert ctx.harvest_source_id == "oai:ex:good"
 
 
 @pytest.mark.asyncio

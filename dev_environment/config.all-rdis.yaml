@@ -65,6 +65,15 @@ repositories:
   #     http:
   #       respect_robots_txt: false
 
+  - rdi: "phenoroam"
+    oai_pmh:
+      endpoint_url: "https://phenoroam.phenorob.de/geonetwork/srv/eng/oaipmh"
+      metadata_prefix: phenoroam
+    parser:
+      type: phenoroam_xml
+    mapper:
+      type: phenoroam_general
+
 api_client:
   api_url: "http://localhost:8000"
   timeout: 60.0

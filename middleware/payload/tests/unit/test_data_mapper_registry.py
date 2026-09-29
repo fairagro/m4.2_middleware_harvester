@@ -19,6 +19,7 @@ from middleware.payload.parsed_payload import ParsedPayload
 
 def test_payload_kind_rdf_graph_available() -> None:
     assert PayloadKind.rdf_graph == "rdf_graph"
+    assert PayloadKind.phenoroam_record == "phenoroam_record"
 
 
 def test_parsed_payload_rejects_empty_identifier() -> None:

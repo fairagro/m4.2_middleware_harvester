@@ -22,8 +22,8 @@ from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import (
     DataMapper,
     MapperConfig,
+    register_builtin_mappers as _register_builtin_mappers,
 )
-from middleware.payload.linked_data_mapper import register_builtins as _register_builtin_mappers
 from middleware.shared.config.config_base import ConfigBase
 
 _ = (_register_builtin_parsers, _register_generic_xml, _register_builtin_mappers)

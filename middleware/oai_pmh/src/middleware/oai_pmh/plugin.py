@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Iterator
-from dataclasses import replace
+from typing import cast
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
-import middleware.payload.linked_data_mapper.register_builtins as _register_builtin_mappers
+import middleware.payload.register_builtin_mappers as _register_builtin_mappers
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.oai_pmh.client import RateLimiter, check_robots_allowed, create_scythe
@@ -19,7 +19,8 @@ from middleware.parsing.discovery import XmlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
-from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.linked_data_mapper import MappingContext
 from middleware.payload.mapper_config import MapperConfig
 
 _ = (_register_parsers, _register_builtin_mappers)
@@ -33,7 +34,7 @@ class OaiPmhPlugin:
     def __init__(self, config: Config, mapper_config: MapperConfig, parser_config: ParserConfig) -> None:
         """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
-        self._mapper: LinkedDataMapper = self.create_mapper(mapper_config)
+        self._mapper: DataMapper[MappingContext] = self.create_mapper(mapper_config)
         self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
             raise ValueError(
@@ -50,13 +51,16 @@ class OaiPmhPlugin:
             raise ValueError(f"Unsupported parser type: {parser_config.type}") from exc
 
     @staticmethod
-    def create_mapper(mapper_config: MapperConfig) -> LinkedDataMapper:
-        """Create the mapper from repository ``mapper`` config (shared registry)."""
+    def create_mapper(mapper_config: MapperConfig) -> DataMapper[MappingContext]:
+        """Create a mapper from repository ``mapper`` config.
+
+        The shared registry is context-erased; OAI always passes ``MappingContext``.
+        """
         try:
-            mapper_cls = LinkedDataMapper.registered_class(mapper_config.type)
+            mapper_cls = DataMapper.registry[mapper_config.type]
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
-        return mapper_cls.from_config(mapper_config)
+        return cast(DataMapper[MappingContext], mapper_cls.from_config(mapper_config))
 
     async def get_expected_datasets(self) -> int | None:
         """Return ``None`` unless a cheap reliable complete-list size is available."""
@@ -101,7 +105,10 @@ class OaiPmhPlugin:
             )
 
         try:
-            mapping_context = MappingContext(source_url=discovery.identifier, harvest_source_id=discovery.identifier)
+            mapping_context = MappingContext(
+                source_url=None,
+                harvest_source_id=discovery.identifier,
+            )
             harvested_items = await asyncio.to_thread(
                 lambda: list(self._mapper.map(payload, mapping_context)),
             )
@@ -111,9 +118,8 @@ class OaiPmhPlugin:
                     payload.identifier,
                     url=discovery.identifier,
                 )
-            # OAI typically maps 1:1; yield the first harvested item with source identity.
-            first = harvested_items[0]
-            return replace(first, source_url=discovery.identifier)
+            # Prefer mapper-provided landing URL; never stuff OAI identifiers into source_url.
+            return harvested_items[0]
         except (OaiPmhError, RuntimeError, ValueError, OSError) as exc:
             return RecordProcessingError(
                 f"Failed to map OAI record {payload.identifier}: {exc}",

@@ -5,7 +5,7 @@
 See proposal.md for motivation. Lock-ins from issue-fixer explore (#361):
 
 1. Intermediate = Pydantic record model (Option A), not DOM-in-payload and not Schema.org.
-2. Registry keys: `parser.type: phenoroam_xml`, `mapper.type: phenoroam`.
+2. Registry keys: `parser.type: phenoroam_xml`, `mapper.type: phenoroam_general`.
 3. Contacts: shared `split_display_name` + `person-contact-given-name` policy (same as INSPIRE / Schema.org).
 4. Identifier: prefer unique `itemUUID`; else landing URL — not DOI-driven.
 5. Full ARC depth Investigation / Study / Assay + annotation tables; **no datafile Outputs** (#353).
@@ -59,7 +59,7 @@ See proposal.md for motivation. Lock-ins from issue-fixer explore (#361):
    optional **comments** listing remote datafile URLs as metadata strings — **not** ISA Data File / Output entities
    (#353).
 
-7. **Registry names** — `phenoroam_xml` / `phenoroam` (not `phenoroam_general`) per lock-in.
+7. **Registry names** — `phenoroam_xml` / `phenoroam_general` (aligned with `schema_org_general` / `regal_general`).
 
 ## Risks / Trade-offs
 

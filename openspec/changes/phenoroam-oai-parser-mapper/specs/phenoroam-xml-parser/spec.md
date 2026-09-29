@@ -11,8 +11,8 @@ ParsedPayload for the PhenoRoam DataMapper.
 
 The system SHALL provide a shared PayloadParser in `middleware.parsing`, selectable by registry key `phenoroam_xml`
 (`parser.type`), that accepts a `middleware.parsing` discovery unit carrying inline XML and returns `ParsedPayload` with
-`kind` `phenoroam_record` and a structured value suitable for the `phenoroam` DataMapper. The parser MUST NOT require an
-HTTP client when the metadata XML is already present on the discovery unit.
+`kind` `phenoroam_record` and a structured value suitable for the `phenoroam_general` DataMapper. The parser MUST NOT
+require an HTTP client when the metadata XML is already present on the discovery unit.
 
 #### Scenario: Inline phenoroam XML parses to phenoroam_record
 

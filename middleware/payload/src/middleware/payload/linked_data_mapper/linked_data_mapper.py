@@ -2,36 +2,23 @@
 
 from __future__ import annotations
 
-import re
 from abc import abstractmethod
-from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import ClassVar, override
 
 from rdflib import Graph
 
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.identifiers import (
+    sanitize_identifier as sanitize_arc_identifier,
+    to_identifier_slug as slugify_title,
+)
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
-
-
-@dataclass(frozen=True)
-class MappingContext:
-    """Discovery context for one ``map_graph`` call (not part of StableGraph).
-
-    ``html_title`` lazily recovers a page-title hint from the dataset's raw
-    payload (e.g. ``html_jsonld``'s ``citation_title`` / ``<title>``), which
-    lives outside the RDF graph. It is a callable rather than a precomputed
-    value so the HTML re-parse only happens when a mapper actually reaches that
-    last-resort step of the title cascade.
-    """
-
-    source_url: str | None = None
-    harvest_source_id: str | None = None
-    html_title: Callable[[], str | None] | None = None
 
 
 class LinkedDataMapper(DataMapper[MappingContext]):
@@ -48,8 +35,6 @@ class LinkedDataMapper(DataMapper[MappingContext]):
     """
 
     accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
-
-    _FORBIDDEN_ID_CHARS = re.compile(r"[^a-zA-Z0-9 _-]")
 
     @classmethod
     def registered_class(cls, mapper_type: MapperType) -> type[LinkedDataMapper]:
@@ -105,17 +90,12 @@ class LinkedDataMapper(DataMapper[MappingContext]):
     @classmethod
     def sanitize_identifier(cls, raw: str) -> str:
         """Make *raw* safe for arctrl ``Investigation.identifier``."""
-        stripped = re.sub(r"^https?://", "", raw)
-        sanitized = cls._FORBIDDEN_ID_CHARS.sub("_", stripped)
-        return re.sub(r"_{2,}", "_", sanitized).strip("_")
+        return sanitize_arc_identifier(raw)
 
     @staticmethod
     def to_identifier_slug(title: str) -> str | None:
         """Slugify a non-empty title for ARC identifiers (max 80 chars)."""
-        if not title or not title.strip():
-            return None
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
-        return slug[:80] or None
+        return slugify_title(title)
 
     @staticmethod
     def pick_canonical_doi(dois: list[str]) -> str | None:
@@ -126,6 +106,6 @@ class LinkedDataMapper(DataMapper[MappingContext]):
         """Stable harvest-unit identifier from discovery (catalog id or page URL)."""
         if context.harvest_source_id and context.harvest_source_id.strip():
             return context.harvest_source_id.strip()
-        if context.source_url and context.source_url.strip().startswith(("http://", "https://")):
-            return self.sanitize_identifier(context.source_url.strip())
+        if context.source_url is not None:
+            return self.sanitize_identifier(str(context.source_url))
         return None

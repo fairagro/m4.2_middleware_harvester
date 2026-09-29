@@ -7,9 +7,9 @@ annotation tables, without inventing data-file Output entities from metadata-onl
 
 ## ADDED Requirements
 
-### Requirement: Provide a phenoroam DataMapper
+### Requirement: Provide a phenoroam_general DataMapper
 
-The system SHALL provide a shared DataMapper registered as `mapper.type: phenoroam` that accepts
+The system SHALL provide a shared DataMapper registered as `mapper.type: phenoroam_general` that accepts
 `PayloadKind.phenoroam_record` and returns one or more `HarvestedArc` values. The mapper MUST map `pr:` vocabulary
 directly to ARC — it MUST NOT convert through Schema.org or RDF as an intermediate.
 
