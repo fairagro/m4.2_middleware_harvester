@@ -37,9 +37,16 @@ class UrlDiscoveryResult(DiscoveryResult):
 
 @dataclass
 class JsonLdDiscoveryResult(DiscoveryResult):
-    """Discovery result carrying an inline JSON-LD record payload."""
+    """Discovery result carrying an inline JSON-LD record payload.
+
+    When the protocol knows a native record id distinct from the RDF
+    subject's own IRI (e.g. a composite dedup key), it MAY supply
+    ``harvest_source_id`` for stable Schema.org mapping, mirroring
+    ``UrlDiscoveryResult.harvest_source_id``.
+    """
 
     payload: dict[str, object]
+    harvest_source_id: str | None = None
 
 
 @dataclass

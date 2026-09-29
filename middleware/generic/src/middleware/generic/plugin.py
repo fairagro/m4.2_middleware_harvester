@@ -13,12 +13,16 @@ import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.generic.config import Config, ProtocolType
 from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
-from middleware.generic.protocol import dcat_ap as _register_dcat_ap_protocol, xml as _register_xml_protocol
+from middleware.generic.protocol import (
+    dcat_ap as _register_dcat_ap_protocol,
+    static_json_array as _register_static_json_array_protocol,
+    xml as _register_xml_protocol,
+)
 from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
@@ -30,7 +34,13 @@ from middleware.payload.linked_data_mapper import (
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import as_source_url
 
-_ = (_register_builtin_parsers, _register_xml_protocol, _register_dcat_ap_protocol, _register_builtin_mappers)
+_ = (
+    _register_builtin_parsers,
+    _register_xml_protocol,
+    _register_dcat_ap_protocol,
+    _register_static_json_array_protocol,
+    _register_builtin_mappers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +111,8 @@ class GenericPlugin:
         harvest_source_id: str | None = None
         if isinstance(discovery_result, UrlDiscoveryResult):
             source_url = discovery_result.url
+            harvest_source_id = discovery_result.harvest_source_id
+        elif isinstance(discovery_result, JsonLdDiscoveryResult):
             harvest_source_id = discovery_result.harvest_source_id
 
         parser = self._parser_cls()
