@@ -11,11 +11,13 @@ overlay remains in `openspec/principles.md`.
 
 The system SHALL provide a `middleware.payload` workspace package that owns intermediate-payload contracts
 (`PayloadKind`, `ParsedPayload`) and shared `DataMapper` implementations (including RDF `LinkedDataMapper` /
-`StableGraph` and vocabulary mappers). Shared discovery-unit types and `PayloadParser` implementations SHALL live in
-`middleware.parsing` (not in `middleware.payload` and not in a single protocol plugin). Protocol plugins (`inspire`,
-`linked_data`, `generic`, `oai_pmh`, …) MAY depend on `middleware.payload` and `middleware.parsing`.
-`middleware.payload` MUST NOT depend on `middleware.parsing` or on protocol plugin packages. The orchestrator MAY depend
-on `middleware.payload` for mapper config types and on `middleware.parsing` when validating parser registries.
+`StableGraph`, vocabulary mappers, and the INSPIRE `inspire_general` mapper for `PayloadKind.inspire_record`). Shared
+discovery-unit types and `PayloadParser` implementations SHALL live in `middleware.parsing` (not in `middleware.payload`
+and not in a single protocol plugin). Protocol plugins (`inspire`, `linked_data`, `generic`, `oai_pmh`, …) MAY depend on
+`middleware.payload` and `middleware.parsing`. `middleware.payload` MUST NOT depend on `middleware.parsing` or on
+protocol plugin packages. The orchestrator MAY depend on `middleware.payload` for mapper config types and on
+`middleware.parsing` when validating parser registries. CSW client and ISO/`MD_Metadata` parsing MAY remain in
+`middleware.inspire` until a shared ISO PayloadParser exists.
 
 #### Scenario: Dependency direction
 
@@ -39,6 +41,12 @@ on `middleware.payload` for mapper config types and on `middleware.parsing` when
 
 - **WHEN** an `oai_pmh` repository configures `parser.type`
 - **THEN** the implementation is resolved from `middleware.parsing` without importing another protocol plugin
+
+#### Scenario: inspire does not own ISO→ARC mapping
+
+- **WHEN** the INSPIRE plugin maps a harvestable record to ARC
+- **THEN** it selects shared `inspire_general` via repository `mapper.type` and does not embed vocabulary→ARC mapping in
+  the plugin package
 
 ### Requirement: Extension point for new mapper types
 
