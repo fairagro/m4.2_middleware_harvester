@@ -113,7 +113,7 @@ counted as a plugin field for the exactly-one-plugin rule.
 - **WHEN** a `linked_data` repository entry omits `mapper` but sets `linked_data.payload_type` to a supported value
 - **THEN** configuration validation succeeds after lifting to `mapper.type`, and a `logger.warning` is emitted
 
-#### Scenario: inspire without mapper remains valid
+#### Scenario: Missing mapper is rejected for inspire
 
 - **WHEN** an `inspire` repository entry omits `mapper`
 - **THEN** configuration validation fails (inspire now uses shared mappers; `mapper` is required)
