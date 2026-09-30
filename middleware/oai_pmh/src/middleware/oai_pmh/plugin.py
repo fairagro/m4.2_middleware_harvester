@@ -55,9 +55,11 @@ class OaiPmhPlugin:
         """Create a mapper from repository ``mapper`` config.
 
         The shared registry is context-erased; OAI always passes ``MappingContext``.
+        ``registered_class_for_context`` fails closed at construction if the
+        configured mapper expects a different context type.
         """
         try:
-            mapper_cls = DataMapper.registry[mapper_config.type]
+            mapper_cls = DataMapper.registered_class_for_context(mapper_config.type, MappingContext)
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
         return cast(DataMapper[MappingContext], mapper_cls.from_config(mapper_config))

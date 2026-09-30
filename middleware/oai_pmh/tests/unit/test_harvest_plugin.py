@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import ClassVar, override
 from unittest.mock import MagicMock, patch
@@ -22,6 +22,7 @@ from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType
+from middleware.payload.data_mapper import DataMapper
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
@@ -67,6 +68,35 @@ def _fake_record(*, identifier: str, deleted: bool = False, xml: str | None = No
         f"<metadata>{body}</metadata></record>"
     )
     return record
+
+
+def test_create_mapper_accepts_mapping_context_mappers() -> None:
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.phenoroam_general))
+    assert mapper.accepts == PayloadKind.phenoroam_record
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.schema_org_general))
+    assert mapper.accepts == PayloadKind.rdf_graph
+
+
+def test_create_mapper_rejects_incompatible_context_type() -> None:
+    class _OtherContext:
+        pass
+
+    class _OtherMapper(DataMapper[_OtherContext]):
+        accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        def map(self, payload: ParsedPayload, context: _OtherContext) -> Iterable[HarvestedArc]:
+            _ = payload, context
+            return []
+
+    key = MapperType.schema_org_general
+    previous = DataMapper.registry[key]
+    DataMapper.registry[key] = _OtherMapper
+    try:
+        with pytest.raises(TypeError, match="expects context _OtherContext"):
+            OaiPmhPlugin.create_mapper(MapperConfig(type=key))
+    finally:
+        DataMapper.registry[key] = previous
 
 
 def test_iter_discovery_units_unfiltered_and_deleted() -> None:
