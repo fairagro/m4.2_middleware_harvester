@@ -9,12 +9,20 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 
 ### Requirement: Support SitemapType.mycore_solr in plugin configuration
 
-The system SHALL support `SitemapType.mycore_solr` in plugin configuration.
+The system SHALL support `SitemapType.mycore_solr` in linked_data plugin configuration, implemented as a shim over the
+generic `mycore_solr` Protocol (adapting flat linked_data `sitemap_url` / `page_size` into Protocol type settings). The
+system SHALL accept canonical `generic.protocol.mycore_solr` (`entry_url`, `page_size`) and SHALL also support
+deprecated flat `protocol_type: mycore_solr` plus `sitemap_url` lifted into that nested form.
 
 #### Scenario: Satisfies — Support SitemapType.mycore_solr in plugin configuration
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Support `SitemapType.mycore_solr` in plugin configuration
+
+#### Scenario: Generic protocol_type mycore_solr resolves
+
+- **WHEN** a `generic` repository sets `protocol.mycore_solr.entry_url` or deprecated flat `protocol_type: mycore_solr`
+- **THEN** the generic plugin constructs `MycoreSolrProtocol`
 
 ### Requirement: Accept a MyCoRe Solr select endpoint in sitemap_url; query parameters…
 

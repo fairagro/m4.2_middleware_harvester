@@ -5,7 +5,8 @@ deliberately not re-exported here — plugins must import them from the shared
 package so no cross-plugin parser edge can form via ``middleware.generic``.
 """
 
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
+from middleware.generic.protocol.protocol import ProtocolType
 
 __all__ = [
     "Config",
