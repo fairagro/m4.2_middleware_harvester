@@ -332,7 +332,7 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
     mock_mapper.map_graph.assert_called_once()
     graph_arg, context_arg = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
-    assert context_arg.source_url == "https://example.org/dataset/slow"
+    assert str(context_arg.source_url) == "https://example.org/dataset/slow"
 
 
 @pytest.mark.asyncio

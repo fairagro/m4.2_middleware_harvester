@@ -1,0 +1,138 @@
+<pr:metadataDataset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pr="http://www.phenorob.de/" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://www.phenorob.de/ https://phenoroam.phenorob.de/geonetwork/xml/schemas/phenoroam/schema.xsd">
+          <pr:blockMetadataElement xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:geonet="http://www.fao.org/geonetwork">
+            <pr:itemUUID>5bc8b6f0-b74b-4100-8211-a564c8f3d7c2</pr:itemUUID>
+            <pr:itemMDChangeDate>2024-08-13</pr:itemMDChangeDate>
+          </pr:blockMetadataElement>
+          <pr:blockGeneral>
+            <pr:itemDataSetTitle>RGB-MiniplotBarley: RGB images for nutrient deficiency recognition in barley from soil mini plots</pr:itemDataSetTitle>
+            <pr:itemDataSetDescription>The dataset RGB-MiniplotBarley contains 22164 RGB images of 11 time points 21. jun - 7. jul 2022 of two genotypes of spring barley grown under single-nutrient deficiencies of N, P, K, S, B and one multi-nutrient deficient treatment from miniplot fertilizer trial at Campus Klein-Altendorf of University of Bonn. The images are annotated with plot number, genotype and fertilizer management and have been taken for a Deep Learning approach for nutrient deficiency recognition.</pr:itemDataSetDescription>
+            <pr:listKeywords>
+              <pr:itemKeyword>nutrient deficiency</pr:itemKeyword>
+              <pr:itemKeyword>RGB image</pr:itemKeyword>
+              <pr:itemKeyword>soil mini plots</pr:itemKeyword>
+            </pr:listKeywords>
+            <pr:blockContacts>
+              <pr:blockResponsibleContact>
+                <pr:blockPerson>
+                  <pr:itemName>Marion Deichmann</pr:itemName>
+                  <pr:itemEmail>m.deichmann@uni-bonn.de</pr:itemEmail>
+                  <pr:itemAffiliation>Institute of Crop Science and Resource Conservation (INRES), University of Bonn</pr:itemAffiliation>
+                </pr:blockPerson>
+              </pr:blockResponsibleContact>
+              <pr:listOtherContacts>
+                <pr:blockOtherContact>
+                  <pr:blockPerson>
+                    <pr:itemName>Gabriel Schaaf</pr:itemName>
+                    <pr:itemEmail>gschaaf@uni-bonn.de</pr:itemEmail>
+                    <pr:itemAffiliation>Dep. of Plant Nutrition, INRES, University of Bonn</pr:itemAffiliation>
+                  </pr:blockPerson>
+                </pr:blockOtherContact>
+              </pr:listOtherContacts>
+            </pr:blockContacts>
+            <pr:blockStudyParent>
+              <pr:blockStudy>
+                <pr:itemTitle>Nutrient imbalance trials at long-term fertilizer field trial at experimental station of University of Halle (Saale)</pr:itemTitle>
+                <pr:itemDescription>Various crops grown under various fertilizer managements in field</pr:itemDescription>
+                <pr:blockInvestigation>
+                  <pr:itemTitle>Non-invasive detection of nutrient imbalances in important field crops</pr:itemTitle>
+                  <pr:itemDescription>Various broadacre crops are exposed to nutrient imbalances in hydroponic culture, in potted soil, in miniplots and in long-term fertilizer field-trials and traits are recorded.</pr:itemDescription>
+                </pr:blockInvestigation>
+              </pr:blockStudy>
+            </pr:blockStudyParent>
+            <pr:listCoreprojects>
+              <pr:itemCoreProject>CP2: Relevance Detection of Crop Features</pr:itemCoreProject>
+            </pr:listCoreprojects>
+          </pr:blockGeneral>
+          <pr:blockData>
+            <pr:itemThumbnail>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/5bc8b6f0-b74b-4100-8211-a564c8f3d7c2/attachments/P1090321.JPG</pr:itemThumbnail>
+            <pr:listDatafiles>
+              <pr:blockDatafile>
+                <pr:itemLink />
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/4878140860-MiPlo_V2_220621.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/6201173049-MiPlo_V2_220623a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/4150187454-MiPlo_V2_220623b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/6360721998-MiPlo_V2_220624_wet.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/8166673531-MiPlo_V2_220627a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/4288439925-MiPlo_V2_220627b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/6887561997-MiPlo_V2_220629a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/5246262027-MiPlo_V2_220629b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/4720573788-MiPlo_V2_220630.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/8481227879-MiPlo_V2_220701_wet.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/8800058124-MiPlo_V2_220704.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/8151155373-MiPlo_V2_220705.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/8492303554-MiPlo_V2_220706a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/3696084689-MiPlo_V2_220706b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/7581484272-MiPlo_V2_220707_wet.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/5662486346-MiPlo_V2_220708.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/6127735947-MiPlo_V2_220711a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/5981435428-MiPlo_V2_220711b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/7032581639-MiPlo_V2_220720a.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/4061544231-MiPlo_V2_220720b.zip</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink />
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/22273-Annotations_RGB-MiniplotBarley.xlsx</pr:itemLink>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de/file-uploader/download/public/462433-Metadata_RGB_MiniplotBarley.zip</pr:itemLink>
+              </pr:blockDatafile>
+            </pr:listDatafiles>
+          </pr:blockData>
+          <pr:blockLicense>
+            <pr:itemLicense>DATA PROVISION
+   * All data collected or created within the framework of PhenoRob must be made available to the PhenoRob Database immediately.
+   * The datasets must be sufficiently documented including data format, structure and quality to allow for easy access and use, if possible adhering to existing standards.
+   * Datasets submitted to the PhenoRob Database must be accompanied by metadata. The metadata are open access.
+
+DATA USE
+    *Users have to inform the owner of the data of their intended use, and, in case of planned publication, the owner of the data has to be involved. Authorship needs to be negotiated with the owner of the data.
+    * Users agree not to distribute datasets of the PhenoRob Database to others (third persons) without prior consent by the owner of the data.
+    * Users agree to use PhenoRob data only for non-commercial scientific purposes. In case of conflict the PhenoRob Executive Board should mediate.</pr:itemLicense>
+            <pr:itemHowToCite>Deichmann et al. (2022) RGB-divCrops-LTFT-Halle2 (unpublished data set)</pr:itemHowToCite>
+          </pr:blockLicense>
+          <pr:blockTime>
+            <pr:itemKindOfEvent />
+          </pr:blockTime>
+        </pr:metadataDataset>

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar, cast, get_args, get_origin
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.kinds import PayloadKind
@@ -32,6 +32,39 @@ class DataMapper[TContext](ABC):
     def register(cls, mapper_type: MapperType) -> Callable[[type[TDataMapper]], type[TDataMapper]]:
         """Register a concrete DataMapper implementation for the given type."""
         return cls.registry.register(mapper_type)
+
+    @classmethod
+    def resolve_context_type(cls) -> type[Any]:
+        """Return the ``TContext`` argument from the nearest ``DataMapper[...]`` base."""
+        for klass in cls.__mro__:
+            for base in getattr(klass, "__orig_bases__", ()):
+                if get_origin(base) is DataMapper:
+                    args = get_args(base)
+                    if args:
+                        return cast(type[Any], args[0])
+        raise TypeError(f"{cls.__name__} does not specialize DataMapper[TContext]")
+
+    @classmethod
+    def registered_class_for_context(
+        cls,
+        mapper_type: MapperType,
+        context_type: type[Any],
+    ) -> type[DataMapper[Any]]:
+        """Return a registry entry whose ``map`` context accepts ``context_type``.
+
+        The shared registry erases ``TContext``. Callers that always pass a concrete
+        context (e.g. OAI-PMH → ``MappingContext``) MUST use this helper so a
+        misconfigured ``mapper.type`` fails at construction instead of inside ``map``.
+        """
+        mapper_cls = cls.registry[mapper_type]
+        resolved = mapper_cls.resolve_context_type()
+        # Caller passes ``context_type`` into ``map(..., context: TContext)``.
+        if not issubclass(context_type, resolved):
+            raise TypeError(
+                f"mapper.type {mapper_type} expects context {resolved.__name__}, "
+                f"but caller requires {context_type.__name__}"
+            )
+        return mapper_cls
 
     @classmethod
     def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> DataMapper[TContext]:

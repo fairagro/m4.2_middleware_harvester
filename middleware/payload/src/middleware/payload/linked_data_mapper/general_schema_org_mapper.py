@@ -616,7 +616,7 @@ class _SchemaOrgRun:
         if doi:
             return f"https://doi.org/{doi}"
 
-        if context.source_url and context.source_url.startswith(("http://", "https://")):
+        if context.source_url is not None:
             return context.source_url
 
         return ""

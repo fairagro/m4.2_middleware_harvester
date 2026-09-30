@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import ClassVar, override
 from unittest.mock import MagicMock, patch
@@ -11,7 +11,7 @@ import pytest
 from rdflib import Graph
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
-import middleware.payload.linked_data_mapper.register_builtins as _register_mappers
+import middleware.payload.register_builtin_mappers as _register_mappers
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.oai_pmh.config import Config
@@ -22,6 +22,7 @@ from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType
+from middleware.payload.data_mapper import DataMapper
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
@@ -67,6 +68,35 @@ def _fake_record(*, identifier: str, deleted: bool = False, xml: str | None = No
         f"<metadata>{body}</metadata></record>"
     )
     return record
+
+
+def test_create_mapper_accepts_mapping_context_mappers() -> None:
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.phenoroam_general))
+    assert mapper.accepts == PayloadKind.phenoroam_record
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.schema_org_general))
+    assert mapper.accepts == PayloadKind.rdf_graph
+
+
+def test_create_mapper_rejects_incompatible_context_type() -> None:
+    class _OtherContext:
+        pass
+
+    class _OtherMapper(DataMapper[_OtherContext]):
+        accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        def map(self, payload: ParsedPayload, context: _OtherContext) -> Iterable[HarvestedArc]:
+            _ = payload, context
+            return []
+
+    key = MapperType.schema_org_general
+    previous = DataMapper.registry[key]
+    DataMapper.registry[key] = _OtherMapper
+    try:
+        with pytest.raises(TypeError, match="expects context _OtherContext"):
+            OaiPmhPlugin.create_mapper(MapperConfig(type=key))
+    finally:
+        DataMapper.registry[key] = previous
 
 
 def test_iter_discovery_units_unfiltered_and_deleted() -> None:
@@ -150,7 +180,10 @@ async def test_plugin_run_success_and_parser_error_continue() -> None:
     assert len(errors) == 1
     assert len(arcs) == 1
     assert len(skips) == 1
-    assert arcs[0].source_url == "oai:ex:good"
+    assert arcs[0].source_url is None
+    _payload, ctx = stub_mapper.map.call_args.args
+    assert ctx.source_url is None
+    assert ctx.harvest_source_id == "oai:ex:good"
 
 
 @pytest.mark.asyncio
@@ -220,4 +253,7 @@ async def test_plugin_yields_all_mapper_arcs() -> None:
 
     arcs = [r for r in results if isinstance(r, HarvestedArc)]
     assert [a.arc_json for a in arcs] == ["arc-a", "arc-b"]
-    assert all(a.source_url == "oai:ex:multi" for a in arcs)
+    assert all(a.source_url is None for a in arcs)
+    _payload, ctx = stub_mapper.map.call_args.args
+    assert ctx.source_url is None
+    assert ctx.harvest_source_id == "oai:ex:multi"

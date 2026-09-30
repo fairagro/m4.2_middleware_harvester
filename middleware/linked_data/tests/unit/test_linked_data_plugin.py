@@ -7,7 +7,7 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from mapper_test_helpers import (
+from plugin_mapper_fixtures import (
     OPENAGRAR_MISSING_NAME_NO_FALLBACK,
     parse_jsonld,
     root_title,
@@ -120,7 +120,8 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     mock_mapper.map_graph.assert_called_once()
     graph_arg, context_arg = mock_mapper.map_graph.call_args.args
     assert isinstance(graph_arg, Graph)
-    assert context_arg.source_url == "https://example.org/dataset/1"
+    assert context_arg.source_url is not None
+    assert str(context_arg.source_url) == "https://example.org/dataset/1"
 
 
 @pytest.mark.asyncio

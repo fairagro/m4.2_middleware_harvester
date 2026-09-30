@@ -171,7 +171,7 @@ generic/  ↛  linked_data / inspire
 # OAI-PMH plugin — Scythe ListRecords + shared PayloadParser + shared DataMapper
 oai_pmh/plugin.py   →  oai_pmh/client / harvest / config
 oai_pmh/plugin.py   →  parsing  (PayloadParser + XmlDiscoveryResult)
-oai_pmh/plugin.py   →  payload/linked_data_mapper  (shared RDF mappers)
+oai_pmh/plugin.py   →  payload  (shared DataMappers, incl. phenoroam)
 oai_pmh/  ↛  linked_data / inspire / generic
 
 config  ←── all modules (read-only)
