@@ -1287,6 +1287,7 @@ name = "parsing"
 version = "0.1.0"
 source = { editable = "middleware/parsing" }
 dependencies = [
+    { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
     { name = "harvester" },
     { name = "payload" },
@@ -1296,6 +1297,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
     { name = "harvester", editable = "middleware/harvester" },
     { name = "payload", editable = "middleware/payload" },

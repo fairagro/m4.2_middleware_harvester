@@ -618,7 +618,7 @@ class _SchemaOrgRun:
             return f"https://doi.org/{doi}"
 
         if context.source_url is not None:
-            return str(context.source_url)
+            return context.source_url
 
         return ""
 

@@ -8,3 +8,4 @@ class ParserType(StrEnum):
 
     html_jsonld = "html_jsonld"
     rdf_xml = "rdf_xml"
+    phenoroam_xml = "phenoroam_xml"

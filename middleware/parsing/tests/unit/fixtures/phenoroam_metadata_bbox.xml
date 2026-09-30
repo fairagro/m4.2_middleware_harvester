@@ -1,0 +1,131 @@
+<pr:metadataDataset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pr="http://www.phenorob.de/" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://www.phenorob.de/ https://phenoroam.phenorob.de/geonetwork/xml/schemas/phenoroam/schema.xsd">
+          <pr:blockMetadataElement xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:geonet="http://www.fao.org/geonetwork">
+            <pr:itemUUID>751c10c4-b6dc-4bcc-bc8c-c0fc5920887a</pr:itemUUID>
+            <pr:itemMDChangeDate>2022-09-26</pr:itemMDChangeDate>
+          </pr:blockMetadataElement>
+          <pr:blockGeneral>
+            <pr:itemDataSetTitle>Mixed Cropping: Multi-temporal UAV Image Patches from CKA 2020</pr:itemDataSetTitle>
+            <pr:itemDataSetDescription>This dataset contains the multitemporal RGB-Image field patches of the "PhenoRob Core Project 5 Mixed Cropping" experiment located at Campus Klein-Altendorf from 2020. 320 Field Patches, including both bean-wheat mixtures but also reference monocultures, were overflown by drone at 11 different time points (RGB) during the growing season. The cropped orthomosaics were rotated for ease of handling and processed to a uniform ground resolution of 3 mm. File endings 'A' and 'B' stand for two different used cameras (also different drones), resulting in slight spectral differences in the images. However, all RGB images are in TIFF format and of type UINT8.</pr:itemDataSetDescription>
+            <pr:listKeywords>
+              <pr:itemKeyword>multi-temporal</pr:itemKeyword>
+              <pr:itemKeyword>orthomosaic</pr:itemKeyword>
+              <pr:itemKeyword>mixed cropping</pr:itemKeyword>
+              <pr:itemKeyword>rgb imagery</pr:itemKeyword>
+            </pr:listKeywords>
+            <pr:blockContacts>
+              <pr:blockResponsibleContact>
+                <pr:blockPerson>
+                  <pr:itemName>Lukas Drees</pr:itemName>
+                  <pr:itemEmail>ldrees@uni-bonn.de</pr:itemEmail>
+                  <pr:itemAffiliation>University of Bonn</pr:itemAffiliation>
+                </pr:blockPerson>
+              </pr:blockResponsibleContact>
+            </pr:blockContacts>
+            <pr:blockStudyParent>
+              <pr:blockStudy>
+                <pr:itemTitle>Growth Analysis of Mixed Cropping</pr:itemTitle>
+                <pr:itemDescription>Attempt to capture and analyze the growth behavior and the different expressions and developments of mixture partners over time in an image-based way.</pr:itemDescription>
+                <pr:blockInvestigation>
+                  <pr:itemTitle>Image Generation of Mixtures</pr:itemTitle>
+                  <pr:itemDescription>Generation of a data-based growth model from the multi-temporal imagery that can generate new images of intermediate or future above ground phenotypes of crop mixtures.</pr:itemDescription>
+                </pr:blockInvestigation>
+              </pr:blockStudy>
+            </pr:blockStudyParent>
+          </pr:blockGeneral>
+          <pr:blockData>
+            <pr:itemThumbnail>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/mixture_klein-min-1024x439.png</pr:itemThumbnail>
+            <pr:listDatafiles>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_04_02_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_04_02_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_04_23_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_04_23_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_05_07_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_05_19_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_05_29_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_06_05_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_06_08_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_06_16_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_07_03_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_07_21_RGB_A.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+              <pr:blockDatafile>
+                <pr:itemLink>https://phenoroam.phenorob.de:/geonetwork/srv/api/records/751c10c4-b6dc-4bcc-bc8c-c0fc5920887a/attachments/cka_07_23_RGB_B.zip</pr:itemLink>
+                <pr:itemFiletype>archive</pr:itemFiletype>
+              </pr:blockDatafile>
+            </pr:listDatafiles>
+          </pr:blockData>
+          <pr:blockLicense>
+            <pr:itemLicense>DATA PROVISION
+   * All data collected or created within the framework of PhenoRob must be made available to the PhenoRob Database immediately.
+   * The datasets must be sufficiently documented including data format, structure and quality to allow for easy access and use, if possible adhering to existing standards.
+   * Datasets submitted to the PhenoRob Database must be accompanied by metadata. The metadata are open access.
+
+DATA USE
+    *Users have to inform the owner of the data of their intended use, and, in case of planned publication, the owner of the data has to be involved. Authorship needs to be negotiated with the owner of the data.
+    * Users agree not to distribute datasets of the PhenoRob Database to others (third persons) without prior consent by the owner of the data.
+    * Users agree to use PhenoRob data only for non-commercial scientific purposes. In case of conflict the PhenoRob Executive Board should mediate.</pr:itemLicense>
+            <pr:itemDownloadInformation>Images are provided in TIF format.</pr:itemDownloadInformation>
+          </pr:blockLicense>
+          <pr:blockGeo>
+            <pr:blockBBox>
+              <pr:itemBBoxEast>6.9922</pr:itemBBoxEast>
+              <pr:itemBBoxWest>6.9895</pr:itemBBoxWest>
+              <pr:itemBBoxNorth>50.6165</pr:itemBBoxNorth>
+              <pr:itemBBoxSouth>50.6152</pr:itemBBoxSouth>
+            </pr:blockBBox>
+          </pr:blockGeo>
+          <pr:blockTime>
+            <pr:itemKindOfEvent>Oberservation period</pr:itemKindOfEvent>
+            <pr:choiceTime>
+              <pr:blockTimeInterval>
+                <pr:itemStartDate>2020-04-02</pr:itemStartDate>
+                <pr:itemEndDate>2020-07-23</pr:itemEndDate>
+              </pr:blockTimeInterval>
+            </pr:choiceTime>
+          </pr:blockTime>
+          <pr:listInstruments>
+            <pr:blockInstrument>
+              <pr:itemInstrumentType>Drone A</pr:itemInstrumentType>
+              <pr:itemInstrumentDetails>DJI Matrice 600 Pro</pr:itemInstrumentDetails>
+            </pr:blockInstrument>
+            <pr:blockInstrument>
+              <pr:itemInstrumentType>Drone B</pr:itemInstrumentType>
+              <pr:itemInstrumentDetails>DJI Phantom 4 Pro</pr:itemInstrumentDetails>
+            </pr:blockInstrument>
+          </pr:listInstruments>
+        </pr:metadataDataset>

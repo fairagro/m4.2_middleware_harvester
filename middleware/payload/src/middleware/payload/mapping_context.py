@@ -4,17 +4,27 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pydantic import ConfigDict, HttpUrl, TypeAdapter
+from pydantic import ConfigDict, HttpUrl, TypeAdapter, ValidationError
 from pydantic.dataclasses import dataclass
 
 _HTTP_URL = TypeAdapter(HttpUrl)
 
 
-def as_source_url(value: str | None) -> HttpUrl | None:
-    """Coerce an optional http(s) URL string to ``HttpUrl`` for ``MappingContext``."""
+def as_source_url(value: str | None) -> str | None:
+    """Validate an optional http(s) URL string without rewriting it.
+
+    Pydantic ``HttpUrl`` re-serialization is not identity-preserving (percent-encoding,
+    trailing slash, host case). Callers sanitize / reuse the original discovery URL for
+    stable ARC identifiers, so we validate then return the stripped input unchanged.
+    """
     if value is None or not value.strip():
         return None
-    return _HTTP_URL.validate_python(value.strip())
+    stripped = value.strip()
+    try:
+        _HTTP_URL.validate_python(stripped)
+    except ValidationError as exc:
+        raise ValueError(f"source_url must be an http(s) URL, got {stripped!r}") from exc
+    return stripped
 
 
 @dataclass(frozen=True, config=ConfigDict(arbitrary_types_allowed=True))
@@ -30,6 +40,6 @@ class MappingContext:
     Pass strings through :func:`as_source_url` at construction sites.
     """
 
-    source_url: HttpUrl | None = None
+    source_url: str | None = None
     harvest_source_id: str | None = None
     html_title: Callable[[], str | None] | None = None

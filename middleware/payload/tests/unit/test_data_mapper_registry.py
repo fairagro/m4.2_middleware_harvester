@@ -15,11 +15,14 @@ from middleware.payload.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.regal_mapper import RegalMapper
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
+from middleware.payload.phenoroam.mapper import PhenoroamMapper
 
 
 def test_payload_kind_rdf_graph_available() -> None:
     assert PayloadKind.rdf_graph == "rdf_graph"
+    assert PayloadKind.phenoroam_record == "phenoroam_record"
 
 
 def test_payload_kind_inspire_record_available() -> None:
@@ -41,6 +44,35 @@ def test_registry_resolves_schema_org_and_regal() -> None:
 def test_registry_resolves_inspire_general() -> None:
     assert DataMapper.registry[MapperType.inspire_general] is InspireMapper
     assert InspireMapper.accepts == PayloadKind.inspire_record
+
+
+def test_registered_class_for_context_accepts_mapping_context_mappers() -> None:
+    assert (
+        DataMapper.registered_class_for_context(MapperType.schema_org_general, MappingContext) is GeneralSchemaOrgMapper
+    )
+    assert DataMapper.registered_class_for_context(MapperType.phenoroam_general, MappingContext) is PhenoroamMapper
+
+
+def test_registered_class_for_context_rejects_incompatible_context() -> None:
+    class _OtherContext:
+        pass
+
+    class _OtherMapper(DataMapper[_OtherContext]):
+        accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        def map(self, payload: ParsedPayload, context: _OtherContext) -> Iterable[HarvestedArc]:
+            _ = payload, context
+            return []
+
+    key = MapperType.schema_org_general
+    previous = DataMapper.registry[key]
+    DataMapper.registry[key] = _OtherMapper
+    try:
+        with pytest.raises(TypeError, match="expects context _OtherContext"):
+            DataMapper.registered_class_for_context(key, MappingContext)
+    finally:
+        DataMapper.registry[key] = previous
 
 
 def test_registered_rdf_mappers_accept_rdf_graph() -> None:
