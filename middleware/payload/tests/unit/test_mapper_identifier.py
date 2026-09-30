@@ -21,6 +21,17 @@ from middleware.payload.linked_data_mapper.general_schema_org_mapper import Gene
 from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES
 
 
+def test_as_source_url_preserves_original_string() -> None:
+    """HttpUrl re-serialization must not rewrite discovery URLs used for stable identifiers."""
+    raw = "https://www.openagrar.de/receive/openagrar_mods_00107322/päth"
+    assert as_source_url(raw) == raw
+    assert GeneralSchemaOrgMapper().resolve_harvest_source_identifier(
+        MappingContext(source_url=as_source_url(raw))
+    ) == LinkedDataMapper.sanitize_identifier(raw)
+    assert as_source_url("https://example.org") == "https://example.org"
+    assert as_source_url("https://EXAMPLE.org/Path") == "https://EXAMPLE.org/Path"
+
+
 def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> None:
     left = ["10.1234/Ab", "10.1234/ab"]
     right = list(reversed(left))

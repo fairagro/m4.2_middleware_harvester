@@ -107,5 +107,5 @@ class LinkedDataMapper(DataMapper[MappingContext]):
         if context.harvest_source_id and context.harvest_source_id.strip():
             return context.harvest_source_id.strip()
         if context.source_url is not None:
-            return self.sanitize_identifier(str(context.source_url))
+            return self.sanitize_identifier(context.source_url)
         return None

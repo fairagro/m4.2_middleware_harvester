@@ -22,9 +22,7 @@ from middleware.payload.phenoroam.models import PhenoroamBBox, PhenoroamPerson, 
 _ = (_register_parsers, _register_mappers)
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "phenoroam_metadata_sample.xml"
-_BBOX_FIXTURE = (
-    Path(__file__).resolve().parents[3] / "parsing" / "tests" / "unit" / "fixtures" / "phenoroam_metadata_bbox.xml"
-)
+_BBOX_FIXTURE = Path(__file__).parent / "fixtures" / "phenoroam_metadata_bbox.xml"
 
 
 def test_phenoroam_mapper_registered() -> None:
@@ -244,3 +242,36 @@ async def test_bbox_fixture_round_trip_parse_and_map() -> None:
     assert "E:6.9922" in blob
     assert "S:50.6152" in blob
     assert "N:50.6165" in blob
+    # Live PhenoRoam attachments use empty-port hosts (``phenoroam.phenorob.de:``); keep them.
+    assert "Datafile Link" in blob
+    assert "cka_04_02_RGB_A.zip" in blob
+
+
+def test_empty_port_datafile_links_are_kept() -> None:
+    """Empty port after host is a known PhenoRoam typo — do not drop datafile comments."""
+    link = "https://phenoroam.phenorob.de:/geonetwork/srv/api/records/abc/attachments/file.zip"
+    record = PhenoroamRecord(
+        item_uuid="abc-uuid",
+        title="Dataset",
+        datafile_links=[link],
+        thumbnail_url=link.replace("file.zip", "thumb.png"),
+    )
+    harvested = next(
+        iter(
+            PhenoroamMapper().map(
+                ParsedPayload(kind=PayloadKind.phenoroam_record, value=record, identifier="abc-uuid"),
+                MappingContext(harvest_source_id="abc-uuid"),
+            )
+        )
+    )
+    assert link in harvested.arc_json
+    assert "Datafile Link" in harvested.arc_json
+    assert "Thumbnail" in harvested.arc_json
+
+
+def test_map_rejects_wrong_kind_eagerly() -> None:
+    with pytest.raises(ValueError, match="phenoroam_record"):
+        PhenoroamMapper().map(
+            ParsedPayload(kind=PayloadKind.rdf_graph, value=object(), identifier="x"),
+            MappingContext(),
+        )

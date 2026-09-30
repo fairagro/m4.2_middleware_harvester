@@ -65,8 +65,9 @@ See proposal.md for motivation. Lock-ins from issue-fixer explore (#361):
 
 - **[Risk] `pr:` schema variance across records** → Mitigation: fixture from live ListRecords; optional blocks
   fail-soft; required fields fail closed with clear ParserError / mapping error.
-- **[Risk] Broken thumbnail hosts (`phenoroam.phenorob.de:`)** → Mitigation: apply http(s) URL validation when emitting
-  URL-shaped comments; drop invalid.
+- **[Risk] Broken thumbnail / attachment hosts (`phenoroam.phenorob.de:`)** → Mitigation: require http(s) + non-empty
+  hostname when emitting URL-shaped comments; keep PhenoRoam's empty-port typo (`host:`) as-is (clients treat empty port
+  as scheme default) so live datafile `itemLink` values are not dropped.
 - **[Risk] Empty given name on `itemName`** → Mitigation: shared person-contact policy; record-level failure or Comment,
   never empty-given Person.
 - **[Trade-off] No file Outputs** → Operators see metadata-only ARCs; data links only as comments/annotations until a

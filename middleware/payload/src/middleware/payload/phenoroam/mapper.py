@@ -59,7 +59,8 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         if source is None:
             catalog_id = self._catalog_id(payload.value, context)
             source = self._landing_url(catalog_id) if catalog_id else None
-        yield HarvestedArc.from_arctrl(arc, source_url=source)
+        # Return a tuple so kind/type guards run at call time (parity with LinkedDataMapper).
+        return (HarvestedArc.from_arctrl(arc, source_url=source),)
 
     def map_record(self, record: PhenoroamRecord, context: MappingContext | None = None) -> ARC:
         """Build an ARC from a PhenoRoam intermediate record."""
@@ -147,11 +148,11 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         return ""
 
     @staticmethod
-    def _http_source_url(value: object | None) -> str | None:
-        """Return an http(s) URL string from ``HttpUrl`` / ``str``, else ``None``."""
+    def _http_source_url(value: str | None) -> str | None:
+        """Return an http(s) URL string, else ``None``."""
         if value is None:
             return None
-        text = str(value).strip()
+        text = value.strip()
         if text.startswith(("http://", "https://")):
             return text
         return None
@@ -199,9 +200,9 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         record: PhenoroamRecord,
         context: MappingContext,
     ) -> None:
-        landing = self._landing_url(self._catalog_id(record, context)) if self._catalog_id(record, context) else None
-        if landing:
-            inv.Comments.append(Comment.create("Landing Page", landing))
+        catalog_id = self._catalog_id(record, context)
+        if catalog_id:
+            inv.Comments.append(Comment.create("Landing Page", self._landing_url(catalog_id)))
         if record.how_to_cite:
             inv.Comments.append(Comment.create("How To Cite", record.how_to_cite))
         if record.funded_by:
@@ -278,16 +279,18 @@ class PhenoroamMapper(DataMapper[MappingContext]):
 
     @staticmethod
     def _valid_http_url(value: str | None) -> str | None:
-        """Return a usable http(s) URL, or None when missing/malformed (e.g. host:port typo)."""
+        """Return a usable http(s) URL, or None when missing/malformed.
+
+        PhenoRoam often emits ``https://host:/path`` (empty port). Keep those: browsers and
+        HTTP clients treat an empty port as the scheme default, and live fixtures use this
+        shape on every datafile ``itemLink``.
+        """
         if not value or not value.strip():
             return None
         candidate = value.strip()
         parsed = urlparse(candidate)
         if parsed.scheme not in {"http", "https"}:
             return None
-        if not parsed.netloc or parsed.netloc.endswith(":"):
-            return None
-        # Reject hostnames with empty port after colon (``host:``), common PhenoRoam typo.
-        if ":" in parsed.netloc and parsed.netloc.rsplit(":", 1)[-1] == "":
+        if not parsed.hostname:
             return None
         return candidate

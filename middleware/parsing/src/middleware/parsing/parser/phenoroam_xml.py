@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import ClassVar, override
 from xml.etree.ElementTree import Element, ParseError
 
@@ -47,7 +46,7 @@ class PhenoroamXmlParser(PayloadParser):
             raise ParserError(f"Missing PhenoRoam XML metadata for {discovery_result.identifier}")
 
         record = self.parse_phenoroam_xml(xml, discovery_identifier=discovery_result.identifier)
-        identifier = (record.item_uuid or "").strip() or discovery_result.identifier
+        identifier = (record.item_uuid or "").strip() or discovery_result.identifier.strip()
         if not identifier.strip():
             raise ParserError(f"PhenoRoam record has no stable identifier for {discovery_result.identifier}")
         return ParsedPayload(kind=PayloadKind.phenoroam_record, value=record, identifier=identifier)
@@ -55,23 +54,10 @@ class PhenoroamXmlParser(PayloadParser):
     def parse_phenoroam_xml(self, xml: str, *, discovery_identifier: str) -> PhenoroamRecord:
         """Parse ``pr:metadataDataset`` XML into ``PhenoroamRecord``."""
         try:
-            root = fromstring(self._prepare_phenoroam_xml(xml))
+            root = fromstring(xml)
         except ParseError as exc:
             raise ParserError(f"Failed to parse PhenoRoam XML for {discovery_identifier}: {exc}") from exc
         return self._parse_root(root, discovery_identifier=discovery_identifier)
-
-    @staticmethod
-    def _prepare_phenoroam_xml(xml: str) -> str:
-        """Make OAI metadata extracts parseable when ``xsi:`` lacks a local xmlns."""
-        if "xsi:" not in xml or "xmlns:xsi=" in xml:
-            return xml
-        if "<pr:metadataDataset " in xml:
-            return xml.replace(
-                "<pr:metadataDataset ",
-                '<pr:metadataDataset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ',
-                1,
-            )
-        return re.sub(r'\s+xsi:[A-Za-z0-9_]+="[^"]*"', "", xml)
 
     @staticmethod
     def _local(tag: str) -> str:
