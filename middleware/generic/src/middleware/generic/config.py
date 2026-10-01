@@ -13,6 +13,7 @@ class ProtocolType(StrEnum):
     """Registered Protocol kinds for generic harvesting."""
 
     xml = "xml"
+    dcat_ap = "dcat_ap"
 
 
 class Config(BaseModel):
