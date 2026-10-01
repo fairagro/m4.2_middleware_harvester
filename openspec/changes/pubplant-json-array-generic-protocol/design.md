@@ -40,5 +40,5 @@ in `JsonArrayProtocol`. The differences are two hooks: `_pages` and `_record_ide
 registered Protocols rather than one configurable Protocol, **because** the `/find` query contract (including the
 `q=contentType:researchData` default) is Regal-specific. Expressing it as generic config switches would add knobs no
 other source needs. Each subclass is named after its source (`pubplant_json_array`, `regal_find`) because its paging and
-identity rules are that source's, not a general "static JSON array" contract. The `linked_data` sitemap delegates to the generic Protocol (same shim pattern as `XmlSitemap`) and
-maps `GenericProtocolError` to `LinkedDataSitemapError`.
+identity rules are that source's, not a general "static JSON array" contract. The `linked_data` sitemap delegates to the
+generic Protocol (same shim pattern as `XmlSitemap`) and maps `GenericProtocolError` to `LinkedDataSitemapError`.

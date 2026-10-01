@@ -6,7 +6,8 @@
       (`middleware/generic/protocol/pubplant_json_array.py`); register in `generic/plugin.py` and harvester config
       validation
 - [x] 1.2 Unit tests: single GET, non-array / invalid JSON errors, non-object elements, shared-DOI records, identical
-      record dedup, reorder stability, no-fetch expected count (`generic/tests/unit/test_pubplant_json_array_protocol.py`)
+      record dedup, reorder stability, no-fetch expected count
+      (`generic/tests/unit/test_pubplant_json_array_protocol.py`)
 
 - [x] 1.3 Extract `JsonArrayProtocol` base (`middleware/generic/protocol/json_array.py`); `PubPlantJsonArrayProtocol`
       builds on it

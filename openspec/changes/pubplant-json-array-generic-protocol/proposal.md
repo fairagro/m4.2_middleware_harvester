@@ -11,9 +11,10 @@ splits the array into records, the shared `jsonld` **PayloadParser**, and the ex
 
 ## What Changes
 
-- Add `ProtocolType.pubplant_json_array` (`generic.protocol_type: pubplant_json_array`): one GET of `generic.sitemap_url`,
-  one inline `JsonLdDiscoveryResult` per array element, with a content-hash composite identifier (several records share
-  a DOI in `genomes.json`) that is also supplied as `harvest_source_id`. No expected count is reported, so the array is fetched once per harvest.
+- Add `ProtocolType.pubplant_json_array` (`generic.protocol_type: pubplant_json_array`): one GET of
+  `generic.sitemap_url`, one inline `JsonLdDiscoveryResult` per array element, with a content-hash composite identifier
+  (several records share a DOI in `genomes.json`) that is also supplied as `harvest_source_id`. No expected count is
+  reported, so the array is fetched once per harvest.
 - `JsonLdDiscoveryResult` gains an optional `harvest_source_id`. `GenericPlugin` passes it into
   `MappingContext.harvest_source_id`.
 - `jsonld` parser: a top-level Schema.org context IRI (`http(s)://schema.org[/]`) is replaced by the local
