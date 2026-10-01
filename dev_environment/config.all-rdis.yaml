@@ -60,6 +60,20 @@ repositories:
       catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
       catalog_url: "https://agrihub.gis.lrg.tum.de"
 
+  # PlabiPD (fairagro/m4_rdi_portfolio#7) -- schema.org Dataset dump describing published plant
+  # genomes (via usadellab/pubplant2schemaorg), via the generic plugin:
+  # pubplant_json_array Protocol -> jsonld PayloadParser -> schema_org_general DataMapper.
+  # Not paginated: one GET returns the full array. DOIs are not unique across records;
+  # see pubplant_json_array's composite-identifier scheme.
+  - rdi: "plabipd"
+    generic:
+      protocol_type: pubplant_json_array
+      sitemap_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
+    parser:
+      type: jsonld
+    mapper:
+      type: schema_org_general
+
   # Static stand-in for OpenAgrar; see fixtures/openagrar/README.md.
   - rdi: "openagrar-fixture"
     linked_data:
