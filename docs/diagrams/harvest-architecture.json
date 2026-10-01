@@ -435,6 +435,21 @@
       ]
     },
     {
+      "id": "wcs",
+      "type": "backend",
+      "label": "WCS harvesting",
+      "sublabel": "no plugin yet",
+      "tag": "not started",
+      "pos": [
+        460,
+        1000
+      ],
+      "size": [
+        180,
+        56
+      ]
+    },
+    {
       "id": "upload",
       "type": "backend",
       "label": "Upload",
@@ -445,7 +460,7 @@
       ],
       "size": [
         200,
-        600
+        680
       ],
       "sources": [
         {
@@ -462,7 +477,7 @@
       "sublabel": "ApiClient · ARC RO-Crate",
       "pos": [
         790,
-        1040
+        1120
       ],
       "size": [
         180,
@@ -478,6 +493,22 @@
       ]
     },
     {
+      "id": "jki",
+      "type": "messagebus",
+      "icon": "external",
+      "label": "JKI DataCube",
+      "sublabel": "rasdaman WCS · schema.org",
+      "tag": "not started",
+      "pos": [
+        40,
+        1000
+      ],
+      "size": [
+        280,
+        56
+      ]
+    },
+    {
       "id": "edaphobase",
       "type": "frontend",
       "label": "Edaphobase",
@@ -485,7 +516,7 @@
       "tag": "in test",
       "pos": [
         40,
-        1040
+        1120
       ],
       "size": [
         280,
@@ -509,7 +540,7 @@
       "tag": "not started",
       "pos": [
         40,
-        1120
+        1200
       ],
       "size": [
         280,
@@ -525,7 +556,7 @@
       "tag": "not started",
       "pos": [
         40,
-        1200
+        1280
       ],
       "size": [
         280,
@@ -539,7 +570,7 @@
       "sublabel": "separate service, no plugin",
       "pos": [
         460,
-        1040
+        1120
       ],
       "size": [
         180,
@@ -569,6 +600,7 @@
         "sradi",
         "plabipd",
         "phenoroam",
+        "jki",
         "edaphobase",
         "lims",
         "gbis"
@@ -725,6 +757,20 @@
       "to": "sqltoarc",
       "label": "SQL",
       "variant": "dashed"
+    },
+    {
+      "id": "jki-wcs",
+      "from": "jki",
+      "to": "wcs",
+      "label": "WCS",
+      "variant": "dashed"
+    },
+    {
+      "id": "yield-wcs",
+      "from": "wcs",
+      "to": "upload",
+      "label": "HarvestedArc",
+      "variant": "dashed"
     }
   ],
   "cards": [
@@ -759,7 +805,7 @@
       "items": [
         "in test: SRADI, PlabiPD, PhenoRoam, BonaRes Klib, DWD, Edaphobase",
         "dev/test: BonaRes, Thünen-Atlas, e!DAL-PGP, PUBLISSO FRL, OpenAgrar (fixture)",
-        "not started: LIMS, GBIS (dashed; planned via sql_to_arc)",
+        "not started: JKI DataCube (WCS, no plugin yet; m4_rdi_portfolio#1), LIMS, GBIS (via sql_to_arc)",
         "SQL sources go through the separate sql_to_arc service, not a harvester plugin",
         "Not on main: Klib (follows its design), PlabiPD (branch feat/plabipd-linked-data-source); DWD is commented out and Thünen-Atlas has no config entry"
       ]
