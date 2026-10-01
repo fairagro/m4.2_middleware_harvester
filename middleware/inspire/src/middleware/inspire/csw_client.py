@@ -46,7 +46,7 @@ class CSWClient:
         """
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
-        self._parser = IsoParser()
+        self._parser = IsoParser(config.value_bounds)
         self._executor: ThreadPoolExecutor | None = None
 
     def _connect(self) -> None:

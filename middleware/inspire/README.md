@@ -22,15 +22,19 @@ The plugin is configured as part of a `repository` entry in the central Harveste
 
 ### Full Plugin Configuration Reference
 
-| Parameter     | Type           | Default      | Description                                                                                                                                                                        |
-| :------------ | :------------- | :----------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `csw_url`     | string         | _(required)_ | Base URL of the CSW 2.0.2 endpoint.                                                                                                                                                |
-| `cql_query`   | string         | `None`       | OGC CQL filter (e.g., `AnyText LIKE '%agriculture%'`).                                                                                                                             |
-| `xml_query`   | string         | `None`       | Raw `GetRecords` XML body (mutually exclusive with `cql_query`). Paginated: filter body is preserved; `startPosition`/`maxRecords` are rewritten per page.                         |
-| `chunk_size`  | int            | `50`         | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`.                                                                                      |
-| `timeout`     | int            | `30`         | Network timeout for CSW requests in seconds.                                                                                                                                       |
-| `max_records` | int            | `None`       | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this.                                                              |
-| `verify_ssl`  | bool \| string | `true`       | TLS verification for CSW/OWSLib: `true` (system CA), `false` (disable), or path to a CA bundle (passed through to OWSLib). Independent of the harvester API client's `verify_ssl`. |
+| Parameter      | Type           | Default      | Description                                                                                                                                                                        |
+| :------------- | :------------- | :----------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `csw_url`      | string         | _(required)_ | Base URL of the CSW 2.0.2 endpoint.                                                                                                                                                |
+| `cql_query`    | string         | `None`       | OGC CQL filter (e.g., `AnyText LIKE '%agriculture%'`).                                                                                                                             |
+| `xml_query`    | string         | `None`       | Raw `GetRecords` XML body (mutually exclusive with `cql_query`). Paginated: filter body is preserved; `startPosition`/`maxRecords` are rewritten per page.                         |
+| `chunk_size`   | int            | `50`         | Records per paginated request. Overridden by a valid XML `maxRecords` when using `xml_query`.                                                                                      |
+| `timeout`      | int            | `30`         | Network timeout for CSW requests in seconds.                                                                                                                                       |
+| `max_records`  | int            | `None`       | Harvest-wide debug limit: stop after N records across all pages (`None` = all). Do not use XML `maxRecords` for this.                                                              |
+| `verify_ssl`   | bool \| string | `true`       | TLS verification for CSW/OWSLib: `true` (system CA), `false` (disable), or path to a CA bundle (passed through to OWSLib). Independent of the harvester API client's `verify_ssl`. |
+| `value_bounds` | mapping        | see below    | Validation limits for harvested values. A record exceeding them (or violating an ISO 19139 codelist / format) is reported as failed — values are never truncated.                  |
+
+`value_bounds` fields (all optional): `max_str_short` (`200`), `max_str_medium` (`1000`), `max_str_long` (`10000`),
+`max_list_items` (`500`), `allowed_url_schemes` (`[http, https, ftp]`).
 
 ### Example Plugin Configuration
 
