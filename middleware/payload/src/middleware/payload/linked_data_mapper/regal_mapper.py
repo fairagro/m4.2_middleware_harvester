@@ -29,9 +29,10 @@ from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
 from middleware.payload.harvested_arc import HarvestedArc
-from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")

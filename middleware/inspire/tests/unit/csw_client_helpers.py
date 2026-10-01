@@ -1,7 +1,7 @@
 """Shared helpers for INSPIRE CSW client unit tests."""
 
 from middleware.inspire.config import Config
-from middleware.inspire.models import InspireRecord
+from middleware.payload.inspire.models import InspireRecord
 
 
 def _make_csw_config(csw_url: str = "https://example.com/csw") -> Config:

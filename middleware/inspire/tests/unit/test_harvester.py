@@ -10,7 +10,7 @@ from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
-from middleware.inspire.models import InspireRecord
+from middleware.payload.inspire.models import InspireRecord
 
 
 @pytest.fixture

@@ -31,7 +31,7 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
 from middleware.payload.harvested_arc import HarvestedArc
-from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper, MappingContext
+from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
     ResourceView,
@@ -39,6 +39,7 @@ from middleware.payload.linked_data_mapper.stable_graph import (
     http_iri,
 )
 from middleware.payload.mapper_config import MapperType
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 

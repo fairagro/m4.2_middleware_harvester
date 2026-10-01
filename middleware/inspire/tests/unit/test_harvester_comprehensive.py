@@ -14,7 +14,7 @@ from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import SemanticError
-from middleware.inspire.models import InspireRecord
+from middleware.payload.inspire.models import InspireRecord
 
 
 @pytest.fixture

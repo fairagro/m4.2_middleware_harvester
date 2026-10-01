@@ -1,11 +1,6 @@
-# Principles (payload / module graph)
+# Principles (delta)
 
-## Purpose
-
-Normative module-dependency and extension-point rules for the shared `middleware.payload` package. Narrative product
-overlay remains in `openspec/principles.md`.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Shared payload package owns cross-cutting mappers
 
@@ -47,14 +42,3 @@ protocol plugin packages. The orchestrator MAY depend on `middleware.payload` fo
 - **WHEN** the INSPIRE plugin maps a harvestable record to ARC
 - **THEN** it selects shared `inspire_general` via repository `mapper.type` and does not embed vocabulary→ARC mapping in
   the plugin package
-
-### Requirement: Extension point for new mapper types
-
-When adding a new vocabulary→ARC mapper that reuses an existing `PayloadKind`, implementations SHALL register a new
-mapper type in `middleware.payload` and expose it via repository `mapper.type`, without requiring orchestrator changes
-beyond config schema registration of mapper config fields if needed.
-
-#### Scenario: New rdf_graph mapper
-
-- **WHEN** a new RDF vocabulary mapper is added for `PayloadKind.rdf_graph`
-- **THEN** it is registered in `middleware.payload` and selectable via `mapper.type`

@@ -1,10 +1,10 @@
-"""Mapper module for converting InspireRecord objects to ARC objects.
+"""Shared DataMapper: InspireRecord → ARC (``mapper.type: inspire_general``)."""
 
-This module provides the InspireMapper class, which maps InspireRecord data
-to ARC Investigation, Study, Assay, and related objects.
-"""
+from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from typing import ClassVar, override
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -22,7 +22,13 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
-from middleware.inspire.models import Contact, InspireRecord
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.inspire.models import Contact, InspireRecord
+from middleware.payload.kinds import PayloadKind
+from middleware.payload.mapper_config import MapperType
+from middleware.payload.mapping_context import MappingContext
+from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 
@@ -42,8 +48,21 @@ _ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
 }
 
 
-class InspireMapper:
-    """Maps InspireRecord to ARC objects."""
+@DataMapper.register(MapperType.inspire_general)
+class InspireMapper(DataMapper[MappingContext]):
+    """Maps ``PayloadKind.inspire_record`` to ARC objects."""
+
+    accepts: ClassVar[PayloadKind] = PayloadKind.inspire_record
+
+    @override
+    def map(self, payload: ParsedPayload, context: MappingContext) -> Iterable[HarvestedArc]:
+        """Map a ParsedPayload envelope to harvested ARC(s)."""
+        if payload.kind != self.accepts:
+            raise ValueError(f"InspireMapper accepts {self.accepts}, got {payload.kind}")
+        if not isinstance(payload.value, InspireRecord):
+            raise TypeError(f"inspire_record value must be InspireRecord, got {type(payload.value).__name__}")
+        arc = self.map_record(payload.value)
+        yield HarvestedArc.from_arctrl(arc, source_url=context.source_url)
 
     def map_record(self, record: InspireRecord) -> ARC:
         """Map InspireRecord to ARC."""
