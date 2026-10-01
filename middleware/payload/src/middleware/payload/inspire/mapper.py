@@ -62,8 +62,7 @@ class InspireMapper(DataMapper[MappingContext]):
         if not isinstance(payload.value, InspireRecord):
             raise TypeError(f"inspire_record value must be InspireRecord, got {type(payload.value).__name__}")
         arc = self.map_record(payload.value)
-        source_url = str(context.source_url) if context.source_url is not None else None
-        yield HarvestedArc.from_arctrl(arc, source_url=source_url)
+        yield HarvestedArc.from_arctrl(arc, source_url=context.source_url)
 
     def map_record(self, record: InspireRecord) -> ARC:
         """Map InspireRecord to ARC."""

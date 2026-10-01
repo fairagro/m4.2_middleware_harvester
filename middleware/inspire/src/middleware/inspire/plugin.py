@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncGenerator
-from typing import cast
+from typing import ClassVar, cast
 
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
@@ -28,20 +28,27 @@ _HARVESTABLE_HIERARCHIES = frozenset({"dataset", "series", "nongeographicdataset
 class InspirePlugin:
     """Stateful INSPIRE plugin implementation (structurally satisfies ``Plugin``)."""
 
+    produces: ClassVar[PayloadKind] = PayloadKind.inspire_record
+
     def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
         """Initialize the plugin with CSW config and repository mapper config."""
         self._config: Config = config
         self._mapper: DataMapper[MappingContext] = self.create_mapper(mapper_config)
-        if self._mapper.accepts != PayloadKind.inspire_record:
+        if self._mapper.accepts != self.produces:
             raise ValueError(
-                f"inspire plugin requires mapper accepting {PayloadKind.inspire_record!r}, got {self._mapper.accepts!r}"
+                f"inspire plugin requires mapper accepting {self.produces!r}, got {self._mapper.accepts!r}"
             )
 
     @staticmethod
     def create_mapper(mapper_config: MapperConfig) -> DataMapper[MappingContext]:
-        """Create the shared DataMapper from repository ``mapper`` config."""
+        """Create the shared DataMapper from repository ``mapper`` config.
+
+        The shared registry is context-erased; inspire always passes ``MappingContext``.
+        ``registered_class_for_context`` fails closed at construction if the configured
+        mapper expects a different context type.
+        """
         try:
-            mapper_cls = DataMapper.registry[mapper_config.type]
+            mapper_cls = DataMapper.registered_class_for_context(mapper_config.type, MappingContext)
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
         return cast(DataMapper[MappingContext], mapper_cls.from_config(mapper_config))
@@ -101,6 +108,7 @@ class InspirePlugin:
                         f"Failed to map record: {exc}",
                         record.identifier,
                         exc,
+                        url=record_url,
                     )
                     continue
 

@@ -2,18 +2,22 @@
 
 # ruff: noqa: SLF001, PLR2004
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterable
+from typing import ClassVar, override
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.plugin import InspirePlugin
+from middleware.payload.data_mapper import DataMapper
 from middleware.payload.inspire.models import InspireRecord
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.parsed_payload import ParsedPayload
 
 
 def _mapper_config() -> MapperConfig:
@@ -30,6 +34,39 @@ def test_config_loading() -> None:
     # PluginConfig is a pure data container; instantiate directly
     config = Config(csw_url="https://csw.example.com")
     assert config.csw_url == "https://csw.example.com"
+
+
+def test_csw_url_rejects_non_http_schemes() -> None:
+    with pytest.raises(ValidationError, match="csw_url must be an http"):
+        Config(csw_url="ftp://csw.example.com/csw")
+
+
+def test_create_mapper_accepts_inspire_general() -> None:
+    mapper = InspirePlugin.create_mapper(_mapper_config())
+    assert mapper.accepts == PayloadKind.inspire_record
+    assert InspirePlugin.produces == PayloadKind.inspire_record
+
+
+def test_create_mapper_rejects_incompatible_context_type() -> None:
+    class _OtherContext:
+        pass
+
+    class _OtherMapper(DataMapper[_OtherContext]):
+        accepts: ClassVar[PayloadKind] = PayloadKind.inspire_record
+
+        @override
+        def map(self, payload: ParsedPayload, context: _OtherContext) -> Iterable[HarvestedArc]:
+            _ = payload, context
+            return []
+
+    key = MapperType.inspire_general
+    previous = DataMapper.registry[key]
+    DataMapper.registry[key] = _OtherMapper
+    try:
+        with pytest.raises(TypeError, match="expects context _OtherContext"):
+            InspirePlugin.create_mapper(MapperConfig(type=key))
+    finally:
+        DataMapper.registry[key] = previous
 
 
 def test_config_verify_ssl_default_true() -> None:

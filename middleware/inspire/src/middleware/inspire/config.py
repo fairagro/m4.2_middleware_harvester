@@ -1,8 +1,13 @@
 """Configuration module for the Inspire to ARC middleware."""
 
 from typing import Annotated, Self
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+# Functional constraint, not policy: OWSLib talks to the CSW through `requests`, which
+# only speaks http(s). Also required so GetRecordById URLs pass MappingContext.as_source_url.
+_CSW_URL_SCHEMES = frozenset({"http", "https"})
 
 
 class Config(BaseModel):
@@ -13,6 +18,16 @@ class Config(BaseModel):
     }
 
     csw_url: Annotated[str, Field(description="URL of the CSW endpoint")]
+
+    @field_validator("csw_url")
+    @classmethod
+    def csw_url_must_be_http_or_https(cls, v: str) -> str:
+        """Reject non-http(s) CSW endpoints (e.g. file:// or ftp://) — OWSLib cannot use them."""
+        parsed = urlsplit(v.strip())
+        if parsed.scheme.lower() not in _CSW_URL_SCHEMES or not parsed.netloc:
+            raise ValueError(f"csw_url must be an http(s) URL, got {v!r}")
+        return v
+
     cql_query: Annotated[
         str | None,
         Field(alias="query", description="CQL filter string, e.g. \"AnyText LIKE '%agriculture%'\""),

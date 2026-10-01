@@ -14,6 +14,7 @@ from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
+from middleware.inspire.plugin import InspirePlugin
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.config import Config as OaiPmhConfig
@@ -24,7 +25,6 @@ from middleware.payload import (
     MapperConfig,
     register_builtin_mappers as _register_builtin_mappers,
 )
-from middleware.payload.kinds import PayloadKind
 from middleware.shared.config.config_base import ConfigBase
 
 _ = (_register_builtin_parsers, _register_generic_xml, _register_builtin_mappers)
@@ -220,11 +220,9 @@ class RepositoryConfig(BaseModel):
         except KeyError as exc:
             raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
         accepts = getattr(mapper_cls, "accepts", None)
-        if accepts != PayloadKind.inspire_record:
-            raise ValueError(
-                f"mapper.type {self.mapper.type} accepts {accepts!r}, "
-                f"but inspire produces {PayloadKind.inspire_record!r}"
-            )
+        produced = InspirePlugin.produces
+        if accepts != produced:
+            raise ValueError(f"mapper.type {self.mapper.type} accepts {accepts!r}, but inspire produces {produced!r}")
         return self
 
     @property
