@@ -26,12 +26,20 @@ NOT require an HTTP client and MUST NOT restrict the vocabulary.
 ### Requirement: Never load remote JSON-LD contexts
 
 The parser SHALL reject payloads containing a string-valued (remote) `@context` or `@import` anywhere in the document
-with `ParserError`; inline object contexts are allowed.
+with `ParserError`, so parsing never triggers network retrieval. Exception: a top-level Schema.org context IRI (exact
+allowlisted forms such as `http://schema.org` / `https://schema.org/`, alone or as a list entry) SHALL be replaced by
+the local object context `{"@vocab": "http://schema.org/"}` before the remote-context check; any other remote reference
+remains rejected. Inline object contexts are otherwise allowed.
 
 #### Scenario: Remote context rejected
 
-- **WHEN** the payload's `@context` is a URL string
+- **WHEN** the payload's `@context` is a non-Schema.org URL string
 - **THEN** parse fails with `ParserError` without any network access
+
+#### Scenario: Schema.org context localized without fetch
+
+- **WHEN** the payload's top-level `@context` is an allowlisted Schema.org IRI (string or list entry)
+- **THEN** parse succeeds using a local `@vocab` substitution and does not fetch the remote context
 
 ### Requirement: Fail closed on unusable JSON-LD
 
