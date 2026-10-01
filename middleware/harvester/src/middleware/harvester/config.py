@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 # Side-effect: register shared parsers + generic protocols + mappers for config validation.
 import middleware.generic.protocol.dcat_ap as _register_generic_dcat_ap
+import middleware.generic.protocol.mycore_solr as _register_generic_mycore_solr
 import middleware.generic.protocol.xml as _register_generic_xml
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.api_client.config import Config as ApiClientConfig
@@ -27,7 +28,13 @@ from middleware.payload import (
 )
 from middleware.shared.config.config_base import ConfigBase
 
-_ = (_register_builtin_parsers, _register_generic_xml, _register_generic_dcat_ap, _register_builtin_mappers)
+_ = (
+    _register_builtin_parsers,
+    _register_generic_xml,
+    _register_generic_mycore_solr,
+    _register_generic_dcat_ap,
+    _register_builtin_mappers,
+)
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig | OaiPmhConfig
@@ -156,9 +163,9 @@ class RepositoryConfig(BaseModel):
         except KeyError as exc:
             raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
         try:
-            Protocol.registry[self.generic.protocol_type]
+            Protocol.registry[self.generic.active_protocol_type]
         except KeyError as exc:
-            raise ValueError(f"Unknown generic.protocol_type: {self.generic.protocol_type}") from exc
+            raise ValueError(f"Unknown generic.protocol type: {self.generic.active_protocol_type}") from exc
         try:
             parser_cls = PayloadParser.registry[self.parser.type]
         except KeyError as exc:
@@ -221,8 +228,11 @@ class RepositoryConfig(BaseModel):
 
     @property
     def source_url(self) -> str | None:
-        """The primary entry-point URL for this plugin."""
+        """The primary entry-point URL for this plugin, when the config exposes one."""
         cfg = self.plugin_config
+        if self.generic is not None:
+            entry_url = getattr(self.generic.effective_protocol.type_config, "entry_url", None)
+            return entry_url if isinstance(entry_url, str) else None
         return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None) or getattr(cfg, "endpoint_url", None)
 
 

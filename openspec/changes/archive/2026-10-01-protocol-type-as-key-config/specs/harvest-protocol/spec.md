@@ -1,27 +1,4 @@
-# Harvest Protocol
-
-## Purpose
-
-Protocol abstraction for harvest discovery and transport selection, independent of payload parsing and ARC mapping.
-
-## Requirements
-
-### Requirement: Provide a Protocol interface for discovery
-
-The system SHALL provide a Protocol abstraction that, given plugin configuration and an HTTP client where needed, can
-stream discovery units and optionally report an expected count. Successful discovery units SHALL expose a stable
-`identifier` used for deduplication. The discovery-unit type hierarchy used across plugins SHALL be defined in
-`middleware.parsing` so Protocol implementations and PayloadParsers share the same types without cross-plugin imports.
-
-#### Scenario: Discovery yields identifiable units
-
-- **WHEN** a Protocol discovers harvestable units
-- **THEN** each successful unit exposes a stable `identifier`
-
-#### Scenario: Shared discovery types
-
-- **WHEN** a Protocol yields a URL or inline discovery unit
-- **THEN** the unit is an instance of a discovery type owned by `middleware.parsing`
+## MODIFIED Requirements
 
 ### Requirement: Register Protocol implementations by type key
 
@@ -39,6 +16,8 @@ at configuration validation. Protocol constructors SHALL receive the concrete ty
 
 - **WHEN** `generic.protocol` sets the `mycore_solr` child (or deprecated flat config lifts to `mycore_solr`)
 - **THEN** the generic plugin constructs the MyCoRe Solr Protocol implementation with `mycore_solr` settings
+
+## ADDED Requirements
 
 ### Requirement: Nested protocol config separates shared and type-specific settings
 
@@ -61,24 +40,3 @@ child key.
 
 - **WHEN** `protocol` is present without any type-named child
 - **THEN** configuration validation fails before harvesting starts
-
-### Requirement: Deduplicate discovery identifiers and use shared skip/error types
-
-The system SHALL deduplicate successful discovery identifiers within a Protocol run and SHALL yield shared
-`SkippedRecord` for duplicates. Unusable discovery entries SHALL be yielded as shared `RecordProcessingError`, not
-plugin-local wrapper types.
-
-#### Scenario: Duplicate identifier is skipped
-
-- **WHEN** the same discovery `identifier` appears more than once in one run
-- **THEN** subsequent occurrences are yielded as `SkippedRecord`
-
-### Requirement: Keep Protocol independent of PayloadParser and DataMapper
-
-The system SHALL keep Protocol implementations free of payload parsing and ARC mapping logic. Protocols MAY produce
-typed discovery payloads (for example a URL or an inline document) for parsers to consume.
-
-#### Scenario: Protocol does not import mappers
-
-- **WHEN** a Protocol implementation is loaded
-- **THEN** it does not depend on DataMapper or PayloadParser registries to perform discovery

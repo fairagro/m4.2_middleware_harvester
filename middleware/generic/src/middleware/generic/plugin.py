@@ -10,11 +10,15 @@ from dataclasses import replace
 import httpx
 
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
 from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
-from middleware.generic.protocol import dcat_ap as _register_dcat_ap_protocol, xml as _register_xml_protocol
-from middleware.generic.protocol.protocol import Protocol
+from middleware.generic.protocol import (
+    dcat_ap as _register_dcat_ap_protocol,
+    mycore_solr as _register_mycore_solr_protocol,
+    xml as _register_xml_protocol,
+)
+from middleware.generic.protocol.protocol import Protocol, ProtocolType
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
@@ -30,7 +34,13 @@ from middleware.payload.linked_data_mapper import (
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import as_source_url
 
-_ = (_register_builtin_parsers, _register_xml_protocol, _register_dcat_ap_protocol, _register_builtin_mappers)
+_ = (
+    _register_builtin_parsers,
+    _register_xml_protocol,
+    _register_mycore_solr_protocol,
+    _register_dcat_ap_protocol,
+    _register_builtin_mappers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +51,7 @@ class GenericPlugin:
     def __init__(self, config: Config, mapper_config: MapperConfig, parser_config: ParserConfig) -> None:
         """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
+        self._parser_config = parser_config
         self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
         self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
@@ -52,11 +63,12 @@ class GenericPlugin:
     @staticmethod
     def create_protocol(config: Config, client: NiceHttpClient) -> Protocol:
         """Create the Protocol implementation for the configured protocol type."""
+        protocol_cfg = config.effective_protocol
         try:
-            protocol_cls = Protocol.registry[config.protocol_type]
+            protocol_cls = Protocol.registry[protocol_cfg.protocol_type]
         except KeyError as exc:
-            raise ValueError(f"Unsupported protocol type: {config.protocol_type}") from exc
-        return protocol_cls(config, client)
+            raise ValueError(f"Unsupported protocol type: {protocol_cfg.protocol_type}") from exc
+        return protocol_cls(protocol_cfg.type_config, client)
 
     @staticmethod
     def create_parser_class(parser_config: ParserConfig) -> type[PayloadParser]:
@@ -79,15 +91,16 @@ class GenericPlugin:
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count from the Protocol when available."""
-        async with NiceHttpClient(self._config.http) as nice_http:
+        async with NiceHttpClient(self._config.effective_protocol.http) as nice_http:
             protocol = self.create_protocol(self._config, client=nice_http)
             try:
                 return await protocol.get_expected_count()
             except Exception as exc:  # noqa: BLE001
+                entry_url = getattr(self._config.effective_protocol.type_config, "entry_url", None)
                 logger.warning(
                     "Failed to determine expected dataset count for protocol %s (%s): %s",
-                    self._config.protocol_type,
-                    self._config.sitemap_url,
+                    self._config.active_protocol_type,
+                    entry_url if entry_url is not None else "no entry_url",
                     exc,
                 )
                 return None
@@ -105,7 +118,7 @@ class GenericPlugin:
 
         parser = self._parser_cls()
         try:
-            payload = await parser.parse(discovery_result, client=nice_http, config=self._config)
+            payload = await parser.parse(discovery_result, client=nice_http, config=self._parser_config)
         except (ParserError, GenericError, RuntimeError, ValueError, OSError) as exc:
             return [
                 RecordProcessingError(
@@ -167,7 +180,9 @@ class GenericPlugin:
         """Map a discovery-stream failure to a repository-level harvester error."""
         if isinstance(exc, HarvesterError):
             return exc
-        return GenericProtocolError(f"Protocol discovery failed for {self._config.sitemap_url}: {exc}")
+        entry_url = getattr(self._config.effective_protocol.type_config, "entry_url", None)
+        detail = entry_url if entry_url is not None else self._config.active_protocol_type.value
+        return GenericProtocolError(f"Protocol discovery failed for {detail}: {exc}")
 
     async def _run_with_task_group(
         self,
@@ -198,7 +213,7 @@ class GenericPlugin:
 
     async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:
         """Run the plugin and yield harvested ARCs, errors, or skips."""
-        async with NiceHttpClient(self._config.http) as nice_http:
+        async with NiceHttpClient(self._config.effective_protocol.http) as nice_http:
             protocol = self.create_protocol(self._config, client=nice_http)
             worker_tasks = self._config.effective_worker_tasks
             async for item in self._run_with_task_group(protocol, nice_http, worker_tasks):
