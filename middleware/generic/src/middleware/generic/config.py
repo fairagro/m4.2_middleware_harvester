@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from middleware.generic.protocol.dcat_ap import DcatApProtocolConfig
 from middleware.generic.protocol.mycore_solr import MycoreSolrProtocolConfig
 from middleware.generic.protocol.protocol import ProtocolType, ProtocolTypeConfig
 from middleware.generic.protocol.xml import XmlProtocolConfig
@@ -21,7 +22,7 @@ _LEGACY_FLAT_PROTOCOL_MSG = (
     "Support for the flat tree will be removed in a future release."
 )
 
-_PROTOCOL_TYPE_FIELDS = frozenset({"xml", "mycore_solr"})
+_PROTOCOL_TYPE_FIELDS = frozenset({"xml", "mycore_solr", "dcat_ap"})
 
 
 class ProtocolConfig(BaseModel):
@@ -43,6 +44,10 @@ class ProtocolConfig(BaseModel):
     mycore_solr: Annotated[
         MycoreSolrProtocolConfig | None,
         Field(description="MyCoRe Solr Protocol config."),
+    ] = None
+    dcat_ap: Annotated[
+        DcatApProtocolConfig | None,
+        Field(description="DCAT-AP catalog Protocol config."),
     ] = None
 
     @model_validator(mode="after")
@@ -166,21 +171,19 @@ class Config(BaseModel):
 
         logger.warning(_LEGACY_FLAT_PROTOCOL_MSG)
         type_config: ProtocolTypeConfig
+        http = flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True)
         if flat_type is ProtocolType.xml:
             type_config = XmlProtocolConfig(entry_url=flat_sitemap)
-            nested = ProtocolConfig(
-                http=flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True),
-                xml=type_config,
-            )
+            nested = ProtocolConfig(http=http, xml=type_config)
         elif flat_type is ProtocolType.mycore_solr:
             type_config = MycoreSolrProtocolConfig(
                 entry_url=flat_sitemap,
                 page_size=flat_page_size if flat_page_size is not None else 200,
             )
-            nested = ProtocolConfig(
-                http=flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True),
-                mycore_solr=type_config,
-            )
+            nested = ProtocolConfig(http=http, mycore_solr=type_config)
+        elif flat_type is ProtocolType.dcat_ap:
+            type_config = DcatApProtocolConfig(entry_url=flat_sitemap)
+            nested = ProtocolConfig(http=http, dcat_ap=type_config)
         else:
             raise ValueError(f"Unsupported deprecated protocol_type: {flat_type}")
 
@@ -219,8 +222,10 @@ class Config(BaseModel):
                 f"generic.page_size {flat_page_size!r} conflicts with "
                 f"protocol.mycore_solr.page_size {type_config.page_size!r}"
             )
-        if flat_page_size is not None and isinstance(type_config, XmlProtocolConfig):
-            raise ValueError("generic.page_size is not valid for protocol.xml (no page_size field)")
+        if flat_page_size is not None and isinstance(type_config, (XmlProtocolConfig, DcatApProtocolConfig)):
+            raise ValueError(
+                f"generic.page_size is not valid for protocol.{self.protocol.protocol_type.value} (no page_size field)"
+            )
 
     @property
     def effective_protocol(self) -> ProtocolConfig:

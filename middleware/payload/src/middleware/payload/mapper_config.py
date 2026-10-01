@@ -12,6 +12,7 @@ class MapperType(StrEnum):
     schema_org_general = "schema_org_general"
     regal_general = "regal_general"
     phenoroam_general = "phenoroam_general"
+    ckanext_dcat = "ckanext_dcat"
 
 
 class MapperConfig(BaseModel):
@@ -30,10 +31,34 @@ class MapperConfig(BaseModel):
             ),
         ),
     ] = None
+    catalog_name: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Optional display name of the source RDI's data catalog (e.g. "
+                "'Smart Rural Areas Data Infrastructure (SRADI)'). Used by DCAT-AP "
+                "mappers to record catalog provenance; kept repository-configurable "
+                "so the same mapper serves any DCAT-AP RDI, not just one."
+            ),
+        ),
+    ] = None
+    catalog_url: Annotated[
+        HttpUrl | None,
+        Field(
+            description="Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers.",
+        ),
+    ] = None
 
-    @field_validator("resource_base_url", mode="before")
+    @field_validator("resource_base_url", "catalog_url", mode="before")
     @classmethod
-    def _blank_resource_base_url_as_none(cls, value: object) -> object:
+    def _blank_url_as_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("catalog_name", mode="before")
+    @classmethod
+    def _blank_catalog_name_as_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
             return None
         return value

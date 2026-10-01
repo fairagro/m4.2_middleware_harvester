@@ -24,6 +24,7 @@ class ProtocolType(StrEnum):
 
     xml = "xml"
     mycore_solr = "mycore_solr"
+    dcat_ap = "dcat_ap"
 
 
 class ProtocolTypeConfig(BaseModel):

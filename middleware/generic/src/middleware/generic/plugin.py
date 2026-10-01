@@ -13,7 +13,11 @@ import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.generic.config import Config
 from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
-from middleware.generic.protocol import mycore_solr as _register_mycore_solr_protocol, xml as _register_xml_protocol
+from middleware.generic.protocol import (
+    dcat_ap as _register_dcat_ap_protocol,
+    mycore_solr as _register_mycore_solr_protocol,
+    xml as _register_xml_protocol,
+)
 from middleware.generic.protocol.protocol import Protocol, ProtocolType
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
@@ -34,6 +38,7 @@ _ = (
     _register_builtin_parsers,
     _register_xml_protocol,
     _register_mycore_solr_protocol,
+    _register_dcat_ap_protocol,
     _register_builtin_mappers,
 )
 
