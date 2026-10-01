@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from typing import ClassVar, override
 
@@ -24,6 +23,7 @@ from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # 
 
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperType
@@ -80,18 +80,6 @@ class InspireMapper(DataMapper[MappingContext]):
 
         # 4. Wrap in ARC
         return ARC.from_arc_investigation(investigation)
-
-    @staticmethod
-    def _to_identifier_slug(title: str) -> str:
-        """Convert a title to a machine-readable identifier slug."""
-        if not title:
-            return "untitled"
-        # Lowercase, replace non-alphanumeric with underscores
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower())
-        # Remove leading/trailing underscores
-        slug = slug.strip("_")
-        # Truncate to a reasonable length
-        return slug[:80]
 
     def map_person(self, contact: Contact) -> Person | None:
         """Map an ISO individualName contact to Person.
@@ -185,8 +173,13 @@ class InspireMapper(DataMapper[MappingContext]):
         """Map to ArcInvestigation with enhanced metadata-level fields."""
         # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
-        if identifier and ("://" in identifier or "/" in identifier):
-            identifier = self._to_identifier_slug(record.title) or identifier.split("/")[-1]
+        if "://" in identifier or "/" in identifier:
+            identifier = to_identifier_slug(record.title) or identifier.split("/")[-1]
+        # A raw (non-URL-shaped) fileIdentifier still needs character-allowlisting —
+        # sanitize_identifier is idempotent on an already-slugified value.
+        identifier = sanitize_identifier(identifier)
+        if not identifier:
+            raise ValueError(f"fileIdentifier {record.identifier!r} yields an empty Investigation identifier.")
 
         title = record.title
         description = record.abstract
@@ -356,9 +349,23 @@ class InspireMapper(DataMapper[MappingContext]):
         if record.other_constraints_url:
             comments.append(Comment.create("Other Constraints URLs", "; ".join(record.other_constraints_url[:3])))
 
+    @staticmethod
+    def _record_slug(record: InspireRecord) -> str:
+        """Study/assay identifier: title slug, else the sanitized fileIdentifier.
+
+        Never a placeholder — a record whose title and fileIdentifier both sanitize to
+        nothing fails mapping instead.
+        """
+        slug = to_identifier_slug(record.title) or sanitize_identifier(record.identifier)
+        if not slug:
+            raise ValueError(
+                f"Record {record.identifier!r}: neither title nor fileIdentifier yields a usable identifier."
+            )
+        return slug
+
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = self._record_slug(record)
         title = record.title
 
         # Enhanced description with lineage, purpose, and supplemental info
@@ -632,7 +639,7 @@ class InspireMapper(DataMapper[MappingContext]):
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = self._record_slug(record)
         title = record.title
 
         measurement_type = self._get_measurement_type(record)
@@ -653,7 +660,8 @@ class InspireMapper(DataMapper[MappingContext]):
 
         return assay
 
-    def _create_assay_table(self, record: InspireRecord) -> ArcTable:
+    @staticmethod
+    def _create_assay_table(record: InspireRecord) -> ArcTable:
         """Create the assay annotation table (always exactly one row).
 
         Columns:
@@ -679,7 +687,7 @@ class InspireMapper(DataMapper[MappingContext]):
             output_uri = record.online_resources[0].url
             fallback_used = True
         else:
-            output_uri = f"{self._to_identifier_slug(record.title)}_dataset"
+            output_uri = f"{InspireMapper._record_slug(record)}_dataset"
 
         table = ArcTable.init("Measurement")
         table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])

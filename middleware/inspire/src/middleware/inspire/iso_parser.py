@@ -1,94 +1,102 @@
-"""ISO 19139 record parser for INSPIRE metadata."""
+"""ISO 19139 record parser for INSPIRE metadata.
 
-import contextlib
+The parser only extracts and type-guards values; bounding and codelist checks are
+validation on `InspireRecord` (see `middleware.payload.inspire.models`). Nested entries are
+built as dicts so the configured `ValueBounds` reach their validators through the
+validation context.
+"""
+
 import logging
-from typing import cast
+from typing import Any, cast
 
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.inspire.errors import SemanticError
-from middleware.payload.inspire.models import (
-    ConformanceResult,
-    Contact,
-    DistributionFormat,
-    InspireDate,
-    InspireRecord,
-    OnlineResource,
-    ReferenceSystem,
-    ResourceIdentifier,
-    SpatialResolutionDistance,
-)
+from middleware.payload.inspire.models import VALUE_BOUNDS_CONTEXT_KEY, InspireRecord
+from middleware.payload.inspire.value_bounds import ValueBounds
 
 logger = logging.getLogger(__name__)
+
+# Raw field values for a nested model (Contact, OnlineResource, ...), validated by InspireRecord.
+type _Data = dict[str, Any]
 
 
 class IsoParser:
     """Parser for OWSLib MD_Metadata objects into InspireRecord domain objects."""
 
+    def __init__(self, value_bounds: ValueBounds | None = None) -> None:
+        """Initialize the parser with the limits enforced when validating records."""
+        self._value_bounds = value_bounds or ValueBounds()
+
     def parse_record(self, iso: MD_Metadata, record_uuid: str) -> InspireRecord:
-        """Parse an OWSLib MD_Metadata object into an InspireRecord."""
+        """Parse an OWSLib MD_Metadata object into an InspireRecord.
+
+        Raises:
+            SemanticError: a mandatory element is missing.
+            pydantic.ValidationError: a value violates ``Config.value_bounds``, a codelist or a format.
+        """
         # Ensure identifier is always an actual string from ISO metadata
         if not iso.identifier or not isinstance(iso.identifier, str):
             raise SemanticError(f"Record {record_uuid} is missing a valid identifier (gmd:fileIdentifier).")
 
-        identifier = iso.identifier
         identification = self._extract_identification(iso)
 
-        return InspireRecord(
+        data: _Data = {
             # Core identification (existing fields)
-            identifier=identifier,
-            title=self._extract_title(identification),
-            abstract=self._extract_abstract(identification),
-            date_stamp=iso.datestamp,
-            keywords=self._extract_identification_list("keywords", identification),
-            topic_categories=self._extract_identification_list("topiccategory", identification),
-            contacts=self._extract_contacts(iso),
-            lineage=self._extract_lineage(iso),
-            spatial_extent=self._extract_spatial_extent(iso),
-            temporal_extent=self._extract_temporal_extent(iso),
-            constraints=self._extract_constraints(iso),
+            "identifier": iso.identifier,
+            "title": self._extract_title(identification),
+            "abstract": self._extract_abstract(identification),
+            "date_stamp": iso.datestamp,
+            "keywords": self._extract_identification_list("keywords", identification),
+            "topic_categories": self._extract_identification_list("topiccategory", identification),
+            "contacts": self._extract_contacts(iso),
+            "lineage": self._extract_lineage(iso),
+            "spatial_extent": self._extract_spatial_extent(iso),
+            "temporal_extent": self._extract_temporal_extent(iso),
+            "constraints": self._extract_constraints(iso),
             # Metadata-level fields (new)
-            parent_identifier=getattr(iso, "parentidentifier", None),
-            language=getattr(iso, "language", None) or getattr(iso, "languagecode", None),
-            charset=getattr(iso, "charset", None),
-            hierarchy=getattr(iso, "hierarchy", None),
-            metadata_standard_name=getattr(iso, "stdname", None),
-            metadata_standard_version=getattr(iso, "stdver", None),
-            dataset_uri=getattr(iso, "dataseturi", None),
+            "parent_identifier": getattr(iso, "parentidentifier", None),
+            "language": getattr(iso, "language", None) or getattr(iso, "languagecode", None),
+            "charset": getattr(iso, "charset", None),
+            "hierarchy": getattr(iso, "hierarchy", None),
+            "metadata_standard_name": getattr(iso, "stdname", None),
+            "metadata_standard_version": getattr(iso, "stdver", None),
+            "dataset_uri": getattr(iso, "dataseturi", None),
             # Identification - Core (new)
-            alternate_title=self._extract_identification_str("alternatetitle", identification),
-            resource_identifiers=self._extract_resource_identifiers(identification),
-            edition=self._extract_identification_str("edition", identification),
-            purpose=self._extract_identification_str("purpose", identification),
-            status=self._extract_identification_str("status", identification),
-            resource_language=self._extract_resource_language(identification),
-            graphic_overviews=self._extract_graphic_overviews(identification),
+            "alternate_title": self._extract_identification_str("alternatetitle", identification),
+            "resource_identifiers": self._extract_resource_identifiers(identification),
+            "edition": self._extract_identification_str("edition", identification),
+            "purpose": self._extract_identification_str("purpose", identification),
+            "status": self._extract_identification_str("status", identification),
+            "resource_language": self._extract_resource_language(identification),
+            "graphic_overviews": self._extract_graphic_overviews(identification),
             # Identification - Dates (new)
-            dates=self._extract_dates(identification),
+            "dates": self._extract_dates(identification),
             # Identification - Resolution (new)
-            spatial_resolution_denominators=self._extract_resolution_denominators(identification),
-            spatial_resolution_distances=self._extract_resolution_distances(identification),
+            "spatial_resolution_denominators": self._extract_resolution_denominators(identification),
+            "spatial_resolution_distances": self._extract_resolution_distances(identification),
             # Identification - Contacts by role (new)
-            creators=self._extract_contacts_by_role(identification, "originator"),
-            publishers=self._extract_contacts_by_role(identification, "publisher"),
-            contributors=self._extract_contacts_by_role(identification, "author"),
+            "creators": self._extract_contacts_by_role(identification, "originator"),
+            "publishers": self._extract_contacts_by_role(identification, "publisher"),
+            "contributors": self._extract_contacts_by_role(identification, "author"),
             # Constraints (detailed, new)
-            access_constraints=self._extract_access_constraints(identification),
-            use_constraints=self._extract_use_constraints(identification),
-            classification=self._extract_classification(identification),
-            other_constraints=self._extract_other_constraints(identification),
-            other_constraints_url=self._extract_other_constraints_url(identification),
+            "access_constraints": self._extract_access_constraints(identification),
+            "use_constraints": self._extract_use_constraints(identification),
+            "classification": self._extract_classification(identification),
+            "other_constraints": self._extract_other_constraints(identification),
+            "other_constraints_url": self._extract_other_constraints_url(identification),
             # Distribution (new)
-            distribution_formats=self._extract_distribution_formats(iso),
-            online_resources=self._extract_online_resources(iso),
+            "distribution_formats": self._extract_distribution_formats(iso),
+            "online_resources": self._extract_online_resources(iso),
             # Data Quality (new)
-            conformance_results=self._extract_conformance_results(iso),
-            lineage_url=self._extract_lineage_url(iso),
+            "conformance_results": self._extract_conformance_results(iso),
+            "lineage_url": self._extract_lineage_url(iso),
             # Reference System (new)
-            reference_systems=self._extract_reference_systems(iso),
+            "reference_systems": self._extract_reference_systems(iso),
             # Supplemental (new)
-            supplemental_information=self._extract_identification_str("supplementalinformation", identification),
-        )
+            "supplemental_information": self._extract_identification_str("supplementalinformation", identification),
+        }
+        return InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: self._value_bounds})
 
     @staticmethod
     def _extract_identification(iso: MD_Metadata) -> MD_DataIdentification | None:
@@ -125,7 +133,7 @@ class IsoParser:
         value = getattr(identification, item, None)
         # Ensure we only return actual strings, not MagicMock or other objects
         if value and isinstance(value, str):
-            return value  # type: ignore[no-any-return]
+            return value
         return None
 
     @staticmethod
@@ -142,7 +150,7 @@ class IsoParser:
                 result.append(attr)
         return result
 
-    def _extract_contacts(self, iso: MD_Metadata) -> list[Contact]:
+    def _extract_contacts(self, iso: MD_Metadata) -> list[_Data]:
         """Extract contacts from ISO record."""
         contacts = []
         if iso.contact:
@@ -153,16 +161,16 @@ class IsoParser:
         return contacts
 
     @staticmethod
-    def _format_contacts(contact_list: list, contact_type: str) -> list[Contact]:
+    def _format_contacts(contact_list: list, contact_type: str) -> list[_Data]:
         """Format contact list."""
         return [
-            Contact(
-                name=c.name,
-                organization=c.organization,
-                email=c.email,
-                role=c.role,
-                type=contact_type,
-            )
+            {
+                "name": c.name,
+                "organization": c.organization,
+                "email": c.email,
+                "role": c.role,
+                "type": contact_type,
+            }
             for c in contact_list
         ]
 
@@ -226,9 +234,9 @@ class IsoParser:
     # === Extended INSPIRE Field Extraction ===
 
     @staticmethod
-    def _extract_resource_identifiers(identification: MD_DataIdentification | None) -> list[ResourceIdentifier]:
+    def _extract_resource_identifiers(identification: MD_DataIdentification | None) -> list[_Data]:
         """Extract resource identifiers (DOI, ISBN, etc.) from citation/identifier."""
-        identifiers: list[ResourceIdentifier] = []
+        identifiers: list[_Data] = []
         if identification is None:
             return identifiers
 
@@ -242,22 +250,21 @@ class IsoParser:
             code = uricode_list[i] if i < len(uricode_list) else None
             codespace = uricodespace_list[i] if i < len(uricodespace_list) else None
             if code:
-                identifiers.append(
-                    ResourceIdentifier(code=code, codespace=codespace, url=code if code.startswith("http") else None)
-                )
+                # A code written as a URL is also exposed as `url` (then validated like any URL).
+                identifiers.append({"code": code, "codespace": codespace, "url": code if "://" in code else None})
         return identifiers
 
     @staticmethod
-    def _extract_dates(identification: MD_DataIdentification | None) -> list[InspireDate]:
+    def _extract_dates(identification: MD_DataIdentification | None) -> list[_Data]:
         """Extract citation dates with types (creation, publication, revision)."""
-        dates: list[InspireDate] = []
+        dates: list[_Data] = []
         if identification is None:
             return dates
 
         ci_dates = getattr(identification, "date", [])
         for ci_date in ci_dates:
             if hasattr(ci_date, "date") and hasattr(ci_date, "type"):
-                dates.append(InspireDate(date=ci_date.date, datetype=ci_date.type))
+                dates.append({"date": ci_date.date, "datetype": ci_date.type})
         return dates
 
     @staticmethod
@@ -281,37 +288,34 @@ class IsoParser:
         return [str(u) for u in urls if u]
 
     @staticmethod
-    def _extract_resolution_denominators(identification: MD_DataIdentification | None) -> list[int]:
-        """Extract spatial resolution as scale denominators."""
+    def _extract_resolution_denominators(identification: MD_DataIdentification | None) -> list[object]:
+        """Extract spatial resolution as scale denominators (converted to int by validation)."""
         if identification is None:
             return []
         denoms = getattr(identification, "denominators", [])
-        return [int(d) for d in denoms if d]
+        return [d for d in denoms if d]
 
     @staticmethod
-    def _extract_resolution_distances(
-        identification: MD_DataIdentification | None,
-    ) -> list[SpatialResolutionDistance]:
+    def _extract_resolution_distances(identification: MD_DataIdentification | None) -> list[_Data]:
         """Extract spatial resolution as distances with units."""
         if identification is None:
             return []
 
-        distances = []
+        distances: list[_Data] = []
         distance_vals = getattr(identification, "distance", [])
         uom_vals = getattr(identification, "uom", [])
 
         for i, dist in enumerate(distance_vals):
             uom = uom_vals[i] if i < len(uom_vals) else "m"
             if dist:
-                with contextlib.suppress(ValueError, TypeError):
-                    distances.append(SpatialResolutionDistance(value=float(dist), uom=uom or "m"))
+                # Raw value: SpatialResolutionDistance validation rejects non-numeric distances.
+                distances.append({"value": dist, "uom": uom or "m"})
         return distances
 
-    def _extract_contacts_by_role(self, identification: MD_DataIdentification | None, role_name: str) -> list[Contact]:
+    def _extract_contacts_by_role(self, identification: MD_DataIdentification | None, role_name: str) -> list[_Data]:
         """Extract contacts filtered by specific role."""
-        contacts: list[Contact] = []
         if identification is None:
-            return contacts
+            return []
 
         # Get role-specific lists from OWSLib
         if role_name == "originator":
@@ -321,7 +325,7 @@ class IsoParser:
         elif role_name == "author":
             contact_list = getattr(identification, "contributor", [])
         else:
-            return contacts
+            return []
 
         return self._format_contacts(contact_list, "resource")
 
@@ -366,55 +370,49 @@ class IsoParser:
         return [str(u) for u in urls if u]
 
     @staticmethod
-    def _extract_distribution_formats(iso: MD_Metadata) -> list[DistributionFormat]:
+    def _extract_distribution_formats(iso: MD_Metadata) -> list[_Data]:
         """Extract distribution format information."""
-        formats: list[DistributionFormat] = []
         dist = getattr(iso, "distribution", None)
-        if dist is None:
-            return formats
-
-        if hasattr(dist, "format") and dist.format:
-            formats.append(
-                DistributionFormat(
-                    name=dist.format,
-                    version=getattr(dist, "version", None),
-                    specification=getattr(dist, "specification", None),
-                    name_url=getattr(dist, "format_url", None),
-                    version_url=getattr(dist, "version_url", None),
-                    specification_url=getattr(dist, "specification_url", None),
-                )
-            )
-        return formats
+        if dist is None or not (hasattr(dist, "format") and dist.format):
+            return []
+        return [
+            {
+                "name": dist.format,
+                "version": getattr(dist, "version", None),
+                "specification": getattr(dist, "specification", None),
+                "name_url": getattr(dist, "format_url", None),
+                "version_url": getattr(dist, "version_url", None),
+                "specification_url": getattr(dist, "specification_url", None),
+            }
+        ]
 
     @staticmethod
-    def _extract_online_resources(iso: MD_Metadata) -> list[OnlineResource]:
+    def _extract_online_resources(iso: MD_Metadata) -> list[_Data]:
         """Extract online resources (download links, service endpoints)."""
-        resources: list[OnlineResource] = []
         dist = getattr(iso, "distribution", None)
         if dist is None:
-            return resources
+            return []
 
         online_list = getattr(dist, "online", [])
-        for ol in online_list:
-            if hasattr(ol, "url") and ol.url:
-                resources.append(
-                    OnlineResource(
-                        url=ol.url,
-                        protocol=getattr(ol, "protocol", None),
-                        protocol_url=getattr(ol, "protocol_url", None),
-                        name=getattr(ol, "name", None),
-                        name_url=getattr(ol, "name_url", None),
-                        description=getattr(ol, "description", None),
-                        description_url=getattr(ol, "description_url", None),
-                        function=getattr(ol, "function", None),
-                    )
-                )
-        return resources
+        return [
+            {
+                "url": ol.url,
+                "protocol": getattr(ol, "protocol", None),
+                "protocol_url": getattr(ol, "protocol_url", None),
+                "name": getattr(ol, "name", None),
+                "name_url": getattr(ol, "name_url", None),
+                "description": getattr(ol, "description", None),
+                "description_url": getattr(ol, "description_url", None),
+                "function": getattr(ol, "function", None),
+            }
+            for ol in online_list
+            if hasattr(ol, "url") and ol.url
+        ]
 
     @staticmethod
-    def _extract_conformance_results(iso: MD_Metadata) -> list[ConformanceResult]:
+    def _extract_conformance_results(iso: MD_Metadata) -> list[_Data]:
         """Extract data quality conformance results."""
-        results: list[ConformanceResult] = []
+        results: list[_Data] = []
         dq = getattr(iso, "dataquality", None)
         if dq is None:
             return results
@@ -429,15 +427,13 @@ class IsoParser:
         for i in range(max_len):
             title = titles[i] if i < len(titles) else None
             if title:
-                results.append(
-                    ConformanceResult(
-                        specification_title=title,
-                        specification_title_url=title_urls[i] if i < len(title_urls) else None,
-                        specification_date=dates[i] if i < len(dates) else None,
-                        specification_datetype=datetypes[i] if i < len(datetypes) else None,
-                        degree=degrees[i] if i < len(degrees) else None,
-                    )
-                )
+                results.append({
+                    "specification_title": title,
+                    "specification_title_url": title_urls[i] if i < len(title_urls) else None,
+                    "specification_date": dates[i] if i < len(dates) else None,
+                    "specification_datetype": datetypes[i] if i < len(datetypes) else None,
+                    "degree": degrees[i] if i < len(degrees) else None,
+                })
         return results
 
     @staticmethod
@@ -449,26 +445,22 @@ class IsoParser:
         value = getattr(dq, "lineage_url", None)
         # Ensure we only return actual strings, not MagicMock or other objects
         if value and isinstance(value, str):
-            return value  # type: ignore[no-any-return]
+            return value
         return None
 
     @staticmethod
-    def _extract_reference_systems(iso: MD_Metadata) -> list[ReferenceSystem]:
+    def _extract_reference_systems(iso: MD_Metadata) -> list[_Data]:
         """Extract coordinate reference system(s)."""
-        systems: list[ReferenceSystem] = []
         rs = getattr(iso, "referencesystem", None)
-        if rs is None:
-            return systems
-
-        if hasattr(rs, "code") and rs.code:
-            systems.append(
-                ReferenceSystem(
-                    code=rs.code,
-                    code_url=getattr(rs, "code_url", None),
-                    codespace=getattr(rs, "codeSpace", None),
-                    codespace_url=getattr(rs, "codeSpace_url", None),
-                    version=getattr(rs, "version", None),
-                    version_url=getattr(rs, "version_url", None),
-                )
-            )
-        return systems
+        if rs is None or not (hasattr(rs, "code") and rs.code):
+            return []
+        return [
+            {
+                "code": rs.code,
+                "code_url": getattr(rs, "code_url", None),
+                "codespace": getattr(rs, "codeSpace", None),
+                "codespace_url": getattr(rs, "codeSpace_url", None),
+                "version": getattr(rs, "version", None),
+                "version_url": getattr(rs, "version_url", None),
+            }
+        ]
