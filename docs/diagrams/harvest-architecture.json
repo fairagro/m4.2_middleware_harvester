@@ -1,0 +1,768 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RDI Harvesting via Plugins",
+    "output": "docs/diagrams/harvest-architecture.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/fairagro/m4.2_middleware_harvester.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "9ea61b5ad87cc6ab7ff2fb102d78017ce58665b1"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "RDI · dev/test"
+        },
+        "frontend": {
+          "label": "RDI · in test"
+        },
+        "messagebus": {
+          "label": "RDI · not started"
+        },
+        "security": {
+          "label": "RDI · retired"
+        },
+        "backend": {
+          "label": "Harvester code"
+        },
+        "database": {
+          "label": "Config file"
+        },
+        "cloud": {
+          "label": "Middleware API"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "config",
+      "type": "database",
+      "label": "config.yaml",
+      "sublabel": "repositories: rdi + plugin block",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "middleware/harvester/src/middleware/harvester/config.py",
+          "line": 45,
+          "end_line": 83,
+          "label": "RepositoryConfig"
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "type": "backend",
+      "label": "main.py",
+      "sublabel": "CLI · emit_report → stdout",
+      "pos": [
+        460,
+        60
+      ],
+      "size": [
+        190,
+        56
+      ],
+      "sources": [
+        {
+          "path": "middleware/harvester/src/middleware/harvester/main.py",
+          "line": 48,
+          "end_line": 74
+        }
+      ]
+    },
+    {
+      "id": "orchestrator",
+      "type": "backend",
+      "label": "Orchestrator",
+      "sublabel": "asyncio.gather · PLUGIN_FACTORIES",
+      "pos": [
+        780,
+        60
+      ],
+      "size": [
+        200,
+        56
+      ],
+      "sources": [
+        {
+          "path": "middleware/harvester/src/middleware/harvester/orchestrator.py",
+          "line": 29,
+          "end_line": 48,
+          "label": "plugin factory"
+        },
+        {
+          "path": "middleware/harvester/src/middleware/harvester/orchestrator.py",
+          "line": 61,
+          "end_line": 101,
+          "label": "run_repository"
+        },
+        {
+          "path": "middleware/harvester/src/middleware/harvester/orchestrator.py",
+          "line": 164,
+          "end_line": 178,
+          "label": "gather"
+        }
+      ]
+    },
+    {
+      "id": "bonares",
+      "type": "external",
+      "label": "BonaRes",
+      "sublabel": "CSW · ISO 19139 · InspireMapper",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 19,
+          "end_line": 21
+        }
+      ],
+      "tag": "dev/test",
+      "icon": "external"
+    },
+    {
+      "id": "dwd",
+      "type": "frontend",
+      "label": "DWD",
+      "sublabel": "CSW (GDI-DE) · ISO 19139 · InspireMapper",
+      "tag": "in test",
+      "pos": [
+        40,
+        280
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.yaml",
+          "line": 17,
+          "end_line": 19,
+          "label": "commented-out entry"
+        }
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "thuenen",
+      "type": "external",
+      "label": "Thünen-Atlas",
+      "sublabel": "CSW (pycsw) · ISO 19139 · InspireMapper",
+      "tag": "dev/test",
+      "pos": [
+        40,
+        360
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "openspec/specs/csw-harvesting/design.md",
+          "line": 44,
+          "label": "CSW measured, #19"
+        }
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "edal",
+      "type": "external",
+      "label": "e!DAL-PGP",
+      "sublabel": "xml · html_jsonld · schema_org_general",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 25,
+          "end_line": 30
+        }
+      ],
+      "tag": "dev/test",
+      "icon": "external"
+    },
+    {
+      "id": "openagrar",
+      "type": "external",
+      "label": "OpenAgrar",
+      "sublabel": "mycore_solr · html_jsonld · schema_org_general",
+      "tag": "dev/test · fixture",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 62,
+          "end_line": 69
+        }
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "publisso",
+      "type": "external",
+      "label": "PUBLISSO FRL",
+      "sublabel": "regal_find · regal_jsonld · regal_general",
+      "pos": [
+        40,
+        600
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 34,
+          "end_line": 44
+        }
+      ],
+      "tag": "dev/test",
+      "icon": "external"
+    },
+    {
+      "id": "klib",
+      "type": "frontend",
+      "label": "BonaRes Klib",
+      "sublabel": "bonares_klib · regal_jsonld · schema_org_general",
+      "tag": "in test",
+      "pos": [
+        40,
+        680
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "sradi",
+      "type": "frontend",
+      "label": "SRADI",
+      "sublabel": "dcat_ap · jsonld · ckanext_dcat",
+      "pos": [
+        40,
+        760
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 50,
+          "end_line": 59
+        }
+      ],
+      "tag": "in test",
+      "icon": "external"
+    },
+    {
+      "id": "plabipd",
+      "type": "frontend",
+      "label": "PlabiPD / PubPlant",
+      "sublabel": "static_json_array · jsonld · schema_org_general",
+      "tag": "in test",
+      "pos": [
+        40,
+        840
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "phenoroam",
+      "type": "frontend",
+      "label": "PhenoRoam",
+      "sublabel": "oai_pmh · phenoroam_xml · phenoroam_general",
+      "pos": [
+        40,
+        920
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/config.all-rdis.yaml",
+          "line": 83,
+          "end_line": 90
+        }
+      ],
+      "tag": "in test",
+      "icon": "external"
+    },
+    {
+      "id": "inspire",
+      "type": "backend",
+      "label": "InspirePlugin",
+      "sublabel": "CSWClient → InspireMapper",
+      "pos": [
+        460,
+        200
+      ],
+      "size": [
+        180,
+        216
+      ],
+      "sources": [
+        {
+          "path": "middleware/inspire/src/middleware/inspire/plugin.py",
+          "line": 18,
+          "end_line": 66
+        }
+      ]
+    },
+    {
+      "id": "linked",
+      "type": "backend",
+      "label": "LinkedDataPlugin",
+      "sublabel": "Sitemap → Dataset → DataMapper",
+      "pos": [
+        460,
+        440
+      ],
+      "size": [
+        180,
+        296
+      ],
+      "sources": [
+        {
+          "path": "middleware/linked_data/src/middleware/linked_data/plugin.py",
+          "line": 41,
+          "end_line": 80,
+          "label": "registries"
+        },
+        {
+          "path": "middleware/linked_data/src/middleware/linked_data/plugin.py",
+          "line": 136,
+          "label": "map_graph"
+        }
+      ]
+    },
+    {
+      "id": "generic",
+      "type": "backend",
+      "label": "GenericPlugin",
+      "sublabel": "Protocol → Parser → DataMapper",
+      "pos": [
+        460,
+        760
+      ],
+      "size": [
+        180,
+        136
+      ],
+      "sources": [
+        {
+          "path": "middleware/generic/src/middleware/generic/plugin.py",
+          "line": 38,
+          "end_line": 41
+        },
+        {
+          "path": "middleware/generic/src/middleware/generic/plugin.py",
+          "line": 137,
+          "label": "mapper.map"
+        }
+      ]
+    },
+    {
+      "id": "oaipmh",
+      "type": "backend",
+      "label": "OaiPmhPlugin",
+      "sublabel": "ListRecords → Parser → Mapper",
+      "pos": [
+        460,
+        920
+      ],
+      "size": [
+        180,
+        56
+      ],
+      "sources": [
+        {
+          "path": "middleware/oai_pmh/src/middleware/oai_pmh/plugin.py",
+          "line": 31,
+          "end_line": 37
+        },
+        {
+          "path": "middleware/oai_pmh/src/middleware/oai_pmh/plugin.py",
+          "line": 119,
+          "label": "mapper.map"
+        }
+      ]
+    },
+    {
+      "id": "upload",
+      "type": "backend",
+      "label": "Upload",
+      "sublabel": "arc_stream → harvest_arcs",
+      "pos": [
+        780,
+        360
+      ],
+      "size": [
+        200,
+        600
+      ],
+      "sources": [
+        {
+          "path": "middleware/harvester/src/middleware/harvester/upload.py",
+          "line": 33,
+          "end_line": 92
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "cloud",
+      "label": "Middleware API",
+      "sublabel": "ApiClient · ARC RO-Crate",
+      "pos": [
+        790,
+        1040
+      ],
+      "size": [
+        180,
+        56
+      ],
+      "sources": [
+        {
+          "path": "middleware/harvester/src/middleware/harvester/upload.py",
+          "line": 85,
+          "end_line": 92,
+          "label": "harvest_arcs"
+        }
+      ]
+    },
+    {
+      "id": "edaphobase",
+      "type": "frontend",
+      "label": "Edaphobase",
+      "sublabel": "SQL database",
+      "tag": "in test",
+      "pos": [
+        40,
+        1040
+      ],
+      "size": [
+        280,
+        56
+      ],
+      "sources": [
+        {
+          "path": "dev_environment/README.md",
+          "line": 160,
+          "label": "local stack removed from this repo"
+        }
+      ],
+      "icon": "external"
+    },
+    {
+      "id": "lims",
+      "type": "messagebus",
+      "icon": "external",
+      "label": "LIMS",
+      "sublabel": "SQL database",
+      "tag": "not started",
+      "pos": [
+        40,
+        1120
+      ],
+      "size": [
+        280,
+        56
+      ]
+    },
+    {
+      "id": "gbis",
+      "type": "messagebus",
+      "icon": "external",
+      "label": "GBIS",
+      "sublabel": "SQL database",
+      "tag": "not started",
+      "pos": [
+        40,
+        1200
+      ],
+      "size": [
+        280,
+        56
+      ]
+    },
+    {
+      "id": "sqltoarc",
+      "type": "backend",
+      "label": "sql_to_arc",
+      "sublabel": "separate service, no plugin",
+      "pos": [
+        460,
+        1040
+      ],
+      "size": [
+        180,
+        216
+      ],
+      "sources": [
+        {
+          "path": "docs/ci.md",
+          "line": 93,
+          "label": "sql-to-arc product"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Remote RDIs",
+      "wraps": [
+        "bonares",
+        "dwd",
+        "thuenen",
+        "edal",
+        "openagrar",
+        "publisso",
+        "klib",
+        "sradi",
+        "plabipd",
+        "phenoroam",
+        "edaphobase",
+        "lims",
+        "gbis"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "PLUGIN_FACTORIES[plugin_type]",
+      "wraps": [
+        "inspire",
+        "linked",
+        "generic",
+        "oaipmh"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "load-config",
+      "from": "config",
+      "to": "main",
+      "label": "from_yaml_file"
+    },
+    {
+      "id": "run-orch",
+      "from": "main",
+      "to": "orchestrator",
+      "label": "run_orchestrator"
+    },
+    {
+      "id": "drive-upload",
+      "from": "orchestrator",
+      "to": "upload",
+      "label": "plugin.run() per repo",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "csw",
+      "from": "bonares",
+      "to": "inspire",
+      "label": "CSW GetRecords"
+    },
+    {
+      "id": "dwd-csw",
+      "from": "dwd",
+      "to": "inspire",
+      "label": "CSW + OGC filter"
+    },
+    {
+      "id": "thuenen-csw",
+      "from": "thuenen",
+      "to": "inspire",
+      "label": "CSW GetRecords"
+    },
+    {
+      "id": "edal-http",
+      "from": "edal",
+      "to": "linked",
+      "label": "sitemap.xml"
+    },
+    {
+      "id": "oa-solr",
+      "from": "openagrar",
+      "to": "linked",
+      "label": "Solr select"
+    },
+    {
+      "id": "frl-find",
+      "from": "publisso",
+      "to": "linked",
+      "label": "Regal /find"
+    },
+    {
+      "id": "klib-api",
+      "from": "klib",
+      "to": "linked",
+      "label": "JSON-LD API"
+    },
+    {
+      "id": "sradi-dcat",
+      "from": "sradi",
+      "to": "generic",
+      "label": "catalog.jsonld"
+    },
+    {
+      "id": "plabipd-json",
+      "from": "plabipd",
+      "to": "generic",
+      "label": "genomes.json"
+    },
+    {
+      "id": "pheno-oai",
+      "from": "phenoroam",
+      "to": "oaipmh",
+      "label": "OAI-PMH"
+    },
+    {
+      "id": "yield-inspire",
+      "from": "inspire",
+      "to": "upload",
+      "label": "HarvestedArc"
+    },
+    {
+      "id": "yield-linked",
+      "from": "linked",
+      "to": "upload",
+      "label": "HarvestedArc"
+    },
+    {
+      "id": "yield-generic",
+      "from": "generic",
+      "to": "upload",
+      "label": "HarvestedArc"
+    },
+    {
+      "id": "yield-oai",
+      "from": "oaipmh",
+      "to": "upload",
+      "label": "HarvestedArc"
+    },
+    {
+      "id": "push-api",
+      "from": "upload",
+      "to": "api",
+      "label": "harvest_arcs",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "edaph-sql",
+      "from": "edaphobase",
+      "to": "sqltoarc",
+      "label": "SQL (ODBC)"
+    },
+    {
+      "id": "sql-api",
+      "from": "sqltoarc",
+      "to": "api",
+      "label": "ARC upload"
+    },
+    {
+      "id": "lims-sql",
+      "from": "lims",
+      "to": "sqltoarc",
+      "label": "SQL",
+      "variant": "dashed"
+    },
+    {
+      "id": "gbis-sql",
+      "from": "gbis",
+      "to": "sqltoarc",
+      "label": "SQL",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Plugin contract",
+      "items": [
+        "Each plugin.run() is an AsyncGenerator yielding HarvestedArc, HarvesterError or SkippedRecord",
+        "Orchestrator picks the class from PLUGIN_FACTORIES by the repo's plugin block"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Shared registries",
+      "items": [
+        "middleware.parsing: PayloadParser (html_jsonld, jsonld, phenoroam_xml, rdf_xml)",
+        "middleware.payload: DataMapper selected by the sibling mapper.type"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Run & report",
+      "items": [
+        "Repositories harvest concurrently via asyncio.gather",
+        "Outcomes recorded on HarvestReport, emitted as JSON-LD to stdout",
+        "Real OpenAgrar is behind a PoW gate (#271); a local fixture stands in"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "RDI status",
+      "items": [
+        "in test: SRADI, PlabiPD, PhenoRoam, BonaRes Klib, DWD, Edaphobase",
+        "dev/test: BonaRes, Thünen-Atlas, e!DAL-PGP, PUBLISSO FRL, OpenAgrar (fixture)",
+        "not started: LIMS, GBIS (dashed; planned via sql_to_arc)",
+        "SQL sources go through the separate sql_to_arc service, not a harvester plugin",
+        "Not on main: Klib (follows its design), PlabiPD (branch feat/plabipd-linked-data-source); DWD is commented out and Thünen-Atlas has no config entry"
+      ]
+    }
+  ]
+}
