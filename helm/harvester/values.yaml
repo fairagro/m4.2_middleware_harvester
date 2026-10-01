@@ -335,36 +335,34 @@ config:
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
+    # Stay on linked_data until a regal_jsonld PayloadParser exists: shared
+    # parser.type: jsonld rejects Regal remote @context (e.g. …/context.json).
     # -------------------------------------------------------------------------
     - rdi: "example-publisso-regal"
-      generic:
-        protocol:
-          http:
-            connect_timeout: 10.0
-            read_timeout: 60.0
-            max_connections: 5
-            retry_attempts: 5
-            max_requests_per_second: 2.0
-            # -- FRL robots.txt is Disallow: / for all agents; /find is still a
-            # -- public machine API. Set false for this RDI or discovery fails.
-            respect_robots_txt: false
-          regal_find:
-            # -- Regal /find endpoint (query-free is fine). Defaults fill
-            # -- q=contentType:researchData and until=<page_size>. Operator query
-            # -- params override overridable keys; format=json and from are always
-            # -- set by the software. URL until overrides page_size.
-            entry_url: "https://frl.publisso.de/find"
-            # -- Page size for /find `until` (default 200). URL `until` overrides
-            # -- this value (same role as Solr `rows`).
-            page_size: 200
+      linked_data:
+        # -- Regal /find endpoint (query-free is fine). Defaults fill
+        # -- q=contentType:researchData and until=<page_size>. Operator query
+        # -- params override overridable keys; format=json and from are always
+        # -- set by the software. URL until overrides page_size.
+        sitemap_url: "https://frl.publisso.de/find"
+        sitemap_type: regal_find
+        dataset_type: regal_jsonld
+        # -- Page size for /find `until` (default 200). URL `until` overrides
+        # -- this value (same role as Solr `rows`).
+        page_size: 200
         # -- Base URL for expanding compact Regal ids (frl:…) to absolute IRIs.
-        # -- null → derived as {scheme}://{host}/resource/ from entry_url.
+        # -- null → derived as {scheme}://{host}/resource/ from sitemap_url.
         # -- PUBLISSO landing pages use repository.publisso.de; override if needed:
         resource_base_url: "https://repository.publisso.de/resource/"
-      parser:
-        # -- Inline JSON-LD from /find (not html_jsonld). linked_data used
-        # -- dataset_type: regal_jsonld for the same payload shape.
-        type: jsonld
+        http:
+          connect_timeout: 10.0
+          read_timeout: 60.0
+          max_connections: 5
+          retry_attempts: 5
+          max_requests_per_second: 2.0
+          # -- FRL robots.txt is Disallow: / for all agents; /find is still a
+          # -- public machine API. Set false for this RDI or discovery fails.
+          respect_robots_txt: false
       mapper:
         type: regal_general
 
