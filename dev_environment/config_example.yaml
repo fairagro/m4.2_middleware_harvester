@@ -62,19 +62,21 @@ repositories:
 
   # Example: PUBLISSO FRL via Regal /find (inline JSON-LD, no HTML scraping)
   # - rdi: "publisso"
-  #   linked_data:
-  #     sitemap_url: "https://frl.publisso.de/find"
-  #     sitemap_type: regal_find
-  #     dataset_type: regal_jsonld
-  #     # use repository mapper.type: regal_general
-  #     # Optional; default 200. Sets /find `until` unless URL has until=.
-  #     # page_size: 200
-  #     # Optional override; default is https://frl.publisso.de/resource/
+  #   generic:
+  #     protocol:
+  #       http:
+  #         # FRL robots.txt is User-agent: * / Disallow: / (blocks all polite clients).
+  #         # /find remains a public machine API; disable robots checks for this RDI.
+  #         respect_robots_txt: false
+  #       regal_find:
+  #         entry_url: "https://frl.publisso.de/find"
+  #         # page_size: 200
+  #     # Optional override; default is derived from entry_url host + /resource/
   #     resource_base_url: "https://repository.publisso.de/resource/"
-  #     # FRL robots.txt is User-agent: * / Disallow: / (blocks all polite clients).
-  #     # /find remains a public machine API; disable robots checks for this RDI.
-  #     http:
-  #       respect_robots_txt: false
+  #   parser:
+  #     type: jsonld
+  #   mapper:
+  #     type: regal_general
 
   # Example: PhenoRoam via OAI-PMH (native pr:metadataDataset XML)
   # - rdi: "phenoroam"

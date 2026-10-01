@@ -25,25 +25,31 @@ repositories:
   # The other real schema_org_general + html_jsonld source, and so the only
   # live RDI that could regress from a GeneralSchemaOrgMapper change.
   - rdi: "edal"
-    linked_data:
-      sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
-      sitemap_type: xml
-      dataset_type: html_jsonld
-      payload_type: schema_org_general
+    generic:
+      protocol:
+        xml:
+          entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
+    parser:
+      type: html_jsonld
+    mapper:
+      type: schema_org_general
 
   # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
   # did not disturb the other mapper.
   - rdi: "publisso"
-    linked_data:
-      sitemap_url: "https://frl.publisso.de/find"
-      sitemap_type: regal_find
-      dataset_type: regal_jsonld
-      payload_type: regal_general
+    generic:
+      protocol:
+        http:
+          # FRL robots.txt is User-agent: * / Disallow: / -- /find is a public
+          # machine API, so robots checks are disabled for this RDI.
+          respect_robots_txt: false
+        regal_find:
+          entry_url: "https://frl.publisso.de/find"
       resource_base_url: "https://repository.publisso.de/resource/"
-      http:
-        # FRL robots.txt is User-agent: * / Disallow: / -- /find is a public
-        # machine API, so robots checks are disabled for this RDI.
-        respect_robots_txt: false
+    parser:
+      type: jsonld
+    mapper:
+      type: regal_general
 
   # DCAT-AP (ckanext-dcat, Hydra-paginated) via the generic plugin:
   # dcat_ap Protocol -> jsonld PayloadParser -> ckanext_dcat DataMapper.
@@ -51,8 +57,9 @@ repositories:
   # a new repository entry, no new code. See m4_rdi_portfolio#8.
   - rdi: "sradi"
     generic:
-      protocol_type: dcat_ap
-      sitemap_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld"
+      protocol:
+        dcat_ap:
+          entry_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld"
     parser:
       type: jsonld
     mapper:
@@ -67,8 +74,9 @@ repositories:
   # see pubplant_json_array's composite-identifier scheme.
   - rdi: "plabipd"
     generic:
-      protocol_type: pubplant_json_array
-      sitemap_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
+      protocol:
+        pubplant_json_array:
+          entry_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
     parser:
       type: jsonld
     mapper:
@@ -76,25 +84,31 @@ repositories:
 
   # Static stand-in for OpenAgrar; see fixtures/openagrar/README.md.
   - rdi: "openagrar-fixture"
-    linked_data:
-      sitemap_url: "http://localhost:8080/servlets/solr/select"
-      sitemap_type: mycore_solr
-      dataset_type: html_jsonld
-      payload_type: schema_org_general
-      http:
-        respect_robots_txt: false
-        max_requests_per_second: null
+    generic:
+      protocol:
+        http:
+          respect_robots_txt: false
+          max_requests_per_second: null
+        mycore_solr:
+          entry_url: "http://localhost:8080/servlets/solr/select"
+    parser:
+      type: html_jsonld
+    mapper:
+      type: schema_org_general
 
   # The real OpenAgrar cannot be harvested: record pages, servlets/solr/select
   # and sitemap_google.xml all 302 to /pow-challenge. Tracked in #271.
   # - rdi: "openagrar"
-  #   linked_data:
-  #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
-  #     sitemap_type: mycore_solr
-  #     dataset_type: html_jsonld
-  #     payload_type: schema_org_general
-  #     http:
-  #       respect_robots_txt: false
+  #   generic:
+  #     protocol:
+  #       http:
+  #         respect_robots_txt: false
+  #       mycore_solr:
+  #         entry_url: "https://www.openagrar.de/servlets/solr/select"
+  #   parser:
+  #     type: html_jsonld
+  #   mapper:
+  #     type: schema_org_general
 
   - rdi: "phenoroam"
     oai_pmh:

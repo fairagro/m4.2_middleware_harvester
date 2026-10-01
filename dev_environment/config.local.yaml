@@ -10,10 +10,12 @@ repositories:
     mapper:
       type: inspire_general
   - rdi: "edal"
-    linked_data:
-      sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
-      sitemap_type: xml
-      dataset_type: html_jsonld
+    generic:
+      protocol:
+        xml:
+          entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
+    parser:
+      type: html_jsonld
     mapper:
       type: schema_org_general
 api_client:
