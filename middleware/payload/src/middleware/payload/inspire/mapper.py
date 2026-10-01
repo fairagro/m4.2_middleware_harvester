@@ -96,9 +96,9 @@ class InspireMapper(DataMapper[MappingContext]):
     def map_person(self, contact: Contact) -> Person | None:
         """Map an ISO individualName contact to Person.
 
-        ``organisationName``-only contacts are handled in ``_add_contacts`` as
-        Investigation comments. When ``individualName`` is present but yields no
-        given name after splitting, mapping fails closed.
+        ``organisationName``-only contacts and individualNames without a given
+        name are demoted to Investigation comments in ``_add_contacts`` before
+        this is called; a direct call with such a name still raises.
         """
         if not contact.name or not contact.name.strip():
             return None
@@ -236,7 +236,12 @@ class InspireMapper(DataMapper[MappingContext]):
             )
 
     def _add_contacts(self, inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add contacts: Persons from individualName, Comments from organisation-only."""
+        """Add contacts: Persons from parseable individualName, role Comments otherwise.
+
+        Organisation-only contacts and individualNames without a given name (e.g.
+        DWD's ``RTH`` org-unit acronym) become role-named Investigation comments,
+        never empty-given Persons.
+        """
         all_contacts = list(record.contacts)
         all_contacts.extend(record.creators)
         all_contacts.extend(record.publishers)
@@ -247,15 +252,26 @@ class InspireMapper(DataMapper[MappingContext]):
             organization = (contact.organization or "").strip()
             if not individual:
                 if organization:
-                    comment_name = self._contact_role_label(contact)
-                    key = (comment_name.casefold(), organization.casefold())
-                    if key not in seen_org_comments:
-                        seen_org_comments.add(key)
-                        inv.Comments.append(Comment.create(comment_name, organization))
+                    self._append_role_comment(inv, contact, organization, seen_org_comments)
+                continue
+            first_name, _ = self._split_name(individual)
+            if not first_name.strip():
+                value = f"{organization} ({individual})" if organization else individual
+                self._append_role_comment(inv, contact, value, seen_org_comments)
                 continue
             person = self.map_person(contact)
             if person:
                 inv.Contacts.append(person)
+
+    def _append_role_comment(
+        self, inv: ArcInvestigation, contact: Contact, value: str, seen: set[tuple[str, str]]
+    ) -> None:
+        """Append a role-named Investigation comment unless an equal one exists."""
+        comment_name = self._contact_role_label(contact)
+        key = (comment_name.casefold(), value.casefold())
+        if key not in seen:
+            seen.add(key)
+            inv.Comments.append(Comment.create(comment_name, value))
 
     @staticmethod
     def _add_publications(inv: ArcInvestigation, record: InspireRecord) -> None:

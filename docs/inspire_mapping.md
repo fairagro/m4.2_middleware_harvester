@@ -88,7 +88,7 @@ Detailed contact information for persons and organizations.
 
 | INSPIRE Field                         | OWSLib Attribute                                   | Description                                | ARC Mapping                                                                                                                                                   |
 | ------------------------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. Missing given name → mapping failure (fail closed).                                              |
+| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. No given name (e.g. `RTH`) → role Comment `<organisationName> (<individualName>)`, not a Person. |
 | **organisationName**                  | `organization`                                     | Organization name                          | With individualName: `Person.Affiliation`. Organisation-only (no individualName): Investigation Comment named from the role (e.g. `Publisher`), not a Person. |
 | **positionName**                      | `position`                                         | Job title                                  | `Person` comment or custom field                                                                                                                              |
 | **contactInfo/phone**                 | `phone`                                            | Telephone number                           | `Person.Phone`                                                                                                                                                |
@@ -275,7 +275,9 @@ One INSPIRE record = One Study representing the data creation workflow.
 Map CI_ResponsibleParty objects using ISO field typing:
 
 - **individualName present**: Split with shared `split_display_name` into FirstName / LastName. If given name is empty
-  after split → fail closed (no ARC).
+  after split (org-unit labels such as DWD's `RTH`), emit an Investigation Comment named from the role with value
+  `<organisationName> (<individualName>)`, or just `individualName` when there is no organisation; no Person. Same
+  policy as the Schema.org Organization→Comment rule (`openspec/specs/linked-data-mapper`).
 - **organisationName only** (no individualName): Investigation Comment named from the role (e.g. Publisher), not a
   Person contact.
 - **Email**: electronicMailAddress

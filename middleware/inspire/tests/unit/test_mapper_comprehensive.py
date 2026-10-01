@@ -284,6 +284,61 @@ def test_add_contacts_dedupes_identical_organisation_comments(mapper: InspireMap
     assert {c.Name for c in inv2.Comments if c.Value == "BGR"} == {"Point of Contact", "Publisher"}
 
 
+def test_add_contacts_unparseable_individual_with_organisation_becomes_comment(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert inv.Contacts == []
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "Deutscher Wetterdienst (RTH)")]
+
+
+def test_add_contacts_unparseable_individual_alone_becomes_comment(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(contacts=[Contact(name=" RTH ", role="pointOfContact")])
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert inv.Contacts == []
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "RTH")]
+
+
+def test_add_contacts_dedupes_repeated_unparseable_individuals(mapper: InspireMapper) -> None:
+    dwd = {"name": "RTH", "organization": "Deutscher Wetterdienst", "role": "pointOfContact"}
+    record = _create_minimal_record(
+        contacts=[Contact(**dwd, type="metadata"), Contact(**dwd)],
+        publishers=[Contact(name="rth", organization="deutscher wetterdienst", role="pointOfContact")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert len(inv.Comments) == 1
+
+
+def test_add_contacts_mixed_person_and_unparseable_individual(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact")],
+        creators=[Contact(name="Jane Doe", organization="Deutscher Wetterdienst", role="author")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert [(p.FirstName, p.LastName, p.Affiliation) for p in inv.Contacts] == [
+        ("Jane", "Doe", "Deutscher Wetterdienst")
+    ]
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "Deutscher Wetterdienst (RTH)")]
+
+
+def test_map_investigation_dwd_like_record_succeeds(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        identifier="urn:x-wmo:md:de.dwd.cdc::obsgermany-climate-daily-kl",
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact", type="metadata")],
+        publishers=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="publisher")],
+    )
+    inv = mapper.map_investigation(record)
+    assert inv.Contacts == []
+    values = {(c.Name, c.Value) for c in inv.Comments}
+    assert ("Point of Contact", "Deutscher Wetterdienst (RTH)") in values
+    assert ("Publisher", "Deutscher Wetterdienst (RTH)") in values
+
+
 def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test creation of Spatial Sampling protocol."""
     table = mapper._create_spatial_sampling_protocol(sample_record)
