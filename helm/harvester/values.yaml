@@ -229,7 +229,9 @@ config:
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
-  # -- plugin type (inspire or linked_data).
+  # -- plugin type (inspire, generic, linked_data, or oai_pmh). Prefer generic:
+  # -- for sitemap / Solr / Regal / DCAT sources; linked_data remains a temporary
+  # -- shim during migration (see docs/linked_data_to_generic.md).
   repositories:
 
     # -------------------------------------------------------------------------
@@ -269,37 +271,36 @@ config:
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-openagrar"
-      linked_data:
-        # -- Sitemap entry point URL (required).
-        sitemap_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
-        # -- Sitemap protocol. Allowed: xml | mycore_solr
-        sitemap_type: xml
-        # -- Provider-specific dataset page format. Allowed: html_jsonld
-        dataset_type: html_jsonld
+      generic:
+        protocol:
+          http:
+            connect_timeout: 10.0
+            read_timeout: 30.0
+            # -- Maximum simultaneous open connections.
+            max_connections: 10
+            retry_attempts: 5
+            retry_backoff_base: 1.0
+            retry_backoff_factor: 2.0
+            # -- Maximum delay cap for retry backoff in seconds.
+            max_retry_delay: 600.0
+            # -- Rate limit: max requests per second to the same host.
+            # -- null disables rate limiting.
+            max_requests_per_second: 2.0
+            # -- Honour robots.txt crawl-delay and disallow directives.
+            respect_robots_txt: true
+            # -- User-Agent header sent with every HTTP request.
+            user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
+          xml:
+            # -- Sitemap entry point URL (required).
+            entry_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
+        # -- Number of parallel worker tasks fetching dataset pages.
+        # -- null defaults to protocol.http.max_connections.
+        worker_tasks: null
+      parser:
+        type: html_jsonld
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
-        # -- Number of parallel worker tasks fetching dataset pages.
-        # -- null defaults to http.max_connections.
-        worker_tasks: null
-        # -- HTTP client settings for dataset page requests.
-        http:
-          connect_timeout: 10.0
-          read_timeout: 30.0
-          # -- Maximum simultaneous open connections.
-          max_connections: 10
-          retry_attempts: 5
-          retry_backoff_base: 1.0
-          retry_backoff_factor: 2.0
-          # -- Maximum delay cap for retry backoff in seconds.
-          max_retry_delay: 600.0
-          # -- Rate limit: max requests per second to the same host.
-          # -- null disables rate limiting.
-          max_requests_per_second: 2.0
-          # -- Honour robots.txt crawl-delay and disallow directives.
-          respect_robots_txt: true
-          # -- User-Agent header sent with every HTTP request.
-          user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
       mapper:
         type: schema_org_general
 
@@ -307,31 +308,35 @@ config:
     # Example 3: Schema.org via MyCoRe Solr discovery source
     # -------------------------------------------------------------------------
     - rdi: "example-schemaorg-mycore-solr"
-      linked_data:
-        # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
-        # -- core=main, q=*:* , fl=id, rows=<page_size>. wt=json is always set
-        # -- by the software (URL wt is ignored).
-        # -- Add filters as needed, e.g. ?q=category.top:"mir_genres:research_data"
-        sitemap_url: "https://www.openagrar.de/servlets/solr/select"
-        sitemap_type: mycore_solr
-        dataset_type: html_jsonld
-        # -- Optional page size (default 200). Used as Solr `rows` only when
-        # -- sitemap_url has no `rows` parameter; URL `rows` wins when present.
-        page_size: 100
-        http:
-          connect_timeout: 10.0
-          read_timeout: 30.0
-          max_connections: 5
-          retry_attempts: 5
-          max_requests_per_second: 1.0
-          # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
-          # -- requires respect_robots_txt: false (machine-to-machine endpoint).
-          respect_robots_txt: false
+      generic:
+        protocol:
+          http:
+            connect_timeout: 10.0
+            read_timeout: 30.0
+            max_connections: 5
+            retry_attempts: 5
+            max_requests_per_second: 1.0
+            # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
+            # -- requires respect_robots_txt: false (machine-to-machine endpoint).
+            respect_robots_txt: false
+          mycore_solr:
+            # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
+            # -- core=main, q=*:* , fl=id, rows=<page_size>. wt=json is always set
+            # -- by the software (URL wt is ignored).
+            # -- Add filters as needed, e.g. ?q=category.top:"mir_genres:research_data"
+            entry_url: "https://www.openagrar.de/servlets/solr/select"
+            # -- Optional page size (default 200). Used as Solr `rows` only when
+            # -- entry_url has no `rows` parameter; URL `rows` wins when present.
+            page_size: 100
+      parser:
+        type: html_jsonld
       mapper:
         type: schema_org_general
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD)
+    # Stay on linked_data until a regal_jsonld PayloadParser exists: shared
+    # parser.type: jsonld rejects Regal remote @context (e.g. …/context.json).
     # -------------------------------------------------------------------------
     - rdi: "example-publisso-regal"
       linked_data:
@@ -340,9 +345,7 @@ config:
         # -- params override overridable keys; format=json and from are always
         # -- set by the software. URL until overrides page_size.
         sitemap_url: "https://frl.publisso.de/find"
-        # -- Allowed: xml | mycore_solr | regal_find
         sitemap_type: regal_find
-        # -- Allowed: html_jsonld | regal_jsonld
         dataset_type: regal_jsonld
         # -- Page size for /find `until` (default 200). URL `until` overrides
         # -- this value (same role as Solr `rows`).

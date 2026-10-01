@@ -15,17 +15,20 @@ log_level: INFO
 
 repositories:
   - rdi: "openagrar-fixture"
-    linked_data:
-      sitemap_url: "http://localhost:8080/servlets/solr/select"
-      sitemap_type: mycore_solr
-      dataset_type: html_jsonld
-      payload_type: schema_org_general
-      http:
-        # Mirrors the real OpenAgrar config: robots.txt disallows /servlets/,
-        # where the Solr API lives.
-        respect_robots_txt: false
-        # No politeness delay against a local static server.
-        max_requests_per_second: null
+    generic:
+      protocol:
+        http:
+          # Mirrors the real OpenAgrar config: robots.txt disallows /servlets/,
+          # where the Solr API lives.
+          respect_robots_txt: false
+          # No politeness delay against a local static server.
+          max_requests_per_second: null
+        mycore_solr:
+          entry_url: "http://localhost:8080/servlets/solr/select"
+    parser:
+      type: html_jsonld
+    mapper:
+      type: schema_org_general
 
 api_client:
   api_url: "http://localhost:8000"
