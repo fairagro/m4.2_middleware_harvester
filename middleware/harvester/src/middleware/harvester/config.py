@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field, model_validator
 
 # Side-effect: register shared parsers + generic protocols + mappers for config validation.
 import middleware.generic.protocol.dcat_ap as _register_generic_dcat_ap
+import middleware.generic.protocol.pubplant_json_array as _register_generic_pubplant_json_array
+import middleware.generic.protocol.regal_find as _register_generic_regal_find
 import middleware.generic.protocol.xml as _register_generic_xml
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.api_client.config import Config as ApiClientConfig
@@ -27,7 +29,14 @@ from middleware.payload import (
 )
 from middleware.shared.config.config_base import ConfigBase
 
-_ = (_register_builtin_parsers, _register_generic_xml, _register_generic_dcat_ap, _register_builtin_mappers)
+_ = (
+    _register_builtin_parsers,
+    _register_generic_xml,
+    _register_generic_dcat_ap,
+    _register_generic_pubplant_json_array,
+    _register_generic_regal_find,
+    _register_builtin_mappers,
+)
 
 # Union of all plugin config types. Extend when adding a new plugin.
 PluginConfig = InspireConfig | LinkedDataConfig | GenericConfig | OaiPmhConfig

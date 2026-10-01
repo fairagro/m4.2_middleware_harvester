@@ -14,6 +14,8 @@ class ProtocolType(StrEnum):
 
     xml = "xml"
     dcat_ap = "dcat_ap"
+    pubplant_json_array = "pubplant_json_array"
+    regal_find = "regal_find"
 
 
 class Config(BaseModel):
