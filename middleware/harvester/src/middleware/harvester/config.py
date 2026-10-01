@@ -44,7 +44,7 @@ _LEGACY_PAYLOAD_TYPE_MSG = (
 )
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
-    "inspire without sibling mapper: is deprecated; "
+    "inspire without a sibling mapper: block is deprecated; "
     "add mapper: { type: inspire_general }. "
     "Omitting mapper will be rejected in a future release."
 )

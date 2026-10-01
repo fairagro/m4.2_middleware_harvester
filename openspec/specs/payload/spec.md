@@ -18,11 +18,6 @@ the discriminator mechanism.
 - **WHEN** a producer or mapper declares its kind
 - **THEN** `rdf_graph` is a valid `PayloadKind` value
 
-#### Scenario: inspire_record is available
-
-- **WHEN** a producer or mapper declares its kind
-- **THEN** `inspire_record` is a valid `PayloadKind` value
-
 ### Requirement: Provide inspire_record PayloadKind
 
 The system SHALL include `inspire_record` in `PayloadKind` for structured ISO-derived INSPIRE domain records (value

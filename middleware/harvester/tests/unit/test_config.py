@@ -114,7 +114,7 @@ def test_inspire_repository_omitted_mapper_defaults_to_inspire_general(caplog: p
         repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
     assert repo.mapper is not None
     assert repo.mapper.type == "inspire_general"
-    assert any("inspire without sibling mapper" in record.message for record in caplog.records)
+    assert any("inspire without a sibling mapper: block is deprecated" in record.message for record in caplog.records)
 
 
 def test_inspire_repository_accepts_inspire_general() -> None:
