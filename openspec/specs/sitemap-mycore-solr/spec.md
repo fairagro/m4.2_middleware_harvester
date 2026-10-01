@@ -24,74 +24,77 @@ deprecated flat `protocol_type: mycore_solr` plus `sitemap_url` lifted into that
 - **WHEN** a `generic` repository sets `protocol.mycore_solr.entry_url` or deprecated flat `protocol_type: mycore_solr`
 - **THEN** the generic plugin constructs `MycoreSolrProtocol`
 
-### Requirement: Accept a MyCoRe Solr select endpoint in sitemap_url; query parameters…
+### Requirement: Accept a MyCoRe Solr select endpoint in entry_url; query parameters…
 
-The system SHALL accept a MyCoRe Solr select endpoint in `sitemap_url`; query parameters are optional.
+The system SHALL accept a MyCoRe Solr select endpoint in mycore_solr `entry_url` (deprecated alias: lifted
+`sitemap_url`); query parameters are optional.
 
-#### Scenario: Satisfies — Accept a MyCoRe Solr select endpoint in sitemap_url; query parameters…
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Accept a MyCoRe Solr select endpoint in `sitemap_url`; query parameters are optional
-
-### Requirement: When sitemap_url has no query string (or omits overridable params),…
-
-The system SHALL ensure that when `sitemap_url` has no query string (or omits overridable params), fill defaults:
-`core=main`, `q=*:*`, `fl=id`, and `rows` from config `page_size`.
-
-#### Scenario: Satisfies — When sitemap_url has no query string (or omits overridable params),…
+#### Scenario: Satisfies — Accept a MyCoRe Solr select endpoint in entry_url; query parameters…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** When `sitemap_url` has no query string (or omits overridable params), fill defaults: `core=main`, `q=*:*`,
-  `fl=id`, and `rows` from config `page_size`
+- **THEN** Accept a MyCoRe Solr select endpoint in `entry_url` (or deprecated `sitemap_url`); query parameters are
+  optional
+
+### Requirement: When entry_url has no query string (or omits overridable params),…
+
+The system SHALL ensure that when `entry_url` has no query string (or omits overridable params), fill defaults:
+`core=main`, `q=*:*`, `fl=id`, and `rows` from mycore_solr type settings `page_size`.
+
+#### Scenario: Satisfies — When entry_url has no query string (or omits overridable params),…
+
+- **WHEN** the conditions described by this requirement apply
+- **THEN** When `entry_url` has no query string (or omits overridable params), fill defaults: `core=main`, `q=*:*`,
+  `fl=id`, and `rows` from type settings `page_size`
 
 ### Requirement: Always set wt=json in software; ignore any wt already present…
 
-The system SHALL always set `wt=json` in software; ignore any `wt` already present on `sitemap_url`.
+The system SHALL always set `wt=json` in software; ignore any `wt` already present on `entry_url`.
 
 #### Scenario: Satisfies — Always set wt=json in software; ignore any wt already present…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Always set `wt=json` in software; ignore any `wt` already present on `sitemap_url`
+- **THEN** Always set `wt=json` in software; ignore any `wt` already present on `entry_url`
 
-### Requirement: When sitemap_url already contains an overridable query parameter (q, fq,…
+### Requirement: When entry_url already contains an overridable query parameter (q, fq,…
 
-The system SHALL ensure that when `sitemap_url` already contains an overridable query parameter (`q`, `fq`, `core`,
-`fl`, `rows`, …), keep the operator-supplied value and do not overwrite it with a default.
+The system SHALL ensure that when `entry_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`,
+`rows`, …), keep the operator-supplied value and do not overwrite it with a default.
 
-#### Scenario: Satisfies — When sitemap_url already contains an overridable query parameter (q, fq,…
+#### Scenario: Satisfies — When entry_url already contains an overridable query parameter (q, fq,…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** When `sitemap_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`, `rows`, …), keep
+- **THEN** When `entry_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`, `rows`, …), keep
   the operator-supplied value and do not overwrite it with a default
 
 ### Requirement: Always set pagination start in software; ignore any start already…
 
-The system SHALL always set pagination `start` in software; ignore any `start` already present on `sitemap_url`.
+The system SHALL always set pagination `start` in software; ignore any `start` already present on `entry_url`.
 
 #### Scenario: Satisfies — Always set pagination start in software; ignore any start already…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Always set pagination `start` in software; ignore any `start` already present on `sitemap_url`
+- **THEN** Always set pagination `start` in software; ignore any `start` already present on `entry_url`
 
-### Requirement: When sitemap_url contains a rows parameter, use it as the…
+### Requirement: When entry_url contains a rows parameter, use it as the…
 
-The system SHALL ensure that when `sitemap_url` contains a `rows` parameter, use it as the page size (it overrides
-config `page_size`).
+The system SHALL ensure that when `entry_url` contains a `rows` parameter, use it as the page size (it overrides
+mycore_solr type settings `page_size`).
 
-#### Scenario: Satisfies — When sitemap_url contains a rows parameter, use it as the…
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** When `sitemap_url` contains a `rows` parameter, use it as the page size (it overrides config `page_size`)
-
-### Requirement: When sitemap_url has no rows parameter, use config page_size (default…
-
-The system SHALL ensure that when `sitemap_url` has no `rows` parameter, use config `page_size` (default 200) as Solr
-`rows`.
-
-#### Scenario: Satisfies — When sitemap_url has no rows parameter, use config page_size (default…
+#### Scenario: Satisfies — When entry_url contains a rows parameter, use it as the…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** When `sitemap_url` has no `rows` parameter, use config `page_size` (default 200) as Solr `rows`
+- **THEN** When `entry_url` contains a `rows` parameter, use it as the page size (it overrides type settings
+  `page_size`)
+
+### Requirement: When entry_url has no rows parameter, use type page_size (default…
+
+The system SHALL ensure that when `entry_url` has no `rows` parameter, use mycore_solr type settings `page_size`
+(default 200) as Solr `rows`.
+
+#### Scenario: Satisfies — When entry_url has no rows parameter, use type page_size (default…
+
+- **WHEN** the conditions described by this requirement apply
+- **THEN** When `entry_url` has no `rows` parameter, use type settings `page_size` (default 200) as Solr `rows`
 
 ### Requirement: Yield RecordProcessingError for non-object Solr docs and docs missing id…
 
@@ -132,13 +135,13 @@ The system SHALL extract the `id` field from each document in `response.docs`.
 ### Requirement: Construct the dataset HTML page URL as {scheme}://{host}/receive/{id} where scheme…
 
 The system SHALL construct the dataset HTML page URL as `{scheme}://{host}/receive/{id}` where scheme and host are
-derived from `sitemap_url`.
+derived from `entry_url` (linked_data shim / deprecated flat lift: `sitemap_url`).
 
 #### Scenario: Satisfies — Construct the dataset HTML page URL as {scheme}://{host}/receive/{id} where scheme…
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Construct the dataset HTML page URL as `{scheme}://{host}/receive/{id}` where scheme and host are derived
-  from `sitemap_url`
+  from `entry_url`
 
 ### Requirement: Yield one UrlDiscoveryResult per unique constructed URL
 
@@ -199,9 +202,9 @@ cleanly. - A document missing the `id` field → yield `RecordProcessingError` w
 entry in `docs` → yield `RecordProcessingError` without stopping discovery. - `id` value already yielded in this run →
 `SkippedRecord` (deduplication). - `numFound` is zero → yield zero results without issuing further requests. - Last page
 has fewer docs than expected (partial page) → stop pagination correctly; do not request an empty page. - Query-free
-`sitemap_url` → request uses overridable defaults plus forced `wt=json`. - Operator filter such as
+`entry_url` → request uses overridable defaults plus forced `wt=json`. - Operator filter such as
 `q=category.top:"mir_genres:research_data"` → overrides default `q=*:*`; other defaults still apply. - Operator `wt=xml`
-(or any other `wt`) on `sitemap_url` → ignored; request still uses `wt=json`. - Hosts whose `robots.txt` disallows
+(or any other `wt`) on `entry_url` → ignored; request still uses `wt=json`. - Hosts whose `robots.txt` disallows
 `/servlets/` (e.g. OpenAgrar) block the Solr select path under the default polite client; operators must set
 `http.respect_robots_txt: false` for machine-to-machine Solr discovery on those RDIs.
 
@@ -212,8 +215,8 @@ has fewer docs than expected (partial page) → stop pagination correctly; do no
   without stopping discovery. - Non-object entry in `docs` → yield `RecordProcessingError` without stopping discovery. -
   `id` value already yielded in this run → `SkippedRecord` (deduplication). - `numFound` is zero → yield zero results
   without issuing further requests. - Last page has fewer docs than expected (partial page) → stop pagination correctly;
-  do not request an empty page. - Query-free `sitemap_url` → request uses overridable defaults plus forced `wt=json`. -
+  do not request an empty page. - Query-free `entry_url` → request uses overridable defaults plus forced `wt=json`. -
   Operator filter such as `q=category.top:"mir_genres:research_data"` → overrides default `q=*:*`; other defaults still
-  apply. - Operator `wt=xml` (or any other `wt`) on `sitemap_url` → ignored; request still uses `wt=json`. - Hosts whose
+  apply. - Operator `wt=xml` (or any other `wt`) on `entry_url` → ignored; request still uses `wt=json`. - Hosts whose
   `robots.txt` disallows `/servlets/` (e.g. OpenAgrar) block the Solr select path under the default polite client;
   operators must set `http.respect_robots_txt: false` for machine-to-machine Solr discovery on those RDIs

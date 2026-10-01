@@ -42,10 +42,10 @@ repositories:
   #       mycore_solr:
   #         entry_url: "https://www.openagrar.de/servlets/solr/select"
   #         # page_size: 200
-  #     parser:
-  #       type: html_jsonld
-  #     mapper:
-  #       type: schema_org_general
+  #   parser:
+  #     type: html_jsonld
+  #   mapper:
+  #     type: schema_org_general
 
   # Example: PUBLISSO FRL via Regal /find (inline JSON-LD, no HTML scraping)
   # - rdi: "publisso"
