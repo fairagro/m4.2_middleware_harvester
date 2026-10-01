@@ -199,6 +199,24 @@ def test_dcat_ap_flat_protocol_lift() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dcat_ap_protocol_honors_own_jsonld_threshold() -> None:
+    type_config = DcatApProtocolConfig(entry_url=_CATALOG_URL, jsonld_parse_threshold_bytes=1)
+    async with NiceHttpClient(_http()) as client:
+        protocol = DcatApProtocol(type_config, client)
+    assert protocol.config.jsonld_parse_threshold_bytes == 1
+
+    cfg = Config.model_validate({
+        "protocol": {
+            "dcat_ap": {"entry_url": _CATALOG_URL, "jsonld_parse_threshold_bytes": 42},
+        },
+    })
+    async with NiceHttpClient(_http()) as client:
+        created = GenericPlugin.create_protocol(cfg, client=client)
+    assert isinstance(created, DcatApProtocol)
+    assert created.config.jsonld_parse_threshold_bytes == 42
+
+
+@pytest.mark.asyncio
 async def test_generic_plugin_harvests_dcat_ap_catalog_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
     """dcat_ap Protocol -> jsonld PayloadParser -> ckanext_dcat DataMapper through GenericPlugin.run()."""
     transport = _transport_for(_PAGES)

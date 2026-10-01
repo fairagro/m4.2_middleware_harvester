@@ -115,13 +115,6 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = None
-    jsonld_parse_threshold_bytes: Annotated[
-        int,
-        Field(
-            description="Threshold in bytes above which JSON-LD parsing is offloaded to a thread.",
-            ge=1,
-        ),
-    ] = 65536
     resource_base_url: Annotated[
         str | None,
         Field(

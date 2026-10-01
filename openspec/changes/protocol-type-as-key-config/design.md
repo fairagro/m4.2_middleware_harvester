@@ -43,7 +43,9 @@ shared fields as siblings of that key.
    of duck-typing full plugin config.
 
 5. **Plugin/http ownership** — `GenericPlugin` builds `NiceHttpClient` from `config.protocol.http`. Plugin-only fields
-   remain on `generic.Config` (`worker_tasks`, `jsonld_parse_threshold_bytes`, `resource_base_url`).
+   remain on `generic.Config` (`worker_tasks`, `resource_base_url`). JSON-LD parse offload thresholds are independent:
+   `protocol.dcat_ap.jsonld_parse_threshold_bytes` for catalog-page discovery and `parser.jsonld_parse_threshold_bytes`
+   for PayloadParsers.
 
 6. **source_url / resource base** — Repository `source_url` and `effective_resource_base_url` derive from `protocol`
    type settings `entry_url` after lift.

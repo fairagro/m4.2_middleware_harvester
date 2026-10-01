@@ -7,7 +7,6 @@ the shim on top of it, not this parser).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -17,6 +16,8 @@ from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClient
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
+from middleware.parsing.parser_config import ParserConfig
+from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 
 PAGE_URL = "https://example.org/page"
@@ -51,11 +52,8 @@ FOREIGN_CONTEXT_HTML = """
 """
 
 
-@dataclass
-class _StubConfig:
-    """Minimal stand-in for a plugin config (the parser only reads the threshold)."""
-
-    jsonld_parse_threshold_bytes: int = 65536
+def _parser_config(*, jsonld_parse_threshold_bytes: int = 65536) -> ParserConfig:
+    return ParserConfig(type=ParserType.html_jsonld, jsonld_parse_threshold_bytes=jsonld_parse_threshold_bytes)
 
 
 def _transport(html: str) -> httpx.MockTransport:
@@ -70,7 +68,7 @@ def _transport(html: str) -> httpx.MockTransport:
 @pytest.mark.asyncio
 async def test_parse_yields_rdf_graph_payload() -> None:
     async with NiceHttpClient(NiceHttpClientConfig(), transport=_transport(SIMPLE_HTML)) as client:
-        payload = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_StubConfig())
+        payload = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_parser_config())
 
     assert payload.kind == PayloadKind.rdf_graph
     assert payload.identifier == PAGE_URL
@@ -80,9 +78,9 @@ async def test_parse_yields_rdf_graph_payload() -> None:
 @pytest.mark.asyncio
 async def test_parse_merges_multiple_jsonld_blocks() -> None:
     async with NiceHttpClient(NiceHttpClientConfig(), transport=_transport(SIMPLE_HTML)) as client:
-        single = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_StubConfig())
+        single = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_parser_config())
     async with NiceHttpClient(NiceHttpClientConfig(), transport=_transport(MULTI_BLOCK_HTML)) as client:
-        merged = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_StubConfig())
+        merged = await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_parser_config())
 
     assert len(merged.value) > len(single.value)  # type: ignore[arg-type]
 
@@ -94,14 +92,14 @@ async def test_parse_rejects_non_url_discovery_result() -> None:
             await HtmlJsonLdParser().parse(
                 JsonLdDiscoveryResult(PAGE_URL, payload={}),
                 client=client,
-                config=_StubConfig(),
+                config=_parser_config(),
             )
 
 
 @pytest.mark.asyncio
 async def test_parse_requires_an_http_client() -> None:
     with pytest.raises(ValueError, match="requires an HTTP client"):
-        await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=None, config=_StubConfig())
+        await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=None, config=_parser_config())
 
 
 @pytest.mark.asyncio
@@ -117,7 +115,7 @@ async def test_parse_wraps_fetch_failure_in_parser_error() -> None:
             patch("middleware.harvester.nice_http_client.asyncio.sleep", new=AsyncMock()),
             pytest.raises(ParserError, match="Failed to fetch dataset URL"),
         ):
-            await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_StubConfig())
+            await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_parser_config())
 
 
 @pytest.mark.asyncio

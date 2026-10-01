@@ -51,6 +51,7 @@ class GenericPlugin:
     def __init__(self, config: Config, mapper_config: MapperConfig, parser_config: ParserConfig) -> None:
         """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
+        self._parser_config = parser_config
         self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
         self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
@@ -117,7 +118,7 @@ class GenericPlugin:
 
         parser = self._parser_cls()
         try:
-            payload = await parser.parse(discovery_result, client=nice_http, config=self._config)
+            payload = await parser.parse(discovery_result, client=nice_http, config=self._parser_config)
         except (ParserError, GenericError, RuntimeError, ValueError, OSError) as exc:
             return [
                 RecordProcessingError(

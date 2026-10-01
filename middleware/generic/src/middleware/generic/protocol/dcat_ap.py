@@ -53,6 +53,16 @@ class DcatApProtocolConfig(ProtocolTypeConfig):
         str,
         Field(description="DCAT-AP catalog entry-point URL (Hydra-paginated JSON-LD)."),
     ]
+    jsonld_parse_threshold_bytes: Annotated[
+        int,
+        Field(
+            description=(
+                "Byte threshold above which catalog-page JSON-LD parsing is offloaded "
+                "to a worker thread. Independent of ``parser.jsonld_parse_threshold_bytes``."
+            ),
+            ge=1,
+        ),
+    ] = 65536
 
 
 @Protocol.register(ProtocolType.dcat_ap)
@@ -100,7 +110,7 @@ class DcatApProtocol(Protocol):
             response = await client.get_with_policy(url)
             text = response.text
             graph = Graph()
-            threshold = int(getattr(self.config, "jsonld_parse_threshold_bytes", 65536))
+            threshold = self.config.jsonld_parse_threshold_bytes
             if len(text.encode("utf-8")) >= threshold:
                 await asyncio.to_thread(graph.parse, data=text, format="json-ld")
             else:

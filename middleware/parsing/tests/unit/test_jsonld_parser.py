@@ -11,6 +11,7 @@ from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResu
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.jsonld import JsonLdParser
 from middleware.parsing.parser.parser import PayloadParser
+from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 
@@ -39,7 +40,7 @@ async def test_jsonld_parser_parses_inline_payload_to_graph() -> None:
     payload = await JsonLdParser().parse(
         JsonLdDiscoveryResult(identifier=_SUBJECT, payload=_PAYLOAD),
         client=None,
-        config=None,
+        config=ParserConfig(type=ParserType.jsonld),
     )
 
     assert payload.kind == PayloadKind.rdf_graph
@@ -49,13 +50,10 @@ async def test_jsonld_parser_parses_inline_payload_to_graph() -> None:
 
 @pytest.mark.asyncio
 async def test_jsonld_parser_offloads_large_payload_to_thread() -> None:
-    class _TinyThreshold:
-        jsonld_parse_threshold_bytes = 1
-
     payload = await JsonLdParser().parse(
         JsonLdDiscoveryResult(identifier=_SUBJECT, payload=_PAYLOAD),
         client=None,
-        config=_TinyThreshold(),
+        config=ParserConfig(type=ParserType.jsonld, jsonld_parse_threshold_bytes=1),
     )
 
     assert len(payload.value) == 2
