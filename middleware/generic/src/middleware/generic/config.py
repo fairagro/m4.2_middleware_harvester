@@ -24,6 +24,11 @@ _LEGACY_FLAT_PROTOCOL_MSG = (
     "Support for the flat tree will be removed in a future release."
 )
 
+_LEGACY_THRESHOLD_MSG = (
+    "generic.jsonld_parse_threshold_bytes is deprecated and no longer applies to payload parsing; "
+    "set parser.jsonld_parse_threshold_bytes and/or protocol.dcat_ap.jsonld_parse_threshold_bytes instead."
+)
+
 _PROTOCOL_TYPE_FIELDS = frozenset({
     "xml",
     "mycore_solr",
@@ -31,6 +36,8 @@ _PROTOCOL_TYPE_FIELDS = frozenset({
     "pubplant_json_array",
     "regal_find",
 })
+
+_FLAT_PAGE_SIZE_TYPES = frozenset({ProtocolType.mycore_solr, ProtocolType.regal_find})
 
 
 class ProtocolConfig(BaseModel):
@@ -131,6 +138,17 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = None
+    jsonld_parse_threshold_bytes: Annotated[
+        int | None,
+        Field(
+            description=(
+                "Deprecated. Use parser.jsonld_parse_threshold_bytes (payload parsing) and "
+                "protocol.dcat_ap.jsonld_parse_threshold_bytes (catalog pages) instead."
+            ),
+            deprecated=True,
+            ge=1,
+        ),
+    ] = None
     resource_base_url: Annotated[
         str | None,
         Field(
@@ -159,7 +177,11 @@ class Config(BaseModel):
         flat_sitemap = self.__dict__.get("sitemap_url")
         flat_http = self.__dict__.get("http")
         flat_page_size = self.__dict__.get("page_size")
+        flat_threshold = self.__dict__.get("jsonld_parse_threshold_bytes")
         flat_present = any(value is not None for value in (flat_type, flat_sitemap, flat_http, flat_page_size))
+
+        if flat_threshold is not None:
+            logger.warning(_LEGACY_THRESHOLD_MSG)
 
         if self.protocol is not None:
             if flat_present:
@@ -179,9 +201,13 @@ class Config(BaseModel):
             )
 
         logger.warning(_LEGACY_FLAT_PROTOCOL_MSG)
+        if flat_page_size is not None and flat_type not in _FLAT_PAGE_SIZE_TYPES:
+            raise ValueError(f"generic.page_size is not valid for protocol_type {flat_type.value} (no page_size field)")
         http = flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True)
-        nested = self._nested_from_flat(flat_type, flat_sitemap, http, flat_page_size)
-        return self.model_copy(update={"protocol": nested})
+        nested = self._nested_from_flat(flat_type, flat_sitemap, http, flat_page_size, flat_threshold)
+        # Assign in place: pydantic discards a returned copy when built via ``Config(...)``.
+        self.protocol = nested
+        return self
 
     @staticmethod
     def _nested_from_flat(
@@ -189,6 +215,7 @@ class Config(BaseModel):
         flat_sitemap: str,
         http: NiceHttpClientConfig,
         flat_page_size: int | None,
+        flat_threshold: int | None,
     ) -> ProtocolConfig:
         if flat_type is ProtocolType.xml:
             return ProtocolConfig(http=http, xml=XmlProtocolConfig(entry_url=flat_sitemap))
@@ -201,7 +228,12 @@ class Config(BaseModel):
                 ),
             )
         if flat_type is ProtocolType.dcat_ap:
-            return ProtocolConfig(http=http, dcat_ap=DcatApProtocolConfig(entry_url=flat_sitemap))
+            dcat = (
+                DcatApProtocolConfig(entry_url=flat_sitemap)
+                if flat_threshold is None
+                else DcatApProtocolConfig(entry_url=flat_sitemap, jsonld_parse_threshold_bytes=flat_threshold)
+            )
+            return ProtocolConfig(http=http, dcat_ap=dcat)
         if flat_type is ProtocolType.pubplant_json_array:
             return ProtocolConfig(
                 http=http,

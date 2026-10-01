@@ -50,7 +50,15 @@ class Config(BaseModel):
             ),
         ),
     ]
-    sitemap_type: Annotated[SitemapType, Field(description="Type of sitemap to parse.")]
+    sitemap_type: Annotated[
+        SitemapType,
+        Field(
+            description=(
+                "Type of sitemap to parse. `mycore_solr` is deprecated under linked_data; "
+                "use nested `generic.protocol.mycore_solr` with sibling parser/mapper instead."
+            ),
+        ),
+    ]
     dataset_type: Annotated[DatasetType, Field(description="Provider-specific dataset kind.")]
     payload_type: Annotated[
         MapperType | None,
