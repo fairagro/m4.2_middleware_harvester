@@ -54,13 +54,16 @@ class JsonArrayProtocol(Protocol):
                 yield self._discovery_result(identifier, item)
 
     @abstractmethod
-    def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
+    async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
         """Yield ``(position, array)`` pages.
 
         ``position`` holds ``key=value`` parts that locate the page in failure
         messages and synthetic record ids (e.g. ``("from=200",)``; empty for a
         single static document).
         """
+        if False:  # pragma: no cover  # noqa: make this an async generator
+            yield (), []
+        raise NotImplementedError
 
     @abstractmethod
     def _record_identifier(self, record: dict[str, object]) -> str | None:

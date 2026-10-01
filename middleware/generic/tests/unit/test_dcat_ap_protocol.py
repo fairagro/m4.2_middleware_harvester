@@ -10,10 +10,11 @@ from rdflib import Graph, Namespace
 from rdflib.namespace import DCTERMS
 
 import middleware.generic.plugin as plugin_mod
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
-from middleware.generic.protocol.dcat_ap import DcatApProtocol
+from middleware.generic.protocol.dcat_ap import DcatApProtocol, DcatApProtocolConfig
+from middleware.generic.protocol.protocol import ProtocolType
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.parsing.discovery import JsonLdDiscoveryResult
@@ -70,12 +71,21 @@ _PAGES: dict[str, object] = {
 }
 
 
+def _http() -> NiceHttpClientConfig:
+    return NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None)
+
+
 def _config(url: str = _CATALOG_URL) -> Config:
-    return Config(
-        protocol_type=ProtocolType.dcat_ap,
-        sitemap_url=url,
-        http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
-    )
+    return Config.model_validate({
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "dcat_ap": {"entry_url": url},
+        },
+    })
+
+
+def _type_config(url: str = _CATALOG_URL) -> DcatApProtocolConfig:
+    return DcatApProtocolConfig(entry_url=url)
 
 
 def _graph(result: object) -> Graph:
@@ -99,7 +109,7 @@ def _transport_for(pages: dict[str, object]) -> httpx.MockTransport:
 @pytest.mark.asyncio
 async def test_dcat_ap_protocol_follows_hydra_pagination() -> None:
     transport = _transport_for(_PAGES)
-    async with NiceHttpClient(_config().http, transport=transport) as client:
+    async with NiceHttpClient(_config().effective_protocol.http, transport=transport) as client:
         protocol = GenericPlugin.create_protocol(_config(), client=client)
         assert isinstance(protocol, DcatApProtocol)
         results = [result async for result in protocol.discover()]
@@ -115,8 +125,8 @@ async def test_dcat_ap_protocol_follows_hydra_pagination() -> None:
 @pytest.mark.asyncio
 async def test_dcat_ap_protocol_extracts_distribution_and_publisher_into_payload() -> None:
     transport = _transport_for(_PAGES)
-    async with NiceHttpClient(_config().http, transport=transport) as client:
-        protocol = DcatApProtocol(_config(), client)
+    async with NiceHttpClient(_http(), transport=transport) as client:
+        protocol = DcatApProtocol(_type_config(), client)
         results = [result async for result in protocol.discover()]
 
     first = _graph(results[0])
@@ -132,8 +142,8 @@ async def test_dcat_ap_protocol_extracts_distribution_and_publisher_into_payload
 @pytest.mark.asyncio
 async def test_dcat_ap_protocol_expected_count_reads_hydra_total_items() -> None:
     transport = _transport_for(_PAGES)
-    async with NiceHttpClient(_config().http, transport=transport) as client:
-        protocol = DcatApProtocol(_config(), client)
+    async with NiceHttpClient(_http(), transport=transport) as client:
+        protocol = DcatApProtocol(_type_config(), client)
         assert await protocol.get_expected_count() == 2
 
 
@@ -147,8 +157,8 @@ async def test_dcat_ap_protocol_raises_on_pagination_loop() -> None:
         },
     ]
     transport = _transport_for({_CATALOG_URL: looping_page})
-    async with NiceHttpClient(_config().http, transport=transport) as client:
-        protocol = DcatApProtocol(_config(), client)
+    async with NiceHttpClient(_http(), transport=transport) as client:
+        protocol = DcatApProtocol(_type_config(), client)
         with pytest.raises(GenericProtocolError, match="pagination loop"):
             _ = [result async for result in protocol.discover()]
 
@@ -159,8 +169,8 @@ async def test_dcat_ap_protocol_raises_on_invalid_jsonld() -> None:
         return httpx.Response(200, content="not json-ld at all {{{", headers={"content-type": "application/ld+json"})
 
     transport = httpx.MockTransport(handler)
-    async with NiceHttpClient(_config().http, transport=transport) as client:
-        protocol = DcatApProtocol(_config(), client)
+    async with NiceHttpClient(_http(), transport=transport) as client:
+        protocol = DcatApProtocol(_type_config(), client)
         with pytest.raises(GenericProtocolError, match="Failed to fetch/parse"):
             _ = [result async for result in protocol.discover()]
 
@@ -168,13 +178,42 @@ async def test_dcat_ap_protocol_raises_on_invalid_jsonld() -> None:
 @pytest.mark.asyncio
 async def test_dcat_ap_protocol_payload_has_no_remote_context() -> None:
     transport = _transport_for(_PAGES)
-    async with NiceHttpClient(_config().http, transport=transport) as client:
-        results = [result async for result in DcatApProtocol(_config(), client).discover()]
+    async with NiceHttpClient(_http(), transport=transport) as client:
+        results = [result async for result in DcatApProtocol(_type_config(), client).discover()]
 
     first = results[0]
     assert isinstance(first, JsonLdDiscoveryResult)
     assert set(first.payload) == {"@graph"}
     assert "@context" not in json.dumps(first.payload)
+
+
+def test_dcat_ap_flat_protocol_lift() -> None:
+    cfg = Config.model_validate({
+        "protocol_type": "dcat_ap",
+        "sitemap_url": _CATALOG_URL,
+        "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+    })
+    assert cfg.active_protocol_type is ProtocolType.dcat_ap
+    assert cfg.effective_protocol.dcat_ap is not None
+    assert cfg.effective_protocol.dcat_ap.entry_url == _CATALOG_URL
+
+
+@pytest.mark.asyncio
+async def test_dcat_ap_protocol_honors_own_jsonld_threshold() -> None:
+    type_config = DcatApProtocolConfig(entry_url=_CATALOG_URL, jsonld_parse_threshold_bytes=1)
+    async with NiceHttpClient(_http()) as client:
+        protocol = DcatApProtocol(type_config, client)
+    assert protocol.config.jsonld_parse_threshold_bytes == 1
+
+    cfg = Config.model_validate({
+        "protocol": {
+            "dcat_ap": {"entry_url": _CATALOG_URL, "jsonld_parse_threshold_bytes": 42},
+        },
+    })
+    async with NiceHttpClient(_http()) as client:
+        created = GenericPlugin.create_protocol(cfg, client=client)
+    assert isinstance(created, DcatApProtocol)
+    assert created.config.jsonld_parse_threshold_bytes == 42
 
 
 @pytest.mark.asyncio

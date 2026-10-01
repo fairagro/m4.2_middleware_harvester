@@ -1,12 +1,14 @@
-"""Protocol ABC and registry."""
+"""Protocol ABC, registry, type enum, and shared type-config base."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Callable
-from typing import Protocol as TypingProtocol, TypeVar
+from enum import StrEnum
+from typing import TypeVar
 
-from middleware.generic.config import ProtocolType
+from pydantic import BaseModel, ConfigDict
+
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
@@ -17,10 +19,20 @@ type ProtocolYield = DiscoveryResult | RecordProcessingError | SkippedRecord
 TProtocol = TypeVar("TProtocol", bound="Protocol")
 
 
-class SupportsSitemapUrl(TypingProtocol):
-    """Minimal config surface required by Protocol implementations."""
+class ProtocolType(StrEnum):
+    """Registered Protocol kinds for generic harvesting."""
 
-    sitemap_url: str
+    xml = "xml"
+    mycore_solr = "mycore_solr"
+    dcat_ap = "dcat_ap"
+    pubplant_json_array = "pubplant_json_array"
+    regal_find = "regal_find"
+
+
+class ProtocolTypeConfig(BaseModel):
+    """Base for type-specific Protocol configs (fields are defined per type)."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class Protocol(ABC):
@@ -28,8 +40,8 @@ class Protocol(ABC):
 
     registry: Registry[ProtocolType, Protocol] = Registry()
 
-    def __init__(self, config: SupportsSitemapUrl, client: NiceHttpClient) -> None:
-        """Create a Protocol for ``config`` (must expose ``sitemap_url``) and ``client``."""
+    def __init__(self, config: ProtocolTypeConfig, client: NiceHttpClient) -> None:
+        """Create a Protocol for type-specific ``config`` and shared ``client``."""
         self.config = config
         self._client = client
 

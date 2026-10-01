@@ -171,6 +171,42 @@ def test_legacy_payload_type_conflicts_with_mapper() -> None:
         })
 
 
+def test_linked_data_mycore_solr_emits_deprecation_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {
+                **_minimal_linked_data(),
+                "sitemap_url": "https://example.org/servlets/solr/select",
+                "sitemap_type": "mycore_solr",
+            },
+            "mapper": {"type": "schema_org_general"},
+        })
+    assert repo.linked_data is not None
+    assert repo.linked_data.sitemap_type.value == "mycore_solr"
+    assert any("sitemap_type: mycore_solr is deprecated" in record.message for record in caplog.records)
+    assert any("generic.protocol.mycore_solr" in record.message for record in caplog.records)
+
+
+def test_linked_data_other_sitemap_types_skip_mycore_deprecation(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        RepositoryConfig.model_validate({
+            "rdi": "ld-xml",
+            "linked_data": _minimal_linked_data(),
+            "mapper": {"type": "schema_org_general"},
+        })
+        RepositoryConfig.model_validate({
+            "rdi": "ld-regal",
+            "linked_data": {
+                **_minimal_linked_data(),
+                "sitemap_type": "regal_find",
+                "dataset_type": "regal_jsonld",
+            },
+            "mapper": {"type": "regal_general"},
+        })
+    assert not any("sitemap_type: mycore_solr is deprecated" in record.message for record in caplog.records)
+
+
 def test_resource_base_url_conflict_between_linked_data_and_mapper() -> None:
     with pytest.raises(ValidationError, match="resource_base_url .* conflicts"):
         RepositoryConfig.model_validate({
@@ -254,13 +290,32 @@ def test_generic_and_linked_data_mutual_exclusion() -> None:
 def test_generic_unregistered_protocol_type_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enum-accepted protocol_type must still be present in Protocol.registry."""
     monkeypatch.setattr(Protocol, "registry", Registry())
-    with pytest.raises(ValidationError, match="Unknown generic.protocol_type"):
+    with pytest.raises(ValidationError, match="Unknown generic.protocol type"):
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
             "parser": {"type": "html_jsonld"},
             "mapper": {"type": "schema_org_general"},
         })
+
+
+def test_generic_nested_protocol_source_url() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "g",
+        "generic": {
+            "protocol": {
+                "mycore_solr": {
+                    "entry_url": "https://example.org/servlets/solr/select",
+                    "page_size": 10,
+                }
+            }
+        },
+        "parser": {"type": "html_jsonld"},
+        "mapper": {"type": "schema_org_general"},
+    })
+    assert repo.source_url == "https://example.org/servlets/solr/select"
+    assert repo.generic is not None
+    assert repo.generic.active_protocol_type.value == "mycore_solr"
 
 
 def _minimal_oai_pmh() -> dict[str, object]:

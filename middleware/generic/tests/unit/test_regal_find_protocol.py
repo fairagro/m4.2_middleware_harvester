@@ -5,25 +5,31 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.json_array import JsonArrayProtocol
-from middleware.generic.protocol.regal_find import RegalFindProtocol
+from middleware.generic.protocol.regal_find import RegalFindProtocol, RegalFindProtocolConfig
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 
 _FIND_URL = "https://frl.publisso.de/find"
 
 
 def _config(url: str = _FIND_URL, page_size: int = 2) -> Config:
-    return Config(
-        protocol_type=ProtocolType.regal_find,
-        sitemap_url=url,
-        page_size=page_size,
-        http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
-    )
+    return Config.model_validate({
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "regal_find": {"entry_url": url, "page_size": page_size},
+        },
+    })
+
+
+def _type_config(config: Config) -> RegalFindProtocolConfig:
+    type_config = config.effective_protocol.type_config
+    assert isinstance(type_config, RegalFindProtocolConfig)
+    return type_config
 
 
 def _single_page_transport(page: list[object]) -> httpx.MockTransport:
@@ -37,8 +43,8 @@ def _single_page_transport(page: list[object]) -> httpx.MockTransport:
 
 
 async def _discover(config: Config, transport: httpx.MockTransport) -> list[object]:
-    async with NiceHttpClient(config.http, transport=transport) as client:
-        return [result async for result in RegalFindProtocol(config, client).discover()]
+    async with NiceHttpClient(config.effective_protocol.http, transport=transport) as client:
+        return [result async for result in RegalFindProtocol(_type_config(config), client).discover()]
 
 
 @pytest.mark.asyncio
@@ -54,7 +60,7 @@ async def test_regal_find_protocol_resolves_from_registry_and_paginates() -> Non
         seen_queries.append(query)
         return httpx.Response(200, json=pages.get(int(query["from"]), []))
 
-    async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
+    async with NiceHttpClient(_config().effective_protocol.http, transport=httpx.MockTransport(handler)) as client:
         protocol = GenericPlugin.create_protocol(_config(), client=client)
         assert isinstance(protocol, RegalFindProtocol)
         assert isinstance(protocol, JsonArrayProtocol)
@@ -90,14 +96,15 @@ async def test_regal_find_protocol_uses_generic_config_default_page_size() -> No
         seen_until.append(dict(httpx.QueryParams(request.url.query))["until"])
         return httpx.Response(200, json=[])
 
-    config = Config(
-        protocol_type=ProtocolType.regal_find,
-        sitemap_url=_FIND_URL,
-        http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
-    )
+    config = Config.model_validate({
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "regal_find": {"entry_url": _FIND_URL},
+        },
+    })
     _ = await _discover(config, httpx.MockTransport(handler))
 
-    assert seen_until == [str(config.page_size)]
+    assert seen_until == [str(_type_config(config).page_size)]
 
 
 @pytest.mark.asyncio
@@ -132,5 +139,19 @@ async def test_regal_find_protocol_raises_on_non_array_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_regal_find_protocol_expected_count_is_unknown() -> None:
-    async with NiceHttpClient(_config().http) as client:
-        assert await RegalFindProtocol(_config(), client).get_expected_count() is None
+    async with NiceHttpClient(_config().effective_protocol.http) as client:
+        assert await RegalFindProtocol(_type_config(_config()), client).get_expected_count() is None
+
+
+@pytest.mark.asyncio
+async def test_regal_find_flat_lift_still_resolves() -> None:
+    """Deprecated flat protocol_type + sitemap_url still constructs RegalFindProtocol."""
+    config = Config.model_validate({
+        "protocol_type": "regal_find",
+        "sitemap_url": _FIND_URL,
+        "page_size": 2,
+        "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+    })
+    async with NiceHttpClient(config.effective_protocol.http) as client:
+        protocol = GenericPlugin.create_protocol(config, client=client)
+    assert isinstance(protocol, RegalFindProtocol)

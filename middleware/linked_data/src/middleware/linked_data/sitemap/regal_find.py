@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 
 from middleware.generic.errors import GenericProtocolError
-from middleware.generic.protocol.regal_find import RegalFindProtocol
+from middleware.generic.protocol.regal_find import RegalFindProtocol, RegalFindProtocolConfig
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.linked_data.config import SitemapType
+from middleware.linked_data.config import Config, SitemapType
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.sitemap.sitemap import Sitemap
 from middleware.parsing.discovery import DiscoveryResult
@@ -18,14 +18,22 @@ from middleware.parsing.discovery import DiscoveryResult
 class RegalFindSitemap(Sitemap):
     """Sitemap parser for Regal `/find` JSON endpoints (delegates to RegalFindProtocol)."""
 
-    async def get_expected_count(self) -> int | None:  # noqa: PLR6301
+    def __init__(self, config: Config, client: NiceHttpClient) -> None:
+        """Initialize the shim and a shared Protocol instance."""
+        super().__init__(config, client)
+        protocol_config = RegalFindProtocolConfig(entry_url=config.sitemap_url, page_size=config.page_size)
+        self._protocol = RegalFindProtocol(protocol_config, client)
+
+    async def get_expected_count(self) -> int | None:
         """Return None; Regal `/find` does not expose a total hit count."""
-        return None
+        try:
+            return await self._protocol.get_expected_count()
+        except GenericProtocolError as exc:
+            raise LinkedDataSitemapError(str(exc)) from exc
 
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
-        protocol = RegalFindProtocol(self.config, client)
         try:
-            async for discovery_result in protocol._discover(client):  # noqa: SLF001
+            async for discovery_result in self._protocol._discover(client):  # noqa: SLF001
                 yield discovery_result
         except GenericProtocolError as exc:
             raise LinkedDataSitemapError(str(exc)) from exc

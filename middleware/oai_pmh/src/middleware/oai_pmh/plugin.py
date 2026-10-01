@@ -34,6 +34,7 @@ class OaiPmhPlugin:
     def __init__(self, config: Config, mapper_config: MapperConfig, parser_config: ParserConfig) -> None:
         """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
+        self._parser_config = parser_config
         self._mapper: DataMapper[MappingContext] = self.create_mapper(mapper_config)
         self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
@@ -87,7 +88,7 @@ class OaiPmhPlugin:
     ) -> list[HarvestedArc | RecordProcessingError]:
         parser = self._parser_cls()
         try:
-            payload = await parser.parse(discovery, client=None, config=self._config)
+            payload = await parser.parse(discovery, client=None, config=self._parser_config)
         except (ParserError, OaiPmhError, RuntimeError, ValueError, OSError) as exc:
             return [
                 RecordProcessingError(

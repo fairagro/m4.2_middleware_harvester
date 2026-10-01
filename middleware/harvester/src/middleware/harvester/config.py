@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 # Side-effect: register shared parsers + generic protocols + mappers for config validation.
 import middleware.generic.protocol.dcat_ap as _register_generic_dcat_ap
+import middleware.generic.protocol.mycore_solr as _register_generic_mycore_solr
 import middleware.generic.protocol.pubplant_json_array as _register_generic_pubplant_json_array
 import middleware.generic.protocol.regal_find as _register_generic_regal_find
 import middleware.generic.protocol.xml as _register_generic_xml
@@ -18,7 +19,7 @@ from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.inspire.plugin import InspirePlugin
-from middleware.linked_data.config import Config as LinkedDataConfig
+from middleware.linked_data.config import Config as LinkedDataConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.config import Config as OaiPmhConfig
 from middleware.parsing.parser.parser import PayloadParser
@@ -34,6 +35,7 @@ from middleware.shared.config.config_base import ConfigBase
 _ = (
     _register_builtin_parsers,
     _register_generic_xml,
+    _register_generic_mycore_solr,
     _register_generic_dcat_ap,
     _register_generic_pubplant_json_array,
     _register_generic_regal_find,
@@ -50,6 +52,11 @@ logger = logging.getLogger(__name__)
 _LEGACY_PAYLOAD_TYPE_MSG = (
     "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
     "Support for payload_type will be removed in a future release."
+)
+_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
+    "linked_data.sitemap_type: mycore_solr is deprecated; use generic.protocol.mycore_solr "
+    "(with sibling parser/mapper) instead. Support for the linked_data shim will be removed "
+    "in a future release."
 )
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
@@ -68,7 +75,8 @@ class RepositoryConfig(BaseModel):
     ``inspire_general`` with a deprecation warning). Shared PayloadParsers use
     sibling ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
     ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
-    ``mapper.type``.
+    ``mapper.type``. Deprecated ``linked_data.sitemap_type: mycore_solr`` emits a
+    ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``.
     """
 
     rdi: Annotated[
@@ -137,6 +145,16 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def warn_deprecated_linked_data_mycore_solr(self) -> Self:
+        """Warn when operators still use linked_data ``sitemap_type: mycore_solr``."""
+        if self.linked_data is None:
+            return self
+        if self.linked_data.sitemap_type is not SitemapType.mycore_solr:
+            return self
+        logger.warning(_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG)
+        return self
+
+    @model_validator(mode="after")
     def validate_mapper_for_linked_data(self) -> Self:
         """Require and validate ``mapper`` for linked_data repositories."""
         if self.linked_data is None:
@@ -179,9 +197,9 @@ class RepositoryConfig(BaseModel):
         except KeyError as exc:
             raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
         try:
-            Protocol.registry[self.generic.protocol_type]
+            Protocol.registry[self.generic.active_protocol_type]
         except KeyError as exc:
-            raise ValueError(f"Unknown generic.protocol_type: {self.generic.protocol_type}") from exc
+            raise ValueError(f"Unknown generic.protocol type: {self.generic.active_protocol_type}") from exc
         try:
             parser_cls = PayloadParser.registry[self.parser.type]
         except KeyError as exc:
@@ -269,8 +287,11 @@ class RepositoryConfig(BaseModel):
 
     @property
     def source_url(self) -> str | None:
-        """The primary entry-point URL for this plugin."""
+        """The primary entry-point URL for this plugin, when the config exposes one."""
         cfg = self.plugin_config
+        if self.generic is not None:
+            entry_url = getattr(self.generic.effective_protocol.type_config, "entry_url", None)
+            return entry_url if isinstance(entry_url, str) else None
         return getattr(cfg, "csw_url", None) or getattr(cfg, "sitemap_url", None) or getattr(cfg, "endpoint_url", None)
 
 

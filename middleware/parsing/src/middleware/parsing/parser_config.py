@@ -13,3 +13,14 @@ class ParserConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     type: Annotated[ParserType, Field(description="PayloadParser registry key.")]
+    jsonld_parse_threshold_bytes: Annotated[
+        int,
+        Field(
+            description=(
+                "Byte threshold above which JSON-LD PayloadParsers (``jsonld``, "
+                "``html_jsonld``) offload ``graph.parse`` to a worker thread. "
+                "Ignored by parsers that do not parse JSON-LD."
+            ),
+            ge=1,
+        ),
+    ] = 65536

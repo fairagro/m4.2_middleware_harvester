@@ -13,9 +13,9 @@ import middleware.generic.plugin as plugin_mod
 import middleware.generic.protocol.xml as _register_xml
 import middleware.parsing.register_builtin_parsers as _register_parsers
 import middleware.payload.register_builtin_mappers as _register_builtin_mappers
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
 from middleware.generic.plugin import GenericPlugin
-from middleware.generic.protocol.protocol import Protocol
+from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
@@ -38,6 +38,10 @@ def _config(**overrides: object) -> Config:
     }
     raw.update(overrides)
     return Config.model_validate(raw)
+
+
+def _type_config(**overrides: object) -> ProtocolTypeConfig:
+    return _config(**overrides).effective_protocol.type_config
 
 
 def _parser_config() -> ParserConfig:
@@ -66,7 +70,7 @@ async def test_get_expected_datasets_soft_none_on_failure(monkeypatch: pytest.Mo
                 yield UrlDiscoveryResult("")
 
     plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
-    plugin.create_protocol = MagicMock(return_value=_BoomProtocol(_config(), MagicMock()))  # type: ignore[method-assign]
+    plugin.create_protocol = MagicMock(return_value=_BoomProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     _patch_nice_http(monkeypatch)
 
     assert await plugin.get_expected_datasets() is None
@@ -134,7 +138,7 @@ async def test_run_parser_error_does_not_abort_repository(monkeypatch: pytest.Mo
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:arc")]
 
     plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
-    plugin.create_protocol = MagicMock(return_value=_TwoProtocol(_config(), MagicMock()))  # type: ignore[method-assign]
+    plugin.create_protocol = MagicMock(return_value=_TwoProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     plugin._parser_cls = _SelectiveParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
     _patch_nice_http(monkeypatch)
@@ -207,7 +211,7 @@ async def test_run_yields_harvested_arc_on_success(monkeypatch: pytest.MonkeyPat
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:arc")]
 
     plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
-    plugin.create_protocol = MagicMock(return_value=_OkProtocol(_config(), MagicMock()))  # type: ignore[method-assign]
+    plugin.create_protocol = MagicMock(return_value=_OkProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     plugin._parser_cls = _OkParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
     _patch_nice_http(monkeypatch)

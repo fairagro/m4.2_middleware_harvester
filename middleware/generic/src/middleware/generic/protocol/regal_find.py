@@ -6,44 +6,67 @@ JSON array of inline Regal JSON-LD records and yields one inline
 
 Array handling is shared with other JSON array sources (``JsonArrayProtocol``);
 this Protocol only adds ``from``/``until`` pagination, the ``/find`` query
-contract, and ``@id`` identity. The endpoint URL is ``config.sitemap_url``.
+contract, and ``@id`` identity. The endpoint URL is ``config.entry_url``.
 """
 
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import Annotated
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from middleware.generic.config import ProtocolType
+from pydantic import ConfigDict, Field
+
 from middleware.generic.protocol.json_array import JsonArrayProtocol
-from middleware.generic.protocol.protocol import Protocol, SupportsSitemapUrl
+from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
 from middleware.harvester.nice_http_client import NiceHttpClient
 
-_DEFAULT_PAGE_SIZE = 200
-
-# Overridable defaults when absent from ``sitemap_url``. Operator-supplied
+# Overridable defaults when absent from ``entry_url``. Operator-supplied
 # query parameters always win for these (and any other non-owned keys).
 _DEFAULT_REGAL_PARAMS: tuple[tuple[str, str], ...] = (("q", "contentType:researchData"),)
 
-# Owned by the harvester: never taken from ``sitemap_url``.
+# Owned by the harvester: never taken from ``entry_url``.
 # ``until`` is resolved once (URL override or config ``page_size``) and always
 # written by the software so pagination stop conditions stay consistent.
 _SOFTWARE_REGAL_PARAMS: tuple[tuple[str, str], ...] = (("format", "json"),)
 _SOFTWARE_OWNED_QUERY_NAMES = frozenset({"from", "format", "until"})
 
 
+class RegalFindProtocolConfig(ProtocolTypeConfig):
+    """Type-specific config for the Regal ``/find`` Protocol."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    entry_url: Annotated[
+        str,
+        Field(
+            description=(
+                "Regal /find entry-point URL. May be query-free; overridable query "
+                "parameters merge with software-owned format/from/until."
+            ),
+        ),
+    ]
+    page_size: Annotated[
+        int,
+        Field(
+            description="Default /find until when entry_url has no until parameter.",
+            ge=1,
+        ),
+    ] = 200
+
+
 @Protocol.register(ProtocolType.regal_find)
 class RegalFindProtocol(JsonArrayProtocol):
     """Protocol for Regal ``/find`` JSON endpoints with inline metadata."""
 
+    config: RegalFindProtocolConfig
     record_id_prefix = "regal_find"
     source_label = "Regal /find"
 
-    def __init__(self, config: SupportsSitemapUrl, client: NiceHttpClient) -> None:
+    def __init__(self, config: RegalFindProtocolConfig, client: NiceHttpClient) -> None:
         """Initialize and resolve the page size (URL ``until`` or config ``page_size``)."""
         super().__init__(config, client)
-        config_page_size = int(getattr(config, "page_size", _DEFAULT_PAGE_SIZE))
-        self._page_size = self._resolve_page_size(config.sitemap_url, config_page_size)
+        self._page_size = self._resolve_page_size(config.entry_url, config.page_size)
 
     async def get_expected_count(self) -> int | None:  # noqa: PLR6301
         """Return None; Regal ``/find`` does not expose a total hit count."""
@@ -52,7 +75,7 @@ class RegalFindProtocol(JsonArrayProtocol):
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
         offset = 0
         while True:
-            request_url = self._build_request_url(self.config.sitemap_url, offset, self._page_size)
+            request_url = self._build_request_url(self.config.entry_url, offset, self._page_size)
             page = await self._fetch_array(request_url, client)
             if not page:
                 return
@@ -69,9 +92,9 @@ class RegalFindProtocol(JsonArrayProtocol):
         return None
 
     @staticmethod
-    def _resolve_page_size(sitemap_url: str, page_size: int) -> int:
+    def _resolve_page_size(entry_url: str, page_size: int) -> int:
         """Return URL ``until`` when present and valid; otherwise config ``page_size``."""
-        for name, value in parse_qsl(urlparse(sitemap_url).query, keep_blank_values=True):
+        for name, value in parse_qsl(urlparse(entry_url).query, keep_blank_values=True):
             if name != "until":
                 continue
             try:
@@ -84,17 +107,17 @@ class RegalFindProtocol(JsonArrayProtocol):
         return page_size
 
     @staticmethod
-    def _build_request_url(sitemap_url: str, offset: int, page_size: int) -> str:
+    def _build_request_url(entry_url: str, offset: int, page_size: int) -> str:
         """Build a ``/find`` request URL with defaults and operator overrides.
 
-        ``sitemap_url`` may be a query-free ``/find`` endpoint. Missing
+        ``entry_url`` may be a query-free ``/find`` endpoint. Missing
         overridable parameters (notably ``q``) are filled from defaults.
         Operator-supplied values for those keys win; extra filter/sort params
         are forwarded. ``format=json``, pagination ``from``, and ``until``
         (resolved from URL ``until`` or config ``page_size``) are always set
         by the software because discovery parses a JSON array response.
         """
-        parsed_url = urlparse(sitemap_url)
+        parsed_url = urlparse(entry_url)
         operator_pairs = [
             (name, value)
             for name, value in parse_qsl(parsed_url.query, keep_blank_values=True)

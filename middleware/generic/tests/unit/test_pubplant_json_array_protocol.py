@@ -7,10 +7,13 @@ import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 
 import middleware.generic.plugin as plugin_mod
-from middleware.generic.config import Config, ProtocolType
+from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
-from middleware.generic.protocol.pubplant_json_array import PubPlantJsonArrayProtocol
+from middleware.generic.protocol.pubplant_json_array import (
+    PubPlantJsonArrayProtocol,
+    PubPlantJsonArrayProtocolConfig,
+)
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.harvester.plugin_base import HarvestedArc
@@ -24,11 +27,18 @@ _ARRAY_URL = "https://example.org/genomes.json"
 
 
 def _config(url: str = _ARRAY_URL) -> Config:
-    return Config(
-        protocol_type=ProtocolType.pubplant_json_array,
-        sitemap_url=url,
-        http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
-    )
+    return Config.model_validate({
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "pubplant_json_array": {"entry_url": url},
+        },
+    })
+
+
+def _type_config(config: Config) -> PubPlantJsonArrayProtocolConfig:
+    type_config = config.effective_protocol.type_config
+    assert isinstance(type_config, PubPlantJsonArrayProtocolConfig)
+    return type_config
 
 
 def _transport_for(body: object) -> httpx.MockTransport:
@@ -39,8 +49,9 @@ def _transport_for(body: object) -> httpx.MockTransport:
 
 
 async def _discover(body: object) -> list[object]:
-    async with NiceHttpClient(_config().http, transport=_transport_for(body)) as client:
-        return [result async for result in PubPlantJsonArrayProtocol(_config(), client).discover()]
+    config = _config()
+    async with NiceHttpClient(config.effective_protocol.http, transport=_transport_for(body)) as client:
+        return [result async for result in PubPlantJsonArrayProtocol(_type_config(config), client).discover()]
 
 
 @pytest.mark.asyncio
@@ -55,7 +66,7 @@ async def test_pubplant_json_array_protocol_single_get_yields_one_result_per_ele
         calls["n"] += 1
         return httpx.Response(200, json=records)
 
-    async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
+    async with NiceHttpClient(_config().effective_protocol.http, transport=httpx.MockTransport(handler)) as client:
         protocol = GenericPlugin.create_protocol(_config(), client=client)
         assert isinstance(protocol, PubPlantJsonArrayProtocol)
         results = [result async for result in protocol.discover()]
@@ -84,8 +95,8 @@ async def test_pubplant_json_array_protocol_raises_on_invalid_json() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text="not json")
 
-    async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
-        protocol = PubPlantJsonArrayProtocol(_config(), client)
+    async with NiceHttpClient(_config().effective_protocol.http, transport=httpx.MockTransport(handler)) as client:
+        protocol = PubPlantJsonArrayProtocol(_type_config(_config()), client)
         with pytest.raises(GenericProtocolError, match="Failed to fetch/parse"):
             _ = [result async for result in protocol.discover()]
 
@@ -152,8 +163,8 @@ async def test_pubplant_json_array_protocol_expected_count_is_unknown_without_fe
         requests.append(request)
         return httpx.Response(200, json=[])
 
-    async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
-        count = await PubPlantJsonArrayProtocol(_config(), client).get_expected_count()
+    async with NiceHttpClient(_config().effective_protocol.http, transport=httpx.MockTransport(handler)) as client:
+        count = await PubPlantJsonArrayProtocol(_type_config(_config()), client).get_expected_count()
 
     assert count is None
     assert not requests

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 
 from middleware.generic.errors import GenericProtocolError
-from middleware.generic.protocol.xml import XmlProtocol
+from middleware.generic.protocol.xml import XmlProtocol, XmlProtocolConfig
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import SitemapType
@@ -19,7 +19,7 @@ class XmlSitemap(Sitemap):
     """Sitemap parser for XML sitemap protocol sources (delegates to XmlProtocol)."""
 
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
-        protocol = XmlProtocol(self.config, client)
+        protocol = XmlProtocol(XmlProtocolConfig(entry_url=self.config.sitemap_url), client)
         try:
             async for discovery_result in protocol._discover(client):  # noqa: SLF001
                 yield discovery_result

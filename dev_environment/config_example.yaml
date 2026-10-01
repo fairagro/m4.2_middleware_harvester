@@ -10,12 +10,22 @@ repositories:
 
   - rdi: "edal"
     generic:
-      sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
-      protocol_type: xml
+      protocol:
+        xml:
+          entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
       type: html_jsonld
     mapper:
       type: schema_org_general
+  # Deprecated flat protocol tree (still lifted with a warning):
+  # - rdi: "edal-flat-legacy"
+  #   generic:
+  #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
+  #     protocol_type: xml
+  #   parser:
+  #     type: html_jsonld
+  #   mapper:
+  #     type: schema_org_general
   # Legacy linked_data form (still supported during migration):
   # - rdi: "edal-legacy"
   #   linked_data:
@@ -24,20 +34,31 @@ repositories:
   #     dataset_type: html_jsonld
   #   mapper:
   #     type: schema_org_general
-  # Example: MyCoRe Solr discovery (query-free select URL; defaults fill core/q/fl/rows;
-  # wt=json is always set by the software)
+  # Example: MyCoRe Solr discovery via nested protocol (query-free select URL;
+  # defaults fill core/q/fl/rows; wt=json is always set by the software)
   # - rdi: "openagrar-solr"
+  #   generic:
+  #     protocol:
+  #       http:
+  #         # OpenAgrar robots.txt Disallow: /servlets/ blocks the Solr API path.
+  #         respect_robots_txt: false
+  #       mycore_solr:
+  #         entry_url: "https://www.openagrar.de/servlets/solr/select"
+  #         # page_size: 200
+  #   parser:
+  #     type: html_jsonld
+  #   mapper:
+  #     type: schema_org_general
+  # Deprecated linked_data mycore_solr shim (warns; prefer nested generic above):
+  # - rdi: "openagrar-solr-legacy"
   #   linked_data:
   #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
-  #     # Optional filter override, e.g.:
-  #     # sitemap_url: 'https://www.openagrar.de/servlets/solr/select?q=category.top:"mir_genres:research_data"'
   #     sitemap_type: mycore_solr
   #     dataset_type: html_jsonld
-  #     # use repository mapper.type: schema_org_general
-  #     # page_size: 200
-  #     # OpenAgrar robots.txt Disallow: /servlets/ blocks the Solr API path.
   #     http:
   #       respect_robots_txt: false
+  #   mapper:
+  #     type: schema_org_general
 
   # Example: PUBLISSO FRL via Regal /find (inline JSON-LD, no HTML scraping)
   # - rdi: "publisso"

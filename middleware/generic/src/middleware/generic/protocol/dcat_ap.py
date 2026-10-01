@@ -9,7 +9,7 @@ yielded as an inline ``JsonLdDiscoveryResult``.
 
 This Protocol only splits the catalog into records; parsing the record payload
 is the ``jsonld`` PayloadParser's job and vocabulary mapping is the DataMapper's.
-Nothing here is RDI-specific: the catalog URL is ``config.sitemap_url``.
+Nothing here is RDI-specific: the catalog URL is ``config.entry_url``.
 """
 
 from __future__ import annotations
@@ -17,13 +17,14 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import AsyncGenerator
+from typing import Annotated
 
+from pydantic import ConfigDict, Field
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
-from middleware.generic.config import ProtocolType
 from middleware.generic.errors import GenericProtocolError
-from middleware.generic.protocol.protocol import Protocol
+from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
 from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
@@ -43,13 +44,40 @@ _EXTEND_PREDICATES: tuple[URIRef, ...] = (
 )
 
 
+class DcatApProtocolConfig(ProtocolTypeConfig):
+    """Type-specific config for the DCAT-AP catalog Protocol."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    entry_url: Annotated[
+        str,
+        Field(description="DCAT-AP catalog entry-point URL (Hydra-paginated JSON-LD)."),
+    ]
+    jsonld_parse_threshold_bytes: Annotated[
+        int,
+        Field(
+            description=(
+                "Byte threshold above which catalog-page JSON-LD parsing is offloaded "
+                "to a worker thread. Independent of ``parser.jsonld_parse_threshold_bytes``."
+            ),
+            ge=1,
+        ),
+    ] = 65536
+
+
 @Protocol.register(ProtocolType.dcat_ap)
 class DcatApProtocol(Protocol):
     """Protocol for Hydra-paginated DCAT-AP catalogs (e.g. CKAN's ``ckanext-dcat``)."""
 
+    config: DcatApProtocolConfig
+
+    def __init__(self, config: DcatApProtocolConfig, client: NiceHttpClient) -> None:
+        """Create a DCAT-AP catalog Protocol."""
+        super().__init__(config, client)
+
     async def get_expected_count(self) -> int | None:
         """Return ``hydra:totalItems`` from the first catalog page, if present."""
-        page_graph = await self._fetch_page_graph(self.config.sitemap_url, self._client)
+        page_graph = await self._fetch_page_graph(self.config.entry_url, self._client)
         totals = list(page_graph.objects(None, HYDRA.totalItems))
         if not totals:
             return None
@@ -59,7 +87,7 @@ class DcatApProtocol(Protocol):
             return None
 
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
-        url: str | None = self.config.sitemap_url
+        url: str | None = self.config.entry_url
         visited: set[str] = set()
         while url:
             if url in visited:
@@ -82,16 +110,14 @@ class DcatApProtocol(Protocol):
             response = await client.get_with_policy(url)
             text = response.text
             graph = Graph()
-            if len(text.encode("utf-8")) >= self._parse_threshold_bytes():
+            threshold = self.config.jsonld_parse_threshold_bytes
+            if len(text.encode("utf-8")) >= threshold:
                 await asyncio.to_thread(graph.parse, data=text, format="json-ld")
             else:
                 graph.parse(data=text, format="json-ld")
             return graph
         except Exception as exc:  # noqa: BLE001
             raise GenericProtocolError(f"Failed to fetch/parse DCAT-AP catalog page {url}: {exc}") from exc
-
-    def _parse_threshold_bytes(self) -> int:
-        return int(getattr(self.config, "jsonld_parse_threshold_bytes", 65536))
 
     @staticmethod
     def _next_page_url(graph: Graph) -> str | None:
