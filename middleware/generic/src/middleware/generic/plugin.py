@@ -15,6 +15,7 @@ from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.generic.protocol import (
     dcat_ap as _register_dcat_ap_protocol,
+    regal_find as _register_regal_find_protocol,
     static_json_array as _register_static_json_array_protocol,
     xml as _register_xml_protocol,
 )
@@ -39,6 +40,7 @@ _ = (
     _register_xml_protocol,
     _register_dcat_ap_protocol,
     _register_static_json_array_protocol,
+    _register_regal_find_protocol,
     _register_builtin_mappers,
 )
 

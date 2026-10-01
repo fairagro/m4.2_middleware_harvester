@@ -8,6 +8,14 @@
 - [x] 1.2 Unit tests: single GET, non-array / invalid JSON errors, non-object elements, shared-DOI records, identical
       record dedup, reorder stability, expected count (`generic/tests/unit/test_static_json_array_protocol.py`)
 
+- [x] 1.3 Extract `JsonArrayProtocol` base (`middleware/generic/protocol/json_array.py`); `StaticJsonArrayProtocol`
+      builds on it
+- [x] 1.4 Port `regal_find` as `RegalFindProtocol` (`ProtocolType.regal_find`) on the base; register in
+      `generic/plugin.py` and harvester config validation
+- [x] 1.5 `linked_data` `RegalFindSitemap` becomes a shim over `RegalFindProtocol`; existing Regal tests unchanged and
+      green
+- [x] 1.6 Unit tests (`generic/tests/unit/test_regal_find_protocol.py`, `test_protocol_registry.py`)
+
 ## 2. Discovery and plugin
 
 - [x] 2.1 Optional `JsonLdDiscoveryResult.harvest_source_id` (`parsing/discovery.py`) + tests

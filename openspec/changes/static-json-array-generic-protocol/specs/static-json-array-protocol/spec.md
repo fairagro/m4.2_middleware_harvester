@@ -19,8 +19,9 @@ The system SHALL register a `Protocol` implementation under `ProtocolType.static
 
 ### Requirement: Fetch the whole array in one request
 
-The Protocol SHALL fetch `sitemap_url` once per discovery and MUST fail with `GenericProtocolError` when the response
-cannot be fetched, is not valid JSON, or its top level is not a JSON array.
+The Protocol SHALL fetch `sitemap_url` once per discovery and MUST fail with `GenericProtocolError` when the response is
+not valid JSON or its top level is not a JSON array. HTTP and transport errors propagate unchanged; `GenericPlugin`
+wraps them like any other Protocol failure.
 
 #### Scenario: Non-array response
 

@@ -4,8 +4,9 @@ Fetches a single JSON document whose top level is an array of inline JSON-LD
 records (e.g. the PlabiPD/PubPlant ``genomes.json`` Schema.org dump) and yields
 one inline ``JsonLdDiscoveryResult`` per array element.
 
-This Protocol only splits the array into records; parsing the record payload
-is the ``jsonld`` PayloadParser's job and vocabulary mapping is the DataMapper's.
+Array handling is shared with other JSON array sources (``JsonArrayProtocol``);
+this Protocol only adds the single-GET page source and a content-hash identity,
+because records in such dumps need not carry a unique ``@id``.
 Nothing here is RDI-specific: the array URL is ``config.sitemap_url``.
 """
 
@@ -16,51 +17,32 @@ import json
 from collections.abc import AsyncGenerator
 
 from middleware.generic.config import ProtocolType
-from middleware.generic.errors import GenericProtocolError
+from middleware.generic.protocol.json_array import JsonArrayProtocol
 from middleware.generic.protocol.protocol import Protocol
-from middleware.harvester.errors import RecordProcessingError
 from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
+from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 
 
 @Protocol.register(ProtocolType.static_json_array)
-class StaticJsonArrayProtocol(Protocol):
+class StaticJsonArrayProtocol(JsonArrayProtocol):
     """Protocol for a single, non-paginated JSON array of JSON-LD records."""
+
+    record_id_prefix = "static_json_array"
+    source_label = "Static JSON array"
 
     async def get_expected_count(self) -> int | None:
         """Return the exact record count; the whole array is fetched in one shot."""
-        array = await self._fetch_array(self._client)
+        array = await self._fetch_array(self.config.sitemap_url, self._client)
         return len(array)
 
-    async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
-        array = await self._fetch_array(client)
-        for index, item in enumerate(array):
-            if not isinstance(item, dict):
-                yield RecordProcessingError(
-                    f"Static JSON array element at index={index} is not an object (got {type(item).__name__})",
-                    f"static_json_array:index={index}",
-                )
-                continue
+    async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
+        yield (), await self._fetch_array(self.config.sitemap_url, client)
 
-            identifier = self._composite_identifier(item)
-            yield JsonLdDiscoveryResult(identifier=identifier, payload=item, harvest_source_id=identifier)
+    def _discovery_result(self, identifier: str, record: dict[str, object]) -> JsonLdDiscoveryResult:  # noqa: PLR6301
+        return JsonLdDiscoveryResult(identifier=identifier, payload=record, harvest_source_id=identifier)
 
-    async def _fetch_array(self, client: NiceHttpClient) -> list[object]:
-        url = self.config.sitemap_url
-        try:
-            response = await client.get_with_policy(url)
-            payload = response.json()
-        except Exception as exc:  # noqa: BLE001
-            raise GenericProtocolError(f"Failed to fetch/parse static JSON array {url}: {exc}") from exc
-        if not isinstance(payload, list):
-            raise GenericProtocolError(
-                f"Static JSON array response must be a JSON array (got {type(payload).__name__})"
-            )
-        return payload
-
-    @staticmethod
-    def _composite_identifier(record: dict[str, object]) -> str:
+    def _record_identifier(self, record: dict[str, object]) -> str:  # noqa: PLR6301
         """Build a stable, collision-safe identifier for a JSON-LD record.
 
         Static JSON array sources may deliberately have several records share

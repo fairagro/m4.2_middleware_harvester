@@ -18,6 +18,10 @@ splits the array into records, the shared `jsonld` **PayloadParser**, and the ex
   `MappingContext.harvest_source_id`.
 - `jsonld` parser: a top-level Schema.org context IRI (`http(s)://schema.org[/]`) is replaced by the local
   `{"@vocab": "http://schema.org/"}` instead of being rejected or fetched. All other remote contexts are still rejected.
+- Shared `JsonArrayProtocol` base for "JSON array of inline JSON-LD records" sources. It owns array validation,
+  per-element failures and discovery-unit yielding. Subclasses supply only the page source and the record identity.
+- Add `ProtocolType.regal_find` (`RegalFindProtocol`) on the same base: the protocol half of #294, ported from
+  `linked_data`. The `linked_data` `regal_find` sitemap becomes a shim over it, so existing configs are unchanged.
 - Dev config: PlabiPD repository entry under `generic:`.
 
 ## Capabilities
@@ -25,6 +29,7 @@ splits the array into records, the shared `jsonld` **PayloadParser**, and the ex
 ### New Capabilities
 
 - `static-json-array-protocol`: Single-GET JSON array discovery for the generic plugin.
+- `regal-find-protocol`: Shared JSON array base plus offset-paginated Regal `/find` discovery for the generic plugin.
 
 ### Modified Capabilities
 
@@ -33,5 +38,7 @@ splits the array into records, the shared `jsonld` **PayloadParser**, and the ex
 
 ## Non-goals
 
-- No changes to `linked_data` (no new `SitemapType` / `DatasetType`).
+- No new `linked_data` `SitemapType` / `DatasetType`. The only `linked_data` change is the `regal_find` shim.
+- The `regal_jsonld` PayloadParser port (the parser half of #294) is a separate issue.
+- Schema.org context handling in the `jsonld` parser is refactored separately (#391).
 - No PlabiPD-specific mapping; `schema_org_general` is reused unchanged.
