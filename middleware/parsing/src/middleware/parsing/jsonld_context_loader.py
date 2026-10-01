@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import cast
 from urllib.parse import urlparse
 
@@ -11,11 +12,15 @@ from middleware.shared.json_types import JsonObject, JsonValue
 
 # Process-lifetime cache: URL → parsed JSON document (root or import target).
 _DOCUMENT_CACHE: dict[str, JsonValue] = {}
+# In-flight fetch tasks so concurrent misses share one GET per URL.
+_INFLIGHT: dict[str, asyncio.Task[JsonValue]] = {}
+_CACHE_LOCK = asyncio.Lock()
 
 
 def clear_context_document_cache() -> None:
     """Clear the process-lifetime context cache (for tests)."""
     _DOCUMENT_CACHE.clear()
+    _INFLIGHT.clear()
 
 
 def _is_absolute_http_url(value: str) -> bool:
@@ -87,14 +92,34 @@ async def _fetch_document(url: str, client: NiceHttpClient) -> JsonValue:
         raise ParserError(f"Failed to fetch JSON-LD context {url}: {exc}") from exc
 
 
-async def ensure_document_cached(url: str, client: NiceHttpClient) -> JsonValue:
-    """Return the cached JSON document for ``url``, fetching once on miss."""
-    cached = _DOCUMENT_CACHE.get(url)
-    if cached is not None:
-        return cached
+async def _fetch_and_store(url: str, client: NiceHttpClient) -> JsonValue:
     document = await _fetch_document(url, client)
     _DOCUMENT_CACHE[url] = document
     return document
+
+
+async def ensure_document_cached(url: str, client: NiceHttpClient) -> JsonValue:
+    """Return the cached JSON document for ``url``, fetching once on miss.
+
+    Concurrent callers share a single in-flight fetch task per URL.
+    """
+    cached = _DOCUMENT_CACHE.get(url)
+    if cached is not None:
+        return cached
+    async with _CACHE_LOCK:
+        cached = _DOCUMENT_CACHE.get(url)
+        if cached is not None:
+            return cached
+        task = _INFLIGHT.get(url)
+        if task is None:
+            task = asyncio.create_task(_fetch_and_store(url, client))
+            _INFLIGHT[url] = task
+    try:
+        return await task
+    finally:
+        async with _CACHE_LOCK:
+            if _INFLIGHT.get(url) is task:
+                _INFLIGHT.pop(url, None)
 
 
 def _unwrap_context_document(document: JsonValue) -> JsonValue:
@@ -157,7 +182,10 @@ async def materialize_payload_contexts(
     allowed_context_url: str | None,
     client: NiceHttpClient | None,
 ) -> JsonObject:
-    """Return a copy of ``payload`` with remote contexts fully inlined.
+    """Return ``payload`` with remote contexts fully inlined when needed.
+
+    When there is nothing to resolve, returns ``payload`` unchanged. Otherwise returns a
+    shallow copy with ``@context`` replaced by the inlined value.
 
     When ``allowed_context_url`` is set, only that exact IRI is accepted. When unset,
     absolute http(s) remote IRIs are still fetched (``ParserConfig`` warns at load).

@@ -88,13 +88,13 @@ the shared loader cache. Relative imports remain rejected.
 #### Scenario: Mixed http/https in same graph
 
 - **GIVEN** payloads that use different Schema.org IRI variants across records
-- **WHEN** each repository sets `allowed_context_url` to the exact IRI used by that source
+- **WHEN** each repository sets `parser.allowed_context_url` to the exact IRI used by that source
 - **THEN** each record resolves under its configured URL (exact match; no cross-variant aliasing required)
 
 #### Scenario: Known extension context (Bioschemas)
 
 - **GIVEN** a remote Bioschemas context IRI appears only via `@import` from the allowlisted root context document
-- **WHEN** the root `allowed_context_url` is fetched and imports are cached
+- **WHEN** the root `parser.allowed_context_url` is fetched and imports are cached
 - **THEN** parse succeeds without requiring a second operator-configured URL for Bioschemas
 
 #### Scenario: Unknown context when pinned
@@ -123,7 +123,8 @@ the shared loader cache. Relative imports remain rejected.
 
 #### Scenario: Standard Schema.org HTTPS context with configured URL
 
-- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and `allowed_context_url: "https://schema.org/"`
+- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and
+  `parser.allowed_context_url: "https://schema.org/"`
 - **WHEN** the record is harvested through `html_jsonld` or `jsonld`
 - **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 

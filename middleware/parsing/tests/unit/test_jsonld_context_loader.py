@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 
@@ -54,6 +56,33 @@ async def test_ensure_document_cached_fetches_once() -> None:
     assert first == second
     assert hits["n"] == 1
     assert accepts == ["application/ld+json, application/json"]
+
+
+@pytest.mark.asyncio
+async def test_ensure_document_cached_shares_inflight_fetch() -> None:
+    root = "https://ctx.example/root.json"
+    hits = {"n": 0}
+    release = asyncio.Event()
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        await release.wait()
+        return httpx.Response(200, json={"@context": {"@vocab": "http://schema.org/"}})
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        first_task = asyncio.create_task(ensure_document_cached(root, client))
+        second_task = asyncio.create_task(ensure_document_cached(root, client))
+        await asyncio.sleep(0.05)
+        assert hits["n"] == 1
+        release.set()
+        first, second = await asyncio.gather(first_task, second_task)
+
+    assert first == second
+    assert hits["n"] == 1
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Annotated
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
 from middleware.payload import MapperType
@@ -128,6 +128,18 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = None
+
+    @field_validator("allowed_context_url")
+    @classmethod
+    def _http_context_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            return None
+        if not (stripped.startswith("http://") or stripped.startswith("https://")):
+            raise ValueError("allowed_context_url must be an http(s) URL")
+        return stripped
 
     @property
     def effective_worker_tasks(self) -> int:
