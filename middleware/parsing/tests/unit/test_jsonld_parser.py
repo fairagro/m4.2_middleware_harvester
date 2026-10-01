@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
 from rdflib import Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
+from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
+from middleware.parsing.jsonld_context_loader import clear_context_document_cache
 from middleware.parsing.parser.jsonld import JsonLdParser
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
@@ -27,6 +30,13 @@ _PAYLOAD: dict[str, object] = {
         },
     ],
 }
+_SCHEMA_ORG = "https://schema.org/"
+_SCHEMA_ORG_DOC = {"@context": {"@vocab": "http://schema.org/"}}
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache() -> None:
+    clear_context_document_cache()
 
 
 def test_jsonld_parser_registered_and_produces_rdf() -> None:
@@ -88,53 +98,66 @@ async def test_jsonld_parser_rejects_payload_yielding_empty_graph() -> None:
         "https://example.org/context.jsonld",
         ["https://example.org/context.jsonld", {"title": "http://purl.org/dc/terms/title"}],
         {"@import": "https://example.org/context.jsonld"},
+        "http://schema.org",
+        "https://schema.org/",
     ],
 )
-async def test_jsonld_parser_rejects_remote_context(context: object) -> None:
+async def test_jsonld_parser_rejects_remote_context_when_unset(context: object) -> None:
     payload: dict[str, object] = {"@context": context, "@id": _SUBJECT, "title": "Dataset One"}
     with pytest.raises(ParserError, match="Remote JSON-LD @context"):
         await JsonLdParser().parse(
-            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=None,
+            config=ParserConfig(type=ParserType.jsonld),
         )
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "context",
-    [
-        "http://schema.org",
-        "https://schema.org/",
-        ["https://schema.org", {"sdoName": "http://schema.org/name"}],
-    ],
-)
-async def test_jsonld_parser_localizes_schemaorg_context_without_fetching(
-    context: object, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def _no_fetch(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("remote @context must not be fetched")
+async def test_jsonld_parser_resolves_allowlisted_schemaorg_context() -> None:
+    hits = {"n": 0}
 
-    monkeypatch.setattr("rdflib.plugins.shared.jsonld.context.source_to_json", _no_fetch)
-    payload: dict[str, object] = {"@context": context, "@id": _SUBJECT, "@type": "Dataset", "name": "Genome"}
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(200, json=_SCHEMA_ORG_DOC)
 
-    parsed = await JsonLdParser().parse(
-        JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None
-    )
+    payload: dict[str, object] = {
+        "@context": _SCHEMA_ORG,
+        "@id": _SUBJECT,
+        "@type": "Dataset",
+        "name": "Genome",
+    }
+    config = ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG)
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        parsed = await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=client,
+            config=config,
+        )
+        await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=client,
+            config=config,
+        )
 
     assert (URIRef(_SUBJECT), URIRef("http://schema.org/name"), Literal("Genome")) in parsed.value
     assert (URIRef(_SUBJECT), RDF.type, URIRef("http://schema.org/Dataset")) in parsed.value
-    assert payload["@context"] == context
+    assert hits["n"] == 1
+    assert payload["@context"] == _SCHEMA_ORG
 
 
 @pytest.mark.asyncio
-async def test_jsonld_parser_rejects_remote_context_alongside_schemaorg() -> None:
-    payload: dict[str, object] = {
-        "@context": ["https://schema.org", "https://example.org/context.jsonld"],
-        "@id": _SUBJECT,
-        "name": "Genome",
-    }
-    with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+async def test_jsonld_parser_requires_client_for_allowlisted_url() -> None:
+    payload: dict[str, object] = {"@context": _SCHEMA_ORG, "@id": _SUBJECT, "name": "Genome"}
+    with pytest.raises(ParserError, match="HTTP client is required"):
         await JsonLdParser().parse(
-            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=None,
+            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG),
         )
 
 

@@ -84,6 +84,16 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = 65536
+    allowed_context_url: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Optional exact http(s) IRI allowed as remote JSON-LD @context for "
+                "html_jsonld datasets (passed through to HtmlJsonLdParser). Prefer "
+                "generic + sibling parser.allowed_context_url for new configs."
+            ),
+        ),
+    ] = None
     page_size: Annotated[
         int,
         Field(
