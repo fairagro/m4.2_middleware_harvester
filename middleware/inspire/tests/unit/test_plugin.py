@@ -2,22 +2,76 @@
 
 # ruff: noqa: SLF001, PLR2004
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterable
+from typing import ClassVar, override
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
-from middleware.inspire.models import InspireRecord
 from middleware.inspire.plugin import InspirePlugin
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.kinds import PayloadKind
+from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.parsed_payload import ParsedPayload
+
+
+def _mapper_config() -> MapperConfig:
+    return MapperConfig(type=MapperType.inspire_general)
+
+
+def _plugin_with_mock_mapper(mock_config: Config, mock_mapper: MagicMock) -> InspirePlugin:
+    mock_mapper.accepts = PayloadKind.inspire_record
+    with patch.object(InspirePlugin, "create_mapper", return_value=mock_mapper):
+        return InspirePlugin(mock_config, _mapper_config())
 
 
 def test_config_loading() -> None:
     # PluginConfig is a pure data container; instantiate directly
     config = Config(csw_url="https://csw.example.com")
     assert config.csw_url == "https://csw.example.com"
+
+
+def test_csw_url_rejects_non_http_schemes() -> None:
+    with pytest.raises(ValidationError, match="csw_url must be an http"):
+        Config(csw_url="ftp://csw.example.com/csw")
+
+
+def test_csw_url_strips_surrounding_whitespace() -> None:
+    config = Config(csw_url="  https://csw.example.com/csw\n")
+    assert config.csw_url == "https://csw.example.com/csw"
+
+
+def test_create_mapper_accepts_inspire_general() -> None:
+    mapper = InspirePlugin.create_mapper(_mapper_config())
+    assert mapper.accepts == PayloadKind.inspire_record
+    assert InspirePlugin.produces == PayloadKind.inspire_record
+
+
+def test_create_mapper_rejects_incompatible_context_type() -> None:
+    class _OtherContext:
+        pass
+
+    class _OtherMapper(DataMapper[_OtherContext]):
+        accepts: ClassVar[PayloadKind] = PayloadKind.inspire_record
+
+        @override
+        def map(self, payload: ParsedPayload, context: _OtherContext) -> Iterable[HarvestedArc]:
+            _ = payload, context
+            return []
+
+    key = MapperType.inspire_general
+    previous = DataMapper.registry[key]
+    DataMapper.registry[key] = _OtherMapper
+    try:
+        with pytest.raises(TypeError, match="expects context _OtherContext"):
+            InspirePlugin.create_mapper(MapperConfig(type=key))
+    finally:
+        DataMapper.registry[key] = previous
 
 
 def test_config_verify_ssl_default_true() -> None:
@@ -97,24 +151,22 @@ async def test_run_plugin_success() -> None:
         for record in mock_records:
             yield record
 
-    with (
-        patch("middleware.inspire.plugin.CSWClient") as mock_csw_class,
-        patch("middleware.inspire.plugin.InspireMapper") as mock_mapper_class,
-    ):
+    mock_mapper = MagicMock()
+    mock_mapper.map.return_value = [HarvestedArc(arc_json="{}", source_url="http://url")]
+
+    with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
         mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.return_value = "http://url"
 
-        mock_mapper = mock_mapper_class.return_value
-        mock_mapper.map_record.return_value = MagicMock()
-
-        # Consume the generator
-        results = [arc async for arc in InspirePlugin(mock_config).run()]
+        plugin = _plugin_with_mock_mapper(mock_config, mock_mapper)
+        results = [arc async for arc in plugin.run()]
 
         assert mock_csw.get_records_async.called
         assert len(results) == 1
+        assert mock_mapper.map.called
 
 
 @pytest.mark.asyncio
@@ -132,6 +184,7 @@ async def test_run_plugin_with_error() -> None:
         for item in mock_records:
             yield item
 
+    mock_mapper = MagicMock()
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
@@ -139,8 +192,8 @@ async def test_run_plugin_with_error() -> None:
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.return_value = "http://url"
 
-        results = [item async for item in InspirePlugin(mock_config).run()]
-        # Should yield the error object explicitly to the orchestrator
+        plugin = _plugin_with_mock_mapper(mock_config, mock_mapper)
+        results = [item async for item in plugin.run()]
         assert len(results) == 1
         assert isinstance(results[0], RecordProcessingError)
 
@@ -157,14 +210,16 @@ async def test_run_plugin_fatal_error_propagates() -> None:
         raise RuntimeError("CSW endpoint unreachable")
         yield  # pragma: no cover  # noqa: make this an async generator
 
+    mock_mapper = MagicMock()
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
         mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
 
+        plugin = _plugin_with_mock_mapper(mock_config, mock_mapper)
         with pytest.raises(RuntimeError, match="CSW endpoint unreachable"):
-            async for _ in InspirePlugin(mock_config).run():
+            async for _ in plugin.run():
                 pass
 
 
@@ -188,25 +243,26 @@ async def test_run_plugin_skips_non_dataset_hierarchy() -> None:
         yield service_record
         yield dataset_record
 
-    with (
-        patch("middleware.inspire.plugin.CSWClient") as mock_csw_class,
-        patch("middleware.inspire.plugin.InspireMapper") as mock_mapper_class,
-    ):
+    mock_mapper = MagicMock()
+    mock_mapper.map.return_value = [
+        HarvestedArc(
+            arc_json="{}",
+            source_url="http://csw/ds-1",
+            identifier="ds-1",
+            studies=1,
+            assays=1,
+        )
+    ]
+
+    with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
         mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _records()
         mock_csw.get_record_url.side_effect = lambda ident: f"http://csw/{ident}"
 
-        mock_mapper = mock_mapper_class.return_value
-        mock_arc = MagicMock()
-        mock_arc.ToROCrateJsonString.return_value = "{}"
-        mock_arc.Identifier = "ds-1"
-        mock_arc.StudyCount = 1
-        mock_arc.AssayCount = 1
-        mock_mapper.map_record.return_value = mock_arc
-
-        results = [item async for item in InspirePlugin(mock_config).run()]
+        plugin = _plugin_with_mock_mapper(mock_config, mock_mapper)
+        results = [item async for item in plugin.run()]
 
     assert len(results) == 2
     assert isinstance(results[0], SkippedRecord)
@@ -234,7 +290,9 @@ async def test_get_expected_datasets_returns_count() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
     mock_client.get_record_count_async = AsyncMock(return_value=42)
 
+    mock_mapper = MagicMock()
     with patch("middleware.inspire.plugin.CSWClient", return_value=mock_client):
-        result = await InspirePlugin(mock_config).get_expected_datasets()
+        plugin = _plugin_with_mock_mapper(mock_config, mock_mapper)
+        result = await plugin.get_expected_datasets()
 
     assert result == 42

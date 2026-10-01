@@ -9,6 +9,7 @@ from rdflib import Graph
 
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
@@ -24,6 +25,10 @@ def test_payload_kind_rdf_graph_available() -> None:
     assert PayloadKind.phenoroam_record == "phenoroam_record"
 
 
+def test_payload_kind_inspire_record_available() -> None:
+    assert PayloadKind.inspire_record == "inspire_record"
+
+
 def test_parsed_payload_rejects_empty_identifier() -> None:
     with pytest.raises(ValueError, match="identifier"):
         ParsedPayload(kind=PayloadKind.rdf_graph, value=Graph(), identifier="  ")
@@ -36,8 +41,12 @@ def test_registry_resolves_schema_org_and_regal() -> None:
     assert LinkedDataMapper.registry is DataMapper.registry
 
 
-def test_registered_class_for_context_accepts_mapping_context_mappers() -> None:
+def test_registry_resolves_inspire_general() -> None:
+    assert DataMapper.registry[MapperType.inspire_general] is InspireMapper
+    assert InspireMapper.accepts == PayloadKind.inspire_record
 
+
+def test_registered_class_for_context_accepts_mapping_context_mappers() -> None:
     assert (
         DataMapper.registered_class_for_context(MapperType.schema_org_general, MappingContext) is GeneralSchemaOrgMapper
     )
@@ -45,7 +54,6 @@ def test_registered_class_for_context_accepts_mapping_context_mappers() -> None:
 
 
 def test_registered_class_for_context_rejects_incompatible_context() -> None:
-
     class _OtherContext:
         pass
 

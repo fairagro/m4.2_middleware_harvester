@@ -7,7 +7,7 @@ from typing import cast
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.inspire.errors import SemanticError
-from middleware.inspire.models import (
+from middleware.payload.inspire.models import (
     ConformanceResult,
     Contact,
     DistributionFormat,

@@ -17,6 +17,7 @@ from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
+from middleware.inspire.plugin import InspirePlugin
 from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.config import Config as OaiPmhConfig
@@ -25,6 +26,7 @@ from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import (
     DataMapper,
     MapperConfig,
+    MapperType,
     register_builtin_mappers as _register_builtin_mappers,
 )
 from middleware.shared.config.config_base import ConfigBase
@@ -50,14 +52,21 @@ _LEGACY_PAYLOAD_TYPE_MSG = (
     "Support for payload_type will be removed in a future release."
 )
 
+_LEGACY_INSPIRE_MAPPER_MSG = (
+    "inspire without a sibling mapper: block is deprecated; "
+    "add mapper: { type: inspire_general }. "
+    "Omitting mapper will be rejected in a future release."
+)
+
 
 class RepositoryConfig(BaseModel):
     """Configuration for an individual harvesting plugin/repository.
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
-    selected via an optional sibling ``mapper:`` block (required for
-    ``linked_data`` / ``generic`` / ``oai_pmh``). Shared PayloadParsers use sibling
-    ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
+    selected via a sibling ``mapper:`` block (required for ``linked_data`` /
+    ``generic`` / ``oai_pmh``; for ``inspire``, omitted ``mapper`` defaults to
+    ``inspire_general`` with a deprecation warning). Shared PayloadParsers use
+    sibling ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
     ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
     ``mapper.type``.
     """
@@ -84,7 +93,12 @@ class RepositoryConfig(BaseModel):
     ] = None
     mapper: Annotated[
         MapperConfig | None,
-        Field(description="Shared DataMapper selection (required for linked_data, generic, oai_pmh)."),
+        Field(
+            description=(
+                "Shared DataMapper selection (required for linked_data, generic, oai_pmh; "
+                "optional for inspire — defaults to inspire_general with deprecation warning)."
+            ),
+        ),
     ] = None
     parser: Annotated[
         ParserConfig | None,
@@ -215,6 +229,31 @@ class RepositoryConfig(BaseModel):
                 f"mapper.type {self.mapper.type} accepts {accepts!r}, "
                 f"but parser.type {self.parser.type} produces {produced!r}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def lift_missing_inspire_mapper(self) -> Self:
+        """Default omitted ``mapper`` for inspire to ``inspire_general`` (deprecated)."""
+        if self.inspire is None or self.mapper is not None:
+            return self
+        logger.warning(_LEGACY_INSPIRE_MAPPER_MSG)
+        return self.model_copy(update={"mapper": MapperConfig(type=MapperType.inspire_general)})
+
+    @model_validator(mode="after")
+    def validate_mapper_for_inspire(self) -> Self:
+        """Validate ``mapper`` for inspire repositories (after optional default lift)."""
+        if self.inspire is None:
+            return self
+        if self.mapper is None:
+            raise ValueError("inspire repositories require a sibling mapper: block with type")
+        try:
+            mapper_cls = DataMapper.registry[self.mapper.type]
+        except KeyError as exc:
+            raise ValueError(f"Unknown mapper.type: {self.mapper.type}") from exc
+        accepts = getattr(mapper_cls, "accepts", None)
+        produced = InspirePlugin.produces
+        if accepts != produced:
+            raise ValueError(f"mapper.type {self.mapper.type} accepts {accepts!r}, but inspire produces {produced!r}")
         return self
 
     @property

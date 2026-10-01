@@ -30,7 +30,10 @@ def _make_repo(plugin_type: str = "inspire") -> MagicMock:
     # Avoid MagicMock auto-attrs making every plugin look like linked_data.
     repo.linked_data = MagicMock() if plugin_type == "linked_data" else None
     repo.inspire = MagicMock() if plugin_type == "inspire" else None
-    repo.mapper = MagicMock(type="schema_org_general") if plugin_type == "linked_data" else None
+    if plugin_type in {"linked_data", "inspire"}:
+        repo.mapper = MagicMock(type="inspire_general" if plugin_type == "inspire" else "schema_org_general")
+    else:
+        repo.mapper = None
     return repo
 
 
@@ -106,7 +109,7 @@ async def test_plugin_factory_exception_skips_repo_and_continues() -> None:
     call_count = 0
 
     class FailingInitPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
@@ -144,7 +147,7 @@ async def test_plugin_iteration_exception_skips_repo_and_continues() -> None:
     mock_config.api_client = MagicMock()
 
     class RunnerPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
@@ -190,7 +193,7 @@ async def test_catastrophic_upload_error_preserves_harvest_id_from_request_url()
     mock_config.api_client = MagicMock()
 
     class RunnerPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
@@ -230,7 +233,7 @@ async def test_harvester_error_yields_logged_and_skipped() -> None:
     mock_config.api_client = MagicMock()
 
     class HarvesterErrorPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
@@ -276,7 +279,7 @@ async def test_skipped_record_items_are_counted_and_not_uploaded() -> None:
     mock_config.api_client = MagicMock()
 
     class SkippedPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]:  # noqa: PLR6301
@@ -424,7 +427,7 @@ async def test_run_repository_sums_studies_and_assays_from_harvested_arcs() -> N
     mock_config.api_client = MagicMock()
 
     class TwoArcPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301
@@ -519,7 +522,7 @@ async def test_gather_escape_does_not_duplicate_repository_scope() -> None:
     mock_client = _make_mock_client()
 
     class CancellingPlugin:
-        def __init__(self, config: object) -> None:
+        def __init__(self, config: object, _mapper_config: object | None = None) -> None:
             self._config = config
 
         async def run(self) -> AsyncGenerator[HarvestedArc | HarvesterError, None]:  # noqa: PLR6301

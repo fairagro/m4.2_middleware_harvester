@@ -11,6 +11,7 @@ class MapperType(StrEnum):
 
     schema_org_general = "schema_org_general"
     regal_general = "regal_general"
+    inspire_general = "inspire_general"
     phenoroam_general = "phenoroam_general"
     ckanext_dcat = "ckanext_dcat"
 

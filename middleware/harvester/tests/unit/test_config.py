@@ -27,6 +27,7 @@ def test_harvester_config_loading() -> None:
                 "inspire": {
                     "csw_url": "https://csw.example.com",
                 },
+                "mapper": {"type": "inspire_general"},
             }
         ],
     }
@@ -45,7 +46,11 @@ def test_harvester_config_loading() -> None:
 
 def test_repository_config_source_url_inspire() -> None:
     """source_url returns the CSW URL for an INSPIRE repository."""
-    repo = RepositoryConfig.model_validate({"rdi": "test", "inspire": {"csw_url": "https://csw.example.com"}})
+    repo = RepositoryConfig.model_validate({
+        "rdi": "test",
+        "inspire": {"csw_url": "https://csw.example.com"},
+        "mapper": {"type": "inspire_general"},
+    })
     assert repo.source_url == "https://csw.example.com"
 
 
@@ -104,10 +109,32 @@ def test_linked_data_repository_rejects_unknown_mapper_type() -> None:
         })
 
 
-def test_inspire_repository_ok_without_mapper() -> None:
-    repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
-    assert repo.mapper is None
+def test_inspire_repository_omitted_mapper_defaults_to_inspire_general(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
+    assert repo.mapper is not None
+    assert repo.mapper.type == "inspire_general"
+    assert any("inspire without a sibling mapper: block is deprecated" in record.message for record in caplog.records)
+
+
+def test_inspire_repository_accepts_inspire_general() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "inspire",
+        "inspire": {"csw_url": "https://csw.example.com"},
+        "mapper": {"type": "inspire_general"},
+    })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "inspire_general"
     assert repo.plugin_type == "inspire"
+
+
+def test_inspire_repository_rejects_rdf_mapper() -> None:
+    with pytest.raises(ValidationError, match="inspire_record"):
+        RepositoryConfig.model_validate({
+            "rdi": "inspire",
+            "inspire": {"csw_url": "https://csw.example.com"},
+            "mapper": {"type": "schema_org_general"},
+        })
 
 
 def test_legacy_payload_type_lifts_to_mapper(caplog: pytest.LogCaptureFixture) -> None:

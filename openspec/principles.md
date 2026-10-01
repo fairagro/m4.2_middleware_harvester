@@ -19,8 +19,9 @@ The authoritative contract for each harvesting plugin is the mapping domain unde
 to ARC concepts, and required/optional semantics. **All feature specs assume these documents as given.** Feature specs
 do not restate mapping rules; they reference the relevant spec when they need to cite a field or constraint.
 
-The central orchestrator (`middleware/harvester`) never parses source-format records directly. Each plugin owns its own
-parsing, modelling, and mapping logic entirely.
+The central orchestrator (`middleware/harvester`) never parses source-format records directly. Each plugin owns its
+protocol client and source-format parsing; shared vocabulary→ARC mapping lives in `middleware.payload` and is selected
+via repository `mapper.type`.
 
 Feature specs SHALL treat the mapping documents linked from these principles as the authoritative source→ARC contract,
 and SHALL reference those documents instead of restating mapping rules. Implementations SHALL honour the Values,
@@ -129,10 +130,10 @@ harvester/config.py        →  parsing  (PayloadParser registry validation)
 
 # Shared payload / mapper layer (cross-cutting; not a protocol plugin)
 # Owns PayloadKind, ParsedPayload, HarvestedArc, person-name helpers,
-# DataMapper registry, RDF LinkedDataMapper / StableGraph / Schema.org + Regal.
+# DataMapper registry, RDF LinkedDataMapper / StableGraph / Schema.org + Regal,
+# and inspire_general (InspireRecord → ARC).
 payload/  ↛  harvester / parsing / inspire / linked_data / generic / oai_pmh / future protocol plugins
 harvester/plugin_base.py  →  payload/harvested_arc.py
-inspire/mapper.py         →  payload/person_*
 # Protocol plugins MAY import harvester errors / NiceHttpClient / Plugin; see #155.
 
 # Shared parsing layer (discovery units + PayloadParser registry)
@@ -145,11 +146,12 @@ oai_pmh/plugin.py   →  parsing  (PayloadParser + XmlDiscoveryResult)
 linked_data/dataset →  parsing  (DiscoveryResult + HtmlJsonLdParser)
 # plugins must not import each other for parsers.
 
-# INSPIRE plugin (example; all plugins follow this pattern)
-inspire/plugin.py  →  inspire/csw_client.py  →  inspire/models.py
-inspire/plugin.py  →  inspire/mapper.py      →  inspire/models.py
+# INSPIRE plugin — CSW + IsoParser; ARC mapping via shared inspire_general
+inspire/plugin.py  →  inspire/csw_client.py  →  payload/inspire/models  (IsoParser path)
+inspire/plugin.py  →  payload/inspire  (inspire_general DataMapper)
 inspire/plugin.py  →  inspire/config.py
 inspire/plugin.py  →  harvester/errors.py
+inspire/  ↛  embed vocabulary→ARC mapping (prefer payload/inspire)
 
 # Linked Data plugin — domain wiring vs concurrency plumbing
 linked_data/plugin.py   →  linked_data/pipeline.py   # bounded producer/worker/consumer

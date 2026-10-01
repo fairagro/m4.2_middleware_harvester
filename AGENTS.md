@@ -50,7 +50,7 @@ middleware/
 │       ├── errors.py
 │       ├── nice_http_client.py
 │       └── healthcheck.py
-├── payload/               # Shared PayloadKind / DataMapper registry + RDF mappers
+├── payload/               # Shared PayloadKind / DataMapper registry (RDF + inspire_general)
 ├── parsing/               # Shared DiscoveryResult / PayloadParser registry
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
 │   ├── src/middleware/inspire/

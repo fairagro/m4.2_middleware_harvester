@@ -22,8 +22,8 @@ from middleware.inspire.capabilities import describe_service, warn_if_server_cap
 from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError
 from middleware.inspire.iso_parser import IsoParser
-from middleware.inspire.models import InspireRecord
 from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
+from middleware.payload.inspire.models import InspireRecord
 
 T = TypeVar("T")
 

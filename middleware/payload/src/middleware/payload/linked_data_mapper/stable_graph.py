@@ -2,7 +2,7 @@
 
 Mappers read graphs through :class:`ResourceView` / :class:`StableText` so
 parser-local blank-node labels and rdflib iteration order do not leak into ARC
-fields. Discovery context (:class:`~.linked_data_mapper.MappingContext`) is
+fields. Discovery context (:class:`~middleware.payload.mapping_context.MappingContext`) is
 intentionally not part of this module.
 """
 

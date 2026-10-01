@@ -1,7 +1,9 @@
 """Domain models for INSPIRE metadata records.
 
-These Pydantic models represent the data structures parsed from ISO 19139 XML
-by the CSW client and consumed by the mapper.
+These Pydantic models represent ISO 19139-derived structures consumed by the
+shared ``inspire_general`` DataMapper. Protocol plugins (CSW IsoParser, future
+OAI+ISO) produce ``InspireRecord`` instances; they do not live in protocol
+packages.
 """
 
 from typing import Annotated

@@ -261,6 +261,9 @@ config:
         retry_backoff_factor: 2.0
         # -- Maximum retry delay cap in seconds (prevents runaway backoff).
         retry_max_delay: 600.0
+      mapper:
+        # -- Required for inspire: shared ISO→ARC DataMapper.
+        type: inspire_general
 
     # -------------------------------------------------------------------------
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap

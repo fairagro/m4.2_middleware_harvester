@@ -18,8 +18,8 @@ from arctrl import (  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
-from middleware.inspire.mapper import InspireMapper
-from middleware.inspire.models import (
+from middleware.payload.inspire.mapper import InspireMapper
+from middleware.payload.inspire.models import (
     ConformanceResult,
     Contact,
     DistributionFormat,
