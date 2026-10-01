@@ -58,13 +58,13 @@ The system SHALL always set `wt=json` in software; ignore any `wt` already prese
 ### Requirement: When entry_url already contains an overridable query parameter (q, fq,…
 
 The system SHALL ensure that when `entry_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`,
-`rows`, …), keep the operator-supplied value and do not overwrite it with a default.
+`rows`, …), keep the operator value.
 
 #### Scenario: Satisfies — When entry_url already contains an overridable query parameter (q, fq,…
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** When `entry_url` already contains an overridable query parameter (`q`, `fq`, `core`, `fl`, `rows`, …), keep
-  the operator-supplied value and do not overwrite it with a default
+  the operator-supplied value
 
 ### Requirement: Always set pagination start in software; ignore any start already…
 
@@ -77,14 +77,13 @@ The system SHALL always set pagination `start` in software; ignore any `start` a
 
 ### Requirement: When entry_url contains a rows parameter, use it as the…
 
-The system SHALL ensure that when `entry_url` contains a `rows` parameter, use it as the page size (it overrides
-mycore_solr type settings `page_size`).
+The system SHALL ensure that when `entry_url` contains a `rows` parameter, use it as the page size (it overrides type
+settings `page_size`).
 
 #### Scenario: Satisfies — When entry_url contains a rows parameter, use it as the…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** When `entry_url` contains a `rows` parameter, use it as the page size (it overrides type settings
-  `page_size`)
+- **THEN** When `entry_url` contains a `rows` parameter, use it as the page size (it overrides config `page_size`)
 
 ### Requirement: When entry_url has no rows parameter, use type page_size (default…
 

@@ -78,12 +78,12 @@ settings `page_size`).
 - **WHEN** the conditions described by this requirement apply
 - **THEN** When `entry_url` contains a `rows` parameter, use it as the page size (it overrides config `page_size`)
 
-### Requirement: When entry_url has no rows parameter, use config page_size (default…
+### Requirement: When entry_url has no rows parameter, use type page_size (default…
 
 The system SHALL ensure that when `entry_url` has no `rows` parameter, use mycore_solr type settings `page_size`
 (default 200) as Solr `rows`.
 
-#### Scenario: Satisfies — When entry_url has no rows parameter, use config page_size (default…
+#### Scenario: Satisfies — When entry_url has no rows parameter, use type page_size (default…
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** When `entry_url` has no `rows` parameter, use type settings `page_size` (default 200) as Solr `rows`
