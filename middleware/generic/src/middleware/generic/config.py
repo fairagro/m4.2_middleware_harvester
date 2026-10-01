@@ -22,6 +22,11 @@ _LEGACY_FLAT_PROTOCOL_MSG = (
     "Support for the flat tree will be removed in a future release."
 )
 
+_LEGACY_THRESHOLD_MSG = (
+    "generic.jsonld_parse_threshold_bytes is deprecated and no longer applies to payload parsing; "
+    "set parser.jsonld_parse_threshold_bytes and/or protocol.dcat_ap.jsonld_parse_threshold_bytes instead."
+)
+
 _PROTOCOL_TYPE_FIELDS = frozenset({"xml", "mycore_solr", "dcat_ap"})
 
 
@@ -115,6 +120,17 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = None
+    jsonld_parse_threshold_bytes: Annotated[
+        int | None,
+        Field(
+            description=(
+                "Deprecated. Use parser.jsonld_parse_threshold_bytes (payload parsing) and "
+                "protocol.dcat_ap.jsonld_parse_threshold_bytes (catalog pages) instead."
+            ),
+            deprecated=True,
+            ge=1,
+        ),
+    ] = None
     resource_base_url: Annotated[
         str | None,
         Field(
@@ -143,7 +159,11 @@ class Config(BaseModel):
         flat_sitemap = self.__dict__.get("sitemap_url")
         flat_http = self.__dict__.get("http")
         flat_page_size = self.__dict__.get("page_size")
+        flat_threshold = self.__dict__.get("jsonld_parse_threshold_bytes")
         flat_present = any(value is not None for value in (flat_type, flat_sitemap, flat_http, flat_page_size))
+
+        if flat_threshold is not None:
+            logger.warning(_LEGACY_THRESHOLD_MSG)
 
         if self.protocol is not None:
             if flat_present:
@@ -163,6 +183,8 @@ class Config(BaseModel):
             )
 
         logger.warning(_LEGACY_FLAT_PROTOCOL_MSG)
+        if flat_page_size is not None and flat_type is not ProtocolType.mycore_solr:
+            raise ValueError(f"generic.page_size is not valid for protocol_type {flat_type.value} (no page_size field)")
         type_config: ProtocolTypeConfig
         http = flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True)
         if flat_type is ProtocolType.xml:
@@ -175,12 +197,18 @@ class Config(BaseModel):
             )
             nested = ProtocolConfig(http=http, mycore_solr=type_config)
         elif flat_type is ProtocolType.dcat_ap:
-            type_config = DcatApProtocolConfig(entry_url=flat_sitemap)
+            type_config = (
+                DcatApProtocolConfig(entry_url=flat_sitemap)
+                if flat_threshold is None
+                else DcatApProtocolConfig(entry_url=flat_sitemap, jsonld_parse_threshold_bytes=flat_threshold)
+            )
             nested = ProtocolConfig(http=http, dcat_ap=type_config)
         else:
             raise ValueError(f"Unsupported deprecated protocol_type: {flat_type}")
 
-        return self.model_copy(update={"protocol": nested})
+        # Assign in place: pydantic discards a returned copy when built via ``Config(...)``.
+        self.protocol = nested
+        return self
 
     def _assert_flat_agrees_with_protocol(
         self,
