@@ -41,6 +41,11 @@ def test_csw_url_rejects_non_http_schemes() -> None:
         Config(csw_url="ftp://csw.example.com/csw")
 
 
+def test_csw_url_strips_surrounding_whitespace() -> None:
+    config = Config(csw_url="  https://csw.example.com/csw\n")
+    assert config.csw_url == "https://csw.example.com/csw"
+
+
 def test_create_mapper_accepts_inspire_general() -> None:
     mapper = InspirePlugin.create_mapper(_mapper_config())
     assert mapper.accepts == PayloadKind.inspire_record

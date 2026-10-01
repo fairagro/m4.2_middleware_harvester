@@ -6,7 +6,8 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Functional constraint, not policy: OWSLib talks to the CSW through `requests`, which
-# only speaks http(s). Also required so GetRecordById URLs pass MappingContext.as_source_url.
+# only speaks http(s). Also required so GetRecordById URLs pass ``as_source_url`` in
+# ``middleware.payload.mapping_context``.
 _CSW_URL_SCHEMES = frozenset({"http", "https"})
 
 
@@ -23,10 +24,11 @@ class Config(BaseModel):
     @classmethod
     def csw_url_must_be_http_or_https(cls, v: str) -> str:
         """Reject non-http(s) CSW endpoints (e.g. file:// or ftp://) — OWSLib cannot use them."""
-        parsed = urlsplit(v.strip())
+        cleaned = v.strip()
+        parsed = urlsplit(cleaned)
         if parsed.scheme.lower() not in _CSW_URL_SCHEMES or not parsed.netloc:
             raise ValueError(f"csw_url must be an http(s) URL, got {v!r}")
-        return v
+        return cleaned
 
     cql_query: Annotated[
         str | None,
