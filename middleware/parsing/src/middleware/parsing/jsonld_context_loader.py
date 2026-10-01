@@ -1,4 +1,4 @@
-"""Allowlisted remote JSON-LD context fetch with process-lifetime caching."""
+"""Remote JSON-LD context fetch with process-lifetime caching."""
 
 from __future__ import annotations
 
@@ -59,14 +59,16 @@ def remote_context_urls_in_value(value: JsonValue) -> list[str]:
 
 
 def assert_payload_remote_contexts_allowed(payload: JsonObject, allowed_context_url: str | None) -> None:
-    """Reject payload remote context IRIs that are not exactly ``allowed_context_url``.
+    """Validate remote context IRIs in ``payload``.
 
-    When ``allowed_context_url`` is unset, any remote IRI is rejected.
+    Absolute http(s) IRIs are always required. When ``allowed_context_url`` is set, every
+    remote IRI MUST equal that URL. When unset, any absolute http(s) IRI is accepted
+    (``ParserConfig`` warns at load time; fetch still uses the shared cache).
     """
     for url in remote_context_urls_in_value(payload):
         if not _is_absolute_http_url(url):
             raise ParserError(f"Relative or non-http(s) JSON-LD context reference is not supported: {url!r}")
-        if allowed_context_url is None or url != allowed_context_url:
+        if allowed_context_url is not None and url != allowed_context_url:
             raise ParserError(f"Remote JSON-LD @context is not supported: {url!r}")
 
 
@@ -151,16 +153,18 @@ async def materialize_payload_contexts(
     allowed_context_url: str | None,
     client: NiceHttpClient | None,
 ) -> JsonObject:
-    """Return a copy of ``payload`` with allowlisted remote contexts fully inlined.
+    """Return a copy of ``payload`` with remote contexts fully inlined.
 
-    When ``allowed_context_url`` is unset, remote IRIs must already have been rejected.
-    When set, ``client`` is required so cache misses (root and ``@import``) can fetch.
+    When ``allowed_context_url`` is set, only that exact IRI is accepted. When unset,
+    absolute http(s) remote IRIs are still fetched (``ParserConfig`` warns at load).
+    ``client`` is required whenever a remote context must be resolved.
     """
     assert_payload_remote_contexts_allowed(payload, allowed_context_url)
-    if allowed_context_url is None or "@context" not in payload:
+    remote_urls = remote_context_urls_in_value(payload)
+    if not remote_urls or "@context" not in payload:
         return payload
     if client is None:
-        raise ParserError("HTTP client is required to resolve parser.allowed_context_url")
+        raise ParserError("HTTP client is required to resolve remote JSON-LD @context")
 
     inlined = await _inline_context_value(payload["@context"], client, set())
     return {**payload, "@context": inlined}

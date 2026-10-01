@@ -6,8 +6,8 @@ The system SHALL ensure harvest-time acceptance of remote JSON-LD `@context` IRI
 is governed by `parser.allowed_context_url` and the shared context loader (not a hard-coded Schema.org-only parse-time
 allowlist). Mapper-side vocabulary expectations for Schema.org graphs MAY remain, but MUST NOT reintroduce a second
 hard-coded remote-context allowlist that rejects an IRI already accepted by the parser for that repository. `@import`
-and nested remote `@context` loads discovered while resolving the allowlisted root MUST be absolute `http(s)` IRIs
-resolved through the shared loader cache. Relative imports remain rejected.
+and nested remote `@context` loads discovered while resolving a root MUST be absolute `http(s)` IRIs resolved through
+the shared loader cache. Relative imports remain rejected.
 
 #### Scenario: Standard Schema.org HTTPS context
 
@@ -35,12 +35,17 @@ resolved through the shared loader cache. Relative imports remain rejected.
 - **WHEN** the root `allowed_context_url` is fetched and imports are cached
 - **THEN** parse succeeds without requiring a second operator-configured URL for Bioschemas
 
-#### Scenario: Unknown context
+#### Scenario: Unknown context when pinned
 
-- **GIVEN** a payload `@context` URL that does not equal `parser.allowed_context_url` (or URL present while the field is
-  unset)
+- **GIVEN** `parser.allowed_context_url` is set and a payload `@context` URL that does not equal it
 - **WHEN** parse runs
 - **THEN** the record fails closed at the parser (no mapping)
+
+#### Scenario: Unset pin still resolves remote context
+
+- **GIVEN** `parser.allowed_context_url` is unset and the payload `@context` is an absolute http(s) Schema.org IRI
+- **WHEN** parse runs with a polite HTTP client
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Relative @import rejected
 

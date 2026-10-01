@@ -80,6 +80,8 @@ repositories:
           entry_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
     parser:
       type: jsonld
+      # Exact IRI from genomes.json records (no trailing slash).
+      allowed_context_url: "http://schema.org"
     mapper:
       type: schema_org_general
 

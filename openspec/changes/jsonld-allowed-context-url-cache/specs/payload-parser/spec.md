@@ -4,7 +4,8 @@
 
 The system SHALL expose optional `allowed_context_url` on the repository sibling `parser:` / `ParserConfig` model. Both
 `parser.type: jsonld` and `parser.type: html_jsonld` SHALL apply the shared JSON-LD context-loader policy keyed by that
-field (see `jsonld-context-loader`). Other parser types MAY ignore the field.
+field (see `jsonld-context-loader`): when set, exact-match pin; when unset, remote fetch with warning. Other parser
+types MAY ignore the field.
 
 #### Scenario: Field accepted on parser block
 

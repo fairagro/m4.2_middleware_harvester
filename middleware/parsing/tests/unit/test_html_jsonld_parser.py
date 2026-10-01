@@ -138,7 +138,7 @@ async def test_parse_wraps_fetch_failure_in_parser_error() -> None:
     [
         (NO_JSONLD_HTML, "No JSON-LD blocks found"),
         (BAD_JSON_HTML, "Invalid JSON in JSON-LD block"),
-        (FOREIGN_CONTEXT_HTML, "Unsupported @context in JSON-LD block"),
+        (FOREIGN_CONTEXT_HTML, "Remote JSON-LD @context"),
     ],
 )
 async def test_graph_from_html_raises_parser_error(html: str, message: str) -> None:

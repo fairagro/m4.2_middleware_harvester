@@ -1,10 +1,22 @@
 """Repository-level parser configuration models."""
 
-from typing import Annotated
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+import logging
+from typing import Annotated, Self
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from middleware.parsing.parser_type import ParserType
+
+logger = logging.getLogger(__name__)
+
+_JSONLD_PARSER_TYPES = frozenset({ParserType.jsonld, ParserType.html_jsonld})
+_UNPINNED_CONTEXT_MSG = (
+    "parser.allowed_context_url is unset for a JSON-LD parser. "
+    "Remote @context IRIs will still be fetched and cached; set allowed_context_url "
+    "to the exact IRI used by the source to pin the expected context."
+)
 
 
 class ParserConfig(BaseModel):
@@ -28,10 +40,10 @@ class ParserConfig(BaseModel):
         str | None,
         Field(
             description=(
-                "Optional exact http(s) IRI allowed as a remote JSON-LD ``@context`` on "
-                "payloads for ``jsonld`` / ``html_jsonld``. When unset, remote context "
-                "IRIs are rejected. The document (and transitive ``@import`` targets) is "
-                "fetched once via polite HTTP and cached for the process lifetime. "
+                "Optional exact http(s) IRI pinned as the remote JSON-LD ``@context`` for "
+                "``jsonld`` / ``html_jsonld``. When set, only that IRI is accepted. When "
+                "unset on a JSON-LD parser, a warning is logged at config load and absolute "
+                "http(s) remotes are still fetched via polite HTTP and cached for the process. "
                 "Ignored by non-JSON-LD parsers."
             ),
         ),
@@ -48,3 +60,10 @@ class ParserConfig(BaseModel):
         if not (stripped.startswith("http://") or stripped.startswith("https://")):
             raise ValueError("allowed_context_url must be an http(s) URL")
         return stripped
+
+    @model_validator(mode="after")
+    def warn_unpinned_jsonld_context(self) -> Self:
+        """Warn when JSON-LD parsers omit ``allowed_context_url`` (legacy-compatible)."""
+        if self.type in _JSONLD_PARSER_TYPES and self.allowed_context_url is None:
+            logger.warning(_UNPINNED_CONTEXT_MSG)
+        return self

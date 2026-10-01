@@ -23,10 +23,10 @@ from middleware.shared.json_types import JsonObject
 class JsonLdParser(PayloadParser):
     """Parse an inline JSON-LD payload from a discovery unit into an ``rdf_graph`` payload.
 
-    Vocabulary-agnostic (DCAT-AP, Schema.org, …). Remote ``@context`` IRIs are
-    rejected unless ``parser.allowed_context_url`` matches exactly; that document
-    (and transitive ``@import`` targets) is resolved through the shared
-    process-lifetime context cache.
+    Vocabulary-agnostic (DCAT-AP, Schema.org, …). Remote ``@context`` IRIs are resolved
+    through the shared process-lifetime context cache. Prefer
+    ``parser.allowed_context_url`` (exact match); when unset, remotes are still
+    fetched (``ParserConfig`` warns at load) for backward compatibility.
     """
 
     produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph

@@ -102,14 +102,49 @@ async def test_jsonld_parser_rejects_payload_yielding_empty_graph() -> None:
         "https://schema.org/",
     ],
 )
-async def test_jsonld_parser_rejects_remote_context_when_unset(context: object) -> None:
+async def test_jsonld_parser_requires_client_for_remote_context_when_unset(context: object) -> None:
     payload: dict[str, object] = {"@context": context, "@id": _SUBJECT, "title": "Dataset One"}
-    with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+    with pytest.raises(ParserError, match="HTTP client is required"):
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=None,
             config=ParserConfig(type=ParserType.jsonld),
         )
+
+
+@pytest.mark.asyncio
+async def test_jsonld_parser_fetches_remote_context_when_unset() -> None:
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(200, json=_SCHEMA_ORG_DOC)
+
+    payload: dict[str, object] = {
+        "@context": _SCHEMA_ORG,
+        "@id": _SUBJECT,
+        "@type": "Dataset",
+        "name": "Genome",
+    }
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        parsed = await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=client,
+            config=ParserConfig(type=ParserType.jsonld),
+        )
+        await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
+            client=client,
+            config=ParserConfig(type=ParserType.jsonld),
+        )
+
+    assert (URIRef(_SUBJECT), URIRef("http://schema.org/name"), Literal("Genome")) in parsed.value
+    assert hits["n"] == 1
 
 
 @pytest.mark.asyncio
@@ -151,7 +186,7 @@ async def test_jsonld_parser_resolves_allowlisted_schemaorg_context() -> None:
 
 
 @pytest.mark.asyncio
-async def test_jsonld_parser_requires_client_for_allowlisted_url() -> None:
+async def test_jsonld_parser_requires_client_for_remote_context() -> None:
     payload: dict[str, object] = {"@context": _SCHEMA_ORG, "@id": _SUBJECT, "name": "Genome"}
     with pytest.raises(ParserError, match="HTTP client is required"):
         await JsonLdParser().parse(

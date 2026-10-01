@@ -110,7 +110,7 @@ async def test_materialize_rejects_wrong_url_without_fetch() -> None:
 
 
 @pytest.mark.asyncio
-async def test_materialize_requires_client_when_url_configured() -> None:
+async def test_materialize_requires_client_when_remote_present() -> None:
     payload: JsonObject = {"@context": "https://ctx.example/root.json", "@id": "https://example.org/1"}
     with pytest.raises(ParserError, match="HTTP client is required"):
         await materialize_payload_contexts(
@@ -118,3 +118,29 @@ async def test_materialize_requires_client_when_url_configured() -> None:
             allowed_context_url="https://ctx.example/root.json",
             client=None,
         )
+    with pytest.raises(ParserError, match="HTTP client is required"):
+        await materialize_payload_contexts(payload, allowed_context_url=None, client=None)
+
+
+@pytest.mark.asyncio
+async def test_materialize_fetches_when_unset() -> None:
+    root = "https://ctx.example/root.json"
+    documents = {root: {"@context": {"@vocab": "http://schema.org/"}}}
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        first = await materialize_payload_contexts(payload, allowed_context_url=None, client=client)
+        second = await materialize_payload_contexts(payload, allowed_context_url=None, client=client)
+
+    assert first["@context"] == {"@vocab": "http://schema.org/"}
+    assert second["@context"] == first["@context"]
+    assert hits["n"] == 1
