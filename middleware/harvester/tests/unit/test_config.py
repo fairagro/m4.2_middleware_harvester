@@ -109,9 +109,12 @@ def test_linked_data_repository_rejects_unknown_mapper_type() -> None:
         })
 
 
-def test_inspire_repository_requires_mapper() -> None:
-    with pytest.raises(ValidationError, match="mapper"):
-        RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
+def test_inspire_repository_omitted_mapper_defaults_to_inspire_general(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({"rdi": "inspire", "inspire": {"csw_url": "https://csw.example.com"}})
+    assert repo.mapper is not None
+    assert repo.mapper.type == "inspire_general"
+    assert any("inspire without sibling mapper" in record.message for record in caplog.records)
 
 
 def test_inspire_repository_accepts_inspire_general() -> None:

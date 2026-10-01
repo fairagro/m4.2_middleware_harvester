@@ -12,8 +12,9 @@ OAI patterns (`mapper:` sibling + shared `DataMapper`).
 - Add `PayloadKind.inspire_record` and move `InspireRecord` (+ nested DTOs) into `middleware.payload`
 - Register `mapper.type: inspire_general` as a shared `DataMapper` accepting `inspire_record` (behaviour preserved from
   today’s `InspireMapper` / `docs/inspire_mapping.md`)
-- **BREAKING:** `inspire` repositories MUST set sibling `mapper: { type: inspire_general }` (parity with `linked_data` /
-  `generic` / `oai_pmh` mapper requirement; no silent default)
+- **Compat:** `inspire` repositories SHOULD set sibling `mapper: { type: inspire_general }` (parity with `linked_data` /
+  `generic` / `oai_pmh`). Omitting `mapper` remains accepted with a deprecation warning and defaults to
+  `inspire_general`
 - Wire `InspirePlugin` + orchestrator like `linked_data`: `(plugin_config, mapper_config)` — CSW/`IsoParser` stay in
   `inspire` (no shared `parser:` yet)
 - Update OpenSpec ownership (mapping in `payload`; plugin owns CSW) and example configs

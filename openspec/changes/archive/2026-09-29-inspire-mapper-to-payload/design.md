@@ -37,9 +37,9 @@ moving the mapper requires moving the record models with it.
    `source_url`), and yields every returned `HarvestedArc` (normally one). Internals may keep today’s
    Investigation/Study/Assay builders; public surface is the shared `map` contract.
 
-4. **Required sibling `mapper:` for inspire (BREAKING)** Same fail-closed startup validation as other shared-mapper
-   plugins. Update all example/prod YAML. No silent default — avoids hidden coupling and matches
-   generic/oai/linked_data.
+4. **Sibling `mapper:` for inspire (omission deprecated)** Canonical configs set `mapper: { type: inspire_general }`
+   like other shared-mapper plugins. Omitting `mapper` is accepted with a `logger.warning` and defaults to
+   `inspire_general` (same pattern as lifting `linked_data.payload_type`). Update in-repo YAML to the canonical form.
 
 5. **Factory signature like linked_data** `InspirePlugin(config, mapper_config)` — not three-arg, because parse stays
    inside CSW/`IsoParser`.
@@ -51,8 +51,8 @@ moving the mapper requires moving the record models with it.
 
 - **[Risk] Large move (~900 LOC models+mapper) breaks imports** → Mitigation: move models first, keep mapper tests green
   via path updates; run inspire + payload unit suites before wiring plugin.
-- **[Risk] BREAKING config for all INSPIRE RDIs** → Mitigation: update every in-repo YAML in the same PR; document in
-  proposal/CHANGE notes.
+- **[Risk] Operator configs omit `mapper:`** → Mitigation: deprecated default to `inspire_general` + warning; update
+  every in-repo YAML to the canonical sibling block in the same PR; document in proposal notes.
 - **[Risk] Behaviour drift during wrap** → Mitigation: keep existing mapper unit tests as the oracle; prefer move + thin
   adapter over rewrite.
 - **[Trade-off] No IsoParser share yet** → Accept temporary asymmetry (inspire produces kind without shared parser);
@@ -61,10 +61,10 @@ moving the mapper requires moving the record models with it.
 ## Migration Plan
 
 1. Land models + kind + mapper in payload; re-point inspire imports.
-2. Add config validation + orchestrator factory args; update YAML.
+2. Add config validation + orchestrator factory args; update YAML; omit-`mapper` lift with deprecation warning.
 3. Switch plugin to `DataMapper.map`; delete old inspire-local mapper module (or shim that forwards once).
-4. Rollback: revert PR; configs without `mapper:` would only work on pre-change builds.
+4. Rollback: revert PR; pre-change builds ignore sibling `mapper:`.
 
 ## Open Questions
 
-None — lock-ins from explore (`1A`, required `mapper:`, `inspire_general`, shared `map`, IsoParser stays).
+None — lock-ins from explore (`1A`, deprecated omit-`mapper` default, `inspire_general`, shared `map`, IsoParser stays).

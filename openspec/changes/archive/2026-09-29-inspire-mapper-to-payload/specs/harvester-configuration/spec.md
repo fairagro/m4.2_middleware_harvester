@@ -5,10 +5,11 @@
 ### Requirement: Repository entries that use shared mappers MUST include a mapper config beside the plugin
 
 Each repository entry that uses shared `middleware.payload` mappers (`linked_data`, `generic`, `oai_pmh`, **`inspire`**)
-MUST include a `mapper` configuration object beside the single plugin key, or (for legacy `linked_data` only) MUST
-supply a legacy `linked_data.payload_type` that is lifted to `mapper.type` with a `logger.warning`. The `mapper` block
-MUST specify an explicit mapper `type` (registry key) and MAY include mapper-specific fields. The `mapper` key is NOT
-counted as a plugin field for the exactly-one-plugin rule.
+MUST include a `mapper` configuration object beside the single plugin key, **or** MUST be covered by a documented legacy
+lift: (for legacy `linked_data` only) a `linked_data.payload_type` lifted to `mapper.type` with a `logger.warning`; (for
+legacy `inspire` only) an omitted `mapper` lifted to `mapper.type: inspire_general` with a `logger.warning`. The
+`mapper` block MUST specify an explicit mapper `type` (registry key) and MAY include mapper-specific fields. The
+`mapper` key is NOT counted as a plugin field for the exactly-one-plugin rule.
 
 #### Scenario: Valid linked_data entry with plugin and mapper
 
@@ -25,10 +26,11 @@ counted as a plugin field for the exactly-one-plugin rule.
 - **WHEN** a `linked_data` repository entry omits `mapper` but sets `linked_data.payload_type` to a supported value
 - **THEN** configuration validation succeeds after lifting to `mapper.type`, and a `logger.warning` is emitted
 
-#### Scenario: Missing mapper is rejected for inspire
+#### Scenario: Omitted inspire mapper defaults to inspire_general
 
 - **WHEN** an `inspire` repository entry omits `mapper`
-- **THEN** configuration validation fails (inspire now uses shared mappers; `mapper` is required)
+- **THEN** configuration validation succeeds after lifting to `mapper.type: inspire_general`, and a `logger.warning` is
+  emitted (omission is deprecated)
 
 #### Scenario: Valid oai_pmh entry with plugin and mapper
 
@@ -65,15 +67,16 @@ Unsupported mapper types MUST fail fast at startup.
 
 ## ADDED Requirements
 
-### Requirement: inspire repositories require mapper config
+### Requirement: inspire repositories use shared mapper config
 
-The system SHALL require a top-level repository `mapper` block when the `inspire` plugin key is selected, and SHALL fail
-closed when the configured mapper’s `accepts` kind is not `inspire_record`.
+The system SHALL resolve a top-level repository `mapper` for the `inspire` plugin key. When `mapper` is omitted, the
+system SHALL default to `mapper.type: inspire_general`, emit a `logger.warning` that omission is deprecated, and SHALL
+fail closed when a configured mapper’s `accepts` kind is not `inspire_record`.
 
-#### Scenario: inspire without mapper fails closed
+#### Scenario: inspire without mapper defaults with deprecation warning
 
 - **WHEN** a repository entry sets `inspire` but omits `mapper`
-- **THEN** configuration validation fails
+- **THEN** configuration validation succeeds with `mapper.type` equal to `inspire_general` and a deprecation warning
 
 #### Scenario: Valid inspire entry with inspire_general
 
