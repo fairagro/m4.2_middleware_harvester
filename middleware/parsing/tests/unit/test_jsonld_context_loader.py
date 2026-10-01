@@ -36,11 +36,13 @@ def _transport(documents: dict[str, JsonValue]) -> httpx.MockTransport:
 async def test_ensure_document_cached_fetches_once() -> None:
     root = "https://ctx.example/root.json"
     hits = {"n": 0}
+    accepts: list[str] = []
 
     async def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/robots.txt":
             return httpx.Response(200, text="")
         hits["n"] += 1
+        accepts.append(request.headers.get("accept", ""))
         return httpx.Response(200, json={"@context": {"@vocab": "http://schema.org/"}})
 
     async with NiceHttpClient(
@@ -51,6 +53,7 @@ async def test_ensure_document_cached_fetches_once() -> None:
 
     assert first == second
     assert hits["n"] == 1
+    assert accepts == ["application/ld+json, application/json"]
 
 
 @pytest.mark.asyncio

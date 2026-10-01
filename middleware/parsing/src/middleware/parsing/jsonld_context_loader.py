@@ -74,7 +74,11 @@ def assert_payload_remote_contexts_allowed(payload: JsonObject, allowed_context_
 
 async def _fetch_document(url: str, client: NiceHttpClient) -> JsonValue:
     try:
-        response = await client.get_with_policy(url, follow_redirects=True)
+        response = await client.get_with_policy(
+            url,
+            follow_redirects=True,
+            headers={"Accept": "application/ld+json, application/json"},
+        )
         response.raise_for_status()
         return cast(JsonValue, response.json())
     except ParserError:

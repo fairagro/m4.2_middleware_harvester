@@ -139,36 +139,31 @@ class HtmlJsonLdParser(PayloadParser):
             parsed = json.loads(block, strict=False)
         except json.JSONDecodeError as exc:
             raise ParserError(f"Invalid JSON in JSON-LD block at {url}: {exc}\nBlock:\n{block}") from exc
-        try:
-            if isinstance(parsed, list):
-                if not parsed:
-                    raise ParserError(f"Empty JSON-LD array in block at {url}")
-                items: list[JsonValue] = []
-                for index, item in enumerate(parsed):
-                    if not isinstance(item, dict):
-                        raise ParserError(
-                            f"JSON-LD array item {index} at {url} must be a JSON object, got {type(item).__name__}"
-                        )
-                    items.append(
-                        await materialize_payload_contexts(
-                            cast(JsonObject, item),
-                            allowed_context_url=allowed_context_url,
-                            client=client,
-                        )
+        if isinstance(parsed, list):
+            if not parsed:
+                raise ParserError(f"Empty JSON-LD array in block at {url}")
+            items: list[JsonValue] = []
+            for index, item in enumerate(parsed):
+                if not isinstance(item, dict):
+                    raise ParserError(
+                        f"JSON-LD array item {index} at {url} must be a JSON object, got {type(item).__name__}"
                     )
-                return json.dumps(items)
-            if isinstance(parsed, dict):
-                materialized = await materialize_payload_contexts(
-                    cast(JsonObject, parsed),
-                    allowed_context_url=allowed_context_url,
-                    client=client,
+                items.append(
+                    await materialize_payload_contexts(
+                        cast(JsonObject, item),
+                        allowed_context_url=allowed_context_url,
+                        client=client,
+                    )
                 )
-                return json.dumps(materialized)
-            raise ParserError(f"JSON-LD block at {url} must be a JSON object or array, got {type(parsed).__name__}")
-        except ParserError as exc:
-            if str(exc).startswith("Unsupported @context") or "JSON-LD block" in str(exc):
-                raise
-            raise ParserError(f"Unsupported @context in JSON-LD block at {url}: {exc}") from exc
+            return json.dumps(items)
+        if isinstance(parsed, dict):
+            materialized = await materialize_payload_contexts(
+                cast(JsonObject, parsed),
+                allowed_context_url=allowed_context_url,
+                client=client,
+            )
+            return json.dumps(materialized)
+        raise ParserError(f"JSON-LD block at {url} must be a JSON object or array, got {type(parsed).__name__}")
 
     @staticmethod
     def _parse_jsonld_block(block: str, url: str) -> Graph:
