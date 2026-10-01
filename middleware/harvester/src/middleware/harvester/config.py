@@ -16,7 +16,7 @@ from middleware.api_client.config import Config as ApiClientConfig
 from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
-from middleware.linked_data.config import Config as LinkedDataConfig
+from middleware.linked_data.config import Config as LinkedDataConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.config import Config as OaiPmhConfig
 from middleware.parsing.parser.parser import PayloadParser
@@ -47,6 +47,11 @@ _LEGACY_PAYLOAD_TYPE_MSG = (
     "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
     "Support for payload_type will be removed in a future release."
 )
+_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
+    "linked_data.sitemap_type: mycore_solr is deprecated; use generic.protocol.mycore_solr "
+    "(with sibling parser/mapper) instead. Support for the linked_data shim will be removed "
+    "in a future release."
+)
 
 
 class RepositoryConfig(BaseModel):
@@ -57,7 +62,8 @@ class RepositoryConfig(BaseModel):
     ``linked_data`` / ``generic`` / ``oai_pmh``). Shared PayloadParsers use sibling
     ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
     ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
-    ``mapper.type``.
+    ``mapper.type``. Deprecated ``linked_data.sitemap_type: mycore_solr`` emits a
+    ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``.
     """
 
     rdi: Annotated[
@@ -118,6 +124,16 @@ class RepositoryConfig(BaseModel):
             raise ValueError(
                 f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {self.mapper.type!r}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def warn_deprecated_linked_data_mycore_solr(self) -> Self:
+        """Warn when operators still use linked_data ``sitemap_type: mycore_solr``."""
+        if self.linked_data is None:
+            return self
+        if self.linked_data.sitemap_type is not SitemapType.mycore_solr:
+            return self
+        logger.warning(_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG)
         return self
 
     @model_validator(mode="after")

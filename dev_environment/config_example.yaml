@@ -38,12 +38,23 @@ repositories:
   #   generic:
   #     protocol:
   #       http:
+  #         # OpenAgrar robots.txt Disallow: /servlets/ blocks the Solr API path.
   #         respect_robots_txt: false
   #       mycore_solr:
   #         entry_url: "https://www.openagrar.de/servlets/solr/select"
   #         # page_size: 200
   #   parser:
   #     type: html_jsonld
+  #   mapper:
+  #     type: schema_org_general
+  # Deprecated linked_data mycore_solr shim (warns; prefer nested generic above):
+  # - rdi: "openagrar-solr-legacy"
+  #   linked_data:
+  #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
+  #     sitemap_type: mycore_solr
+  #     dataset_type: html_jsonld
+  #     http:
+  #       respect_robots_txt: false
   #   mapper:
   #     type: schema_org_general
 

@@ -16,7 +16,10 @@ from middleware.parsing.discovery import DiscoveryResult
 
 @Sitemap.register(SitemapType.mycore_solr)
 class MycoreSolrSitemap(Sitemap):
-    """Sitemap parser for MyCoRe Solr discovery (delegates to MycoreSolrProtocol)."""
+    """Deprecated linked_data shim for MyCoRe Solr (delegates to MycoreSolrProtocol).
+
+    Prefer ``generic.protocol.mycore_solr``. Repository config emits a deprecation warning.
+    """
 
     def __init__(self, config: Config, client: NiceHttpClient) -> None:
         """Initialize the shim and a shared Protocol instance (preserves page cache)."""
