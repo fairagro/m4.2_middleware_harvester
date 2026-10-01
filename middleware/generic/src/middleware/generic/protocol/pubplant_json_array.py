@@ -1,13 +1,14 @@
-"""Static JSON array Protocol implementation (one GET, no pagination).
+"""PubPlant JSON array Protocol implementation (one GET, no pagination).
 
-Fetches a single JSON document whose top level is an array of inline JSON-LD
-records (e.g. the PlabiPD/PubPlant ``genomes.json`` Schema.org dump) and yields
-one inline ``JsonLdDiscoveryResult`` per array element.
+Fetches the PlabiPD/PubPlant ``genomes.json`` Schema.org dump (produced by
+``usadellab/pubplant2schemaorg``), a single JSON document whose top level is an
+array of inline JSON-LD records, and yields one inline ``JsonLdDiscoveryResult``
+per array element.
 
 Array handling is shared with other JSON array sources (``JsonArrayProtocol``);
 this Protocol only adds the single-GET page source and a content-hash identity,
-because records in such dumps need not carry a unique ``@id``.
-Nothing here is RDI-specific: the array URL is ``config.sitemap_url``.
+because PubPlant records share publication DOIs and carry no unique ``@id``.
+The array URL is ``config.sitemap_url``.
 """
 
 from __future__ import annotations
@@ -24,17 +25,20 @@ from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 
 
-@Protocol.register(ProtocolType.static_json_array)
-class StaticJsonArrayProtocol(JsonArrayProtocol):
-    """Protocol for a single, non-paginated JSON array of JSON-LD records."""
+@Protocol.register(ProtocolType.pubplant_json_array)
+class PubPlantJsonArrayProtocol(JsonArrayProtocol):
+    """Protocol for the PubPlant single, non-paginated JSON array of JSON-LD records."""
 
-    record_id_prefix = "static_json_array"
-    source_label = "Static JSON array"
+    record_id_prefix = "pubplant_json_array"
+    source_label = "PubPlant JSON array"
 
-    async def get_expected_count(self) -> int | None:
-        """Return the exact record count; the whole array is fetched in one shot."""
-        array = await self._fetch_array(self.config.sitemap_url, self._client)
-        return len(array)
+    async def get_expected_count(self) -> int | None:  # noqa: PLR6301
+        """Return None; counting would download the whole array a second time.
+
+        ``GenericPlugin.get_expected_datasets()`` and ``run()`` use separate
+        Protocol instances, so there is no single fetch to reuse.
+        """
+        return None
 
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
         yield (), await self._fetch_array(self.config.sitemap_url, client)
@@ -45,7 +49,7 @@ class StaticJsonArrayProtocol(JsonArrayProtocol):
     def _record_identifier(self, record: dict[str, object]) -> str:  # noqa: PLR6301
         """Build a stable, collision-safe identifier for a JSON-LD record.
 
-        Static JSON array sources may deliberately have several records share
+        PubPlant JSON array sources may deliberately have several records share
         the same ``@id``/``identifier`` value (e.g. one publication DOI
         describing several distinct genome records). Deriving identity from
         record content rather than array position keeps identifiers stable

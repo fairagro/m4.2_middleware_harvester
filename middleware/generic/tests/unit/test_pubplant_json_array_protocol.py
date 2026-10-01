@@ -1,4 +1,4 @@
-"""Unit tests for static JSON array Protocol discovery (single GET, no pagination)."""
+"""Unit tests for PubPlant JSON array Protocol discovery (single GET, no pagination)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import middleware.generic.plugin as plugin_mod
 from middleware.generic.config import Config, ProtocolType
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
-from middleware.generic.protocol.static_json_array import StaticJsonArrayProtocol
+from middleware.generic.protocol.pubplant_json_array import PubPlantJsonArrayProtocol
 from middleware.harvester.errors import RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.harvester.plugin_base import HarvestedArc
@@ -25,7 +25,7 @@ _ARRAY_URL = "https://example.org/genomes.json"
 
 def _config(url: str = _ARRAY_URL) -> Config:
     return Config(
-        protocol_type=ProtocolType.static_json_array,
+        protocol_type=ProtocolType.pubplant_json_array,
         sitemap_url=url,
         http=NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None),
     )
@@ -40,11 +40,11 @@ def _transport_for(body: object) -> httpx.MockTransport:
 
 async def _discover(body: object) -> list[object]:
     async with NiceHttpClient(_config().http, transport=_transport_for(body)) as client:
-        return [result async for result in StaticJsonArrayProtocol(_config(), client).discover()]
+        return [result async for result in PubPlantJsonArrayProtocol(_config(), client).discover()]
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_single_get_yields_one_result_per_element() -> None:
+async def test_pubplant_json_array_protocol_single_get_yields_one_result_per_element() -> None:
     records = [
         {"@id": "https://doi.org/10.1/a", "name": "A"},
         {"@id": "https://doi.org/10.1/b", "name": "B"},
@@ -57,7 +57,7 @@ async def test_static_json_array_protocol_single_get_yields_one_result_per_eleme
 
     async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
         protocol = GenericPlugin.create_protocol(_config(), client=client)
-        assert isinstance(protocol, StaticJsonArrayProtocol)
+        assert isinstance(protocol, PubPlantJsonArrayProtocol)
         results = [result async for result in protocol.discover()]
 
     assert calls["n"] == 1
@@ -74,39 +74,39 @@ async def test_static_json_array_protocol_single_get_yields_one_result_per_eleme
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_raises_on_non_array_payload() -> None:
+async def test_pubplant_json_array_protocol_raises_on_non_array_payload() -> None:
     with pytest.raises(GenericProtocolError, match="JSON array"):
         await _discover({"records": []})
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_raises_on_invalid_json() -> None:
+async def test_pubplant_json_array_protocol_raises_on_invalid_json() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text="not json")
 
     async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
-        protocol = StaticJsonArrayProtocol(_config(), client)
+        protocol = PubPlantJsonArrayProtocol(_config(), client)
         with pytest.raises(GenericProtocolError, match="Failed to fetch/parse"):
             _ = [result async for result in protocol.discover()]
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_yields_failure_for_non_object_elements() -> None:
+async def test_pubplant_json_array_protocol_yields_failure_for_non_object_elements() -> None:
     results = await _discover(["not-an-object", 42, {"@id": "https://doi.org/10.1/ok", "name": "Ok"}])
 
     assert len(results) == 3
     assert isinstance(results[0], RecordProcessingError)
-    assert results[0].record_id == "static_json_array:index=0"
+    assert results[0].record_id == "pubplant_json_array:index=0"
     assert "str" in str(results[0])
     assert isinstance(results[1], RecordProcessingError)
-    assert results[1].record_id == "static_json_array:index=1"
+    assert results[1].record_id == "pubplant_json_array:index=1"
     assert "int" in str(results[1])
     assert isinstance(results[2], JsonLdDiscoveryResult)
     assert results[2].identifier.startswith(f"{LinkedDataMapper.sanitize_identifier('https://doi.org/10.1/ok')}:")
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_distinct_records_sharing_doi_are_both_discovered() -> None:
+async def test_pubplant_json_array_protocol_distinct_records_sharing_doi_are_both_discovered() -> None:
     shared_doi = "https://doi.org/10.1038/shared"
     results = await _discover([
         {"@id": shared_doi, "name": "Species A genome"},
@@ -122,7 +122,7 @@ async def test_static_json_array_protocol_distinct_records_sharing_doi_are_both_
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_identical_records_are_deduplicated() -> None:
+async def test_pubplant_json_array_protocol_identical_records_are_deduplicated() -> None:
     record = {"@id": "https://doi.org/10.1/dup", "name": "Same"}
     results = await _discover([dict(record), dict(record)])
 
@@ -132,7 +132,7 @@ async def test_static_json_array_protocol_identical_records_are_deduplicated() -
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_identifier_stable_across_reordering() -> None:
+async def test_pubplant_json_array_protocol_identifier_stable_across_reordering() -> None:
     record_a = {"@id": "https://doi.org/10.1/a", "name": "A"}
     record_b = {"@id": "https://doi.org/10.1/b", "name": "B"}
 
@@ -145,19 +145,25 @@ async def test_static_json_array_protocol_identifier_stable_across_reordering() 
 
 
 @pytest.mark.asyncio
-async def test_static_json_array_protocol_expected_count_returns_array_length() -> None:
-    records = [{"@id": f"https://doi.org/10.1/{i}", "name": str(i)} for i in range(5)]
-    async with NiceHttpClient(_config().http, transport=_transport_for(records)) as client:
-        count = await StaticJsonArrayProtocol(_config(), client).get_expected_count()
+async def test_pubplant_json_array_protocol_expected_count_is_unknown_without_fetching() -> None:
+    requests: list[httpx.Request] = []
 
-    assert count == 5
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json=[])
+
+    async with NiceHttpClient(_config().http, transport=httpx.MockTransport(handler)) as client:
+        count = await PubPlantJsonArrayProtocol(_config(), client).get_expected_count()
+
+    assert count is None
+    assert not requests
 
 
 @pytest.mark.asyncio
-async def test_generic_plugin_static_json_array_keeps_shared_doi_records_distinct(
+async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_distinct(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """static_json_array Protocol -> jsonld PayloadParser -> schema_org_general DataMapper.
+    """pubplant_json_array Protocol -> jsonld PayloadParser -> schema_org_general DataMapper.
 
     Regression for the PlabiPD genomes.json shape (fairagro/m4_rdi_portfolio#7): several
     records legitimately share a DOI (one paper describing multiple species' genomes). All

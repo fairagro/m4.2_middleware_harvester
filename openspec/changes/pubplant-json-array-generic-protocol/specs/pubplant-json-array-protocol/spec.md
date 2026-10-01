@@ -1,4 +1,4 @@
-# Static JSON Array Protocol
+# PubPlant JSON Array Protocol
 
 ## Purpose
 
@@ -7,15 +7,15 @@ PlabiPD/PubPlant `genomes.json`).
 
 ## ADDED Requirements
 
-### Requirement: Register a static_json_array Protocol
+### Requirement: Register a pubplant_json_array Protocol
 
-The system SHALL register a `Protocol` implementation under `ProtocolType.static_json_array`
-(`generic.protocol_type: static_json_array`) whose entry point is `generic.sitemap_url`.
+The system SHALL register a `Protocol` implementation under `ProtocolType.pubplant_json_array`
+(`generic.protocol_type: pubplant_json_array`) whose entry point is `generic.sitemap_url`.
 
-#### Scenario: static_json_array resolves from the registry
+#### Scenario: pubplant_json_array resolves from the registry
 
-- **WHEN** a generic repository sets `protocol_type: static_json_array`
-- **THEN** config validation and `GenericPlugin.create_protocol` resolve the static JSON array Protocol
+- **WHEN** a generic repository sets `protocol_type: pubplant_json_array`
+- **THEN** config validation and `GenericPlugin.create_protocol` resolve the PubPlant JSON array Protocol
 
 ### Requirement: Fetch the whole array in one request
 
@@ -34,7 +34,7 @@ For each object element the Protocol SHALL yield a `JsonLdDiscoveryResult` whose
 `identifier` and `harvest_source_id` are
 `sanitize_identifier(@id or identifier) + ":" + <16 hex chars of the SHA-256 of the element's canonical JSON>` (only the
 hash when no id is present). A non-object element SHALL yield a `RecordProcessingError` with record id
-`static_json_array:index=<n>` without stopping discovery.
+`pubplant_json_array:index=<n>` without stopping discovery.
 
 #### Scenario: Records sharing a DOI stay distinct
 
@@ -51,11 +51,13 @@ hash when no id is present). A non-object element SHALL yield a `RecordProcessin
 - **WHEN** the same records are served in a different order
 - **THEN** the set of discovered identifiers is unchanged
 
-### Requirement: Expected count is the array length
+### Requirement: Expected count is unknown
 
-The Protocol SHALL report the number of array elements as the expected count.
+The Protocol SHALL report no expected count and SHALL NOT fetch the array to compute one, because
+`GenericPlugin.get_expected_datasets()` and `run()` use separate Protocol instances and counting would download the
+whole array a second time.
 
-#### Scenario: Five records
+#### Scenario: No extra fetch for the count
 
-- **WHEN** the array has 5 elements
-- **THEN** `get_expected_count()` returns 5
+- **WHEN** `get_expected_count()` is called
+- **THEN** it returns `None` without issuing an HTTP request

@@ -10,13 +10,13 @@ PUBLISSO FRL). It is the generic counterpart of the `linked_data` `regal_find` s
 
 ### Requirement: JSON array Protocols share one base
 
-`static_json_array` and `regal_find` SHALL both derive from a shared `JsonArrayProtocol` base. The base owns JSON array
+`pubplant_json_array` and `regal_find` SHALL both derive from a shared `JsonArrayProtocol` base. The base owns JSON array
 validation, per-element failure reporting and inline `JsonLdDiscoveryResult` yielding. Subclasses provide only the page
 source (`_pages`) and the record identity (`_record_identifier`).
 
 #### Scenario: Both protocols use the base
 
-- **WHEN** the registry resolves `static_json_array` or `regal_find`
+- **WHEN** the registry resolves `pubplant_json_array` or `regal_find`
 - **THEN** the resolved class is a `JsonArrayProtocol` subclass
 
 #### Scenario: Non-object element
