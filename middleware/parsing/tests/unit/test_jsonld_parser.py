@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from rdflib import Literal, URIRef
-from rdflib.namespace import DCTERMS
+from rdflib.namespace import DCTERMS, RDF
 
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
@@ -92,6 +92,46 @@ async def test_jsonld_parser_rejects_payload_yielding_empty_graph() -> None:
 )
 async def test_jsonld_parser_rejects_remote_context(context: object) -> None:
     payload: dict[str, object] = {"@context": context, "@id": _SUBJECT, "title": "Dataset One"}
+    with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+        await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "context",
+    [
+        "http://schema.org",
+        "https://schema.org/",
+        ["https://schema.org", {"sdoName": "http://schema.org/name"}],
+    ],
+)
+async def test_jsonld_parser_localizes_schemaorg_context_without_fetching(
+    context: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _no_fetch(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("remote @context must not be fetched")
+
+    monkeypatch.setattr("rdflib.plugins.shared.jsonld.context.source_to_json", _no_fetch)
+    payload: dict[str, object] = {"@context": context, "@id": _SUBJECT, "@type": "Dataset", "name": "Genome"}
+
+    parsed = await JsonLdParser().parse(
+        JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None
+    )
+
+    assert (URIRef(_SUBJECT), URIRef("http://schema.org/name"), Literal("Genome")) in parsed.value
+    assert (URIRef(_SUBJECT), RDF.type, URIRef("http://schema.org/Dataset")) in parsed.value
+    assert payload["@context"] == context
+
+
+@pytest.mark.asyncio
+async def test_jsonld_parser_rejects_remote_context_alongside_schemaorg() -> None:
+    payload: dict[str, object] = {
+        "@context": ["https://schema.org", "https://example.org/context.jsonld"],
+        "@id": _SUBJECT,
+        "name": "Genome",
+    }
     with pytest.raises(ParserError, match="Remote JSON-LD @context"):
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload), client=None, config=None

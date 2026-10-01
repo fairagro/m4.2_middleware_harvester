@@ -11,10 +11,13 @@ from rdflib import Graph
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 from middleware.parsing.errors import ParserError
+from middleware.parsing.jsonld_validation import SCHEMAORG_CONTEXTS
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.parsed_payload import ParsedPayload
+
+_LOCAL_SCHEMAORG_CONTEXT: dict[str, str] = {"@vocab": "http://schema.org/"}
 
 
 @PayloadParser.register(ParserType.jsonld)
@@ -23,7 +26,10 @@ class JsonLdParser(PayloadParser):
 
     Vocabulary-agnostic (DCAT-AP, Schema.org, …): no ``@context`` allowlist is
     applied. Remote context references (string ``@context`` / ``@import``) are
-    rejected so parsing never triggers network retrieval.
+    rejected so parsing never triggers network retrieval, with one exception:
+    a top-level Schema.org context IRI (e.g. ``"http://schema.org"``) is
+    replaced by the local ``{"@vocab": "http://schema.org/"}`` instead of being
+    fetched.
     """
 
     produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
@@ -41,10 +47,11 @@ class JsonLdParser(PayloadParser):
             raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
         if not discovery_result.payload:
             raise ParserError(f"Missing JSON-LD payload for {discovery_result.identifier}")
-        if _has_remote_context(discovery_result.payload):
+        document = _localize_schemaorg_context(discovery_result.payload)
+        if _has_remote_context(document):
             raise ParserError(f"Remote JSON-LD @context is not supported for {discovery_result.identifier}")
 
-        data = json.dumps(discovery_result.payload)
+        data = json.dumps(document)
         threshold = int(getattr(config, "jsonld_parse_threshold_bytes", 65536))
         if len(data.encode("utf-8")) > threshold:
             graph = await asyncio.to_thread(self._parse, data, discovery_result.identifier)
@@ -62,6 +69,24 @@ class JsonLdParser(PayloadParser):
         except Exception as exc:  # noqa: BLE001
             raise ParserError(f"Failed to parse JSON-LD for {identifier}: {exc}") from exc
         return graph
+
+
+def _localize_schemaorg_context(payload: dict[str, object]) -> dict[str, object]:
+    """Return ``payload`` with top-level Schema.org context IRIs swapped for a local ``@vocab``.
+
+    Only exact Schema.org IRIs are replaced (as a string ``@context`` or as a list
+    entry); any other remote reference is kept so it is still rejected.
+    """
+    context = payload.get("@context")
+    if isinstance(context, str) and context in SCHEMAORG_CONTEXTS:
+        return {**payload, "@context": _LOCAL_SCHEMAORG_CONTEXT}
+    if isinstance(context, list) and any(isinstance(item, str) and item in SCHEMAORG_CONTEXTS for item in context):
+        localized = [
+            _LOCAL_SCHEMAORG_CONTEXT if isinstance(item, str) and item in SCHEMAORG_CONTEXTS else item
+            for item in context
+        ]
+        return {**payload, "@context": localized}
+    return payload
 
 
 def _has_remote_context(value: Any) -> bool:

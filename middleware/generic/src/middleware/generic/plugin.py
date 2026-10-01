@@ -16,13 +16,15 @@ from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bo
 from middleware.generic.protocol import (
     dcat_ap as _register_dcat_ap_protocol,
     mycore_solr as _register_mycore_solr_protocol,
+    pubplant_json_array as _register_pubplant_json_array_protocol,
+    regal_find as _register_regal_find_protocol,
     xml as _register_xml_protocol,
 )
 from middleware.generic.protocol.protocol import Protocol, ProtocolType
 from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.harvester.plugin_base import HarvestedArc
-from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
@@ -39,6 +41,8 @@ _ = (
     _register_xml_protocol,
     _register_mycore_solr_protocol,
     _register_dcat_ap_protocol,
+    _register_pubplant_json_array_protocol,
+    _register_regal_find_protocol,
     _register_builtin_mappers,
 )
 
@@ -114,6 +118,8 @@ class GenericPlugin:
         harvest_source_id: str | None = None
         if isinstance(discovery_result, UrlDiscoveryResult):
             source_url = discovery_result.url
+            harvest_source_id = discovery_result.harvest_source_id
+        elif isinstance(discovery_result, JsonLdDiscoveryResult):
             harvest_source_id = discovery_result.harvest_source_id
 
         parser = self._parser_cls()

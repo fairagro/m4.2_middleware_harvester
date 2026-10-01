@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from typing import Any
 
 # Known Schema.org contexts (http and https variants)
-_SCHEMAORG_CONTEXTS: frozenset[str] = frozenset({
+SCHEMAORG_CONTEXTS: frozenset[str] = frozenset({
     "https://schema.org/",
     "http://schema.org/",
     "https://schema.org",
@@ -23,7 +23,7 @@ _KNOWN_EXTENSION_CONTEXTS: frozenset[str] = frozenset({
 })
 
 # Combined allowlist: Schema.org + known extensions
-SCHEMAORG_CONTEXT_ALLOWLIST: frozenset[str] = _SCHEMAORG_CONTEXTS | _KNOWN_EXTENSION_CONTEXTS
+SCHEMAORG_CONTEXT_ALLOWLIST: frozenset[str] = SCHEMAORG_CONTEXTS | _KNOWN_EXTENSION_CONTEXTS
 
 
 class JsonLdContextError(Exception):
