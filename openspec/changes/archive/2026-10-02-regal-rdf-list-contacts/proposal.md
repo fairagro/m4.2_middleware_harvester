@@ -1,9 +1,9 @@
 ## Why
 
-Every Publisso ARC is published without authors or contributors (92/92 records in the 2026-10-02 DataHUB export), although
-the source lists them with ORCIDs. The Publisso context declares `creator` / `contributor` as `@list`, so rdflib emits one
-triple per predicate pointing at an `rdf:List` head. `RegalMapper._add_contacts` treated that head as the agent, found no
-`skos:prefLabel` and returned silently.
+Every Publisso ARC is published without authors or contributors (92/92 records in the 2026-10-02 DataHUB export),
+although the source lists them with ORCIDs. The Publisso context declares `creator` / `contributor` as `@list`, so
+rdflib emits one triple per predicate pointing at an `rdf:List` head. `RegalMapper._add_contacts` treated that head as
+the agent, found no `skos:prefLabel` and returned silently.
 
 Tracked as GitHub [#403](https://github.com/fairagro/m4.2_middleware_harvester/issues/403).
 
@@ -33,5 +33,5 @@ Tracked as GitHub [#403](https://github.com/fairagro/m4.2_middleware_harvester/i
 
 - `middleware/payload/.../linked_data_mapper/stable_graph.py`, `regal_mapper.py`; unit tests + fixture
   `regal_frl_6420709.json`.
-- Live check (92 `/find` records): 0 → 406 author and 76 contributor Persons, 9 organization `Contributor` Comments,
-  0 failures. Existing Publisso ARCs change content and are re-pushed once.
+- Live check (92 `/find` records): 0 → 406 author and 76 contributor Persons, 9 organization `Contributor` Comments, 0
+  failures. Existing Publisso ARCs change content and are re-pushed once.
