@@ -310,6 +310,36 @@ class ResourceView:  # noqa: PLR0904  # pylint: disable=too-many-public-methods
                 results.append(LabelledNode(StableText(label), None))
         return results
 
+    @property
+    def is_list(self) -> bool:
+        """Whether this subject is an ``rdf:List`` (``rdf:nil`` or a node with ``rdf:first``)."""
+        if self._subject == RDF.nil:
+            return True
+        return (self._subject, RDF.first, None) in self._stable.graph
+
+    def list_members(self, *predicates: Node) -> list[Node]:
+        """Members of ``rdf:List`` objects of ``predicates``, in list order.
+
+        JSON-LD ``@container: @list`` values parse to one triple pointing at a
+        list head; list order is source order and MUST be kept (e.g. author
+        order). Several list heads are concatenated in :meth:`StableGraph.sort_key`
+        order. Non-list objects are ignored; malformed or cyclic lists stop at
+        the first missing ``rdf:rest`` or revisited node.
+        """
+        graph = self._stable.graph
+        heads = [obj for obj in self._all_objects(*predicates) if ResourceView(self._stable, obj).is_list]
+        members: list[Node] = []
+        for head in sorted(heads, key=self._stable.sort_key):
+            node: Node | None = head
+            seen: set[Node] = set()
+            while node is not None and node != RDF.nil and node not in seen:
+                seen.add(node)
+                first = graph.value(node, RDF.first)
+                if first is not None:
+                    members.append(first)
+                node = graph.value(node, RDF.rest)
+        return members
+
     def http_iri(self) -> str | None:
         """HTTP(S) IRI of this subject; blank node → None."""
         return http_iri(self._subject)

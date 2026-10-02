@@ -5,6 +5,7 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import override
 from urllib.parse import quote, urlparse
@@ -34,6 +35,8 @@ from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, Res
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.person_contacts import require_nonempty_person_given_names
+
+logger = logging.getLogger(__name__)
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
@@ -388,15 +391,21 @@ class _RegalRun:
         affiliation: str | None,
     ) -> None:
         view = self.view(subject)
-        # Literals then resources, each in StableGraph order — never rdflib iteration order.
-        for lit in view.literals(DCTERMS.creator):
-            self._append_contact_from_label(inv, lit.value, "author", affiliation=affiliation, node_id=None)
-        for res in view.resources(DCTERMS.creator):
-            self._append_contact_from_resource(inv, res, "author", affiliation=affiliation)
-        for lit in view.literals(DCTERMS.contributor):
-            self._append_contact_from_label(inv, lit.value, "contributor", affiliation=affiliation, node_id=None)
-        for res in view.resources(DCTERMS.contributor):
-            self._append_contact_from_resource(inv, res, "contributor", affiliation=affiliation)
+        for role, predicate in (("author", DCTERMS.creator), ("contributor", DCTERMS.contributor)):
+            # Direct literals, then rdf:List members (JSON-LD @list, source order), then direct
+            # resources; direct values in StableGraph order — never rdflib iteration order.
+            for lit in view.literals(predicate):
+                self._append_contact_from_label(inv, lit.value, role, affiliation=affiliation, node_id=None)
+            for member in view.list_members(predicate):
+                if isinstance(member, Literal):
+                    label = str(member).strip()
+                    if label:
+                        self._append_contact_from_label(inv, label, role, affiliation=affiliation, node_id=None)
+                    continue
+                self._append_contact_from_resource(inv, self.view(member), role, affiliation=affiliation)
+            for res in view.resources(predicate):
+                if not res.is_list:
+                    self._append_contact_from_resource(inv, res, role, affiliation=affiliation)
 
     def _append_contact_from_label(
         self,
@@ -429,6 +438,11 @@ class _RegalRun:
     ) -> None:
         pref_label = res.text(SKOS.prefLabel) or ""
         if not pref_label:
+            logger.warning(
+                "Regal %s entry %s has no skos:prefLabel; skipping contact",
+                role,
+                res.iri or "(blank node)",
+            )
             return
         self._append_contact_from_label(
             inv,
@@ -495,9 +509,10 @@ class _RegalRun:
         if doi:
             authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
             author_strs: list[str] = []
+            # "F. Last" (no commas): the RO-Crate writer splits Publication authors on ",".
             for person in authors:
                 if person.FirstName and person.LastName:
-                    author_strs.append(f"{person.LastName}, {person.FirstName[0]}.")
+                    author_strs.append(f"{person.FirstName[0]}. {person.LastName}")
                 elif person.LastName:
                     author_strs.append(person.LastName)
             inv.Publications.append(

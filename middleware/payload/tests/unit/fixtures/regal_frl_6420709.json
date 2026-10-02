@@ -1,0 +1,75 @@
+{
+  "@context": {
+    "title": {
+      "@id": "http://purl.org/dc/terms/title"
+    },
+    "contentType": {
+      "@id": "http://hbz-nrw.de/regal#contentType"
+    },
+    "doi": {
+      "@id": "http://hbz-nrw.de/regal#doi"
+    },
+    "issued": {
+      "@id": "http://purl.org/dc/terms/issued"
+    },
+    "rdftype": {
+      "@type": "@id",
+      "@id": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+      "@container": "@set"
+    },
+    "creator": {
+      "@type": "@id",
+      "@id": "http://purl.org/dc/terms/creator",
+      "@container": "@list"
+    },
+    "contributorOrder": {
+      "@id": "http://purl.org/lobid/lv#contributorOrder",
+      "@container": "@list"
+    },
+    "prefLabel": {
+      "@id": "http://www.w3.org/2004/02/skos/core#prefLabel"
+    }
+  },
+  "@id": "frl:6420709",
+  "title": [
+    "High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn"
+  ],
+  "contentType": "researchData",
+  "doi": "10.4126/FRL01-006420709",
+  "issued": "2020",
+  "rdftype": [
+    {
+      "prefLabel": "Forschungsdaten",
+      "@id": "http://hbz-nrw.de/regal#ResearchData"
+    }
+  ],
+  "creator": [
+    {
+      "prefLabel": "Janke, David",
+      "@id": "https://orcid.org/0000-0002-4211-3404"
+    },
+    {
+      "prefLabel": "Willink, Dilya",
+      "@id": "https://frl.publisso.de/adhoc/uri/V2lsbGluaywgRGlseWE="
+    },
+    {
+      "prefLabel": "Hempel, Sabrina",
+      "@id": "https://orcid.org/0000-0002-8398-4820"
+    },
+    {
+      "prefLabel": "Amon, Barbara",
+      "@id": "https://orcid.org/0000-0001-5650-1806"
+    },
+    {
+      "prefLabel": "Römer, Anke",
+      "@id": "https://frl.publisso.de/adhoc/uri/UsO2bWVyLCBBbmtl"
+    },
+    {
+      "prefLabel": "Amon, Thomas",
+      "@id": "https://orcid.org/0000-0003-2468-3160"
+    }
+  ],
+  "contributorOrder": [
+    "https://orcid.org/0000-0002-4211-3404 | https://frl.publisso.de/adhoc/uri/V2lsbGluaywgRGlseWE= | https://orcid.org/0000-0002-8398-4820 | https://orcid.org/0000-0001-5650-1806 | https://frl.publisso.de/adhoc/uri/UsO2bWVyLCBBbmtl | https://orcid.org/0000-0003-2468-3160"
+  ]
+}

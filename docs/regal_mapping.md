@@ -67,7 +67,8 @@ context is noted. Labelled nodes typically expose `prefLabel` (`skos:prefLabel`)
 
 ### 3. Agents (creators, contributors, institutions)
 
-Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@id` is often an ORCID URI.
+Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@id` is often an ORCID URI. `creator` /
+`contributor` are `@list` values (one triple to an `rdf:List`); Contacts keep the list (source) order.
 
 | Regal Field            | Context / IRI (typical)         | Description                                             | ARC Mapping                                                                                                                                                                                           |
 | ---------------------- | ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -214,6 +215,7 @@ See §3. Prefer ORCID `@id` preservation. Do not invent emails or affiliations R
 ### Publications
 
 - Primary: `doi` → `Publication` with Investigation title and author string derived from creator contacts
+  (`F. Last; F. Last`, no commas — the RO-Crate writer splits authors on `,`)
 - Secondary: `associatedPublication` URIs → Publication or Investigation comment with URI
 
 ## Special Cases and Limitations

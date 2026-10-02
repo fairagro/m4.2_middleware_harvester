@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
+from rdflib.term import Node
 
 from middleware.payload.linked_data_mapper.regal_mapper import (
     DBO,
@@ -533,3 +536,90 @@ def test_regal_mapper_has_no_private_string_hygiene_helpers() -> None:
     module_source = inspect.getsource(module)
     for name in forbidden:
         assert f"def {name}(" not in module_source
+
+
+_FRL_6420709_FIXTURE = Path(__file__).parent / "fixtures" / "regal_frl_6420709.json"
+
+
+def _rdf_list(graph: Graph, items: list[Node]) -> Node:
+    """Build an ``rdf:List`` of ``items`` (as JSON-LD ``@list`` parses) and return its head."""
+    head: Node = RDF.nil
+    for item in reversed(items):
+        cell = BNode()
+        graph.add((cell, RDF.first, item))
+        graph.add((cell, RDF.rest, head))
+        head = cell
+    return head
+
+
+def _contacts_with_roles(arc_json: str) -> list[tuple[str, str, str]]:
+    """Return (family, given, role @id) for Investigation contacts, in RO-Crate order."""
+    contacts: list[tuple[str, str, str]] = []
+    for item in json.loads(arc_json).get("@graph", []):
+        if item.get("@type") != "Person" or "jobTitle" not in item:
+            continue
+        contacts.append((item.get("familyName", ""), item.get("givenName", ""), item["jobTitle"]["@id"]))
+    return contacts
+
+
+def test_regal_mapper_maps_real_publisso_creator_list_in_order() -> None:
+    """frl:6420709 (live /find payload, inline context): @list creators keep order and ORCIDs (#403)."""
+    graph = Graph().parse(data=_FRL_6420709_FIXTURE.read_bytes(), format="json-ld")
+    assert len(list(graph.objects(None, DCTERMS.creator))) == 1  # one triple → rdf:List head
+
+    arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [
+        ("Janke", "David", "#OA_author"),
+        ("Willink", "Dilya", "#OA_author"),
+        ("Hempel", "Sabrina", "#OA_author"),
+        ("Amon", "Barbara", "#OA_author"),
+        ("Römer", "Anke", "#OA_author"),
+        ("Amon", "Thomas", "#OA_author"),
+    ]
+    orcids = {
+        item["familyName"] + ", " + item["givenName"]: item.get("disambiguatingDescription", "")
+        for item in json.loads(arc_json)["@graph"]
+        if item.get("@type") == "Person" and "jobTitle" in item
+    }
+    assert "https://orcid.org/0000-0002-4211-3404" in orcids["Janke, David"]
+    assert "https://orcid.org/0000-0003-2468-3160" in orcids["Amon, Thomas"]
+    assert not orcids["Willink, Dilya"]
+    assert not orcids["Römer, Anke"]
+    assert "D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon" in arc_json
+
+
+def test_regal_mapper_contributor_list_maps_persons_and_org_comment() -> None:
+    graph = _base_graph()
+    person = URIRef("https://orcid.org/0000-0002-8398-4820")
+    org = URIRef("https://frl.publisso.de/adhoc/uri/TkZESTRIZWFsdGg=")
+    graph.add((person, SKOS.prefLabel, Literal("Hempel, Sabrina")))
+    graph.add((org, SKOS.prefLabel, Literal("NFDI4Health")))
+    graph.add((SUBJECT, DCTERMS.contributor, _rdf_list(graph, [person, org])))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [("Hempel", "Sabrina", "#OA_contributor")]
+    assert ("Contributor", f"NFDI4Health ({org})") in _comment_entries(arc_json)
+
+
+def test_regal_mapper_empty_creator_list_maps_no_contacts(caplog: pytest.LogCaptureFixture) -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [])))
+
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+    assert not _contacts_with_roles(arc_json)
+    assert not caplog.records
+
+
+def test_regal_mapper_unlabelled_creator_list_member_warns(caplog: pytest.LogCaptureFixture) -> None:
+    graph = _base_graph()
+    labelled = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((labelled, SKOS.prefLabel, Literal("Fuerst, Julia")))
+    graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [BNode(), labelled])))
+
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [("Fuerst", "Julia", "#OA_author")]
+    assert [r.getMessage() for r in caplog.records] == [
+        "Regal author entry (blank node) has no skos:prefLabel; skipping contact"
+    ]
