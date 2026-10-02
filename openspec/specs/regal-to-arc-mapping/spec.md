@@ -161,8 +161,8 @@ mapper. Authoritative field placement remains [`docs/regal_mapping.md`](../../..
 When multiple RDF objects contribute to hash-relevant ARC content (Investigation Contacts from `dcterms:creator` /
 `dcterms:contributor`, multi-value string fields joined into Comments or protocol parameters, labelled keyword /
 institution lists, and opaque Investigation Comments for unknown predicates), `RegalMapper` MUST emit a deterministic
-order that does not depend on rdflib iteration order or parser-local blank-node labels. Implementing
-`regal:contributorOrder`-based Contact sorting remains optional and out of scope for this requirement.
+order that does not depend on rdflib iteration order or parser-local blank-node labels. `contributorOrder` is not used
+for Contact sorting (see the contributorOrder requirement).
 
 #### Scenario: Creator blank-node order permutation yields same Contacts
 
@@ -247,10 +247,17 @@ remain after the ResourceView migration.
 
 ### Requirement: Regal contributorOrder MUST NOT become an Investigation Comment
 
-The predicate `http://hbz-nrw.de/regal#contributorOrder` (`regal:contributorOrder`) MUST be treated as known mapping
-metadata and MUST NOT be emitted as an opaque Investigation Comment. Per
-[`docs/regal_mapping.md`](../../../docs/regal_mapping.md), `contributorOrder` is intended to order Contacts when stable
-order keys are available; implementing that ordering is optional and MUST NOT use blank-node strings as order keys.
+The predicates `http://purl.org/lobid/lv#contributorOrder` (`lv:contributorOrder`, what the Publisso context declares,
+as `@list`) and `http://hbz-nrw.de/regal#contributorOrder` (`regal:contributorOrder`) MUST be treated as known mapping
+metadata and MUST NOT be emitted as an opaque Investigation Comment, whether the value is a literal, an `rdf:List` or a
+blank node. `contributorOrder` MUST NOT be used to sort Contacts: in Publisso data it repeats the creator (then
+contributor) `@list` order, which Contacts already keep.
+
+#### Scenario: lv:contributorOrder pipe-string does not create a Comment
+
+- **WHEN** a Regal ResearchData graph has `lv:contributorOrder` with a pipe-separated literal of agent IRIs, either
+  directly or as the member of a JSON-LD `@list` (real `/find` record `frl:6420709`)
+- **THEN** the mapped ARC MUST NOT contain an Investigation Comment named `contributorOrder` or the pipe-string
 
 #### Scenario: contributorOrder blank node does not create a Comment
 
