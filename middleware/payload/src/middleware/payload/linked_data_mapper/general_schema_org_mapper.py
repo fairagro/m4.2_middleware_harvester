@@ -40,7 +40,7 @@ from middleware.payload.linked_data_mapper.stable_graph import (
 )
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 
 logger = logging.getLogger(__name__)
@@ -438,20 +438,10 @@ class _SchemaOrgRun:
 
     def _add_publications(self, inv: ArcInvestigation, subject: Node, *, title: str, doi: str | None) -> None:
         if doi:
-            authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
-            author_strs: list[str] = []
-            for p in authors:
-                if p.FirstName and p.LastName:
-                    author_strs.append(f"{p.FirstName[0]}. {p.LastName}")
-                elif p.LastName:
-                    author_strs.append(p.LastName)
-                elif p.FirstName:
-                    author_strs.append(p.FirstName)
-
             inv.Publications.append(
                 Publication.create(
                     title=title,
-                    authors="; ".join(author_strs) if author_strs else None,
+                    authors=publication_authors(inv),
                     doi=doi,
                 )
             )

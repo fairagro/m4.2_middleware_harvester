@@ -338,6 +338,8 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 - Extract from aggregationInfo (related datasets/papers)
 - **Title**: From citation or aggregationInfo
 - **DOI**: Extracted from identifier
+- **Authors**: Contacts with role `author` (NCIT `Author`), in contact order, as `F. Last; F. Last` — no commas, because
+  the RO-Crate writer splits Publication authors on `,`
 - **Comments**: Explain if from aggregationInfo (link to related dataset)
 
 ## Special Cases and Limitations

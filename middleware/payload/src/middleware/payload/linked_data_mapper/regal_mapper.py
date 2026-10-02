@@ -34,7 +34,7 @@ from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataM
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
 
 logger = logging.getLogger(__name__)
 
@@ -507,18 +507,10 @@ class _RegalRun:
         doi: str | None,
     ) -> None:
         if doi:
-            authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
-            author_strs: list[str] = []
-            # "F. Last" (no commas): the RO-Crate writer splits Publication authors on ",".
-            for person in authors:
-                if person.FirstName and person.LastName:
-                    author_strs.append(f"{person.FirstName[0]}. {person.LastName}")
-                elif person.LastName:
-                    author_strs.append(person.LastName)
             inv.Publications.append(
                 Publication.create(
                     title=title,
-                    authors="; ".join(author_strs) if author_strs else None,
+                    authors=publication_authors(inv),
                     doi=doi,
                 )
             )
