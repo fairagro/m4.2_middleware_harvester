@@ -173,6 +173,8 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     assert len(inv.Publications) == 1
     pub = inv.Publications[0]
     assert pub.DOI == "10.1234/doi"
+    # Role "author" maps to NCIT "Author"; the author filter must still match (#420).
+    assert pub.Authors == "J. Doe"
 
     # Check Comments (Metadata fields)
     comment_names = [c.Name for c in inv.Comments]
@@ -794,8 +796,7 @@ def test_add_publications(mapper: InspireMapper) -> None:
     # Check DOI publication
     doi_pub = next(p for p in inv.Publications if p.DOI == "10.1234/doi")
     assert doi_pub.Title == "Test Dataset"
-    # Note: Authors field is not set in current implementation
-    assert doi_pub.Authors is None
+    assert doi_pub.Authors == "J. Doe"
 
     # Check ISBN publication
     isbn_pub = next(p for p in inv.Publications if p.DOI == "ISBN:123456789")

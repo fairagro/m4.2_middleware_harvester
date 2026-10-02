@@ -29,7 +29,7 @@ from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 
 # Map INSPIRE role codes to ontology terms / Comment names.
@@ -269,15 +269,7 @@ class InspireMapper(DataMapper[MappingContext]):
     @staticmethod
     def _add_publications(inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add publications from resource_identifiers, enriching with investigation metadata."""
-        # Get authors from the investigation's contacts and format them as a string
-        authors_list = [
-            p for p in inv.Contacts if any(hasattr(role, "Name") and role.Name == "author" for role in p.Roles)
-        ]
-        author_strings = []
-        for p in authors_list:
-            first_initial = f"{p.FirstName[0]}." if p.FirstName else ""
-            author_strings.append(f"{p.LastName}, {first_initial}")
-        authors_str = "; ".join(author_strings) if author_strings else None
+        authors_str = publication_authors(inv)
         for res_id in record.resource_identifiers:
             codespace_str = str(res_id.codespace) if res_id.codespace else ""
             if res_id.code and (

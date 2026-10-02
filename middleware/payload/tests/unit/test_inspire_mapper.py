@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.inspire.mapper import InspireMapper
-from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.inspire.models import Contact, InspireRecord, ResourceIdentifier
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
@@ -86,3 +88,29 @@ def test_map_rejects_wrong_kind() -> None:
                 )
             )
         )
+
+
+def test_publication_authors_survive_ro_crate_serialization() -> None:
+    """Authors use "F. Last" so the RO-Crate writer's comma split cannot fragment them (#420)."""
+    record = _minimal_record(
+        contacts=[
+            Contact(name="John Doe", organization="Test Org", role="author"),
+            Contact(name="Rita Roe", organization="Test Org", role="author"),
+        ],
+        resource_identifiers=[ResourceIdentifier(code="10.1234/doi", codespace="DOI")],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    author_ids = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if str(item.get("@id", "")).startswith("#Author_")
+    ]
+    assert author_ids == ["#Author_J. Doe; R. Roe"]
