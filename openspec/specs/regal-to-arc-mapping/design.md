@@ -34,9 +34,10 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
    `docs/regal_mapping.md` and `person-contact-given-name`).
 
 6. **Opaque Comments never embed rdflib blank-node labels** — Unlabelled blank nodes are skipped; Literals, URIRefs, and
-   `skos:prefLabel` remain. `regal:contributorOrder` is known metadata (not an opaque Comment); Contact ordering via
-   that predicate is deferred until stable order keys are available. `creator` / `contributor` arrive as JSON-LD `@list`
-   (`rdf:List`); `ResourceView.list_members` yields them in list order, which is the authoritative author order.
+   `skos:prefLabel` remain. `lv:contributorOrder` (Publisso) / `regal:contributorOrder` are known metadata (not opaque
+   Comments) and are not used for sorting: they repeat the creator/contributor list order. `creator` / `contributor`
+   arrive as JSON-LD `@list` (`rdf:List`); `ResourceView.list_members` yields them in list order, which is the
+   authoritative author order.
 
 7. **ARC-bound RDF reads go through StableGraph / ResourceView** — Per-call `_RegalRun` wraps the graph with
    `label_predicates=(skos:prefLabel,)`. Private `_str` / `_strs` / `_labelled_nodes` helpers are not used. Multi-value,

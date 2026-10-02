@@ -17,6 +17,7 @@ from rdflib.term import Node
 
 from middleware.payload.linked_data_mapper.regal_mapper import (
     DBO,
+    LV,
     REGAL,
     RESEARCH_DATA_TYPE,
     RegalMapper,
@@ -539,6 +540,7 @@ def test_regal_mapper_has_no_private_string_hygiene_helpers() -> None:
 
 
 _FRL_6420709_FIXTURE = Path(__file__).parent / "fixtures" / "regal_frl_6420709.json"
+SUBJECT_FRL_6420709 = URIRef("frl:6420709")
 
 
 def _rdf_list(graph: Graph, items: list[Node]) -> Node:
@@ -623,3 +625,21 @@ def test_regal_mapper_unlabelled_creator_list_member_warns(caplog: pytest.LogCap
     assert [r.getMessage() for r in caplog.records] == [
         "Regal author entry (blank node) has no skos:prefLabel; skipping contact"
     ]
+
+
+def test_lv_contributor_order_literal_does_not_create_comment() -> None:
+    """Publisso's real predicate is lobid ``lv:contributorOrder`` (#419), not ``regal:``."""
+    graph = _base_graph()
+    graph.add((SUBJECT, LV.contributorOrder, Literal("https://orcid.org/0000-0002-4211-3404 | https://orcid.org/x")))
+
+    entries = _comment_entries(_mapped_arc_json(graph))
+    assert not any(name == "contributorOrder" for name, _ in entries)
+
+
+def test_real_publisso_contributor_order_list_is_not_a_comment() -> None:
+    graph = Graph().parse(data=_FRL_6420709_FIXTURE.read_bytes(), format="json-ld")
+    assert (SUBJECT_FRL_6420709, LV.contributorOrder, None) in graph
+
+    arc_json = _mapped_arc_json(graph)
+    assert not any(name == "contributorOrder" for name, _ in _comment_entries(arc_json))
+    assert "0000-0002-4211-3404 |" not in arc_json

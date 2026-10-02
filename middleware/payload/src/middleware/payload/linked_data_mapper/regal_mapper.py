@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
+LV = Namespace("http://purl.org/lobid/lv#")
 JOINED_FUNDING = URIRef("info:regal/regal/joinedFunding")
 RESEARCH_DATA_TYPE = REGAL.ResearchData
 
@@ -78,7 +79,9 @@ _KNOWN_PREDICATES = {
     REGAL.itemID,
     REGAL.associatedPublication,
     # Structural contact-order metadata (docs/regal_mapping.md); not an opaque Comment.
-    # TODO: when order keys are stable Literals/URIRefs, use them to sort Contacts.
+    # Publisso sends lv:contributorOrder; it repeats the creator/contributor @list order,
+    # which _add_contacts already keeps, so it is not used for sorting.
+    LV.contributorOrder,
     REGAL.contributorOrder,
 }
 
