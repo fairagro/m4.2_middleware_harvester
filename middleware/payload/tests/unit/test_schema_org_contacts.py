@@ -1,4 +1,4 @@
-"""Person ORCIDs in the Schema.org mapper (#405): from ``@id`` or ``identifier``, kept as ``Person.ORCID``."""
+"""Schema.org mapper contacts: ORCIDs as ``Person.ORCID`` (#405), one contact per person (#406)."""
 
 from __future__ import annotations
 
@@ -120,3 +120,69 @@ def test_same_orcid_as_author_and_contributor_is_one_contact() -> None:
         )
     )
     assert _contacts(arc_json) == [("Colmsee", COLMSEE, ["author", "contributor"])]
+
+
+def _edal_2011_0() -> str:
+    """Shape of 10.5447/ipk/2011/0: ``author`` = creators (some with ORCID) + contributors."""
+    creators = [
+        _person("Christian", "Colmsee"),
+        _person("Steffen", "Flemming"),
+        _person("Matthias", "Klapperstück"),
+        _person("Matthias", "Lange"),
+        _person("Uwe", "Scholz"),
+    ]
+    contributors = [
+        _person("Christian", "Friedrich"),
+        _person("Burkhard", "Steuernagel"),
+        _person("Stephan", "Weise"),
+    ]
+    authors = [
+        _edal_person("Christian", "Colmsee", COLMSEE),
+        _person("Steffen", "Flemming"),
+        _person("Matthias", "Klapperstück"),
+        _edal_person("Matthias", "Lange", LANGE),
+        _person("Uwe", "Scholz"),
+        *contributors,
+    ]
+    return _dataset(creator=creators, author=authors, contributor=[{**c} for c in contributors])
+
+
+def test_edal_authors_and_contributors_are_one_contact_per_person() -> None:
+    contacts = _contacts(_map(_edal_2011_0()))
+
+    assert len(contacts) == 8
+    assert sorted(contacts) == [
+        ("Colmsee", COLMSEE, ["author"]),
+        ("Flemming", None, ["author"]),
+        ("Friedrich", None, ["author", "contributor"]),
+        ("Klapperstück", None, ["author"]),
+        ("Lange", LANGE, ["author"]),
+        ("Scholz", None, ["author"]),
+        ("Steuernagel", None, ["author", "contributor"]),
+        ("Weise", None, ["author", "contributor"]),
+    ]
+
+
+def test_contributor_only_keeps_contributor_role() -> None:
+    contacts = _contacts(
+        _map(_dataset(author=[_person("Christian", "Colmsee")], contributor=[_person("Stephan", "Weise")]))
+    )
+    assert contacts == [("Colmsee", None, ["author"]), ("Weise", None, ["contributor"])]
+
+
+def test_same_name_different_orcids_stay_two_contacts() -> None:
+    contacts = _contacts(
+        _map(
+            _dataset(
+                author=[_edal_person("Christian", "Colmsee", COLMSEE)],
+                contributor=[_edal_person("Christian", "Colmsee", LANGE)],
+            )
+        )
+    )
+    assert sorted(contacts) == [("Colmsee", LANGE, ["contributor"]), ("Colmsee", COLMSEE, ["author"])]
+
+
+def test_publication_authors_list_each_person_once() -> None:
+    arc = ARC.from_rocrate_json_string(_map(_edal_2011_0()))
+    authors = arc.Publications[0].Authors.split("; ")
+    assert len(authors) == len(set(authors)) == 8

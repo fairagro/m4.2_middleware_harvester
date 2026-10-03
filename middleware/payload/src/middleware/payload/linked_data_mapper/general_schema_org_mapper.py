@@ -307,31 +307,15 @@ class _SchemaOrgRun:
             )
 
     def _add_contacts(self, inv: ArcInvestigation, subject: Node) -> None:
-        creators = sorted(
-            self.view(subject).schema_objects("creator"),
-            key=self._contact_sort_key,
-        )
-        for node in creators:
-            self._append_contact(inv, node, "author")
+        """Contacts from ``creator`` and ``author`` (role author), then ``contributor``.
 
-        authors = sorted(
-            self.view(subject).schema_objects("author"),
-            key=self._contact_sort_key,
-        )
-        for node in authors:
-            existing = self._existing_contact(inv, node)
-            if existing is None:
-                self._append_contact(inv, node, "author")
-            elif not existing.ORCID and (orcid := self._person_orcid(node)):
-                # Same person listed as creator without ORCID and as author with one.
-                existing.ORCID = orcid
-
-        contributors = sorted(
-            self.view(subject).schema_objects("contributor"),
-            key=self._contact_sort_key,
-        )
-        for node in contributors:
-            self._append_contact(inv, node, "contributor")
+        One contact per person (same ORCID, else same given and family name): a person listed
+        again adds its role to the existing contact. e!DAL's ``author`` repeats the creators and
+        the contributors.
+        """
+        for term, role in (("creator", "author"), ("author", "author"), ("contributor", "contributor")):
+            for node in sorted(self.view(subject).schema_objects(term), key=self._contact_sort_key):
+                self._append_contact(inv, node, role)
         require_nonempty_person_given_names(inv)
 
     def _contact_sort_key(self, node: Node) -> tuple[str, str, str, tuple[int, str]]:
@@ -352,7 +336,7 @@ class _SchemaOrgRun:
         person = self._node_to_person(node)
         if person is None:
             return
-        add_contact(inv, person, role)
+        add_contact(inv, person, role, match_name=True)
 
     def _append_organization_comment(self, inv: ArcInvestigation, node: Node, role: str) -> bool:
         """Append Organization comment(s). Return True if a comment was emitted."""
@@ -368,13 +352,6 @@ class _SchemaOrgRun:
         if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
         return True
-
-    def _existing_contact(self, inv: ArcInvestigation, node: Node) -> Person | None:
-        """Contact with the same given and family name as ``node``, if any."""
-        given, family = self._person_names(node)
-        if given is None:
-            return None
-        return next((c for c in inv.Contacts if c.FirstName == given and c.LastName == family), None)
 
     def _person_orcid(self, node: Node) -> str | None:
         """Bare ORCID iD of a Person, from its ``@id`` or its ``identifier``.
