@@ -102,14 +102,22 @@ Detailed contact information for persons and organizations.
 
 Access and use restrictions.
 
-| INSPIRE Field           | OWSLib Attribute                           | Description                                    | ARC Mapping                |
-| ----------------------- | ------------------------------------------ | ---------------------------------------------- | -------------------------- |
-| **useLimitation**       | `uselimitation`, `uselimitation_url`       | Usage limitations                              | **Investigation Comments** |
-| **accessConstraints**   | `accessconstraints`                        | Legal access restrictions (e.g., "restricted") | **Investigation Comments** |
-| **useConstraints**      | `useconstraints`                           | Legal use restrictions (e.g., "license")       | **Investigation Comments** |
-| **otherConstraints**    | `otherconstraints`, `otherconstraints_url` | Other constraint text                          | **Investigation Comments** |
-| **classification**      | `classification`                           | Security classification                        | **Investigation Comments** |
-| **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments** |
+| INSPIRE Field           | OWSLib Attribute                           | Description                                    | ARC Mapping                                         |
+| ----------------------- | ------------------------------------------ | ---------------------------------------------- | --------------------------------------------------- |
+| **useLimitation**       | `uselimitation`, `uselimitation_url`       | Usage limitations                              | **Investigation Comments**                          |
+| **accessConstraints**   | `accessconstraints`                        | Legal access restrictions (e.g., "restricted") | **Investigation Comments**                          |
+| **useConstraints**      | `useconstraints`                           | Legal use restrictions (e.g., "license")       | **Investigation Comments**                          |
+| **otherConstraints**    | `otherconstraints`, `otherconstraints_url` | Other constraint text                          | **Investigation Comments**, **ARC licence** (below) |
+| **classification**      | `classification`                           | Security classification                        | **Investigation Comments**                          |
+| **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments**                          |
+
+**ARC licence (`ARC.License`).** `otherConstraints` also sets the ARC licence (`middleware.payload.arc_license`), in
+order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GeoNode licence
+text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
+`CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (…/legalcode)`); the first text with a URL on a known
+licence host (creativecommons.org, opendatacommons.org, govdata.de, spdx.org, rightsstatements.org). GeoNode
+`Not Specified: …`, access notes ("available on request …") and other text give no licence, so the ARCtrl default "ALL
+RIGHTS RESERVED BY THE AUTHORS" stays. The licence keeps ARCtrl's `LICENSE` path; see `docs/schemaorg_mapping.md`.
 
 ### 6. MD_Distribution (Distribution Information)
 

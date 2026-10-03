@@ -21,6 +21,7 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
+from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
@@ -78,8 +79,9 @@ class InspireMapper(DataMapper[MappingContext]):
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
 
-        # 4. Wrap in ARC
-        return ARC.from_arc_investigation(investigation)
+        # 4. Wrap in ARC (licence from gmd:otherConstraints; ARCtrl default when none)
+        license_ = inspire_license(record.other_constraints, record.other_constraints_url)
+        return ARC.from_arc_investigation(investigation, license=license_)
 
     def map_person(self, contact: Contact) -> Person | None:
         """Map an ISO individualName contact to Person.
