@@ -243,7 +243,9 @@ comments.
 
 ### 5. License shape
 
-`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string.
+`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string. The same
+value sets the ARC licence (`ARC.License`, RO-Crate node `{"@id": "LICENSE", "text": …}`); without a licence the ARCtrl
+default "ALL RIGHTS RESERVED BY THE AUTHORS" stays. See `docs/schemaorg_mapping.md` for why the URL is not the `@id`.
 
 ### 6. Funding duplication
 

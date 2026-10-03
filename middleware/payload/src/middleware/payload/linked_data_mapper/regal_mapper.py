@@ -29,6 +29,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.payload.arc_license import license_from_value
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
@@ -160,7 +161,7 @@ class _RegalRun:
         assay = self._map_assay(subject, investigation.Identifier, regal_id=regal_id, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
+        return ARC.from_arc_investigation(investigation, license=license_from_value(self._license_value(subject)))
 
     def _map_investigation(
         self,

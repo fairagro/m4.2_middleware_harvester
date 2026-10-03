@@ -27,9 +27,11 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
+from arctrl.py.license import License  # type: ignore[import-untyped]
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
+from middleware.payload.arc_license import license_from_value
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
@@ -133,7 +135,15 @@ class _SchemaOrgRun:
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
+        return ARC.from_arc_investigation(investigation, license=self._license(subject))
+
+    def _license(self, subject: Node) -> License | None:
+        """ARC licence from ``schema:license``: a CreativeWork's ``url`` wins over its label."""
+        for res in self.view(subject).schema_resources("license"):
+            url = res.schema_text("url")
+            if url:
+                return license_from_value(url, name=res.schema_text("name"))
+        return license_from_value(self.view(subject).schema_text("license"))
 
     def _resolve_dataset_title(self, subject: Node, context: MappingContext) -> tuple[str, str | None]:
         """Resolve a non-empty title, or fail closed (no ``Untitled`` fallback).
