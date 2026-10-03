@@ -397,7 +397,8 @@ class _SchemaOrgRun:
                 values = [ident.iri or ""] + [
                     value
                     for value in ident.schema_texts("value") + ident.schema_texts("url")
-                    if named_orcid or "orcid.org" in value.casefold()
+                    # A bare iD needs a propertyID naming ORCID; orcid_id checks a URL's host itself.
+                    if named_orcid or value.strip().casefold().startswith(("http://", "https://"))
                 ]
             candidates.update(orcid for value in values if (orcid := orcid_id(value)))
         return min(candidates) if candidates else None
