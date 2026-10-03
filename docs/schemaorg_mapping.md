@@ -51,8 +51,14 @@ namespaces (dual-namespace aliasing via `StableGraph`).
 | **`schema:url`**                 | Canonical landing page URL              | `Investigation.Identifier` (sanitized); Assay `Output [URI]`                                                                                                                  |
 | **`schema:sameAs`**              | Equivalent URLs                         | `Investigation.Identifier` fallback (lexicographic min)                                                                                                                       |
 | **`schema:identifier`**          | DOI, URL, or other identifiers          | `Investigation.Identifier` (DOI as last resort); Publication DOI; `Investigation.Comment("Alternate Identifier")`                                                             |
-| **`schema:datePublished`**       | Publication date                        | `Investigation.SubmissionDate`, `Study.SubmissionDate`                                                                                                                        |
-| **`schema:dateModified`**        | Last modification date                  | `Investigation.SubmissionDate` (fallback)                                                                                                                                     |
+| **`schema:datePublished`**       | Publication date                        | `Investigation.SubmissionDate`, `Study.SubmissionDate` as ISO 8601 (see Dates below)                                                                                          |
+| **`schema:dateModified`**        | Last modification date                  | `Investigation.SubmissionDate` when `datePublished` is missing or not a date                                                                                                  |
+
+**Dates.** Values go through `middleware.payload.iso_dates.iso_date`: ISO 8601 dates and date-times (`2011`,
+`2011-01-01`, `2011-01-01T10:00:00Z`) pass unchanged; Java `Date.toString()` values (e!DAL:
+`Sat Jan 01 00:00:00 CET 2011`) become `2011-01-01T00:00:00+01:00` (local day kept, offset from the zone abbreviation)
+with a warning. Anything else is never written as a date: it is logged and kept as the Investigation Comment
+`Unparsed datePublished` / `Unparsed dateModified`.
 
 ### 2. Contacts (Creators, Authors, Contributors)
 

@@ -33,6 +33,7 @@ from rdflib.term import Node
 
 from middleware.payload.arc_license import license_from_value
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.iso_dates import iso_date
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
@@ -266,7 +267,8 @@ class _SchemaOrgRun:
         identifier = plan.investigation_id
 
         description = self.view(subject)["description"] or ""
-        submission_date = self.view(subject)["datePublished"] or self.view(subject)["dateModified"] or ""
+        dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified")}
+        submission_date = next((iso for iso, _ in dates.values() if iso), "")
 
         inv = ArcInvestigation.create(
             identifier=identifier,
@@ -274,6 +276,9 @@ class _SchemaOrgRun:
             description=description,
             submission_date=submission_date,
         )
+        for term, (iso, raw) in dates.items():
+            if raw and not iso:
+                inv.Comments.append(Comment.create(f"Unparsed {term}", raw))
 
         self._add_contacts(inv, subject)
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
@@ -282,6 +287,18 @@ class _SchemaOrgRun:
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
         return inv
+
+    def _source_date(self, subject: Node, term: str) -> tuple[str | None, str | None]:
+        """``(iso, raw)`` for a Schema.org date term; non-ISO values are logged, never passed on raw."""
+        raw = (self.view(subject)[term] or "").strip() or None
+        iso = iso_date(raw)
+        if raw and iso != raw:
+            subject_id = self.view(subject).iri or "(blank node)"
+            if iso:
+                logger.warning("Schema.org %s %r of %s is not ISO 8601; normalised to %s", term, raw, subject_id, iso)
+            else:
+                logger.warning("Schema.org %s %r of %s is not a date; kept as Comment only", term, raw, subject_id)
+        return iso, raw
 
     @staticmethod
     def _add_alternate_identifier_comments(inv: ArcInvestigation, alternate_dois: tuple[str, ...]) -> None:
@@ -553,7 +570,7 @@ class _SchemaOrgRun:
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=self.view(subject)["datePublished"],
+            submission_date=iso_date(self.view(subject)["datePublished"]),
         )
 
         collection_table = self._create_data_collection_table(subject)
