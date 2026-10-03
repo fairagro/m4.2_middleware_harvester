@@ -66,3 +66,24 @@ def test_add_contact_merges_roles_by_orcid() -> None:
         ("Roe", ["author"]),
         ("Roe", ["author"]),
     ]
+
+
+def test_add_contact_match_name_merges_and_fills_orcid() -> None:
+    inv = ArcInvestigation.create(identifier="inv", title="Title")
+    add_contact(inv, Person.create(last_name="Doe", first_name="John"), "author", match_name=True)
+    add_contact(
+        inv,
+        Person.create(orcid="0000-0002-1825-0097", last_name="doe", first_name="John "),
+        "contributor",
+        match_name=True,
+    )
+    add_contact(
+        inv, Person.create(orcid="0000-0002-4316-078X", last_name="Doe", first_name="John"), "author", match_name=True
+    )
+    add_contact(inv, Person.create(last_name="Doe", first_name="John"), "author")
+
+    assert [(c.ORCID, [r.Name for r in c.Roles]) for c in inv.Contacts] == [
+        ("0000-0002-1825-0097", ["author", "contributor"]),
+        ("0000-0002-4316-078X", ["author"]),
+        (None, ["author"]),
+    ]
