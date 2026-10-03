@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import override
-from urllib.parse import quote, urlparse
+from urllib.parse import quote
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -35,7 +35,12 @@ from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataM
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_contact,
+    orcid_id,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -429,8 +434,7 @@ class _RegalRun:
         )
         if person is None:
             return
-        person.Roles.append(OntologyAnnotation(name=role))
-        inv.Contacts.append(person)
+        add_contact(inv, person, role)
 
     def _append_contact_from_resource(
         self,
@@ -470,8 +474,8 @@ class _RegalRun:
         family, given = stripped.split(", ", 1)
         return family.strip(), given.strip()
 
+    @staticmethod
     def _person_from_label(
-        self,
         inv: ArcInvestigation,
         names: tuple[str, str],
         *,
@@ -480,14 +484,12 @@ class _RegalRun:
         node_id: str | None,
     ) -> Person | None:
         family, given = names[0].strip(), names[1].strip()
+        orcid = orcid_id(node_id)
         if given:
-            person = Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
-            if node_id and self._is_orcid_uri(node_id):
-                person.Comments.append(Comment.create("ORCID", node_id))
-            return person
+            return Person.create(orcid=orcid, last_name=family, first_name=given, affiliation=affiliation or "")
 
         # Empty given name: Organization/label agent → Comment; person identity → fail closed.
-        if node_id and self._is_orcid_uri(node_id):
+        if orcid:
             raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
         if not family:
             return None
@@ -495,12 +497,6 @@ class _RegalRun:
         value = family if not node_id else f"{family} ({node_id})"
         inv.Comments.append(Comment.create(comment_name, value))
         return None
-
-    @staticmethod
-    def _is_orcid_uri(uri: str) -> bool:
-        """Return True when ``uri`` has host ``orcid.org`` (or a subdomain)."""
-        host = (urlparse(uri).hostname or "").lower()
-        return host == "orcid.org" or host.endswith(".orcid.org")
 
     def _add_publications(
         self,

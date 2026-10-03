@@ -2,7 +2,34 @@
 
 from __future__ import annotations
 
-from arctrl import ArcInvestigation  # type: ignore[import-untyped]
+import re
+
+from arctrl import ArcInvestigation, OntologyAnnotation, Person  # type: ignore[import-untyped]
+
+# Bare ORCID iD or orcid.org URL; the last character is a checksum digit or "X".
+_ORCID_RE = re.compile(r"^(?:https?://(?:www\.)?orcid\.org/)?(\d{4}-\d{4}-\d{4}-\d{3}[\dX])/?$", re.IGNORECASE)
+
+
+def orcid_id(value: str | None) -> str | None:
+    """Return the bare ORCID iD (``0000-0002-1825-0097``) of an iD or orcid.org URL, else ``None``."""
+    match = _ORCID_RE.match((value or "").strip())
+    return match.group(1).upper() if match else None
+
+
+def add_contact(investigation: ArcInvestigation, person: Person, role: str) -> None:
+    """Append ``person`` with ``role``, or add ``role`` to the contact that already has its ORCID.
+
+    ARCtrl uses the ORCID as the RO-Crate Person ``@id``, so two contacts with the same ORCID
+    would collapse into one node carrying both roles; keep one contact per ORCID instead.
+    """
+    if person.ORCID:
+        for contact in investigation.Contacts:
+            if contact.ORCID == person.ORCID:
+                if not any((r.Name or "").casefold() == role.casefold() for r in contact.Roles):
+                    contact.Roles.append(OntologyAnnotation(name=role))
+                return
+    person.Roles.append(OntologyAnnotation(name=role))
+    investigation.Contacts.append(person)
 
 
 def require_nonempty_person_given_names(investigation: ArcInvestigation) -> None:

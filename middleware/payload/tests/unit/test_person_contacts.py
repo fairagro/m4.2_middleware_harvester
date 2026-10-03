@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
 from arctrl import ArcInvestigation, OntologyAnnotation, Person  # type: ignore[import-untyped]
 
-from middleware.payload.person_contacts import publication_authors
+from middleware.payload.person_contacts import add_contact, orcid_id, publication_authors
 
 
 def _investigation(*contacts: tuple[str, str, str]) -> ArcInvestigation:
@@ -33,3 +34,35 @@ def test_publication_authors_single_name_part_and_no_commas() -> None:
 
 def test_publication_authors_none_without_authors() -> None:
     assert publication_authors(_investigation(("Roe", "Rita", "publisher"))) is None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("0000-0002-1825-0097", "0000-0002-1825-0097"),
+        (" https://orcid.org/0000-0002-1825-0097/ ", "0000-0002-1825-0097"),
+        ("http://www.orcid.org/0000-0002-4316-078x", "0000-0002-4316-078X"),
+        ("https://orcid.org/0000-0002-1825-009", None),
+        ("https://evil-orcid.org/0000-0002-1825-0097", None),
+        ("https://sandbox.orcid.org/0000-0002-1825-0097", None),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_orcid_id(value: str | None, expected: str | None) -> None:
+    assert orcid_id(value) == expected
+
+
+def test_add_contact_merges_roles_by_orcid() -> None:
+    inv = ArcInvestigation.create(identifier="inv", title="Title")
+    add_contact(inv, Person.create(orcid="0000-0002-1825-0097", last_name="Doe", first_name="John"), "author")
+    add_contact(inv, Person.create(orcid="0000-0002-1825-0097", last_name="Doe", first_name="J."), "contributor")
+    add_contact(inv, Person.create(orcid="0000-0002-1825-0097", last_name="Doe", first_name="John"), "Author")
+    add_contact(inv, Person.create(last_name="Roe", first_name="Rita"), "author")
+    add_contact(inv, Person.create(last_name="Roe", first_name="Rita"), "author")
+
+    assert [(c.LastName, [r.Name for r in c.Roles]) for c in inv.Contacts] == [
+        ("Doe", ["author", "contributor"]),
+        ("Roe", ["author"]),
+        ("Roe", ["author"]),
+    ]
