@@ -62,14 +62,24 @@ def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
     assert harvested.identifier == RegalMapper.sanitize_identifier("frl:12.3")
 
 
-def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
+def _person_ids(arc_json: str) -> dict[str, str]:
+    """``"Family, Given"`` → RO-Crate Person ``@id`` (the ORCID URL when ``Person.ORCID`` is set)."""
+    return {
+        f"{item['familyName']}, {item['givenName']}": item["@id"]
+        for item in json.loads(arc_json)["@graph"]
+        if item.get("@type") == "Person" and "jobTitle" in item
+    }
+
+
+def test_regal_mapper_sets_person_orcid_only_for_orcid_host() -> None:
     graph = _base_graph()
     orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
     graph.add((SUBJECT, DCTERMS.creator, orcid))
     graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapped_arc_json(graph)))
-    assert "https://orcid.org/0000-0003-2547-933X" in text
+    arc_json = _mapped_arc_json(graph)
+    assert _person_ids(arc_json) == {"Fuerst, Julia": "http://orcid.org/0000-0003-2547-933X"}
+    assert '"ORCID"' not in arc_json
 
 
 def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
@@ -81,6 +91,20 @@ def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
     text = json.dumps(json.loads(_mapped_arc_json(graph)))
     assert "Fuerst" in text
     assert "evil-orcid.org" not in text
+    assert "0000-0003-2547-933X" not in text
+
+
+def test_regal_mapper_same_orcid_as_creator_and_contributor_is_one_contact() -> None:
+    graph = _base_graph()
+    orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
+    graph.add((SUBJECT, DCTERMS.creator, orcid))
+    graph.add((SUBJECT, DCTERMS.contributor, orcid))
+
+    graph_nodes = json.loads(_mapped_arc_json(graph))["@graph"]
+    persons = [item for item in graph_nodes if item.get("@type") == "Person" and "jobTitle" in item]
+    assert len(persons) == 1
+    assert persons[0]["jobTitle"] == [{"@id": "#OA_author"}, {"@id": "#OA_contributor"}]
 
 
 def test_regal_mapper_maps_core_fields() -> None:
@@ -578,15 +602,11 @@ def test_regal_mapper_maps_real_publisso_creator_list_in_order() -> None:
         ("Römer", "Anke", "#OA_author"),
         ("Amon", "Thomas", "#OA_author"),
     ]
-    orcids = {
-        item["familyName"] + ", " + item["givenName"]: item.get("disambiguatingDescription", "")
-        for item in json.loads(arc_json)["@graph"]
-        if item.get("@type") == "Person" and "jobTitle" in item
-    }
-    assert "https://orcid.org/0000-0002-4211-3404" in orcids["Janke, David"]
-    assert "https://orcid.org/0000-0003-2468-3160" in orcids["Amon, Thomas"]
-    assert not orcids["Willink, Dilya"]
-    assert not orcids["Römer, Anke"]
+    ids = _person_ids(arc_json)
+    assert ids["Janke, David"] == "http://orcid.org/0000-0002-4211-3404"
+    assert ids["Amon, Thomas"] == "http://orcid.org/0000-0003-2468-3160"
+    assert ids["Willink, Dilya"].startswith("#Person_")
+    assert ids["Römer, Anke"].startswith("#Person_")
     assert "D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon" in arc_json
 
 

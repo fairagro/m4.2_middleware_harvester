@@ -42,7 +42,12 @@ from middleware.payload.linked_data_mapper.stable_graph import (
 )
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_contact,
+    orcid_id,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 from middleware.payload.person_names import split_display_name
 
 logger = logging.getLogger(__name__)
@@ -314,8 +319,12 @@ class _SchemaOrgRun:
             key=self._contact_sort_key,
         )
         for node in authors:
-            if not self._contact_exists(inv, node):
+            existing = self._existing_contact(inv, node)
+            if existing is None:
                 self._append_contact(inv, node, "author")
+            elif not existing.ORCID and (orcid := self._person_orcid(node)):
+                # Same person listed as creator without ORCID and as author with one.
+                existing.ORCID = orcid
 
         contributors = sorted(
             self.view(subject).schema_objects("contributor"),
@@ -343,8 +352,7 @@ class _SchemaOrgRun:
         person = self._node_to_person(node)
         if person is None:
             return
-        person.Roles.append(OntologyAnnotation(name=role))
-        inv.Contacts.append(person)
+        add_contact(inv, person, role)
 
     def _append_organization_comment(self, inv: ArcInvestigation, node: Node, role: str) -> bool:
         """Append Organization comment(s). Return True if a comment was emitted."""
@@ -361,11 +369,38 @@ class _SchemaOrgRun:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
         return True
 
-    def _contact_exists(self, inv: ArcInvestigation, node: Node) -> bool:
+    def _existing_contact(self, inv: ArcInvestigation, node: Node) -> Person | None:
+        """Contact with the same given and family name as ``node``, if any."""
         given, family = self._person_names(node)
         if given is None:
-            return False
-        return any(c.FirstName == given and c.LastName == family for c in inv.Contacts)
+            return None
+        return next((c for c in inv.Contacts if c.FirstName == given and c.LastName == family), None)
+
+    def _person_orcid(self, node: Node) -> str | None:
+        """Bare ORCID iD of a Person, from its ``@id`` or its ``identifier``.
+
+        ``identifier`` may be an ORCID string or URL, or a ``PropertyValue`` whose ``value``
+        is an orcid.org URL or, with a ``propertyID`` naming ORCID, a bare iD.
+        """
+        if isinstance(node, Literal):
+            return None
+        view = self.view(node)
+        if orcid := orcid_id(view.iri):
+            return orcid
+        candidates: set[str] = set()
+        for obj in view.schema_objects("identifier"):
+            if isinstance(obj, Literal):
+                values = [str(obj)]
+            else:
+                ident = self.view(obj)
+                named_orcid = any("orcid" in pid.casefold() for pid in ident.schema_texts("propertyID"))
+                values = [ident.iri or ""] + [
+                    value
+                    for value in ident.schema_texts("value") + ident.schema_texts("url")
+                    if named_orcid or "orcid.org" in value.casefold()
+                ]
+            candidates.update(orcid for value in values if (orcid := orcid_id(value)))
+        return min(candidates) if candidates else None
 
     def _person_names(self, node: Node) -> tuple[str | None, str]:
         """Return ``(given, family)`` or ``(None, ...)`` when given name would be empty."""
@@ -415,6 +450,7 @@ class _SchemaOrgRun:
         affiliation = self._extract_affiliation(node)
         address = self._extract_address(node)
         arc_person = Person.create(
+            orcid=self._person_orcid(node),
             last_name=family,
             first_name=given,
             email=email,
