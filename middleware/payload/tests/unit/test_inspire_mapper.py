@@ -114,3 +114,45 @@ def test_publication_authors_survive_ro_crate_serialization() -> None:
         if str(item.get("@id", "")).startswith("#Author_")
     ]
     assert author_ids == ["#Author_J. Doe; R. Roe"]
+
+
+# --- dataset date (#408) ----------------------------------------------------
+
+
+def test_bonares_citation_publication_date_not_date_stamp() -> None:
+    """BonaRes 00015394-…: dateStamp 2026-08-18 (metadata), citation publication 2026-05-19."""
+    record = _minimal_record(
+        date_stamp="2026-08-18T07:29:17Z",
+        dates=[{"date": "2026-05-19T09:13:00Z", "datetype": "publication"}],
+    )
+    arc = InspireMapper().map_record(record)
+
+    assert arc.SubmissionDate == "2026-05-19T09:13:00Z"
+    assert arc.Studies[0].SubmissionDate == "2026-05-19T09:13:00Z"
+    assert [(c.Name, c.Value) for c in arc.Comments if c.Name == "Metadata Date"] == [
+        ("Metadata Date", "2026-08-18T07:29:17Z")
+    ]
+
+
+@pytest.mark.parametrize(
+    ("dates", "expected"),
+    [
+        (
+            [("2021-01-01", "creation"), ("2023-05-01", "publication"), ("2022-03-01", "publication")],
+            "2022-03-01",
+        ),
+        ([("2021-01-01", "creation"), ("2024-02-01", "revision"), ("2025-02-01", "revision")], "2025-02-01"),
+        ([("2021-06-01", "creation"), ("2020-06-01", "creation")], "2020-06-01"),
+        ([("2021-06-01", None)], None),
+        ([], None),
+    ],
+)
+def test_dataset_date_order_publication_revision_creation(
+    dates: list[tuple[str, str | None]], expected: str | None
+) -> None:
+    record = _minimal_record(
+        date_stamp="2026-08-18",
+        dates=[{"date": date, "datetype": datetype} for date, datetype in dates],
+    )
+    arc = InspireMapper().map_record(record)
+    assert (arc.SubmissionDate or None) == expected

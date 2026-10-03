@@ -185,7 +185,7 @@ class InspireMapper(DataMapper[MappingContext]):
 
         title = record.title
         description = record.abstract
-        submission_date = record.date_stamp
+        submission_date = self._resource_date(record)
 
         inv = ArcInvestigation.create(
             identifier=identifier, title=title, description=description, submission_date=submission_date
@@ -286,6 +286,24 @@ class InspireMapper(DataMapper[MappingContext]):
                 )
                 inv.Publications.append(pub)
 
+    @staticmethod
+    def _resource_date(record: InspireRecord) -> str | None:
+        """Dataset date from the citation ``CI_Date`` entries, never ``gmd:dateStamp``.
+
+        ``dateStamp`` is when the metadata record last changed (kept as a ``Metadata Date``
+        Comment). In order: earliest publication, latest revision, earliest creation.
+        """
+
+        def of_type(datetype: str) -> list[str]:
+            return sorted(d.date for d in record.dates if d.datetype == datetype)
+
+        publication, revision, creation = of_type("publication"), of_type("revision"), of_type("creation")
+        if publication:
+            return publication[0]
+        if revision:
+            return revision[-1]
+        return creation[0] if creation else None
+
     def _add_comments(self, inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add metadata-level comments to the investigation."""
         comments = self._generate_comments(record)
@@ -306,6 +324,7 @@ class InspireMapper(DataMapper[MappingContext]):
             ("Alternate Title", record.alternate_title),
             ("Purpose", record.purpose),
             ("Supplemental Information", record.supplemental_information),
+            ("Metadata Date", record.date_stamp),
         ]
         for label, value in fields:
             if value:
@@ -373,7 +392,7 @@ class InspireMapper(DataMapper[MappingContext]):
         description = " | ".join(desc_parts) if desc_parts else "Imported from INSPIRE metadata"
 
         study = ArcStudy.create(
-            identifier=identifier, title=title, description=description, submission_date=record.date_stamp
+            identifier=identifier, title=title, description=description, submission_date=self._resource_date(record)
         )
 
         # Add Process-Oriented Protocols (max 3)
