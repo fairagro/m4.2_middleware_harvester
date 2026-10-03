@@ -64,49 +64,69 @@ The system SHALL reject (mapping error) RDF graphs that contain no `schema:Datas
 
 ### Requirement: Validate @context before mapping
 
-The system SHALL extract `@context` from the raw JSON-LD payload before RDF parsing, accept known Schema.org and
-extension context IRIs (HTTP and HTTPS variants), and reject unknown remote context IRIs with a mapping error. `@import`
-and nested remote `@context` loads MUST be absolute allowlisted `http(s)` IRIs (relative imports are rejected). Absolute
-`http(s)` `@vocab` values MUST be allowlisted; relative `@vocab` MAY be accepted (IRI expansion only). Namespace
-aliasing of `http://schema.org/` and `https://schema.org/` terms happens during RDF access via `StableGraph`, not by
-rewriting the `@context` string.
+The system SHALL ensure harvest-time acceptance of remote JSON-LD `@context` IRIs for Schema.org HTML/`jsonld` sources
+is governed by `parser.allowed_context_url` and the shared context loader (not a hard-coded Schema.org-only parse-time
+allowlist). Mapper-side vocabulary expectations for Schema.org graphs MAY remain, but MUST NOT reintroduce a second
+hard-coded remote-context allowlist that rejects an IRI already accepted by the parser for that repository. `@import`
+and nested remote `@context` loads discovered while resolving a root MUST be absolute `http(s)` IRIs resolved through
+the shared loader cache. Relative imports remain rejected.
 
 #### Scenario: Standard Schema.org HTTPS context
 
-- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; all `schema:` terms resolve to `https://schema.org/`
+- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and
+  `parser.allowed_context_url: "https://schema.org/"`
+- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Standard Schema.org HTTP context
 
-- **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; HTTP and HTTPS Schema.org namespaces are treated as aliases via `StableGraph`
+- **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"` and
+  `parser.allowed_context_url: "http://schema.org/"`
+- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Mixed http/https in same graph
 
-- **GIVEN** a JSON-LD payload where some terms use `http://schema.org/` and others `https://schema.org/`
-- **WHEN** the mapper processes the payload
-- **THEN** both namespaces are treated as aliases; term accessors return values from both without duplication
+- **GIVEN** payloads that use different Schema.org IRI variants across records
+- **WHEN** each repository sets `parser.allowed_context_url` to the exact IRI used by that source
+- **THEN** each record resolves under its configured URL (exact match; no cross-variant aliasing required)
 
 #### Scenario: Known extension context (Bioschemas)
 
-- **GIVEN** a JSON-LD payload with `"@context": ["https://schema.org/", {"bioschemas": "https://bioschemas.org/"}]` and
-  a `bioschemas:Sample` entity
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; extension terms are available for mapping
+- **GIVEN** a remote Bioschemas context IRI appears only via `@import` from the allowlisted root context document
+- **WHEN** the root `parser.allowed_context_url` is fetched and imports are cached
+- **THEN** parse succeeds without requiring a second operator-configured URL for Bioschemas
 
-#### Scenario: Unknown context
+#### Scenario: Unknown context when pinned
 
-- **GIVEN** a JSON-LD payload with `"@context": "https://unknown-vocabulary.example.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** a mapping error is raised before RDF parsing
+- **GIVEN** `parser.allowed_context_url` is set and a payload `@context` URL that does not equal it
+- **WHEN** parse runs
+- **THEN** the record fails closed at the parser (no mapping)
+
+#### Scenario: Unset pin still resolves remote context
+
+- **GIVEN** `parser.allowed_context_url` is unset and the payload `@context` is an absolute http(s) Schema.org IRI
+- **WHEN** parse runs with a polite HTTP client
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Relative @import rejected
 
-- **GIVEN** a JSON-LD payload with a dict `@context` containing `"@import": "./remote-context.jsonld"`
-- **WHEN** the mapper processes the payload
-- **THEN** a mapping error is raised before RDF parsing
+- **GIVEN** a context document (payload or fetched root) contains a relative `@import`
+- **WHEN** context resolution runs
+- **THEN** resolution fails closed (relative imports are rejected)
+
+#### Scenario: Parser allowlisted Schema.org context reaches mapping
+
+- **GIVEN** a repository with `parser.allowed_context_url` set to the payload's Schema.org context IRI
+- **WHEN** the payload parses to an `rdf_graph` and is passed to the Schema.org mapper
+- **THEN** mapping is not rejected solely because the context IRI is absent from a hard-coded module allowlist
+
+#### Scenario: Standard Schema.org HTTPS context with configured URL
+
+- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and
+  `parser.allowed_context_url: "https://schema.org/"`
+- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 ### Requirement: Support vocabulary extensions via declared extension namespaces
 

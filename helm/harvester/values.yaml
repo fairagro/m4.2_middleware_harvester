@@ -298,6 +298,7 @@ config:
         worker_tasks: null
       parser:
         type: html_jsonld
+        allowed_context_url: "https://schema.org/"
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -330,6 +331,7 @@ config:
             page_size: 100
       parser:
         type: html_jsonld
+        allowed_context_url: "https://schema.org/"
       mapper:
         type: schema_org_general
 

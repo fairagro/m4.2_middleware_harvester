@@ -69,6 +69,7 @@ class HtmlJsonLdDataset(Dataset):
         self._client = client
         self._config = config
         self._jsonld_parse_threshold_bytes = config.jsonld_parse_threshold_bytes
+        self._allowed_context_url = config.allowed_context_url
         self._html_text: str | None = None
 
     @property
@@ -110,6 +111,8 @@ class HtmlJsonLdDataset(Dataset):
                 self._url,
                 html_text,
                 self._jsonld_parse_threshold_bytes,
+                client=self._client,
+                allowed_context_url=self._allowed_context_url,
             )
         except ParserError as exc:
             raise LinkedDataDatasetError(str(exc)) from exc

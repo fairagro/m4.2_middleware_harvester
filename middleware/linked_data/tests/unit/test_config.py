@@ -1,5 +1,8 @@
 """Linked Data configuration unit tests."""
 
+import pytest
+from pydantic import ValidationError
+
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.payload import MapperType
 
@@ -79,3 +82,25 @@ def test_resource_base_url_override() -> None:
         http=NiceHttpClientConfig(),
     )
     assert config.effective_resource_base_url == "https://repository.publisso.de/resource/"
+
+
+def test_allowed_context_url_accepts_https() -> None:
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        allowed_context_url="https://schema.org/",
+        http=NiceHttpClientConfig(),
+    )
+    assert config.allowed_context_url == "https://schema.org/"
+
+
+def test_allowed_context_url_rejects_non_http() -> None:
+    with pytest.raises(ValidationError, match="http"):
+        Config(
+            sitemap_url="https://example.org/sitemap.xml",
+            sitemap_type=SitemapType.xml,
+            dataset_type=DatasetType.html_jsonld,
+            allowed_context_url="ftp://example.org/ctx",
+            http=NiceHttpClientConfig(),
+        )
