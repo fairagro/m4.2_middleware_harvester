@@ -260,7 +260,8 @@ def test_regal_mapper_multiword_org_pref_label_without_comma_is_comment() -> Non
 
     arc_json = _mapped_arc_json(graph)
     entries = set(_comment_entries(arc_json))
-    assert ("Creator", "NFDI4Health Task Force COVID-19 (https://example.org/org/nfdi4health-tf)") in entries
+    assert ("Creator Organization", "NFDI4Health Task Force COVID-19") in entries
+    assert ("Creator Organization URL", "https://example.org/org/nfdi4health-tf") in entries
     payload = json.loads(arc_json)
     people = [
         item
@@ -279,7 +280,7 @@ def test_regal_mapper_org_style_bnode_pref_label_comment_omits_bnode_id() -> Non
 
     arc_json = _mapped_arc_json(graph)
     entries = {(name, text) for name, text in _comment_entries(arc_json) if name != "@id"}
-    assert ("Creator", "Zenodo") in entries
+    assert ("Creator Organization", "Zenodo") in entries
     assert not any("Zenodo (" in text for _, text in entries)
     assert _BLANK_NODE_LABEL.search(json.dumps(json.loads(arc_json))) is None
 

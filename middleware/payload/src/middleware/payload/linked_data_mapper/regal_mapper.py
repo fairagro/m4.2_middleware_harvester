@@ -38,6 +38,7 @@ from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.person_contacts import (
     add_contact,
+    add_creator_organization,
     orcid_id,
     publication_authors,
     require_nonempty_person_given_names,
@@ -494,7 +495,10 @@ class _RegalRun:
             raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
         if not family:
             return None
-        comment_name = "Creator" if role == "author" else role.capitalize()
+        if role == "author":
+            add_creator_organization(inv, family, node_id)
+            return None
+        comment_name = role.capitalize()
         value = family if not node_id else f"{family} ({node_id})"
         inv.Comments.append(Comment.create(comment_name, value))
         return None

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from arctrl import ArcInvestigation, OntologyAnnotation, Person  # type: ignore[import-untyped]
+from arctrl import ArcInvestigation, Comment, OntologyAnnotation, Person  # type: ignore[import-untyped]
 
 # Bare ORCID iD or orcid.org URL; the last character is a checksum digit or "X".
 _ORCID_RE = re.compile(r"^(?:https?://(?:www\.)?orcid\.org/)?(\d{4}-\d{4}-\d{4}-\d{3}[\dX])/?$", re.IGNORECASE)
@@ -14,6 +14,30 @@ def orcid_id(value: str | None) -> str | None:
     """Return the bare ORCID iD (``0000-0002-1825-0097``) of an iD or orcid.org URL, else ``None``."""
     match = _ORCID_RE.match((value or "").strip())
     return match.group(1).upper() if match else None
+
+
+CREATOR_ORGANIZATION = "Creator Organization"
+
+
+def add_creator_organization(investigation: ArcInvestigation, name: str, url: str | None = None) -> None:
+    """Record an organisational creator as the Investigation Comment ``Creator Organization``.
+
+    ARC Persons need a given name (DataHUB ``arc-export``), and ARCtrl drops RO-Crate
+    ``Organization`` creators, so organisations that author a dataset are Comments. All mappers
+    use this one name so the hub can show them as the creator. One Comment per organisation
+    (case-insensitive); ``url`` becomes ``Creator Organization URL`` when it adds information.
+    """
+    name = name.strip()
+    if not name:
+        return
+    if any(
+        c.Name == CREATOR_ORGANIZATION and (c.Value or "").casefold() == name.casefold() for c in investigation.Comments
+    ):
+        return
+    investigation.Comments.append(Comment.create(CREATOR_ORGANIZATION, name))
+    url = (url or "").strip()
+    if url and url != name:
+        investigation.Comments.append(Comment.create(f"{CREATOR_ORGANIZATION} URL", url))
 
 
 def add_contact(investigation: ArcInvestigation, person: Person, role: str, *, match_name: bool = False) -> None:

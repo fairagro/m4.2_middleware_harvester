@@ -186,3 +186,23 @@ def test_publication_authors_list_each_person_once() -> None:
     arc = ARC.from_rocrate_json_string(_map(_edal_2011_0()))
     authors = arc.Publications[0].Authors.split("; ")
     assert len(authors) == len(set(authors)) == 8
+
+
+def test_organisation_creator_is_one_creator_organization_comment() -> None:
+    """e!DAL 10.5447/ipk/2016/12: the ``IBSC`` Organization is both creator and author (#411)."""
+    ibsc = {"@type": "Organization", "name": "IBSC", "url": "https://www.barleygenome.org/"}
+    arc_json = _map(
+        _dataset(
+            creator=[ibsc],
+            author=[ibsc],
+            contributor=[{"@type": "Organization", "name": "IPK Gatersleben"}],
+        )
+    )
+
+    arc = ARC.from_rocrate_json_string(arc_json)
+    assert not list(arc.Contacts)
+    assert [(c.Name, c.Value) for c in arc.Comments if c.Name.startswith(("Creator", "Contributor"))] == [
+        ("Creator Organization", "IBSC"),
+        ("Creator Organization URL", "https://www.barleygenome.org/"),
+        ("Contributor", "IPK Gatersleben"),
+    ]

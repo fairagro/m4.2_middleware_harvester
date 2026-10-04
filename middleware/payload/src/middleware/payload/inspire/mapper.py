@@ -31,7 +31,11 @@ from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_creator_organization,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 from middleware.payload.person_names import split_display_name
 
 # Map INSPIRE role codes to ontology terms / Comment names.
@@ -48,6 +52,8 @@ _ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
     "processor": ("Processor", "http://purl.obolibrary.org/obo/NCIT_C70911", "NCIT"),
     "metadatacontact": ("Metadata Contact", "http://purl.obolibrary.org/obo/NCIT_C70912", "NCIT"),
 }
+# CI_RoleCode values that make an organisation the dataset's creator ("owner" holds rights only).
+_CREATOR_ROLES = frozenset({"author", "originator", "principalinvestigator"})
 
 
 @DataMapper.register(MapperType.inspire_general)
@@ -232,11 +238,12 @@ class InspireMapper(DataMapper[MappingContext]):
             )
 
     def _add_contacts(self, inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add contacts: Persons from parseable individualName, role Comments otherwise.
+        """Add contacts: Persons from parseable individualName, Comments otherwise.
 
         Organisation-only contacts and individualNames without a given name (e.g.
-        DWD's ``RTH`` org-unit acronym) become role-named Investigation comments,
-        never empty-given Persons.
+        DWD's ``RTH`` org-unit acronym) become Investigation comments, never
+        empty-given Persons: ``Creator Organization`` for creator roles (author,
+        originator, principal investigator), else named after the role.
         """
         all_contacts = list(record.contacts)
         all_contacts.extend(record.creators)
@@ -263,6 +270,10 @@ class InspireMapper(DataMapper[MappingContext]):
         self, inv: ArcInvestigation, contact: Contact, value: str, seen: set[tuple[str, str]]
     ) -> None:
         """Append a role-named Investigation comment unless an equal one exists."""
+        if (contact.role or "").lower() in _CREATOR_ROLES:
+            org_url = str(contact.organization_url) if contact.organization_url else None
+            add_creator_organization(inv, value, org_url)
+            return
         comment_name = self._contact_role_label(contact)
         key = (comment_name.casefold(), value.casefold())
         if key not in seen:
