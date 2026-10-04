@@ -790,21 +790,10 @@ def test_add_publications(mapper: InspireMapper) -> None:
 
     mapper._add_publications(inv, record)
 
-    # Current implementation creates publications for all identifiers
-    assert len(inv.Publications) == 3
-
-    # Check DOI publication
-    doi_pub = next(p for p in inv.Publications if p.DOI == "10.1234/doi")
-    assert doi_pub.Title == "Test Dataset"
-    assert doi_pub.Authors == "J. Doe"
-
-    # Check ISBN publication
-    isbn_pub = next(p for p in inv.Publications if p.DOI == "ISBN:123456789")
-    assert isbn_pub.Title == "Test Dataset"
-
-    # Check OTHER publication
-    other_pub = next(p for p in inv.Publications if p.DOI == "not-a-doi")
-    assert other_pub.Title == "Test Dataset"
+    # Only DOIs become publications; ISBN and other codes are not DOIs (#410).
+    assert [p.DOI for p in inv.Publications] == ["10.1234/doi"]
+    assert inv.Publications[0].Title == "Test Dataset"
+    assert inv.Publications[0].Authors == "J. Doe"
 
 
 def test_generate_comments(mapper: InspireMapper) -> None:

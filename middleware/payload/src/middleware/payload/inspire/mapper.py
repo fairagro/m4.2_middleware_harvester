@@ -23,6 +23,7 @@ from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # 
 
 from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
+from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
@@ -270,21 +271,18 @@ class InspireMapper(DataMapper[MappingContext]):
 
     @staticmethod
     def _add_publications(inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add publications from resource_identifiers, enriching with investigation metadata."""
+        """Add one Publication per distinct DOI in resource_identifiers (bare ``10.…/…`` form).
+
+        Codes that are not DOIs (ISBN, accession URLs, UUIDs) are not publications.
+        """
         authors_str = publication_authors(inv)
+        seen: set[str] = set()
         for res_id in record.resource_identifiers:
-            codespace_str = str(res_id.codespace) if res_id.codespace else ""
-            if res_id.code and (
-                res_id.code.startswith("10.") or "doi" in res_id.code.lower() or "isbn" in codespace_str.lower()
-            ):
-                # Create a Publication object with DOI, title, and formatted authors string
-                pub = Publication.create(
-                    title=record.title,
-                    authors=authors_str,
-                    doi=res_id.code,
-                    # status and pub_date could be added if available
-                )
-                inv.Publications.append(pub)
+            doi = normalize_doi(res_id.code) or normalize_doi(str(res_id.url) if res_id.url else None)
+            if doi is None or doi.casefold() in seen:
+                continue
+            seen.add(doi.casefold())
+            inv.Publications.append(Publication.create(title=record.title, authors=authors_str, doi=doi))
 
     @staticmethod
     def _resource_date(record: InspireRecord) -> str | None:

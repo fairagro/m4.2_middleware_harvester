@@ -30,6 +30,7 @@ from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
 from middleware.payload.arc_license import license_from_value
+from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
@@ -657,8 +658,7 @@ class _RegalRun:
         return pref or "Untitled"
 
     def _doi(self, subject: Node) -> str | None:
-        doi = self.view(subject).text(REGAL.doi)
-        return doi.strip() if doi else None
+        return normalize_doi(self.view(subject).text(REGAL.doi))
 
     def _regal_id(self, subject: Node) -> str | None:
         if isinstance(subject, URIRef):
