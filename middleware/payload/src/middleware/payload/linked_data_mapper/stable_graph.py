@@ -8,7 +8,6 @@ intentionally not part of this module.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -16,12 +15,13 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 from rdflib.term import BNode, Node
 
+from middleware.payload.dois import normalize_doi
+
 SCHEMA_ORG_NAMESPACES: tuple[Namespace, ...] = (
     Namespace("https://schema.org/"),
     Namespace("http://schema.org/"),
 )
 
-_DOI_PREFIX_RE = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:)", re.IGNORECASE)
 _STABLE_BNODE_MAX_DEPTH = 2
 
 
@@ -516,14 +516,6 @@ def http_iri(node: Node) -> str | None:
         text = str(node).strip()
         if text.startswith(("http://", "https://")):
             return text
-    return None
-
-
-def normalize_doi(raw: str) -> str | None:
-    """Normalize a DOI string; return None when not a ``10.…/…`` DOI."""
-    text = _DOI_PREFIX_RE.sub("", raw.strip()).strip()
-    if text.startswith("10.") and "/" in text:
-        return text
     return None
 
 

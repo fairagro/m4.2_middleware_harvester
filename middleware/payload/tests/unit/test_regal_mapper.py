@@ -663,3 +663,14 @@ def test_real_publisso_contributor_order_list_is_not_a_comment() -> None:
     arc_json = _mapped_arc_json(graph)
     assert not any(name == "contributorOrder" for name, _ in _comment_entries(arc_json))
     assert "0000-0002-4211-3404 |" not in arc_json
+
+
+def test_regal_doi_url_is_normalised_to_bare_doi() -> None:
+    """A ``doi`` written as a URL must not produce ``https://doi.org/https://doi.org/…`` (#410)."""
+    graph = _base_graph()
+    graph.remove((SUBJECT, REGAL.doi, None))
+    graph.add((SUBJECT, REGAL.doi, Literal("https://doi.org/10.4126/FRL01-0000123")))
+
+    text = json.dumps(json.loads(_mapped_arc_json(graph)))
+    assert '"URI=https://doi.org/10.4126/FRL01-0000123"' in text
+    assert "doi.org/https" not in text

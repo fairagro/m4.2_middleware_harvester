@@ -53,7 +53,7 @@ Core descriptive metadata about the dataset.
 | ----------------------------- | ------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **citation/title**            | `title`                                          | Dataset title                                 | `Investigation.Title`                                                                                                                                                                                             |
 | **citation/alternateTitle**   | `alternatetitle`                                 | Alternative title                             | `Investigation` comment                                                                                                                                                                                           |
-| **citation/identifier**       | `uricode`, `uricodespace`                        | Resource identifiers (DOI, ISBN, etc.)        | `Investigation.Publications` (if DOI/ISBN)                                                                                                                                                                        |
+| **citation/identifier**       | `uricode`, `uricodespace`                        | Resource identifiers (DOI, ISBN, etc.)        | `Investigation.Publications`: one per distinct DOI, bare `10.…/…` (prefixes such as `doi:https://doi.org/` stripped); other codes are not publications                                                            |
 | **citation/date**             | `date` (list of `CI_Date`)                       | Creation, publication, revision dates         | `Investigation.SubmissionDate` and `Study.SubmissionDate`: earliest publication, else latest revision, else earliest creation (empty without any); also Study Protocol parameters (Acquisition / Processing Date) |
 | **citation/edition**          | `edition`                                        | Version/edition of the dataset                | `Investigation` comment or `Study.Description`                                                                                                                                                                    |
 | **abstract**                  | `abstract`                                       | Abstract/summary                              | `Investigation.Description`                                                                                                                                                                                       |
@@ -217,7 +217,8 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
   the metadata timestamp and only goes to the `Metadata Date` Comment
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate
   roles
-- **Publications**: Resource identifiers (DOIs, ISBNs) from citation/identifier and aggregationInfo
+- **Publications**: DOIs (bare, normalised by `middleware.payload.dois.normalize_doi`) from citation/identifier and
+  aggregationInfo
 - **Comments/Remarks**:
   - All comments are stored as **Name/Value pairs** (using `Comment.create(name, value)`)
   - parentIdentifier (if hierarchy)
@@ -343,10 +344,11 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 ### Publication (Related Resources)
 
-- Extract from citation/identifier (DOIs, ISBNs)
+- Extract DOIs from citation/identifier (code, else its URL); ISBNs and other codes are not publications
 - Extract from aggregationInfo (related datasets/papers)
 - **Title**: From citation or aggregationInfo
-- **DOI**: Extracted from identifier
+- **DOI**: bare `10.…/…`; repeated `doi:`, `doi.org`, `dx.doi.org`, `www.doi.org` prefixes are stripped (GeoNode writes
+  `doi:https://doi.org/…`). A `doi:` CURIE in the RO-Crate would expand to `https://dx.doi.org/…`
 - **Authors**: Contacts with role `author` (NCIT `Author`), in contact order, as `F. Last; F. Last` — no commas, because
   the RO-Crate writer splits Publication authors on `,`
 - **Comments**: Explain if from aggregationInfo (link to related dataset)

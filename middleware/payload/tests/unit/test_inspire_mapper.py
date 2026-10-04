@@ -156,3 +156,38 @@ def test_dataset_date_order_publication_revision_creation(
     )
     arc = InspireMapper().map_record(record)
     assert (arc.SubmissionDate or None) == expected
+
+
+# --- DOI normalisation (#410) -----------------------------------------------
+
+
+def test_geonode_doi_is_bare_and_deduplicated_in_ro_crate() -> None:
+    """BonaRes 00de8e8c-…: ``doi:https://doi.org/…`` must not become ``https://dx.doi.org/https://…``."""
+    record = _minimal_record(
+        resource_identifiers=[
+            ResourceIdentifier(
+                code="doi:https://doi.org/10.4228/zalf.vjcp-vep3",
+                url="https://dx.doi.org/https://doi.org/10.4228/zalf.vjcp-vep3",
+            ),
+            ResourceIdentifier(code="https://doi.org/10.4228/ZALF.VJCP-VEP3"),
+            ResourceIdentifier(code="doi:https://www.ncbi.nlm.nih.gov/search/all/?term=PRJNA1140101"),
+            ResourceIdentifier(code="978-3-16-148410-0", codespace="ISBN"),
+        ],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    graph = json.loads(harvested.arc_json)["@graph"]
+    citation_ids = [
+        ident["@id"]
+        for item in graph
+        if item.get("@type") == "ScholarlyArticle"
+        for ident in (item["identifier"] if isinstance(item["identifier"], list) else [item["identifier"]])
+    ]
+    assert citation_ids == ["10.4228/zalf.vjcp-vep3"]
