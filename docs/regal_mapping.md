@@ -204,7 +204,7 @@ One Regal ResearchData record = one Study.
     `https://repository.publisso.de/resource/{@id}` → else raw `@id`
   - **Comment [License]**: license `@id` or label
   - **Comment [Language]**: ISO 639 code from the `id.loc.gov/vocabulary/iso639-2/<code>` `@id` (e.g. `eng`), else
-    prefLabel; codes are deduplicated and joined with `; `
+    prefLabel; codes are deduplicated and semicolon-joined
   - **Comment [Online Resource]**: semicolon-joined `hasPart` URLs
   - **Comment [Online Resource Name]**: semicolon-joined `hasPart` prefLabels (omit column if all empty)
   - **Comment [Institution]**: institution prefLabel(s) when useful on the assay row
