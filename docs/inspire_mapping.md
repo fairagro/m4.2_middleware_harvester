@@ -376,18 +376,29 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 
-### 3. Opaque Fields
+### 3. Placeholder Values
+
+GeoNode catalogues (BonaRes, Thünen Atlas) fill empty optional elements with placeholder text, e.g.
+`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`,
+and "No information provided" for `supplementalInformation`. `InspireRecord` and its nested models treat a whole-value
+placeholder (case-insensitive) in an **optional** field as absent: a scalar falls back to its default and list items are
+removed. The list is `value_bounds.placeholder_values` (defaults in `middleware.payload.placeholders`: `None`, `null`,
+`N/A`, `No abstract provided`, `Keine Zusammenfassung vorhanden`, `No information provided`); unrendered `$var` /
+`{{var}}` templates always count. Required fields (`identifier`, `title`, `abstract`) keep their value, so a placeholder
+abstract still reaches `Investigation.Description` (#413).
+
+### 4. Opaque Fields
 
 **aggregationInfo**: OWSLib returns this as raw XML text. We will attempt to parse it for citations/identifiers, create
 Publications, and add a comment explaining the relationship.
 
-### 4. Service Metadata
+### 5. Service Metadata
 
 **SV_ServiceIdentification**: Primarily relevant for OGC web services. If present in a dataset record, it may indicate
 hierarchical metadata or linked services. We document this in Investigation comments but do not create dedicated ARC
 structures.
 
-### 5. Complex Nested Structures
+### 6. Complex Nested Structures
 
 **acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters
 extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on

@@ -364,3 +364,41 @@ def test_blank_optional_url_means_absent(mock_iso_record: MagicMock, parser: Iso
 
     assert rec.online_resources[0].name_url is None
     assert rec.online_resources[0].protocol_url is None
+
+
+def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """BonaRes writes gco:CharacterString "None" / "No information provided" for empty elements (#413)."""
+    ident = mock_iso_record.identification
+    ident.purpose = "None"
+    ident.supplementalinformation = " No information provided "
+    ident.otherconstraints = ["None", "Not Specified: The original author did not specify a license."]
+    ident.graphicoverview = ["None", "https://example.com/thumb.png"]
+    _with_online(mock_iso_record, "https://example.com/data.csv")
+    mock_iso_record.distribution.online[0].description = "N/A"
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert rec.purpose is None
+    assert rec.supplemental_information is None
+    assert rec.other_constraints == ["Not Specified: The original author did not specify a license."]
+    assert rec.graphic_overviews == ["https://example.com/thumb.png"]
+    assert rec.online_resources[0].description is None
+
+
+def test_placeholder_in_required_field_is_kept(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """Required title/abstract keep the source value; dropping them would fail the whole record."""
+    mock_iso_record.identification.abstract = "No abstract provided"
+
+    assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").abstract == "No abstract provided"
+
+
+def test_configured_placeholder_values_replace_defaults(mock_iso_record: MagicMock) -> None:
+    mock_iso_record.identification.purpose = "Keine Angabe"
+    mock_iso_record.identification.edition = "None"
+
+    rec = IsoParser(ValueBounds(placeholder_values=frozenset({"keine angabe"}))).parse_record(
+        mock_iso_record, record_uuid="uuid-123"
+    )
+
+    assert rec.purpose is None
+    assert rec.edition == "None"

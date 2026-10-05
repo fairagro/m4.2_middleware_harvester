@@ -9,7 +9,9 @@ Every value comes from a remote server and is untrusted, so the models validate 
 length and list-size limits (``ValueBounds``, exposed by protocol configs such as the
 INSPIRE plugin's ``Config.value_bounds``), a URL-scheme allowlist, ISO 19139 codelists
 and ISO 639-2 language codes. A violation raises ``ValidationError`` — values are never
-truncated or dropped — and the record is reported as failed.
+truncated or dropped — and the record is reported as failed. The one exception is
+placeholder text (``value_bounds.placeholder_values``, e.g. ``None``) in an optional field,
+which counts as absent.
 
 The configured limits reach the validators through the validation context
 (``InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: bounds})``).
@@ -23,9 +25,18 @@ from collections.abc import Callable, Sized
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, StringConstraints, ValidationInfo
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    model_validator,
+)
 
 from middleware.payload.inspire.value_bounds import ValueBounds
+from middleware.payload.placeholders import is_placeholder
 
 VALUE_BOUNDS_CONTEXT_KEY = "value_bounds"
 
@@ -168,7 +179,32 @@ TopicCategoryCode = Literal[
 BooleanLiteral = Literal["true", "false", "1", "0"]
 
 
-class ResourceIdentifier(BaseModel):
+class _HarvestedModel(BaseModel):
+    """Treats ``value_bounds.placeholder_values`` in optional fields as absent.
+
+    A placeholder scalar falls back to the field default; placeholder list items are removed.
+    Required fields keep the value, so a placeholder there still reaches the mapper unchanged.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_placeholders(cls, data: object, info: ValidationInfo) -> object:
+        if not isinstance(data, dict):
+            return data
+        values = _bounds(info).placeholder_values
+        cleaned = dict(data)
+        for name, field in cls.model_fields.items():
+            if field.is_required() or name not in cleaned:
+                continue
+            value = cleaned[name]
+            if isinstance(value, str) and is_placeholder(value, values):
+                del cleaned[name]
+            elif isinstance(value, list):
+                cleaned[name] = [v for v in value if not (isinstance(v, str) and is_placeholder(v, values))]
+        return cleaned
+
+
+class ResourceIdentifier(_HarvestedModel):
     """Resource identifier (DOI, ISBN, etc.)."""
 
     code: RequiredMediumStr
@@ -176,21 +212,21 @@ class ResourceIdentifier(BaseModel):
     url: OptionalUrl = None
 
 
-class InspireDate(BaseModel):
+class InspireDate(_HarvestedModel):
     """Date with type (creation, publication, revision)."""
 
     date: IsoDate
     datetype: DateTypeCode | None = None
 
 
-class SpatialResolutionDistance(BaseModel):
+class SpatialResolutionDistance(_HarvestedModel):
     """Spatial resolution as distance with unit."""
 
     value: float
     uom: ShortStr  # Unit of measure (e.g., "m", "km")
 
 
-class DistributionFormat(BaseModel):
+class DistributionFormat(_HarvestedModel):
     """Data distribution format information."""
 
     name: RequiredMediumStr
@@ -201,7 +237,7 @@ class DistributionFormat(BaseModel):
     specification_url: OptionalUrl = None
 
 
-class OnlineResource(BaseModel):
+class OnlineResource(_HarvestedModel):
     """Online resource (download link, service endpoint, etc.)."""
 
     url: HarvestedUrl
@@ -214,7 +250,7 @@ class OnlineResource(BaseModel):
     function: ShortStr | None = None  # "download", "information", etc.
 
 
-class ConformanceResult(BaseModel):
+class ConformanceResult(_HarvestedModel):
     """Data quality conformance result."""
 
     specification_title: RequiredMediumStr
@@ -224,7 +260,7 @@ class ConformanceResult(BaseModel):
     degree: BooleanLiteral | None = None
 
 
-class ReferenceSystem(BaseModel):
+class ReferenceSystem(_HarvestedModel):
     """Coordinate reference system information."""
 
     code: RequiredMediumStr
@@ -235,7 +271,7 @@ class ReferenceSystem(BaseModel):
     version_url: OptionalUrl = None
 
 
-class Contact(BaseModel):
+class Contact(_HarvestedModel):
     """Enhanced contact information with full CI_ResponsibleParty details."""
 
     # Core fields (existing)
@@ -262,7 +298,7 @@ class Contact(BaseModel):
     online_resource_description: LongStr | None = None
 
 
-class InspireRecord(BaseModel):
+class InspireRecord(_HarvestedModel):
     """Comprehensive representation of an INSPIRE metadata record."""
 
     # Core identification (existing fields)
