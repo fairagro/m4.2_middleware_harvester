@@ -157,6 +157,14 @@ def test_schema_org_mapper_keeps_arctrl_default_without_licence(license_obj: Lit
     assert _license_text(arc_json.arc_json) == ARCTRL_DEFAULT
 
 
+def test_schema_org_mapper_writes_no_license_comment_for_placeholder() -> None:
+    """e!DAL renders an unexpanded ``$licenseURL`` (#413); it must not become a License comment."""
+    arc_json = first_harvest(
+        GeneralSchemaOrgMapper().map_graph(_schema_org_graph(Literal("$licenseURL")), NO_DISCOVERY)
+    ).arc_json
+    assert "$licenseURL" not in arc_json
+
+
 def test_regal_mapper_sets_licence() -> None:
     subject = URIRef("https://example.org/resource/frl:1")
     graph = Graph()

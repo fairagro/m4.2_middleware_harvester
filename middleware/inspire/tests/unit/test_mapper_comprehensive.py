@@ -828,7 +828,7 @@ def test_add_constraint_comments(mapper: InspireMapper) -> None:
         access_constraints=["restricted"],
         use_constraints=["license"],
         classification=["confidential"],
-        other_constraints=["None"],
+        other_constraints=["Data available on request."],
         other_constraints_url=["https://example.com/constraints"],
     )
 

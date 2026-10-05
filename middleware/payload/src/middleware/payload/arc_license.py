@@ -18,6 +18,8 @@ from urllib.parse import urlparse
 
 from arctrl.py.license import License  # type: ignore[import-untyped]
 
+from middleware.payload.placeholders import is_placeholder
+
 _URL_RE = re.compile(r"https?://[^\s()<>\"';,]+")
 # GeoNode licence text: "<name> (<identifier>): <description>", e.g.
 # "CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (https://…/legalcode)".
@@ -34,8 +36,6 @@ _LICENSE_HOSTS = (
 )
 # INSPIRE code-list anchors (e.g. ConditionsApplyingToAccessAndUse) are not licences.
 _INSPIRE_REGISTRY_HOSTS = ("inspire.ec.europa.eu",)
-# Unexpanded template variables such as e!DAL's "$licenseURL".
-_PLACEHOLDER_RE = re.compile(r"^\$\{?\w+\}?$")
 
 
 def _host_in(url: str, hosts: Iterable[str]) -> bool:
@@ -57,10 +57,10 @@ def license_from_value(value: str | None, *, name: str | None = None) -> License
 
     For schema.org ``license`` and Regal ``license``: the value (URL or text) becomes the
     licence content, as ``name (url)`` when a CreativeWork ``name`` accompanies a URL. Empty
-    values and unexpanded template placeholders return ``None``.
+    values and placeholders (``None``, unexpanded ``$licenseURL``) return ``None``.
     """
     text = (value or "").strip()
-    if not text or _PLACEHOLDER_RE.match(text):
+    if not text or is_placeholder(text):
         return None
     label = (name or "").strip()
     if label and label != text and _is_http_url(text):

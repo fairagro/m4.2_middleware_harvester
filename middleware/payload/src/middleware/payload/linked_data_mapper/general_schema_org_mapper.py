@@ -51,6 +51,7 @@ from middleware.payload.person_contacts import (
     require_nonempty_person_given_names,
 )
 from middleware.payload.person_names import split_display_name
+from middleware.payload.placeholders import is_placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -507,7 +508,7 @@ class _SchemaOrgRun:
             ("URL", "url"),
         ]:
             value = self.view(subject).schema_text(term)
-            if value:
+            if value and not is_placeholder(value):
                 inv.Comments.append(Comment.create(label, value))
 
         self._add_publisher_comment(inv, subject)
@@ -677,7 +678,7 @@ class _SchemaOrgRun:
         )
 
         license_val = self.view(subject)["license"]
-        if license_val:
+        if license_val and not is_placeholder(license_val):
             table.AddColumn(
                 CompositeHeader.comment("License"),
                 [CompositeCell.free_text(license_val)],
