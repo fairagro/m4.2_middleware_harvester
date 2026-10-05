@@ -45,6 +45,7 @@ from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.person_contacts import (
     add_contact,
+    add_creator_organization,
     orcid_id,
     publication_authors,
     require_nonempty_person_given_names,
@@ -363,9 +364,12 @@ class _SchemaOrgRun:
                 org_name = str(node)
             else:
                 return False
+        org_url = self.view(node)["url"] or (str(node) if isinstance(node, URIRef) else None)
+        if role == "author":
+            add_creator_organization(inv, org_name, org_url)
+            return True
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
-        org_url = self.view(node)["url"] or (str(node) if isinstance(node, URIRef) else None)
         if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
         return True

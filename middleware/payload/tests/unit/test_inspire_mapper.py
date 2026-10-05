@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from arctrl import ARC  # type: ignore[import-untyped]
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.inspire.mapper import InspireMapper
@@ -191,3 +192,38 @@ def test_geonode_doi_is_bare_and_deduplicated_in_ro_crate() -> None:
         for ident in (item["identifier"] if isinstance(item["identifier"], list) else [item["identifier"]])
     ]
     assert citation_ids == ["10.4228/zalf.vjcp-vep3"]
+
+
+# --- organisational creators (#411) -----------------------------------------
+
+
+def test_thuenen_organisation_creator_survives_ro_crate_round_trip() -> None:
+    """Thünen Atlas: every contact is an organisation; originator/author become ``Creator Organization``."""
+    org = "Thünen-Institut Zentrum für Informationsmanagement"
+    url = "https://www.thuenen.de/"
+    record = _minimal_record(
+        contacts=[
+            Contact(organization=org, organization_url=url, role="originator"),
+            Contact(organization=org, organization_url=url, role="author"),
+            Contact(organization=org, role="pointOfContact"),
+            Contact(organization="BonaRes Data Centre", role="owner"),
+        ],
+        creators=[Contact(organization=org.upper(), role="originator")],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    arc = ARC.from_rocrate_json_string(harvested.arc_json)
+    assert not list(arc.Contacts)
+    assert [(c.Name, c.Value) for c in arc.Comments if c.Name.startswith(("Creator", "Point", "Owner"))] == [
+        ("Creator Organization", org),
+        ("Creator Organization URL", url),
+        ("Point of Contact", org),
+        ("Owner", "BonaRes Data Centre"),
+    ]
