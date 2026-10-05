@@ -104,3 +104,14 @@ def test_allowed_context_url_rejects_non_http() -> None:
             allowed_context_url="ftp://example.org/ctx",
             http=NiceHttpClientConfig(),
         )
+
+
+def test_allowed_context_url_rejects_hostless_https() -> None:
+    with pytest.raises(ValidationError, match="absolute http"):
+        Config(
+            sitemap_url="https://example.org/sitemap.xml",
+            sitemap_type=SitemapType.xml,
+            dataset_type=DatasetType.html_jsonld,
+            allowed_context_url="https://",
+            http=NiceHttpClientConfig(),
+        )

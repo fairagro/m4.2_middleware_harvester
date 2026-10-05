@@ -137,8 +137,9 @@ class Config(BaseModel):
         stripped = value.strip()
         if not stripped:
             return None
-        if not (stripped.startswith("http://") or stripped.startswith("https://")):
-            raise ValueError("allowed_context_url must be an http(s) URL")
+        parsed = urlparse(stripped)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("allowed_context_url must be an absolute http(s) URL with a host")
         return stripped
 
     @property

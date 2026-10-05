@@ -221,6 +221,30 @@ async def test_ensure_document_cached_follows_jsonld_link_alternate() -> None:
 
 
 @pytest.mark.asyncio
+async def test_materialize_unwraps_context_document_with_metadata_keys() -> None:
+    root = "https://ctx.example/root.json"
+    documents = {
+        root: {
+            "@context": {"@vocab": "http://schema.org/"},
+            "comment": "JSON-LD context documents may carry metadata",
+        }
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        materialized = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    assert materialized["@context"] == {"@vocab": "http://schema.org/"}
+
+
+@pytest.mark.asyncio
 async def test_materialize_inlines_nested_context_without_top_level() -> None:
     root = "https://ctx.example/root.json"
     documents = {root: {"@context": {"@vocab": "http://schema.org/"}}}

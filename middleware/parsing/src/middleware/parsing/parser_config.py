@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Annotated, Self
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -57,8 +58,9 @@ class ParserConfig(BaseModel):
         stripped = value.strip()
         if not stripped:
             return None
-        if not (stripped.startswith("http://") or stripped.startswith("https://")):
-            raise ValueError("allowed_context_url must be an http(s) URL")
+        parsed = urlparse(stripped)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("allowed_context_url must be an absolute http(s) URL with a host")
         return stripped
 
     @model_validator(mode="after")

@@ -178,11 +178,14 @@ async def ensure_document_cached(url: str, client: NiceHttpClient) -> JsonValue:
 
 
 def _unwrap_context_document(document: JsonValue) -> JsonValue:
-    """Return the JSON-LD context value from a remote document envelope when present."""
+    """Return the JSON-LD context value from a remote document envelope when present.
+
+    Context documents MAY carry additional metadata keys beside ``@context``; when
+    the document is referenced as a remote ``@context`` / ``@import`` target, only
+    the ``@context`` member is inlined.
+    """
     if isinstance(document, dict) and "@context" in document:
-        keys = set(document.keys())
-        if keys == {"@context"} or keys <= {"@context", "@graph", "@id", "@type"}:
-            return document["@context"]
+        return document["@context"]
     return document
 
 

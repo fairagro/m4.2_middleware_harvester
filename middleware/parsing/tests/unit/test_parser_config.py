@@ -26,3 +26,8 @@ def test_allowed_context_url_accepts_https(caplog: pytest.LogCaptureFixture) -> 
 def test_allowed_context_url_rejects_non_http() -> None:
     with pytest.raises(ValidationError, match="http"):
         ParserConfig(type=ParserType.jsonld, allowed_context_url="ftp://example.org/ctx")
+
+
+def test_allowed_context_url_rejects_hostless_https() -> None:
+    with pytest.raises(ValidationError, match="absolute http"):
+        ParserConfig(type=ParserType.jsonld, allowed_context_url="https://")

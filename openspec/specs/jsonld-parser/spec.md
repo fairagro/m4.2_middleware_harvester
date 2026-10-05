@@ -23,7 +23,7 @@ NOT require an HTTP client and MUST NOT restrict the vocabulary.
 - **WHEN** the parser receives a non-JSON-LD discovery unit
 - **THEN** parse fails with a descriptive error
 
-### Requirement: Never load remote JSON-LD contexts
+### Requirement: Resolve remote JSON-LD contexts only via the shared cached loader
 
 The parser SHALL NOT perform uncached network retrieval of JSON-LD contexts during parse. Remote `@context` / `@import`
 IRIs MUST be resolved through the shared context loader (process-lifetime cache, polite HTTP on miss, including
