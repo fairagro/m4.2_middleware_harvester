@@ -675,3 +675,33 @@ def test_regal_doi_url_is_normalised_to_bare_doi() -> None:
     text = json.dumps(json.loads(_mapped_arc_json(graph)))
     assert '"URI=https://doi.org/10.4126/FRL01-0000123"' in text
     assert "doi.org/https" not in text
+
+
+def _language_texts(arc_json: str) -> list[str]:
+    return [text for name, text in _comment_entries(arc_json) if name == "Language"]
+
+
+def test_regal_mapper_language_uses_iso639_code_from_loc_iri() -> None:
+    graph = _base_graph()
+    english = URIRef("http://id.loc.gov/vocabulary/iso639-2/eng")
+    graph.add((SUBJECT, DCTERMS.language, english))
+    graph.add((english, SKOS.prefLabel, Literal("Englisch")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _language_texts(arc_json) == ["eng"]
+    assert "Englisch" not in arc_json
+
+
+def test_regal_mapper_language_dedupes_codes_and_falls_back_to_label() -> None:
+    graph = _base_graph()
+    for iri, label in (
+        ("http://id.loc.gov/vocabulary/iso639-2/eng", "Englisch"),
+        ("https://id.loc.gov/vocabulary/iso639-2/ENG", "English"),
+    ):
+        graph.add((SUBJECT, DCTERMS.language, URIRef(iri)))
+        graph.add((URIRef(iri), SKOS.prefLabel, Literal(label)))
+    unknown = BNode()
+    graph.add((SUBJECT, DCTERMS.language, unknown))
+    graph.add((unknown, SKOS.prefLabel, Literal("Plattdeutsch")))
+
+    assert _language_texts(_mapped_arc_json(graph)) == ["eng; Plattdeutsch"]

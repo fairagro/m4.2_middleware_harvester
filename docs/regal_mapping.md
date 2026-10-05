@@ -106,7 +106,7 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 | **`subject`**    | `dcterms:subject`       | Subject headings            | Ontology-style Investigation comments `keyword [{@id or subject}]` = `prefLabel`, and/or **Data Collection** protocol parameter `Keywords` |
 | **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Same as keywords with TermSourceREF `DDC` / `https://www.oclc.org/en/dewey.html`                                                           |
 | **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                 |
-| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language` (`prefLabel` or `@id`)                                                                            |
+| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                |
 
 ### 6. Funding
 
@@ -203,7 +203,8 @@ One Regal ResearchData record = one Study.
   - **Output [URI]**: `https://doi.org/{doi}` if DOI present → else landing page
     `https://repository.publisso.de/resource/{@id}` → else raw `@id`
   - **Comment [License]**: license `@id` or label
-  - **Comment [Language]**: language prefLabel / `@id`
+  - **Comment [Language]**: ISO 639 code from the `id.loc.gov/vocabulary/iso639-2/<code>` `@id` (e.g. `eng`), else
+    prefLabel; codes are deduplicated and semicolon-joined
   - **Comment [Online Resource]**: semicolon-joined `hasPart` URLs
   - **Comment [Online Resource Name]**: semicolon-joined `hasPart` prefLabels (omit column if all empty)
   - **Comment [Institution]**: institution prefLabel(s) when useful on the assay row
@@ -276,6 +277,6 @@ Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the 
 | `measurementTechnique`            | `dataOrigin`                                | Data Collection parameter         |
 | `funder` / `funding`              | `fundingId`, `joinedFunding`, …             | Data Processing parameters        |
 | `distribution`                    | `hasPart`                                   | Assay Online Resource comments    |
-| `inLanguage`                      | `language`                                  | Language comment                  |
+| `inLanguage`                      | `language`                                  | Language comment (ISO 639 code)   |
 | `license`                         | `license`                                   | License comment                   |
 | `spatial`                         | `recordingCoordinates`, `recordingLocation` | Spatial Sampling protocol         |
