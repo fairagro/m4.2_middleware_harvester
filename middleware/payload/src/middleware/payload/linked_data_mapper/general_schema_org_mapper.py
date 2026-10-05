@@ -447,8 +447,8 @@ class _SchemaOrgRun:
                 raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
             return None
 
-        affiliation = self._extract_affiliation(node)
         address = self._extract_address(node)
+        affiliation = self._extract_affiliation(node) or self._affiliation_from_flat_address(node)
         arc_person = Person.create(
             orcid=self._person_orcid(node),
             last_name=family,
@@ -469,15 +469,31 @@ class _SchemaOrgRun:
             return str(aff_node).strip() or None
         return self.view(aff_node)["name"]
 
+    def _affiliation_from_flat_address(self, node: Node) -> str | None:
+        """First comma-separated segment of a plain-string ``address``.
+
+        e!DAL gives no ``affiliation`` and writes the institute at the start of a flat
+        address ("Leibniz Institute … (IPK), Seeland OT Gatersleben, Corrensstraße 3, …").
+        A structured PostalAddress has no organisation, so it yields nothing.
+        """
+        addr_node = self.view(node).schema_object_node("address")
+        if not isinstance(addr_node, Literal):
+            return None
+        return next((part.strip() for part in str(addr_node).split(",") if part.strip()), None)
+
     def _extract_address(self, node: Node) -> str | None:
         addr_node = self.view(node).schema_object_node("address")
         if addr_node is None:
             return None
         if isinstance(addr_node, Literal):
-            return str(addr_node)
+            text = str(addr_node)
+            # e!DAL renders empty addresses as " ,  , ".
+            return text if text.replace(",", "").strip() else None
         parts = [
             self.view(addr_node)["streetAddress"],
             self.view(addr_node)["postalCode"],
+            self.view(addr_node)["addressLocality"],
+            self.view(addr_node)["addressRegion"],
             self.view(addr_node)["addressCountry"],
         ]
         return ", ".join(p for p in parts if p) or None
