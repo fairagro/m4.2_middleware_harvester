@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 from typing import Annotated, Self
-from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from middleware.parsing.allowed_context import validate_allowed_context_url_value
 from middleware.parsing.parser_type import ParserType
 
 logger = logging.getLogger(__name__)
@@ -38,30 +38,23 @@ class ParserConfig(BaseModel):
         ),
     ] = 65536
     allowed_context_url: Annotated[
-        str | None,
+        list[str] | None,
         Field(
             description=(
-                "Optional exact http(s) IRI pinned as the remote JSON-LD ``@context`` for "
-                "``jsonld`` / ``html_jsonld``. When set, only that IRI is accepted. When "
-                "unset on a JSON-LD parser, a warning is logged at config load and absolute "
-                "http(s) remotes are still fetched via polite HTTP and cached for the process. "
-                "Ignored by non-JSON-LD parsers."
+                "Optional http(s) IRI or list of IRIs pinned as allowed remote JSON-LD "
+                "``@context`` values for ``jsonld`` / ``html_jsonld``. Matching ignores "
+                "trailing slashes; an ``http`` pin also accepts the same IRI under "
+                "``https``. When unset on a JSON-LD parser, a warning is logged "
+                "at config load and absolute http(s) remotes are still fetched via polite "
+                "HTTP and cached for the process. Ignored by non-JSON-LD parsers."
             ),
         ),
     ] = None
 
-    @field_validator("allowed_context_url")
+    @field_validator("allowed_context_url", mode="before")
     @classmethod
-    def _http_context_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        stripped = value.strip()
-        if not stripped:
-            return None
-        parsed = urlparse(stripped)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("allowed_context_url must be an absolute http(s) URL with a host")
-        return stripped
+    def _http_context_url(cls, value: object) -> list[str] | None:
+        return validate_allowed_context_url_value(value)
 
     @model_validator(mode="after")
     def warn_unpinned_jsonld_context(self) -> Self:

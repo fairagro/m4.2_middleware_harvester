@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from middleware.harvester.nice_http_client import NiceHttpClientConfig
+from middleware.parsing.allowed_context import validate_allowed_context_url_value
 from middleware.payload import MapperType
 
 
@@ -85,11 +86,13 @@ class Config(BaseModel):
         ),
     ] = 65536
     allowed_context_url: Annotated[
-        str | None,
+        list[str] | None,
         Field(
             description=(
-                "Optional exact http(s) IRI allowed as remote JSON-LD @context for "
-                "html_jsonld datasets (passed through to HtmlJsonLdParser). Prefer "
+                "Optional http(s) IRI or list of IRIs allowed as remote JSON-LD "
+                "@context for html_jsonld datasets (passed through to "
+                "HtmlJsonLdParser). Matching ignores trailing slashes; an ``http`` "
+                "pin also accepts ``https``. Prefer "
                 "generic + sibling parser.allowed_context_url for new configs."
             ),
         ),
@@ -129,18 +132,10 @@ class Config(BaseModel):
         ),
     ] = None
 
-    @field_validator("allowed_context_url")
+    @field_validator("allowed_context_url", mode="before")
     @classmethod
-    def _http_context_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        stripped = value.strip()
-        if not stripped:
-            return None
-        parsed = urlparse(stripped)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("allowed_context_url must be an absolute http(s) URL with a host")
-        return stripped
+    def _http_context_url(cls, value: object) -> list[str] | None:
+        return validate_allowed_context_url_value(value)
 
     @property
     def effective_worker_tasks(self) -> int:

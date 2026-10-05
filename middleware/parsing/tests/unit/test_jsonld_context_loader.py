@@ -11,6 +11,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClient
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import (
     clear_context_document_cache,
+    configure_document_cache_max_entries,
     ensure_document_cached,
     materialize_payload_contexts,
 )
@@ -242,6 +243,127 @@ async def test_materialize_unwraps_context_document_with_metadata_keys() -> None
         materialized = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
 
     assert materialized["@context"] == {"@vocab": "http://schema.org/"}
+
+
+@pytest.mark.asyncio
+async def test_materialize_accepts_trailing_slash_variant() -> None:
+    root = "https://schema.org/"
+    documents = {
+        root: {"@context": {"@vocab": "http://schema.org/"}},
+        "https://schema.org": {"@context": {"@vocab": "http://schema.org/"}},
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {"@context": "https://schema.org", "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        materialized = await materialize_payload_contexts(
+            payload, allowed_context_url="https://schema.org/", client=client
+        )
+
+    assert materialized["@context"] == {"@vocab": "http://schema.org/"}
+
+
+@pytest.mark.asyncio
+async def test_materialize_http_pin_accepts_https_payload() -> None:
+    documents = {
+        "https://schema.org/": {"@context": {"@vocab": "http://schema.org/"}},
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {"@context": "https://schema.org/", "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        materialized = await materialize_payload_contexts(
+            payload, allowed_context_url="http://schema.org", client=client
+        )
+
+    assert materialized["@context"] == {"@vocab": "http://schema.org/"}
+
+
+@pytest.mark.asyncio
+async def test_materialize_https_pin_rejects_http_payload() -> None:
+    hits = {"n": 0}
+
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        hits["n"] += 1
+        return httpx.Response(200, json={})
+
+    payload: JsonObject = {"@context": "http://schema.org", "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+            await materialize_payload_contexts(payload, allowed_context_url="https://schema.org/", client=client)
+    assert hits["n"] == 0
+
+
+@pytest.mark.asyncio
+async def test_materialize_accepts_context_list_with_allowlist() -> None:
+    schema = "https://schema.org/"
+    bios = "https://bioschemas.org/"
+    documents = {
+        schema: {"@context": {"@vocab": "http://schema.org/"}},
+        bios: {"@context": {"Sample": "https://bioschemas.org/Sample"}},
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {
+        "@context": [schema, bios],
+        "@id": "https://example.org/1",
+        "@type": "Dataset",
+    }
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        materialized = await materialize_payload_contexts(
+            payload,
+            allowed_context_url=[schema, bios],
+            client=client,
+        )
+
+    assert materialized["@context"] == [
+        {"@vocab": "http://schema.org/"},
+        {"Sample": "https://bioschemas.org/Sample"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_document_cache_evicts_when_over_cap() -> None:
+    configure_document_cache_max_entries(2)
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits.append(str(request.url))
+        return httpx.Response(200, json={"@context": {"n": str(request.url)}})
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        for i in range(3):
+            url = f"https://ctx.example/{i}.json"
+            await ensure_document_cached(url, client)
+        await ensure_document_cached("https://ctx.example/0.json", client)
+
+    assert hits.count("https://ctx.example/0.json") == 2
+    assert hits.count("https://ctx.example/1.json") == 1
+    assert hits.count("https://ctx.example/2.json") == 1
 
 
 @pytest.mark.asyncio

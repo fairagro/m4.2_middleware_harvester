@@ -23,6 +23,7 @@ from middleware.payload.kinds import PayloadKind
 
 PAGE_URL = "https://example.org/page"
 _SCHEMA_ORG = "https://schema.org/"
+_SCHEMA_ORG_ALLOW = [_SCHEMA_ORG]
 _SCHEMA_ORG_DOC = {"@context": {"@vocab": "http://schema.org/"}}
 
 SIMPLE_HTML = """
@@ -64,7 +65,7 @@ def _parser_config(*, jsonld_parse_threshold_bytes: int = 65536) -> ParserConfig
     return ParserConfig(
         type=ParserType.html_jsonld,
         jsonld_parse_threshold_bytes=jsonld_parse_threshold_bytes,
-        allowed_context_url=_SCHEMA_ORG,
+        allowed_context_url=_SCHEMA_ORG_ALLOW,
     )
 
 
@@ -149,7 +150,7 @@ async def test_graph_from_html_raises_parser_error(html: str, message: str) -> N
                 html,
                 65536,
                 client=client,
-                allowed_context_url=_SCHEMA_ORG,
+                allowed_context_url=_SCHEMA_ORG_ALLOW,
             )
 
 
@@ -165,7 +166,7 @@ async def test_graph_from_html_offloads_blocks_over_threshold_to_thread() -> Non
                 SIMPLE_HTML,
                 1,
                 client=client,
-                allowed_context_url=_SCHEMA_ORG,
+                allowed_context_url=_SCHEMA_ORG_ALLOW,
             )
 
     assert to_thread_mock.called
@@ -184,7 +185,7 @@ async def test_graph_from_html_parses_inline_when_under_threshold() -> None:
                 SIMPLE_HTML,
                 65536,
                 client=client,
-                allowed_context_url=_SCHEMA_ORG,
+                allowed_context_url=_SCHEMA_ORG_ALLOW,
             )
 
     assert not to_thread_mock.called

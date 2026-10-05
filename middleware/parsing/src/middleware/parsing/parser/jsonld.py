@@ -25,8 +25,8 @@ class JsonLdParser(PayloadParser):
 
     Vocabulary-agnostic (DCAT-AP, Schema.org, …). Remote ``@context`` IRIs are resolved
     through the shared process-lifetime context cache. Prefer
-    ``parser.allowed_context_url`` (exact match); when unset, remotes are still
-    fetched (``ParserConfig`` warns at load) for backward compatibility.
+    ``parser.allowed_context_url`` (slash-normalised allowlist); when unset, remotes are
+    still fetched (``ParserConfig`` warns at load) for backward compatibility.
     """
 
     produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
@@ -47,7 +47,7 @@ class JsonLdParser(PayloadParser):
         allowed = getattr(config, "allowed_context_url", None)
         document = await materialize_payload_contexts(
             cast(JsonObject, discovery_result.payload),
-            allowed_context_url=allowed if isinstance(allowed, str) else None,
+            allowed_context_url=allowed if isinstance(allowed, list) else None,
             client=client,
         )
 

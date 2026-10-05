@@ -18,16 +18,28 @@ def test_allowed_context_url_optional(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_allowed_context_url_accepts_https(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level("WARNING", logger="middleware.parsing.parser_config"):
-        cfg = ParserConfig(type=ParserType.html_jsonld, allowed_context_url="https://schema.org/")
-    assert cfg.allowed_context_url == "https://schema.org/"
+        # YAML may supply a single string; coerce via model_validate (not __init__).
+        cfg = ParserConfig.model_validate({
+            "type": ParserType.html_jsonld,
+            "allowed_context_url": "https://schema.org/",
+        })
+    assert cfg.allowed_context_url == ["https://schema.org/"]
     assert not any("allowed_context_url is unset" in r.message for r in caplog.records)
+
+
+def test_allowed_context_url_accepts_list() -> None:
+    cfg = ParserConfig(
+        type=ParserType.html_jsonld,
+        allowed_context_url=["https://schema.org/", "https://bioschemas.org/"],
+    )
+    assert cfg.allowed_context_url == ["https://schema.org/", "https://bioschemas.org/"]
 
 
 def test_allowed_context_url_rejects_non_http() -> None:
     with pytest.raises(ValidationError, match="http"):
-        ParserConfig(type=ParserType.jsonld, allowed_context_url="ftp://example.org/ctx")
+        ParserConfig.model_validate({"type": ParserType.jsonld, "allowed_context_url": "ftp://example.org/ctx"})
 
 
 def test_allowed_context_url_rejects_hostless_https() -> None:
     with pytest.raises(ValidationError, match="absolute http"):
-        ParserConfig(type=ParserType.jsonld, allowed_context_url="https://")
+        ParserConfig.model_validate({"type": ParserType.jsonld, "allowed_context_url": "https://"})

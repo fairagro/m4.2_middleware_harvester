@@ -31,7 +31,8 @@ repositories:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
       type: html_jsonld
-      allowed_context_url: "https://schema.org/"
+      # Live e!DAL pages use http://schema.org; http pin also accepts https forms.
+      allowed_context_url: "http://schema.org"
     mapper:
       type: schema_org_general
 

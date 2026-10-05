@@ -88,7 +88,7 @@ the shared loader cache. Relative imports remain rejected.
 #### Scenario: Mixed http/https in same graph
 
 - **GIVEN** payloads that use different Schema.org IRI variants across records
-- **WHEN** each repository sets `parser.allowed_context_url` to the exact IRI used by that source
+- **WHEN** each repository sets `parser.allowed_context_url` to the IRI (or IRI list) used by that source
 - **THEN** each record resolves under its configured URL (exact match; no cross-variant aliasing required)
 
 #### Scenario: Known extension context (Bioschemas)

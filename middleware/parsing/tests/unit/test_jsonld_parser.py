@@ -31,6 +31,7 @@ _PAYLOAD: dict[str, object] = {
     ],
 }
 _SCHEMA_ORG = "https://schema.org/"
+_SCHEMA_ORG_ALLOW = [_SCHEMA_ORG]
 _SCHEMA_ORG_DOC = {"@context": {"@vocab": "http://schema.org/"}}
 
 
@@ -163,7 +164,7 @@ async def test_jsonld_parser_resolves_allowlisted_schemaorg_context() -> None:
         "@type": "Dataset",
         "name": "Genome",
     }
-    config = ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG)
+    config = ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG_ALLOW)
 
     async with NiceHttpClient(
         NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
@@ -192,7 +193,7 @@ async def test_jsonld_parser_requires_client_for_remote_context() -> None:
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=None,
-            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG),
+            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG_ALLOW),
         )
 
 

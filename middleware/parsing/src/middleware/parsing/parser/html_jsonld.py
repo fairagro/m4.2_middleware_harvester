@@ -69,7 +69,7 @@ class HtmlJsonLdParser(PayloadParser):
 
         threshold = int(getattr(config, "jsonld_parse_threshold_bytes", 65536))
         allowed = getattr(config, "allowed_context_url", None)
-        allowed_url = allowed if isinstance(allowed, str) else None
+        allowed_url: list[str] | None = allowed if isinstance(allowed, list) else None
         graph = await self._url_to_graph(discovery_result.url, client, threshold, allowed_url)
         return ParsedPayload(kind=PayloadKind.rdf_graph, value=graph, identifier=discovery_result.identifier)
 
@@ -78,7 +78,7 @@ class HtmlJsonLdParser(PayloadParser):
         url: str,
         client: NiceHttpClient,
         threshold: int,
-        allowed_context_url: str | None,
+        allowed_context_url: list[str] | None,
     ) -> Graph:
         try:
             response = await client.get_with_policy(url, follow_redirects=True)
@@ -100,7 +100,7 @@ class HtmlJsonLdParser(PayloadParser):
         threshold: int,
         *,
         client: NiceHttpClient | None = None,
-        allowed_context_url: str | None = None,
+        allowed_context_url: list[str] | None = None,
     ) -> Graph:
         """Parse embedded JSON-LD from already-fetched HTML into an RDF graph.
 
@@ -133,7 +133,7 @@ class HtmlJsonLdParser(PayloadParser):
         url: str,
         *,
         client: NiceHttpClient | None,
-        allowed_context_url: str | None,
+        allowed_context_url: list[str] | None,
     ) -> str:
         try:
             parsed = json.loads(block, strict=False)

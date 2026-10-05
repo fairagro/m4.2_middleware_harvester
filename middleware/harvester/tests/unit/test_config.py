@@ -35,6 +35,7 @@ def test_harvester_config_loading() -> None:
     config = Config.model_validate(raw_config)
     assert isinstance(config.api_client, ApiClientConfig)
     assert str(config.api_client.api_url).rstrip("/") == "https://api.example.com"
+    assert config.jsonld_context_cache_max_entries == 64
 
     assert len(config.repositories) == 1
     repo: RepositoryConfig = config.repositories[0]
@@ -42,6 +43,32 @@ def test_harvester_config_loading() -> None:
     assert isinstance(repo.plugin_config, InspireConfig)
     assert repo.rdi == "test-import"
     assert repo.plugin_config.csw_url == "https://csw.example.com"
+
+
+def test_jsonld_context_cache_max_entries_accepts_override() -> None:
+    config = Config.model_validate({
+        "api_client": {"api_url": "https://api.example.com"},
+        "repositories": [
+            {"rdi": "test", "inspire": {"csw_url": "https://csw.example.com"}, "mapper": {"type": "inspire_general"}},
+        ],
+        "jsonld_context_cache_max_entries": 8,
+    })
+    assert config.jsonld_context_cache_max_entries == 8
+
+
+def test_jsonld_context_cache_max_entries_rejects_non_positive() -> None:
+    with pytest.raises(ValidationError):
+        Config.model_validate({
+            "api_client": {"api_url": "https://api.example.com"},
+            "repositories": [
+                {
+                    "rdi": "test",
+                    "inspire": {"csw_url": "https://csw.example.com"},
+                    "mapper": {"type": "inspire_general"},
+                },
+            ],
+            "jsonld_context_cache_max_entries": 0,
+        })
 
 
 def test_repository_config_source_url_inspire() -> None:

@@ -277,3 +277,24 @@ child's `entry_url` when that field is present, and MAY be unset when the active
 
 - **WHEN** a generic repository sets only deprecated `protocol_type` and `sitemap_url`
 - **THEN** repository `source_url` equals that `sitemap_url` after lift
+
+### Requirement: Top-level jsonld_context_cache_max_entries bounds the shared context cache
+
+The system SHALL accept optional top-level `jsonld_context_cache_max_entries` (positive integer; default 64) on the
+harvester `Config`. At startup the harvester MUST apply that value as the process-lifetime JSON-LD context-document
+cache size cap (see `jsonld-context-loader`).
+
+#### Scenario: Default cache size
+
+- **WHEN** config omits `jsonld_context_cache_max_entries`
+- **THEN** configuration validation succeeds and the effective cache size cap is 64
+
+#### Scenario: Explicit cache size
+
+- **WHEN** config sets `jsonld_context_cache_max_entries: 8`
+- **THEN** configuration validation succeeds and startup configures the shared cache for at most 8 entries
+
+#### Scenario: Non-positive cache size rejected
+
+- **WHEN** config sets `jsonld_context_cache_max_entries: 0`
+- **THEN** configuration validation fails

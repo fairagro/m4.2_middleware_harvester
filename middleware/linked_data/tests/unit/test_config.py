@@ -85,33 +85,45 @@ def test_resource_base_url_override() -> None:
 
 
 def test_allowed_context_url_accepts_https() -> None:
+    # YAML may supply a single string; coerce via model_validate (not __init__).
+    config = Config.model_validate({
+        "sitemap_url": "https://example.org/sitemap.xml",
+        "sitemap_type": SitemapType.xml,
+        "dataset_type": DatasetType.html_jsonld,
+        "allowed_context_url": "https://schema.org/",
+        "http": {},
+    })
+    assert config.allowed_context_url == ["https://schema.org/"]
+
+
+def test_allowed_context_url_accepts_list() -> None:
     config = Config(
         sitemap_url="https://example.org/sitemap.xml",
         sitemap_type=SitemapType.xml,
         dataset_type=DatasetType.html_jsonld,
-        allowed_context_url="https://schema.org/",
+        allowed_context_url=["https://schema.org/", "https://bioschemas.org/"],
         http=NiceHttpClientConfig(),
     )
-    assert config.allowed_context_url == "https://schema.org/"
+    assert config.allowed_context_url == ["https://schema.org/", "https://bioschemas.org/"]
 
 
 def test_allowed_context_url_rejects_non_http() -> None:
     with pytest.raises(ValidationError, match="http"):
-        Config(
-            sitemap_url="https://example.org/sitemap.xml",
-            sitemap_type=SitemapType.xml,
-            dataset_type=DatasetType.html_jsonld,
-            allowed_context_url="ftp://example.org/ctx",
-            http=NiceHttpClientConfig(),
-        )
+        Config.model_validate({
+            "sitemap_url": "https://example.org/sitemap.xml",
+            "sitemap_type": SitemapType.xml,
+            "dataset_type": DatasetType.html_jsonld,
+            "allowed_context_url": "ftp://example.org/ctx",
+            "http": {},
+        })
 
 
 def test_allowed_context_url_rejects_hostless_https() -> None:
     with pytest.raises(ValidationError, match="absolute http"):
-        Config(
-            sitemap_url="https://example.org/sitemap.xml",
-            sitemap_type=SitemapType.xml,
-            dataset_type=DatasetType.html_jsonld,
-            allowed_context_url="https://",
-            http=NiceHttpClientConfig(),
-        )
+        Config.model_validate({
+            "sitemap_url": "https://example.org/sitemap.xml",
+            "sitemap_type": SitemapType.xml,
+            "dataset_type": DatasetType.html_jsonld,
+            "allowed_context_url": "https://",
+            "http": {},
+        })

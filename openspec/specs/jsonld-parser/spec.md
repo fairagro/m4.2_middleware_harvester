@@ -30,11 +30,12 @@ IRIs MUST be resolved through the shared context loader (process-lifetime cache,
 transitive `@import`). Inline object contexts remain allowed. The Schema.org-only `@vocab` substitution exception is
 removed.
 
-When `parser.allowed_context_url` is set, a payload remote `@context` string MUST equal that URL exactly (alone or as
-the sole remote string in a list). When unset, absolute http(s) remotes MUST still be resolved through the shared
-loader. `ParserConfig` MUST warn at validation time when a JSON-LD parser omits `allowed_context_url`. Relative or
-non-http(s) references MUST fail with `ParserError`. Whenever a remote context must be resolved and the cache miss path
-needs HTTP, the parser MUST receive a non-null polite HTTP client.
+When `parser.allowed_context_url` is set (one IRI or a list of IRIs), every payload remote `@context` / `@import` string
+MUST match an allowlisted IRI after trailing-slash normalisation (alone or as entries in a `@context` list); an `http`
+allowlist entry also matches the same IRI under `https`. When unset, absolute http(s) remotes MUST still be resolved
+through the shared loader. `ParserConfig` MUST warn at validation time when a JSON-LD parser omits
+`allowed_context_url`. Relative or non-http(s) references MUST fail with `ParserError`. Whenever a remote context must
+be resolved and the cache miss path needs HTTP, the parser MUST receive a non-null polite HTTP client.
 
 #### Scenario: Unset remote context requires client
 
