@@ -6,6 +6,7 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import override
 from urllib.parse import quote
@@ -51,6 +52,7 @@ DBO = Namespace("http://dbpedia.org/ontology/")
 LV = Namespace("http://purl.org/lobid/lv#")
 JOINED_FUNDING = URIRef("info:regal/regal/joinedFunding")
 RESEARCH_DATA_TYPE = REGAL.ResearchData
+_LOC_LANGUAGE_IRI = re.compile(r"^https?://id\.loc\.gov/vocabulary/iso639-[12]/([a-z]{2,3})$", re.IGNORECASE)
 
 # Predicates handled explicitly; remaining subject predicates become opaque comments.
 _KNOWN_PREDICATES = {
@@ -366,10 +368,9 @@ class _RegalRun:
         if license_value:
             table.AddColumn(CompositeHeader.comment("License"), [CompositeCell.free_text(license_value)])
 
-        languages = self._labelled_pairs(subject, DCTERMS.language)
+        languages = self._language_value(subject)
         if languages:
-            labels = "; ".join(label for label, _ in languages)
-            table.AddColumn(CompositeHeader.comment("Language"), [CompositeCell.free_text(labels)])
+            table.AddColumn(CompositeHeader.comment("Language"), [CompositeCell.free_text(languages)])
 
         parts = self._labelled_pairs(subject, DCTERMS.hasPart)
         if parts:
@@ -555,9 +556,9 @@ class _RegalRun:
         if license_value:
             inv.Comments.append(Comment.create("License", license_value))
 
-        languages = self._labelled_pairs(subject, DCTERMS.language)
+        languages = self._language_value(subject)
         if languages:
-            inv.Comments.append(Comment.create("Language", "; ".join(label for label, _ in languages)))
+            inv.Comments.append(Comment.create("Language", languages))
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):
@@ -707,6 +708,16 @@ class _RegalRun:
 
     def _join_texts(self, subject: Node, predicate: Node) -> str:
         return "\n\n".join(self.view(subject).texts(predicate))
+
+    def _language_value(self, subject: Node) -> str:
+        """Join ISO 639 codes from ``id.loc.gov`` language IRIs; the label only when there is no such IRI."""
+        values: list[str] = []
+        for label, node_id in self._labelled_pairs(subject, DCTERMS.language):
+            match = _LOC_LANGUAGE_IRI.match(node_id or "")
+            value = match.group(1).lower() if match else label
+            if value not in values:
+                values.append(value)
+        return "; ".join(values)
 
     def _labelled_pairs(self, subject: Node, predicate: Node) -> list[tuple[str, str | None]]:
         labelled = self._sorted_labelled(self.view(subject).labelled(predicate))
