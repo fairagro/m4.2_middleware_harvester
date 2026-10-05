@@ -176,3 +176,82 @@ async def test_materialize_fetches_when_unset() -> None:
     assert first["@context"] == {"@vocab": "http://schema.org/"}
     assert second["@context"] == first["@context"]
     assert hits["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_ensure_document_cached_follows_jsonld_link_alternate() -> None:
+    root = "https://schema.org/"
+    alternate = "https://schema.org/docs/jsonldcontext.jsonld"
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        url = str(request.url)
+        hits.append(url)
+        if url == root:
+            return httpx.Response(
+                200,
+                text="<html></html>",
+                headers={
+                    "content-type": "text/html",
+                    "link": f'<{alternate}>; rel="alternate"; type="application/ld+json"',
+                },
+                request=request,
+            )
+        if url == alternate:
+            return httpx.Response(
+                200,
+                json={"@context": {"@vocab": "http://schema.org/"}},
+                headers={"content-type": "application/ld+json"},
+                request=request,
+            )
+        return httpx.Response(404, text="missing", request=request)
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        document = await ensure_document_cached(root, client)
+        again = await ensure_document_cached(root, client)
+
+    assert document == {"@context": {"@vocab": "http://schema.org/"}}
+    assert again == document
+    assert hits.count(root) == 1
+    assert hits.count(alternate) == 1
+
+
+@pytest.mark.asyncio
+async def test_materialize_inlines_nested_context_without_top_level() -> None:
+    root = "https://ctx.example/root.json"
+    documents = {root: {"@context": {"@vocab": "http://schema.org/"}}}
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(200, json=documents[str(request.url)])
+
+    payload: JsonObject = {
+        "@graph": [
+            {
+                "@context": root,
+                "@id": "https://example.org/1",
+                "@type": "Dataset",
+                "name": "Nested",
+            }
+        ]
+    }
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        with pytest.raises(ParserError, match="HTTP client is required"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=None)
+        materialized = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    graph = materialized["@graph"]
+    assert isinstance(graph, list)
+    node = graph[0]
+    assert isinstance(node, dict)
+    assert node["@context"] == {"@vocab": "http://schema.org/"}
+    assert hits["n"] == 1

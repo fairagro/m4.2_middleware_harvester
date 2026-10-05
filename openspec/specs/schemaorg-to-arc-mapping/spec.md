@@ -121,13 +121,6 @@ the shared loader cache. Relative imports remain rejected.
 - **WHEN** the payload parses to an `rdf_graph` and is passed to the Schema.org mapper
 - **THEN** mapping is not rejected solely because the context IRI is absent from a hard-coded module allowlist
 
-#### Scenario: Standard Schema.org HTTPS context with configured URL
-
-- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and
-  `parser.allowed_context_url: "https://schema.org/"`
-- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
-- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
-
 ### Requirement: Support vocabulary extensions via declared extension namespaces
 
 The system SHALL allow mappers to declare supported extension namespaces (beyond core Schema.org) that participate in
