@@ -803,3 +803,88 @@ def test_datadownload_distribution_comments_deterministic_order() -> None:
         "text/csv: https://example.org/a.csv",
         "application/json: https://example.org/b.json",
     }
+
+
+_EDAL_ADDRESS = (
+    "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, "
+    "Corrensstraße 3, D-06466, Germany"
+)
+
+
+def _person_graph(address: Literal | BNode | None, affiliation: str | None = None) -> tuple[Graph, BNode]:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/address")
+    person = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Addressed")))
+    graph.add((dataset, schema.creator, person))
+    graph.add((person, RDF.type, schema.Person))
+    graph.add((person, schema.givenName, Literal("Markus")))
+    graph.add((person, schema.familyName, Literal("Oppermann")))
+    if address is not None:
+        graph.add((person, schema.address, address))
+    if affiliation is not None:
+        org = BNode()
+        graph.add((person, schema.affiliation, org))
+        graph.add((org, RDF.type, schema.Organization))
+        graph.add((org, schema.name, Literal(affiliation)))
+    return graph, person
+
+
+def _person_address_and_affiliation(graph: Graph) -> tuple[object, object]:
+    payload = json.loads(first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)).arc_json)
+    nodes = {item.get("@id"): item for item in payload["@graph"]}
+    person = next(item for item in payload["@graph"] if item.get("familyName") == "Oppermann")
+    org_ref = person.get("affiliation") or {}
+    org_name = nodes.get(org_ref.get("@id"), {}).get("name") if isinstance(org_ref, dict) else None
+    return person.get("address"), org_name or None
+
+
+def test_flat_address_first_segment_is_affiliation_fallback() -> None:
+    """e!DAL gives no affiliation and a flat address starting with the institute (#414)."""
+    graph, _ = _person_graph(Literal(_EDAL_ADDRESS))
+
+    address, affiliation = _person_address_and_affiliation(graph)
+
+    assert affiliation == "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK)"
+    assert address == _EDAL_ADDRESS
+
+
+def test_explicit_affiliation_wins_over_flat_address() -> None:
+    graph, _ = _person_graph(Literal(_EDAL_ADDRESS), affiliation="Thünen Institute")
+
+    assert _person_address_and_affiliation(graph)[1] == "Thünen Institute"
+
+
+@pytest.mark.parametrize(
+    ("address", "expected_affiliation"),
+    [
+        (", Department of Landscape Ecology, Kiel University, Germany", "Department of Landscape Ecology"),
+        (" ,  , ", None),
+    ],
+)
+def test_flat_address_skips_empty_segments(address: str, expected_affiliation: str | None) -> None:
+    graph, _ = _person_graph(Literal(address))
+
+    result_address, affiliation = _person_address_and_affiliation(graph)
+
+    assert affiliation == expected_affiliation
+    if expected_affiliation is None:
+        assert result_address is None
+
+
+def test_structured_address_keeps_locality_and_gives_no_affiliation() -> None:
+    schema = Namespace("https://schema.org/")
+    postal = BNode()
+    graph, _ = _person_graph(postal)
+    graph.add((postal, RDF.type, schema.PostalAddress))
+    graph.add((postal, schema.streetAddress, Literal("Corrensstraße 3")))
+    graph.add((postal, schema.postalCode, Literal("06466")))
+    graph.add((postal, schema.addressLocality, Literal("Seeland OT Gatersleben")))
+    graph.add((postal, schema.addressCountry, Literal("Germany")))
+
+    address, affiliation = _person_address_and_affiliation(graph)
+
+    assert address == "Corrensstraße 3, 06466, Seeland OT Gatersleben, Germany"
+    assert affiliation is None
