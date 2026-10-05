@@ -21,6 +21,11 @@ repositories:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
     mapper:
       type: inspire_general
+      # Per-RDI placeholder strings treated as empty in optional fields. Setting
+      # the list replaces the defaults (None, null, N/A, No abstract provided,
+      # Keine Zusammenfassung vorhanden, No information provided); $var and
+      # {{var}} templates always count.
+      # placeholder_values: ["None", "No information provided"]
 
   # The other real schema_org_general + html_jsonld source, and so the only
   # live RDI that could regress from a GeneralSchemaOrgMapper change.

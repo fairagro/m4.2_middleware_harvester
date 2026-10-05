@@ -12,8 +12,9 @@ from typing import Any, cast
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.inspire.errors import SemanticError
-from middleware.payload.inspire.models import VALUE_BOUNDS_CONTEXT_KEY, InspireRecord
+from middleware.payload.inspire.models import PLACEHOLDER_VALUES_CONTEXT_KEY, VALUE_BOUNDS_CONTEXT_KEY, InspireRecord
 from middleware.payload.inspire.value_bounds import ValueBounds
+from middleware.payload.placeholders import DEFAULT_PLACEHOLDER_VALUES
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,12 @@ type _Data = dict[str, Any]
 class IsoParser:
     """Parser for OWSLib MD_Metadata objects into InspireRecord domain objects."""
 
-    def __init__(self, value_bounds: ValueBounds | None = None) -> None:
-        """Initialize the parser with the limits enforced when validating records."""
+    def __init__(
+        self, value_bounds: ValueBounds | None = None, placeholder_values: frozenset[str] | None = None
+    ) -> None:
+        """Initialize with the limits enforced and the RDI's placeholders dropped when validating records."""
         self._value_bounds = value_bounds or ValueBounds()
+        self._placeholder_values = DEFAULT_PLACEHOLDER_VALUES if placeholder_values is None else placeholder_values
 
     def parse_record(self, iso: MD_Metadata, record_uuid: str) -> InspireRecord:
         """Parse an OWSLib MD_Metadata object into an InspireRecord.
@@ -96,7 +100,11 @@ class IsoParser:
             # Supplemental (new)
             "supplemental_information": self._extract_identification_str("supplementalinformation", identification),
         }
-        return InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: self._value_bounds})
+        context = {
+            VALUE_BOUNDS_CONTEXT_KEY: self._value_bounds,
+            PLACEHOLDER_VALUES_CONTEXT_KEY: self._placeholder_values,
+        }
+        return InspireRecord.model_validate(data, context=context)
 
     @staticmethod
     def _extract_identification(iso: MD_Metadata) -> MD_DataIdentification | None:

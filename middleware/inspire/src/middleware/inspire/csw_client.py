@@ -38,15 +38,16 @@ _DC_OUTPUT_SCHEMA = "http://www.opengis.net/cat/csw/2.0.2"
 class CSWClient:
     """Client for harvesting metadata from a CSW endpoint."""
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, placeholder_values: frozenset[str] | None = None) -> None:
         """Initialize the CSWClient from a Config object.
 
         Args:
             config: Plugin configuration holding the CSW URL, timeout, and query options.
+            placeholder_values: The RDI's ``mapper.placeholder_values``; ``None`` uses the defaults.
         """
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
-        self._parser = IsoParser(config.value_bounds)
+        self._parser = IsoParser(config.value_bounds, placeholder_values)
         self._executor: ThreadPoolExecutor | None = None
 
     def _connect(self) -> None:

@@ -396,7 +396,7 @@ def test_configured_placeholder_values_replace_defaults(mock_iso_record: MagicMo
     mock_iso_record.identification.purpose = "Keine Angabe"
     mock_iso_record.identification.edition = "None"
 
-    rec = IsoParser(ValueBounds(placeholder_values=frozenset({"keine angabe"}))).parse_record(
+    rec = IsoParser(placeholder_values=frozenset({"keine angabe"})).parse_record(
         mock_iso_record, record_uuid="uuid-123"
     )
 

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0be3538f-4efc-4fa9-b8ff-8553936a5ae8",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/brizuela/workspace/m4.2_middleware_harvester/docs/diagrams/harvest-architecture.json",
+  "output": "/home/brizuela/workspace/m4.2_middleware_harvester/docs/diagrams/harvest-architecture.html",
+  "specification": {
+    "sha256": "bb8156949dbec6fea0514efdbea7da4f72678c0d5216ae7046727ceea0e1ba05",
+    "bytes": 16968
+  },
+  "artifact": {
+    "sha256": "28abafaf9547f254a5891c5647591b47333e11c937625e6a7800e8b7d631e2e9",
+    "bytes": 809235
+  }
+}
