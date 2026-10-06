@@ -215,6 +215,8 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 - **Description**: abstract + purpose
 - **SubmissionDate**: citation date (earliest publication, else latest revision, else earliest creation); `dateStamp` is
   the metadata timestamp and only goes to the `Metadata Date` Comment
+- **dateModified**: latest citation `CI_Date` of type `revision`, as the Comment `dateModified`, which ARCtrl writes as
+  the RO-Crate root `dateModified`. Never `dateStamp`; without a revision date there is no `dateModified`
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate
   roles
 - **Publications**: DOIs (bare, normalised by `middleware.payload.dois.normalize_doi`) from citation/identifier and
