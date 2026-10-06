@@ -139,7 +139,12 @@ class _SchemaOrgRun:
             identifier_plan=identifier_plan,
             title_fallback_source=title_fallback_source,
         )
-        study = self._map_study(subject, title=title)
+        study = self._map_study(
+            subject,
+            title=title,
+            release_date=investigation.PublicReleaseDate,
+            creation_date=investigation.SubmissionDate,
+        )
         investigation.AddStudy(study)
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
         investigation.AddAssay(assay)
@@ -270,14 +275,17 @@ class _SchemaOrgRun:
         identifier = plan.investigation_id
 
         description = self.view(subject)["description"] or ""
-        dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified")}
-        submission_date = next((iso for iso, _ in dates.values() if iso), "")
+        # Release date (RO-Crate datePublished): datePublished, else dateModified, else dateCreated.
+        # Left empty, ARCtrl stamps the serialisation time instead (#407).
+        dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified", "dateCreated")}
+        release_date = next((iso for iso, _ in dates.values() if iso), "")
 
         inv = ArcInvestigation.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=submission_date,
+            submission_date=dates["dateCreated"][0] or "",
+            public_release_date=release_date,
         )
         for term, (iso, raw) in dates.items():
             if raw and not iso:
@@ -587,7 +595,7 @@ class _SchemaOrgRun:
                 return str(node)
         return None
 
-    def _map_study(self, subject: Node, *, title: str) -> ArcStudy:
+    def _map_study(self, subject: Node, *, title: str, release_date: str | None, creation_date: str | None) -> ArcStudy:
         identifier = self._study_assay_identifier(title)
         description = self.view(subject)["description"] or "Imported from Schema.org metadata"
 
@@ -595,7 +603,8 @@ class _SchemaOrgRun:
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=iso_date(self.view(subject)["datePublished"]),
+            submission_date=creation_date,
+            public_release_date=release_date,
         )
 
         collection_table = self._create_data_collection_table(subject)

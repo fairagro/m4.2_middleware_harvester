@@ -57,6 +57,11 @@ _ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
 _CREATOR_ROLES = frozenset({"author", "originator", "principalinvestigator"})
 
 
+def _cited_dates(record: InspireRecord, datetype: str) -> list[str]:
+    """Sorted citation ``CI_Date`` values of one ``CI_DateTypeCode``."""
+    return sorted(d.date for d in record.dates if d.datetype == datetype)
+
+
 @DataMapper.register(MapperType.inspire_general)
 class InspireMapper(DataMapper[MappingContext]):
     """Maps ``PayloadKind.inspire_record`` to ARC objects."""
@@ -193,10 +198,12 @@ class InspireMapper(DataMapper[MappingContext]):
 
         title = record.title
         description = record.abstract
-        submission_date = self._resource_date(record)
-
         inv = ArcInvestigation.create(
-            identifier=identifier, title=title, description=description, submission_date=submission_date
+            identifier=identifier,
+            title=title,
+            description=description,
+            submission_date=self._creation_date(record),
+            public_release_date=self._release_date(record),
         )
 
         self._add_contacts(inv, record)
@@ -297,21 +304,24 @@ class InspireMapper(DataMapper[MappingContext]):
             inv.Publications.append(Publication.create(title=record.title, authors=authors_str, doi=doi))
 
     @staticmethod
-    def _resource_date(record: InspireRecord) -> str | None:
-        """Dataset date from the citation ``CI_Date`` entries, never ``gmd:dateStamp``.
+    def _release_date(record: InspireRecord) -> str | None:
+        """Dataset release date (RO-Crate ``datePublished``) from the citation ``CI_Date`` entries.
 
-        ``dateStamp`` is when the metadata record last changed (kept as a ``Metadata Date``
-        Comment). In order: earliest publication, latest revision, earliest creation.
+        In order: earliest publication, latest revision, earliest creation. Never ``gmd:dateStamp``,
+        which is when the metadata record last changed (kept as a ``Metadata Date`` Comment); left
+        empty, ARCtrl would stamp the serialisation time instead (#407).
         """
-
-        def of_type(datetype: str) -> list[str]:
-            return sorted(d.date for d in record.dates if d.datetype == datetype)
-
-        publication, revision, creation = of_type("publication"), of_type("revision"), of_type("creation")
+        publication, revision, creation = (_cited_dates(record, t) for t in ("publication", "revision", "creation"))
         if publication:
             return publication[0]
         if revision:
             return revision[-1]
+        return creation[0] if creation else None
+
+    @staticmethod
+    def _creation_date(record: InspireRecord) -> str | None:
+        """Earliest citation ``creation`` date (RO-Crate ``dateCreated``)."""
+        creation = _cited_dates(record, "creation")
         return creation[0] if creation else None
 
     def _add_comments(self, inv: ArcInvestigation, record: InspireRecord) -> None:
@@ -408,7 +418,11 @@ class InspireMapper(DataMapper[MappingContext]):
         description = " | ".join(desc_parts) if desc_parts else "Imported from INSPIRE metadata"
 
         study = ArcStudy.create(
-            identifier=identifier, title=title, description=description, submission_date=self._resource_date(record)
+            identifier=identifier,
+            title=title,
+            description=description,
+            submission_date=self._creation_date(record),
+            public_release_date=self._release_date(record),
         )
 
         # Add Process-Oriented Protocols (max 3)

@@ -89,15 +89,15 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 ### 4. Dates, access, and rights
 
-| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                |
-| --------------------- | ---------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
-| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.SubmissionDate` / Study submission date when parseable      |
-| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                   |
-| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                          |
-| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                    |
-| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                   |
-| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | Assay Annotation `Comment [License]`; also Investigation comment `License` |
-| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                           |
+| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                             |
+| --------------------- | ---------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.PublicReleaseDate`, `Study.PublicReleaseDate` (RO-Crate `datePublished`) |
+| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                                |
+| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                                       |
+| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                                 |
+| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                                |
+| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | Assay Annotation `Comment [License]`; also Investigation comment `License`              |
+| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                                        |
 
 ### 5. Subjects, classification, and techniques
 
@@ -159,7 +159,8 @@ an explicit mapping update to this document.
 - **Identifier**: slug from Regal `@id` (required); fail mapping if neither `@id` nor `doi` exists
 - **Title**: `title[0]` (fallback `prefLabel`)
 - **Description**: joined `description` values
-- **SubmissionDate**: `issued` when parseable
+- **PublicReleaseDate**: `issued` (RO-Crate `datePublished`). Regal has no creation date, so `SubmissionDate` (RO-Crate
+  `dateCreated`) stays empty
 - **dateModified**: `isDescribedBy.modified` (when the repository object last changed; Regal has no other modification
   date), as the Comment `dateModified`, which ARCtrl writes as the RO-Crate root `dateModified`
 - **Contacts**: creators + contributors (ordered)
@@ -275,7 +276,7 @@ Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the 
 | `description`                     | `description`                               | Investigation/Study Description   |
 | `creator` / `contributor`         | `creator` / `contributor`                   | Contacts                          |
 | `sourceOrganization`              | `institution`                               | Affiliation / Institution comment |
-| `datePublished`                   | `issued`                                    | SubmissionDate                    |
+| `datePublished`                   | `issued`                                    | PublicReleaseDate                 |
 | `dateModified`                    | `isDescribedBy.modified`                    | dateModified Comment              |
 | `identifier` (DOI + frl-internal) | `doi`, `@id`                                | Publications + Output [URI]       |
 | `keywords`                        | `subject`, `ddc`                            | Keywords / Ontology comments      |

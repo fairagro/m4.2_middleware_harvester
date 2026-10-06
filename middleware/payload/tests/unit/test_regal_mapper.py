@@ -10,7 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
+from arctrl import ARC  # type: ignore[import-untyped]
+from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_dates, root_identifier
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
@@ -48,6 +49,16 @@ def _base_graph() -> Graph:
     graph.add((SUBJECT, REGAL.doi, Literal("10.4126/FRL01-0000123")))
     graph.add((SUBJECT, DCTERMS.issued, Literal("2024")))
     return graph
+
+
+def test_regal_issued_is_date_published_not_date_created() -> None:
+    """``dcterms:issued`` is the release date, not ``dateCreated`` nor the harvest time (#407)."""
+    arc_json = _mapped_arc_json(_base_graph())
+
+    assert root_dates(arc_json) == {"datePublished": "2024"}
+    study = ARC.from_rocrate_json_string(arc_json).Studies[0]
+    assert study.PublicReleaseDate == "2024"
+    assert not study.SubmissionDate
 
 
 def test_regal_investigation_identifier_uses_shared_sanitize() -> None:

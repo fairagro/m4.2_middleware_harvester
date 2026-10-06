@@ -160,6 +160,7 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     assert inv.Identifier == "uuid-123"
     assert inv.Title == "Test Dataset"
     assert inv.SubmissionDate == "2023-10-27"
+    assert inv.PublicReleaseDate == "2023-10-27"
 
     # Check Contacts
     assert len(inv.Contacts) == 4
