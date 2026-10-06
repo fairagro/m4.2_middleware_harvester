@@ -17,9 +17,9 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pydantic import ConfigDict, Field
 
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.protocol.json_array import JsonArrayProtocol
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
-from middleware.harvester.nice_http_client import NiceHttpClient
 
 # Overridable defaults when absent from ``entry_url``. Operator-supplied
 # query parameters always win for these (and any other non-owned keys).

@@ -7,9 +7,9 @@ import logging
 import pytest
 from pydantic import ValidationError
 
+from middleware.contracts.nice_http_client import NiceHttpClientConfig
 from middleware.generic.config import Config
 from middleware.generic.protocol.protocol import ProtocolType
-from middleware.harvester.nice_http_client import NiceHttpClientConfig
 
 
 def test_nested_xml_protocol_config() -> None:

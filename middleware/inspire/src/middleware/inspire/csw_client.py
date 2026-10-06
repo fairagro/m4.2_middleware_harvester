@@ -17,7 +17,7 @@ from owslib.fes import OgcExpression  # type: ignore[import-untyped]
 from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 from owslib.util import Authentication  # type: ignore[import-untyped]
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.contracts.errors import RecordProcessingError
 from middleware.inspire.capabilities import describe_service, warn_if_server_caps_page_size
 from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError

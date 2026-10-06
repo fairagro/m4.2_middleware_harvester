@@ -13,10 +13,10 @@ import pytest
 from arctrl import ARC, ArcAssay, ArcInvestigation, ArcStudy  # type: ignore[import-untyped]
 
 from middleware.api_client.api_client import ApiClientError
-from middleware.harvester.errors import HarvesterError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.main import main
 from middleware.harvester.orchestrator import run_orchestrator, run_repository
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.harvester.reporting import emit_report
 from middleware.shared.report import FAIRAGRO_HARVEST_REPORT_NS, HarvestReport, IssueKind, JsonLdReportSerializer
 

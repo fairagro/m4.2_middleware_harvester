@@ -67,7 +67,7 @@ always set by the software.
    yields `SkippedRecord`—no Regal-specific duplicate handling in the sitemap path.
 
 8. **Surface unusable `/find` entries as `RecordProcessingError` (inspire-style)** — Missing `@id` and non-object array
-   elements are record-level data defects. Yield the shared `middleware.harvester.errors.RecordProcessingError` from
+   elements are record-level data defects. Yield the shared `middleware.contracts.errors.RecordProcessingError` from
    discovery (same as the inspire CSW client), not a plugin-local wrapper type. The linked_data plugin forwards these
    signals to the orchestrator so `failed_datasets` / `fairagro:failures` stay complete
    ([`error-handling`](../error-handling/), [`harvest-report`](../harvest-report/)). Duplicates remain deliberate skips

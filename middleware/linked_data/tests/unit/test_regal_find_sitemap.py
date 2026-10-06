@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.dataset import JsonLdDiscoveryResult
 from middleware.linked_data.errors import LinkedDataSitemapError

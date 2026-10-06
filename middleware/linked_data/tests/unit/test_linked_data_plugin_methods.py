@@ -9,9 +9,9 @@ import pytest
 from fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 from rdflib import Graph
 
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.payload.mapper_config import MapperConfig, MapperType

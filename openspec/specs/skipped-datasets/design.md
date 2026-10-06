@@ -3,11 +3,11 @@
 ## Module Overview
 
 ```text
-middleware/harvester/errors.py
-└── SkippedRecord               # new non-exception signal class
+middleware/contracts/errors.py
+└── SkippedRecord               # non-exception signal class
 
-middleware/harvester/plugin_base.py
-└── Plugin.run()                # yield type extended to include SkippedRecord
+middleware/contracts/plugin_base.py
+└── Plugin.run()                # yield type includes SkippedRecord
 
 middleware/harvester/upload.py
 └── arc_stream()                # isinstance(item, SkippedRecord) → scope.record_skipped()

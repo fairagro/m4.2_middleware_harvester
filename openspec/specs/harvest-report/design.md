@@ -18,8 +18,11 @@ middleware/harvester/
   orchestrator.py   HarvestReport() at run start; open_repository per RDI
   upload.py         stream ARCs; apply scope.record_* from API outcomes
   reporting.py      emit_report / source-URL annotation / outcome helpers
-  plugin_base.py    HarvestedArc (+ from_arctrl) / Plugin protocol
   main.py           CLI; emit_report after tracing shutdown
+
+middleware/contracts/
+  plugin_base.py    Plugin protocol (HarvestedArc stays in payload)
+  errors.py         HarvesterError / RecordProcessingError / SkippedRecord
 
 middleware.shared.report   ← API repo / PyPI package
   HarvestReport, RepositoryScope, RepositoryReport, HarvestIssue, IssueKind

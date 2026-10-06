@@ -1,10 +1,11 @@
 # Product-owned import-linter config (not synced). Fleet baseline: docs/quality.md.
 #
-# Inventory (top-level middleware.* portions / intended roles) — issue #302:
+# Inventory (top-level middleware.* portions / intended roles) — issue #302 / #155:
 #   middleware.shared / middleware.api_client — shared libs (git deps)
+#   middleware.contracts                    — plugin-facing errors / NiceHttpClient / Plugin
 #   middleware.payload                      — PayloadKind / DataMapper / RDF mappers (no plugin deps)
-#   middleware.parsing                      — DiscoveryResult / PayloadParser registry (may use harvester HTTP/errors)
-#   middleware.harvester                    — orchestrator; imports plugins + payload + parsing
+#   middleware.parsing                      — DiscoveryResult / PayloadParser registry (may use contracts)
+#   middleware.harvester                    — orchestrator; imports plugins + payload + parsing + contracts
 #   middleware.inspire                      — INSPIRE/CSW plugin
 #   middleware.linked_data                  — sitemap/HTML JSON-LD plugin (shim→generic during migration)
 #   middleware.generic                      — Protocol + shared pipeline (consumes parsing)
@@ -14,16 +15,12 @@
 # `ancestors = middleware` (fleet template) cannot run here. Ancestors are the
 # installed portions instead — that still uses contract type `acyclic_siblings`
 # and checks cycles among each portion's children.
-#
-# Cross-portion edges (harvester ↔ plugins) are an existing architecture shape
-# (plugins import harvester errors/HTTP/Plugin; orchestrator imports plugins).
-# A strict `layers` stack across those packages would fail; we encode enforceable
-# boundaries with `forbidden` / `independence` instead (openspec/principles.md).
 
 [importlinter]
 exclude_type_checking_imports = True
 root_packages =
     middleware.api_client
+    middleware.contracts
     middleware.generic
     middleware.harvester
     middleware.inspire
@@ -38,6 +35,7 @@ name = middleware sibling packages must be acyclic
 type = acyclic_siblings
 ancestors =
     middleware.api_client
+    middleware.contracts
     middleware.generic
     middleware.harvester
     middleware.inspire
@@ -47,31 +45,59 @@ ancestors =
     middleware.payload
     middleware.shared
 
-# payload MUST NOT depend on harvester, parsing, or protocol plugins (principles.md).
+# payload MUST NOT depend on harvester, parsing, contracts, or protocol plugins.
 [importlinter:contract:payload-isolation]
-name = payload must not import harvester, parsing, or protocol plugins
+name = payload must not import harvester, parsing, contracts, or protocol plugins
 type = forbidden
 source_modules =
     middleware.payload
 forbidden_modules =
     middleware.harvester
+    middleware.contracts
     middleware.inspire
     middleware.linked_data
     middleware.generic
     middleware.oai_pmh
     middleware.parsing
 
-# parsing MAY import harvester + payload; MUST NOT import protocol plugins.
-[importlinter:contract:parsing-plugin-isolation]
-name = parsing must not import protocol plugins
+# contracts MAY import payload; MUST NOT import harvester, parsing, or plugins.
+[importlinter:contract:contracts-isolation]
+name = contracts must not import harvester, parsing, or protocol plugins
 type = forbidden
 source_modules =
-    middleware.parsing
+    middleware.contracts
 forbidden_modules =
+    middleware.harvester
+    middleware.parsing
     middleware.inspire
     middleware.linked_data
     middleware.generic
     middleware.oai_pmh
+
+# parsing MAY import contracts + payload; MUST NOT import harvester or plugins.
+[importlinter:contract:parsing-plugin-isolation]
+name = parsing must not import harvester or protocol plugins
+type = forbidden
+source_modules =
+    middleware.parsing
+forbidden_modules =
+    middleware.harvester
+    middleware.inspire
+    middleware.linked_data
+    middleware.generic
+    middleware.oai_pmh
+
+# Protocol plugins must not import the orchestrator package.
+[importlinter:contract:plugins-not-harvester]
+name = protocol plugins must not import harvester
+type = forbidden
+source_modules =
+    middleware.inspire
+    middleware.linked_data
+    middleware.generic
+    middleware.oai_pmh
+forbidden_modules =
+    middleware.harvester
 
 # Protocol plugins must not import each other, except the documented temporary
 # linked_data → generic discovery/parser/pipeline shims (principles.md).

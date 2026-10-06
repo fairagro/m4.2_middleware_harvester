@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from middleware.harvester.nice_http_client import NiceHttpClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClientConfig
 from middleware.payload import MapperType
 
 

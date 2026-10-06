@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import ClassVar, TypeVar
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind

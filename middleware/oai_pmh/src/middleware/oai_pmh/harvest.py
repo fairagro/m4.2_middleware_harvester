@@ -8,7 +8,7 @@ from xml.etree.ElementTree import ParseError, tostring
 
 from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
 from middleware.oai_pmh.client import RateLimiter, create_scythe
 from middleware.oai_pmh.config import Config
 from middleware.oai_pmh.errors import OaiPmhProtocolError

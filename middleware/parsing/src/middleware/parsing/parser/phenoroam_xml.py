@@ -7,7 +7,7 @@ from xml.etree.ElementTree import Element, ParseError
 
 from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, XmlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser

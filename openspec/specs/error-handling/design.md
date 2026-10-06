@@ -3,7 +3,7 @@
 ## Exception Hierarchy
 
 - `Exception`
-  - `HarvesterError` (`middleware.harvester.errors` — shared root)
+  - `HarvesterError` (`middleware.contracts.errors` — shared root)
     - `RecordProcessingError` (global standard for record-level failures, carries `record_id`)
     - `InspireError` (`middleware.inspire.errors` — inspire plugin base)
       - `CswConnectionError`

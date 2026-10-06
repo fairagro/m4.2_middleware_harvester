@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from csw_client_helpers import _make_csw_config, _minimal_get_records_xml, _stub_inspire_record
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.contracts.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError

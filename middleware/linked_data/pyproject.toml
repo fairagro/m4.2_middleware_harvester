@@ -12,6 +12,7 @@ dependencies = [
     "payload",
     "parsing",
     "generic",
+    "contracts",
 ]
 
 [build-system]

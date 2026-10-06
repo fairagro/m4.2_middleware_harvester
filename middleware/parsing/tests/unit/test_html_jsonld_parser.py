@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
@@ -112,7 +112,7 @@ async def test_parse_wraps_fetch_failure_in_parser_error() -> None:
     # Skip the real retry backoff; this test is about the error wrapping, not the schedule.
     async with NiceHttpClient(NiceHttpClientConfig(), transport=httpx.MockTransport(handler)) as client:
         with (
-            patch("middleware.harvester.nice_http_client.asyncio.sleep", new=AsyncMock()),
+            patch("middleware.contracts.nice_http_client.asyncio.sleep", new=AsyncMock()),
             pytest.raises(ParserError, match="Failed to fetch dataset URL"),
         ):
             await HtmlJsonLdParser().parse(UrlDiscoveryResult(PAGE_URL), client=client, config=_parser_config())

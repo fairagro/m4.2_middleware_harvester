@@ -7,6 +7,9 @@ import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 
 import middleware.generic.plugin as plugin_mod
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
@@ -14,9 +17,6 @@ from middleware.generic.protocol.pubplant_json_array import (
     PubPlantJsonArrayProtocol,
     PubPlantJsonArrayProtocolConfig,
 )
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType

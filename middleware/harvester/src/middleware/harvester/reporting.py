@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.shared.report import HarvestReport, JsonLdReportSerializer, RepositoryScope
 
 logger = logging.getLogger(__name__)

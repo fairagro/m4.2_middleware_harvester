@@ -1,15 +1,12 @@
 [project]
-name = "parsing"
+name = "contracts"
 version = "0.1.0"
-description = "Shared discovery units and PayloadParser registry for FAIRagro Middleware Harvester"
+description = "Plugin-facing harvest contracts (errors, NiceHttpClient, Plugin protocol)"
 requires-python = ">=3.12"
 dependencies = [
-    "defusedxml>=0.7.1",
     "pydantic>=2.0.0",
-    "rdflib>=7.0.0",
-    "fairagro-middleware-shared>=11.1.1.dev34",
+    "httpx>=0.28.1",
     "payload",
-    "contracts",
 ]
 
 [build-system]
@@ -24,7 +21,4 @@ pythonpath = ["src", "tests/unit"]
 testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning:rdflib",
 ]

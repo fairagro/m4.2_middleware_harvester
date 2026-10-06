@@ -4,8 +4,8 @@ from collections.abc import AsyncGenerator
 
 import pytest
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.linked_data.dataset import DiscoveryResult, UrlDiscoveryResult
 from middleware.linked_data.pipeline import run_bounded_pipeline
 

@@ -1,6 +1,6 @@
 """Errors for the generic harvest plugin."""
 
-from middleware.harvester.errors import HarvesterError
+from middleware.contracts.errors import HarvesterError
 
 
 class GenericError(HarvesterError):

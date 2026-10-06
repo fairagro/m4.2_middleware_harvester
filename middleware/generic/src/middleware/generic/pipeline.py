@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import RobotsTxtDisallowedError
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import RobotsTxtDisallowedError
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.parsing.discovery import DiscoveryResult
 
 PipelineResult = HarvestedArc | HarvesterError | SkippedRecord

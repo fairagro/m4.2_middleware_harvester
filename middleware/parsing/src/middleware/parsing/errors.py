@@ -1,6 +1,6 @@
 """Errors for shared PayloadParser implementations."""
 
-from middleware.harvester.errors import HarvesterError
+from middleware.contracts.errors import HarvesterError
 
 
 class ParserError(HarvesterError):

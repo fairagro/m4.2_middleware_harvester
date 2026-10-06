@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 
+from middleware.contracts.errors import RecordProcessingError
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.mycore_solr import MycoreSolrProtocol, MycoreSolrProtocolConfig
-from middleware.harvester.errors import RecordProcessingError
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, SitemapType
 from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.sitemap.sitemap import Sitemap

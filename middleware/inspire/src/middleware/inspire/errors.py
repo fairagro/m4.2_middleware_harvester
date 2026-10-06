@@ -4,7 +4,7 @@ This module provides custom exception classes for handling errors
 during Inspire record processing and conversion to Arc format.
 """
 
-from middleware.harvester.errors import HarvesterError
+from middleware.contracts.errors import HarvesterError
 
 
 class InspireError(HarvesterError):

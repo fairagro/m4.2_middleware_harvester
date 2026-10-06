@@ -10,7 +10,7 @@ from typing import ClassVar, override
 
 from rdflib import Graph
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_validation import JsonLdContextError, validate_jsonld_context_data

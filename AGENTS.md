@@ -45,11 +45,10 @@ middleware/
 │       ├── orchestrator.py    # Multi-repository harvest loop
 │       ├── upload.py          # Plugin stream → API upload
 │       ├── reporting.py       # Shared HarvestReport wiring / emit
-│       ├── plugin_base.py     # Plugin protocol + HarvestedArc
 │       ├── config.py
-│       ├── errors.py
-│       ├── nice_http_client.py
+│       ├── errors.py          # Report formatting helpers
 │       └── healthcheck.py
+├── contracts/             # Plugin-facing errors, NiceHttpClient, Plugin protocol
 ├── payload/               # Shared PayloadKind / DataMapper registry (RDF + inspire_general)
 ├── parsing/               # Shared DiscoveryResult / PayloadParser registry
 ├── inspire/               # INSPIRE to ARC harvester (Core logic)
@@ -89,7 +88,7 @@ bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/
 bash scripts/run-quality-cli.sh pylint \
   --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
-  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/generic middleware/parsing middleware/oai_pmh
+  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/contracts middleware/generic middleware/parsing middleware/oai_pmh
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:

@@ -17,7 +17,7 @@ from fakes import (
     TITLE_ONLY_HTML,
 )
 
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.linked_data.config import Config, DatasetType, SitemapType
 from middleware.linked_data.dataset.html_jsonld import HtmlJsonLdDataset
 from middleware.linked_data.errors import LinkedDataDatasetError
@@ -253,7 +253,7 @@ def test_html_jsonld_dataset_caps_backoff_delay() -> None:
         async with NiceHttpClient(config.http, transport=transport) as client:
             ds = HtmlJsonLdDataset("https://example.org/page", client, config=config)
             with (
-                patch("middleware.harvester.nice_http_client.asyncio.sleep", new=fake_sleep),
+                patch("middleware.contracts.nice_http_client.asyncio.sleep", new=fake_sleep),
                 contextlib.suppress(LinkedDataDatasetError),
             ):
                 await ds.to_graph()

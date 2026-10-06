@@ -8,13 +8,13 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from middleware.contracts.nice_http_client import NiceHttpClientConfig
 from middleware.generic.protocol.dcat_ap import DcatApProtocolConfig
 from middleware.generic.protocol.mycore_solr import MycoreSolrProtocolConfig
 from middleware.generic.protocol.protocol import ProtocolType, ProtocolTypeConfig
 from middleware.generic.protocol.pubplant_json_array import PubPlantJsonArrayProtocolConfig
 from middleware.generic.protocol.regal_find import RegalFindProtocolConfig
 from middleware.generic.protocol.xml import XmlProtocolConfig
-from middleware.harvester.nice_http_client import NiceHttpClientConfig
 
 logger = logging.getLogger(__name__)
 

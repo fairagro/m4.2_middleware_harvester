@@ -6,9 +6,9 @@ import pytest
 from pydantic import ValidationError
 
 from middleware.api_client.config import Config as ApiClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClientConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.harvester.config import Config, RepositoryConfig
-from middleware.harvester.nice_http_client import NiceHttpClientConfig
 from middleware.inspire.config import Config as InspireConfig
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType

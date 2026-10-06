@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from typing import Protocol
 
-from middleware.harvester.errors import HarvesterError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, SkippedRecord
 from middleware.payload.harvested_arc import HarvestedArc
 
 __all__ = ["HarvestedArc", "Plugin"]
