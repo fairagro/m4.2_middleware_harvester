@@ -52,7 +52,7 @@ namespaces (dual-namespace aliasing via `StableGraph`).
 | **`schema:sameAs`**              | Equivalent URLs                         | `Investigation.Identifier` fallback (lexicographic min)                                                                                                                       |
 | **`schema:identifier`**          | DOI, URL, or other identifiers          | `Investigation.Identifier` (DOI as last resort); Publication DOI; `Investigation.Comment("Alternate Identifier")`                                                             |
 | **`schema:datePublished`**       | Publication date                        | `Investigation.SubmissionDate`, `Study.SubmissionDate` as ISO 8601 (see Dates below)                                                                                          |
-| **`schema:dateModified`**        | Last modification date                  | `Investigation.SubmissionDate` when `datePublished` is missing or not a date                                                                                                  |
+| **`schema:dateModified`**        | Last modification date                  | Investigation Comment `dateModified` (RO-Crate root `dateModified`, ISO 8601); also `Investigation.SubmissionDate` when `datePublished` is missing or not a date              |
 
 **Dates.** Values go through `middleware.payload.iso_dates.iso_date`: ISO 8601 dates and date-times (`2011`,
 `2011-01-01`, `2011-01-01T10:00:00Z`) pass unchanged; Java `Date.toString()` values (e!DAL:

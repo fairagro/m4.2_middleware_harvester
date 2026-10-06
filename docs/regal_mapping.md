@@ -53,7 +53,7 @@ context is noted. Labelled nodes typically expose `prefLabel` (`skos:prefLabel`)
 | **`rdftype`**                                             | `rdf:type`                           | Publication type; ResearchData → `http://hbz-nrw.de/regal#ResearchData` | Gate: only map when ResearchData; else mapping error / skip                                                                                |
 | **`contentType`**                                         | `regal:contentType`                  | Object class (`researchData`, …)                                        | Same gate as `rdftype`; comment `Content Type` when present                                                                                |
 | **`prefLabel`**                                           | `skos:prefLabel`                     | Display label for the record                                            | Fallback for title if `title` missing                                                                                                      |
-| **`primaryTopic` / `isPrimaryTopicOf` / `isDescribedBy`** | FRBR/Regal links                     | Internal graph wiring                                                   | **No ARC mapping** (implementation detail)                                                                                                 |
+| **`primaryTopic` / `isPrimaryTopicOf` / `isDescribedBy`** | FRBR/Regal links                     | Internal graph wiring                                                   | **No ARC mapping** (implementation detail), except `isDescribedBy.modified` → `dateModified`                                               |
 | **`transformer`**                                         | —                                    | Available export transformers (`mets`, `mods`, …)                       | **No ARC mapping**                                                                                                                         |
 
 ### 2. Titles and description
@@ -158,6 +158,8 @@ into a first-class protocol parameter only after an explicit mapping update to t
 - **Title**: `title[0]` (fallback `prefLabel`)
 - **Description**: joined `description` values
 - **SubmissionDate**: `issued` when parseable
+- **dateModified**: `isDescribedBy.modified` (when the repository object last changed; Regal has no other modification
+  date), as the Comment `dateModified`, which ARCtrl writes as the RO-Crate root `dateModified`
 - **Contacts**: creators + contributors (ordered)
 - **Publications**: DOI publication when `doi` present; plus associated publications when resolvable
 - **Comments**: alternative title, license, language, medium, access/publish scheme, copyright year, embargo,
@@ -272,6 +274,7 @@ Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the 
 | `creator` / `contributor`         | `creator` / `contributor`                   | Contacts                          |
 | `sourceOrganization`              | `institution`                               | Affiliation / Institution comment |
 | `datePublished`                   | `issued`                                    | SubmissionDate                    |
+| `dateModified`                    | `isDescribedBy.modified`                    | dateModified Comment              |
 | `identifier` (DOI + frl-internal) | `doi`, `@id`                                | Publications + Output [URI]       |
 | `keywords`                        | `subject`, `ddc`                            | Keywords / Ontology comments      |
 | `measurementTechnique`            | `dataOrigin`                                | Data Collection parameter         |
