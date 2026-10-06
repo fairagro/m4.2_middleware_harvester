@@ -21,14 +21,14 @@ reuse).
 
 ### Requirement: parsing may depend on harvester and payload
 
-The `middleware.parsing` package MAY depend on `middleware.harvester` (for polite HTTP client types and shared harvest
+The `middleware.parsing` package MAY depend on `middleware.contracts` (for polite HTTP client types and shared harvest
 error bases) and on `middleware.payload` (for `PayloadKind`, `ParsedPayload`, and related contracts). It MUST NOT depend
-on protocol plugin packages (`inspire`, `linked_data`, `generic`, future `oai_pmh`, …).
+on `middleware.harvester` or on protocol plugin packages (`inspire`, `linked_data`, `generic`, `oai_pmh`, …).
 
 #### Scenario: Dependency direction
 
 - **WHEN** module dependencies are reviewed
-- **THEN** `parsing` may import `harvester` and `payload`, and does not import protocol plugin packages
+- **THEN** `parsing` may import `contracts` and `payload`, and does not import `harvester` or protocol plugin packages
 
 ### Requirement: payload and plugins stay isolated from reverse parsing edges
 
