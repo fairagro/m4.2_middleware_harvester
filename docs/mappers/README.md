@@ -2,8 +2,7 @@
 
 Authoritative source→ARC mapping tables for productive `DataMapper`s live here. OpenSpec mapping domains link to these
 files and MUST NOT duplicate field tables. Layout contract:
-[`openspec/changes/central-mapper-docs`](../../openspec/changes/central-mapper-docs/) (archives into
-`openspec/specs/mapper-docs/`).
+[`openspec/specs/mapper-docs/`](../../openspec/specs/mapper-docs/).
 
 ## Layout
 

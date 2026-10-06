@@ -12,6 +12,17 @@ rules. This spec captures the implementation contract.
 
 ## Requirements
 
+### Requirement: Authoritative Regal mapping document path
+
+The Regal→ARC field tables and conceptual mapping rules SHALL live in
+[`docs/mappers/regal.md`](../../../docs/mappers/regal.md). This spec remains the implementation contract and MUST NOT
+restate those field tables. Implementations SHALL honour the mapping document linked here.
+
+#### Scenario: Spec points at central Regal mapping doc
+
+- **WHEN** a contributor needs Regal source→ARC field placement rules
+- **THEN** they use `docs/mappers/regal.md` as the authoritative mapping source for this domain
+
 ### Requirement: Map each Regal ResearchData graph to exactly one ArcInvestigation with…
 
 The system SHALL map each Regal `ResearchData` graph to exactly one `ArcInvestigation` with title, description,
