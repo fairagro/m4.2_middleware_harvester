@@ -10,15 +10,15 @@ length and list-size limits (``ValueBounds``, exposed by protocol configs such a
 INSPIRE plugin's ``Config.value_bounds``), a URL-scheme allowlist, ISO 19139 codelists
 and ISO 639-2 language codes. A violation raises ``ValidationError`` — values are never
 truncated or dropped — and the record is reported as failed. The one exception is
-placeholder text (the repository's ``mapper.placeholder_values``, e.g. ``None``) in an
+placeholder text (the repository's ``mapper.placeholders``, e.g. ``None``) in an
 optional field, which counts as absent; it reaches the validators under
-``PLACEHOLDER_VALUES_CONTEXT_KEY``.
+``PLACEHOLDERS_CONTEXT_KEY``.
 
 The configured limits reach the validators through the validation context
 (``InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: bounds})``).
 Nested models only see that context when validated from dicts, so parsers must pass
 nested entries as dicts. Without a context (direct construction in tests), the
-``ValueBounds`` defaults apply.
+``ValueBounds`` and ``PlaceholderConfig`` model defaults apply.
 """
 
 import re
@@ -37,12 +37,13 @@ from pydantic import (
 )
 
 from middleware.payload.inspire.value_bounds import ValueBounds
-from middleware.payload.placeholders import DEFAULT_PLACEHOLDER_VALUES, is_placeholder
+from middleware.payload.placeholders import PlaceholderConfig
 
 VALUE_BOUNDS_CONTEXT_KEY = "value_bounds"
-PLACEHOLDER_VALUES_CONTEXT_KEY = "placeholder_values"
+PLACEHOLDERS_CONTEXT_KEY = "placeholders"
 
 _DEFAULT_BOUNDS = ValueBounds()
+_DEFAULT_PLACEHOLDERS = PlaceholderConfig()
 
 
 def _bounds(info: ValidationInfo) -> ValueBounds:
@@ -53,12 +54,12 @@ def _bounds(info: ValidationInfo) -> ValueBounds:
     return _DEFAULT_BOUNDS
 
 
-def _placeholder_values(info: ValidationInfo) -> frozenset[str]:
+def _placeholders(info: ValidationInfo) -> PlaceholderConfig:
     if isinstance(info.context, dict):
-        values = info.context.get(PLACEHOLDER_VALUES_CONTEXT_KEY)
-        if isinstance(values, frozenset):
-            return values
-    return DEFAULT_PLACEHOLDER_VALUES
+        placeholders = info.context.get(PLACEHOLDERS_CONTEXT_KEY)
+        if isinstance(placeholders, PlaceholderConfig):
+            return placeholders
+    return _DEFAULT_PLACEHOLDERS
 
 
 def _max_len(limit: str) -> Callable[[str, ValidationInfo], str]:
@@ -190,7 +191,7 @@ BooleanLiteral = Literal["true", "false", "1", "0"]
 
 
 class _HarvestedModel(BaseModel):
-    """Treats the RDI's placeholder values (``mapper.placeholder_values``) in optional fields as absent.
+    """Treats the RDI's placeholders (``mapper.placeholders``) in optional fields as absent.
 
     A placeholder scalar falls back to the field default; placeholder list items are removed.
     Required fields keep the value, so a placeholder there still reaches the mapper unchanged.
@@ -201,16 +202,16 @@ class _HarvestedModel(BaseModel):
     def _drop_placeholders(cls, data: object, info: ValidationInfo) -> object:
         if not isinstance(data, dict):
             return data
-        values = _placeholder_values(info)
+        placeholders = _placeholders(info)
         cleaned = dict(data)
         for name, field in cls.model_fields.items():
             if field.is_required() or name not in cleaned:
                 continue
             value = cleaned[name]
-            if isinstance(value, str) and is_placeholder(value, values):
+            if isinstance(value, str) and placeholders.matches(value):
                 del cleaned[name]
             elif isinstance(value, list):
-                cleaned[name] = [v for v in value if not (isinstance(v, str) and is_placeholder(v, values))]
+                cleaned[name] = [v for v in value if not (isinstance(v, str) and placeholders.matches(v))]
         return cleaned
 
 

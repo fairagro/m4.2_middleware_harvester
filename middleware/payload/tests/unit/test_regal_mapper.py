@@ -22,13 +22,14 @@ from middleware.payload.linked_data_mapper.regal_mapper import (
     RESEARCH_DATA_TYPE,
     RegalMapper,
 )
+from middleware.payload.placeholders import PlaceholderConfig
 
 RESOURCE_BASE = "https://example.org/resource/"
 SUBJECT = URIRef(f"{RESOURCE_BASE}frl:123")
 
 
 def _mapper() -> RegalMapper:
-    return RegalMapper(resource_base_url=RESOURCE_BASE)
+    return RegalMapper(RESOURCE_BASE, PlaceholderConfig())
 
 
 def _mapped_arc_json(graph: Graph) -> str:

@@ -18,6 +18,7 @@ from middleware.payload.inspire.models import InspireRecord
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.parsed_payload import ParsedPayload
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 def _mapper_config() -> MapperConfig:
@@ -300,7 +301,7 @@ async def test_get_expected_datasets_returns_count() -> None:
 
 @pytest.mark.asyncio
 async def test_run_plugin_passes_repository_placeholders_to_csw_client() -> None:
-    """``mapper.placeholder_values`` is per RDI and must reach the ISO parser (#413)."""
+    """``mapper.placeholders`` is per RDI and must reach the ISO parser (#413)."""
     mock_config = MagicMock(spec=Config)
     mock_config.csw_url = "https://csw.example.com"
 
@@ -309,7 +310,10 @@ async def test_run_plugin_passes_repository_placeholders_to_csw_client() -> None
         for record in records:
             yield record
 
-    mapper_config = MapperConfig.model_validate({"type": "inspire_general", "placeholder_values": ["Keine Angabe"]})
+    mapper_config = MapperConfig.model_validate({
+        "type": "inspire_general",
+        "placeholders": {"values": ["Keine Angabe"]},
+    })
     with patch("middleware.inspire.plugin.CSWClient") as mock_csw_class:
         mock_csw = mock_csw_class.return_value
         mock_csw.__aenter__ = AsyncMock(return_value=mock_csw)
@@ -318,4 +322,4 @@ async def test_run_plugin_passes_repository_placeholders_to_csw_client() -> None
 
         _ = [result async for result in InspirePlugin(mock_config, mapper_config).run()]
 
-    mock_csw_class.assert_called_with(mock_config, frozenset({"keine angabe"}))
+    mock_csw_class.assert_called_with(mock_config, PlaceholderConfig(values=frozenset({"keine angabe"})))

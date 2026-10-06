@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
-from middleware.payload.placeholders import DEFAULT_PLACEHOLDER_VALUES, normalize_placeholder_values
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 class MapperType(StrEnum):
@@ -52,23 +52,10 @@ class MapperConfig(BaseModel):
         ),
     ] = None
 
-    placeholder_values: Annotated[
-        frozenset[str],
-        Field(
-            description=(
-                "Whole-value placeholders this RDI writes instead of leaving a field empty (case-insensitive), "
-                "e.g. 'None', 'No information provided'. Setting the list replaces the defaults "
-                f"({', '.join(sorted(DEFAULT_PLACEHOLDER_VALUES))}). Unrendered $var / {{{{var}}}} templates "
-                "always count. Matching values in optional fields are treated as absent; required fields "
-                "(identifier, title, abstract) are not affected."
-            ),
-        ),
-    ] = DEFAULT_PLACEHOLDER_VALUES
-
-    @field_validator("placeholder_values")
-    @classmethod
-    def _fold_placeholders(cls, value: frozenset[str]) -> frozenset[str]:
-        return normalize_placeholder_values(value)
+    placeholders: Annotated[
+        PlaceholderConfig,
+        Field(description="Placeholder text this RDI writes instead of leaving a field empty; none by default."),
+    ] = PlaceholderConfig()
 
     @field_validator("resource_base_url", "catalog_url", mode="before")
     @classmethod

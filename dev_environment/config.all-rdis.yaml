@@ -21,11 +21,10 @@ repositories:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
     mapper:
       type: inspire_general
-      # Per-RDI placeholder strings treated as empty in optional fields. Setting
-      # the list replaces the defaults (None, null, N/A, No abstract provided,
-      # Keine Zusammenfassung vorhanden, No information provided); $var and
-      # {{var}} templates always count.
-      # placeholder_values: ["None", "No information provided"]
+      # Placeholder text this RDI writes instead of leaving an optional field
+      # empty (#413). Nothing counts as a placeholder unless listed here.
+      placeholders:
+        values: ["None", "No information provided"]
 
   # The other real schema_org_general + html_jsonld source, and so the only
   # live RDI that could regress from a GeneralSchemaOrgMapper change.
@@ -38,6 +37,9 @@ repositories:
       type: html_jsonld
     mapper:
       type: schema_org_general
+      # e!DAL renders an unexpanded $licenseURL template for some licences (#413).
+      placeholders:
+        unrendered_templates: true
 
   # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
   # did not disturb the other mapper.

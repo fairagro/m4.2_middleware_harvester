@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from middleware.inspire.iso_parser import IsoParser
 from middleware.payload.inspire.models import InspireRecord
 from middleware.payload.inspire.value_bounds import ValueBounds
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 @pytest.fixture
@@ -81,7 +82,11 @@ DEFAULTS = ValueBounds()
 
 @pytest.fixture
 def parser() -> IsoParser:
-    return IsoParser()
+    return IsoParser(ValueBounds(), PlaceholderConfig())
+
+
+# What BonaRes and Thünen (GeoNode CSW) write for empty elements (#413).
+GEONODE_PLACEHOLDERS = PlaceholderConfig(values=frozenset({"None", "No information provided", "N/A"}))
 
 
 def _online(url: str) -> MagicMock:
@@ -154,7 +159,9 @@ def test_configured_bounds_are_enforced(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.keywords = ["a", "b", "c"]
 
     with pytest.raises(ValidationError, match="max_list_items=2"):
-        IsoParser(ValueBounds(max_list_items=2)).parse_record(mock_iso_record, record_uuid="uuid-123")
+        IsoParser(ValueBounds(max_list_items=2), PlaceholderConfig()).parse_record(
+            mock_iso_record, record_uuid="uuid-123"
+        )
 
 
 def test_configured_bounds_reach_nested_models(mock_iso_record: MagicMock) -> None:
@@ -162,7 +169,7 @@ def test_configured_bounds_reach_nested_models(mock_iso_record: MagicMock) -> No
     _with_online(mock_iso_record, "https://example.com/data.csv")
 
     with pytest.raises(ValidationError, match="online_resources"):
-        IsoParser(ValueBounds(allowed_url_schemes=frozenset({"ftp"}))).parse_record(
+        IsoParser(ValueBounds(allowed_url_schemes=frozenset({"ftp"})), PlaceholderConfig()).parse_record(
             mock_iso_record, record_uuid="uuid-123"
         )
 
@@ -366,8 +373,9 @@ def test_blank_optional_url_means_absent(mock_iso_record: MagicMock, parser: Iso
     assert rec.online_resources[0].protocol_url is None
 
 
-def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock) -> None:
     """BonaRes writes gco:CharacterString "None" / "No information provided" for empty elements (#413)."""
+    parser = IsoParser(ValueBounds(), GEONODE_PLACEHOLDERS)
     ident = mock_iso_record.identification
     ident.purpose = "None"
     ident.supplementalinformation = " No information provided "
@@ -385,20 +393,27 @@ def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock,
     assert rec.online_resources[0].description is None
 
 
-def test_placeholder_in_required_field_is_kept(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+def test_placeholder_in_required_field_is_kept(mock_iso_record: MagicMock) -> None:
     """Required title/abstract keep the source value; dropping them would fail the whole record."""
+    parser = IsoParser(ValueBounds(), PlaceholderConfig(values=frozenset({"No abstract provided"})))
     mock_iso_record.identification.abstract = "No abstract provided"
 
     assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").abstract == "No abstract provided"
 
 
-def test_configured_placeholder_values_replace_defaults(mock_iso_record: MagicMock) -> None:
+def test_only_configured_placeholders_are_dropped(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.purpose = "Keine Angabe"
     mock_iso_record.identification.edition = "None"
 
-    rec = IsoParser(placeholder_values=frozenset({"keine angabe"})).parse_record(
-        mock_iso_record, record_uuid="uuid-123"
-    )
+    placeholders = PlaceholderConfig(values=frozenset({"keine angabe"}))
+    rec = IsoParser(ValueBounds(), placeholders).parse_record(mock_iso_record, record_uuid="uuid-123")
 
     assert rec.purpose is None
     assert rec.edition == "None"
+
+
+def test_no_placeholders_by_default(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    """Nothing is dropped unless the repository configures it in ``mapper.placeholders``."""
+    mock_iso_record.identification.purpose = "None"
+
+    assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").purpose == "None"

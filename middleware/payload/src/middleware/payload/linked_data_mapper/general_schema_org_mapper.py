@@ -51,7 +51,7 @@ from middleware.payload.person_contacts import (
     require_nonempty_person_given_names,
 )
 from middleware.payload.person_names import split_display_name
-from middleware.payload.placeholders import DEFAULT_PLACEHOLDER_VALUES, is_placeholder
+from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -73,21 +73,21 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
     ``_SchemaOrgRun``); identifier cascade and publisher policy stay here.
     """
 
-    def __init__(self, placeholder_values: frozenset[str] = DEFAULT_PLACEHOLDER_VALUES) -> None:
-        """Create a mapper that treats the RDI's ``placeholder_values`` as absent."""
-        self._placeholder_values = placeholder_values
+    def __init__(self, placeholders: PlaceholderConfig) -> None:
+        """Create a mapper that treats the RDI's ``placeholders`` as absent."""
+        self._placeholders = placeholders
 
     @property
-    def placeholder_values(self) -> frozenset[str]:
-        """The RDI's placeholder values (``mapper.placeholder_values``), treated as absent."""
-        return self._placeholder_values
+    def placeholders(self) -> PlaceholderConfig:
+        """The RDI's placeholders (``mapper.placeholders``), treated as absent."""
+        return self._placeholders
 
     @classmethod
     @override
     def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> GeneralSchemaOrgMapper:
-        """Construct a mapper with the repository's ``mapper.placeholder_values``."""
+        """Construct a mapper with the repository's ``mapper.placeholders``."""
         _ = resource_base_url
-        return cls(config.placeholder_values)
+        return cls(config.placeholders)
 
     @override
     def _stable_wrap(self, graph: Graph) -> StableGraph:
@@ -166,12 +166,8 @@ class _SchemaOrgRun:
         for res in self.view(subject).schema_resources("license"):
             url = res.schema_text("url")
             if url:
-                return license_from_value(
-                    url, name=res.schema_text("name"), placeholder_values=self.mapper.placeholder_values
-                )
-        return license_from_value(
-            self.view(subject).schema_text("license"), placeholder_values=self.mapper.placeholder_values
-        )
+                return license_from_value(url, name=res.schema_text("name"), placeholders=self.mapper.placeholders)
+        return license_from_value(self.view(subject).schema_text("license"), placeholders=self.mapper.placeholders)
 
     def _resolve_dataset_title(self, subject: Node, context: MappingContext) -> tuple[str, str | None]:
         """Resolve a non-empty title, or fail closed (no ``Untitled`` fallback).
@@ -544,7 +540,7 @@ class _SchemaOrgRun:
             ("URL", "url"),
         ]:
             value = self.view(subject).schema_text(term)
-            if value and not is_placeholder(value, self.mapper.placeholder_values):
+            if value and not self.mapper.placeholders.matches(value):
                 inv.Comments.append(Comment.create(label, value))
 
         self._add_publisher_comment(inv, subject)
@@ -714,7 +710,7 @@ class _SchemaOrgRun:
         )
 
         license_val = self.view(subject)["license"]
-        if license_val and not is_placeholder(license_val, self.mapper.placeholder_values):
+        if license_val and not self.mapper.placeholders.matches(license_val):
             table.AddColumn(
                 CompositeHeader.comment("License"),
                 [CompositeCell.free_text(license_val)],

@@ -33,7 +33,7 @@ class InspirePlugin:
     def __init__(self, config: Config, mapper_config: MapperConfig) -> None:
         """Initialize the plugin with CSW config and repository mapper config."""
         self._config: Config = config
-        self._placeholder_values = mapper_config.placeholder_values
+        self._placeholders = mapper_config.placeholders
         self._mapper: DataMapper[MappingContext] = self.create_mapper(mapper_config)
         if self._mapper.accepts != self.produces:
             raise ValueError(
@@ -59,7 +59,7 @@ class InspirePlugin:
         logger.info("Connecting to CSW at %s...", self._config.csw_url)
         count = 0
 
-        async with CSWClient(self._config, self._placeholder_values) as csw_client:
+        async with CSWClient(self._config, self._placeholders) as csw_client:
             records_iter: AsyncGenerator[InspireRecord | RecordProcessingError, None] = csw_client.get_records_async()
 
             async for item in records_iter:
@@ -118,7 +118,7 @@ class InspirePlugin:
     async def get_expected_datasets(self) -> int | None:
         """Return the expected total number of datasets for this INSPIRE configuration."""
         try:
-            async with CSWClient(self._config, self._placeholder_values) as csw_client:
+            async with CSWClient(self._config, self._placeholders) as csw_client:
                 return await csw_client.get_record_count_async()
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to determine expected INSPIRE record count: %s", exc)

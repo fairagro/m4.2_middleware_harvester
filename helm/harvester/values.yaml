@@ -266,6 +266,12 @@ config:
       mapper:
         # -- Required for inspire: shared ISO→ARC DataMapper.
         type: inspire_general
+        # -- Placeholder text this RDI writes instead of leaving an optional field
+        # -- empty; matching values are treated as absent. Empty by default.
+        # -- unrendered_templates: also treat $var / ${var} / {{var}} as placeholders.
+        placeholders:
+          values: []
+          unrendered_templates: false
 
     # -------------------------------------------------------------------------
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
