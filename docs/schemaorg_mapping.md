@@ -108,9 +108,9 @@ contributors get the roles author and contributor.
 CreativeWork with `url` gives `name (url)`, otherwise the URL or text is used. The licence keeps ARCtrl's `LICENSE` path
 (the RO-Crate licence node is `{"@id": "LICENSE", "text": …}`); a URL `@id` would make `ARC.Write` create `https:/…`
 directories. Empty values and the RDI's configured placeholders (`mapper.placeholders`, none by default; e!DAL sets
-`unrendered_templates: true` for its unexpanded `$licenseURL`) are ignored, for the
-ARC licence and for the `License`, `Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL
-RIGHTS RESERVED BY THE AUTHORS" stays.
+`unrendered_templates: true` for its unexpanded `$licenseURL`) are ignored, for the ARC licence and for the `License`,
+`Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS"
+stays.
 
 ### 5. Study
 

@@ -385,10 +385,10 @@ GeoNode catalogues (BonaRes, Thünen Atlas) fill empty optional elements with pl
 and "No information provided" for `supplementalInformation`. `InspireRecord` and its nested models treat a whole-value
 placeholder (case-insensitive) in an **optional** field as absent: a scalar falls back to its default and list items are
 removed. The placeholders are configured per RDI in the repository's `mapper.placeholders` (`values`, plus
-`unrendered_templates` for `$var` / `${var}` / `{{var}}`). Nothing counts as a placeholder by default, so every value the
-harvester drops is visible in the configuration; BonaRes and Thünen Atlas need
-`values: ["None", "No information provided"]`. Required fields (`identifier`, `title`, `abstract`) keep their value, so a placeholder abstract still reaches
-`Investigation.Description` (#413).
+`unrendered_templates` for `$var` / `${var}` / `{{var}}`). Nothing counts as a placeholder by default, so every value
+the harvester drops is visible in the configuration; BonaRes and Thünen Atlas need
+`values: ["None", "No information provided"]`. Required fields (`identifier`, `title`, `abstract`) keep their value, so
+a placeholder abstract still reaches `Investigation.Description` (#413).
 
 ### 4. Opaque Fields
 

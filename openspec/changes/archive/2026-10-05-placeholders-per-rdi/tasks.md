@@ -10,5 +10,6 @@
 
 - [x] 2.1 ruff, mypy, pylint, bandit
 - [x] 2.2 `uv run pytest middleware/`
-- [x] 2.3 Live BonaRes: no placeholders without config; with `values: ["None", "No information provided"]` same result
-      as the #432 defaults
+- [x] 2.3 Live BonaRes (`repository.zalf.de`, 2026-10-06): without `mapper.placeholders` 269 ARCs, placeholders kept;
+      with `values: ["None", "No information provided"]` 285 ARCs, none of the two values left (only placeholder
+      abstracts, #431)
