@@ -32,7 +32,7 @@ type: `InspireRecord` / equivalent Pydantic model owned by `middleware.payload`)
 
 The system SHALL register mapper type `inspire_general` as a `DataMapper` that accepts `PayloadKind.inspire_record`,
 lives in `middleware.payload`, and maps each record to ARC per `openspec/specs/inspire-to-arc-mapping/` and
-`docs/inspire_mapping.md`. The mapper MUST NOT perform CSW discovery or HTTP catalog fetches.
+`docs/mappers/inspire.md`. The mapper MUST NOT perform CSW discovery or HTTP catalog fetches.
 
 #### Scenario: inspire_general accepts inspire_record
 
@@ -77,7 +77,7 @@ NOT perform protocol discovery or HTTP fetching of source catalogs.
 The system SHALL provide a `LinkedDataMapper` refinement of `DataMapper` for `PayloadKind.rdf_graph`. Concrete
 vocabulary mappers (Schema.org general, Regal) MUST live in `middleware.payload`, register in the shared registry, and
 accept `rdf_graph`. Behavioural ARC field rules remain those of `openspec/specs/linked-data-mapper/` and
-`docs/regal_mapping.md` as applicable (including StableGraph / ResourceView requirements).
+`docs/mappers/regal.md` as applicable (including StableGraph / ResourceView requirements).
 
 #### Scenario: Schema.org mapper accepts rdf_graph
 

@@ -1,7 +1,7 @@
 # INSPIRE-to-ARC Mapping — Design
 
 > All conceptual mapping decisions — why spatial elements become protocols, why online resources flatten into Assay
-> tables — are documented in [docs/inspire_mapping.md](../../../docs/inspire_mapping.md). This file captures only the
+> tables — are documented in [docs/mappers/inspire.md](../../../docs/mappers/inspire.md). This file captures only the
 > architectural decisions made during implementation.
 
 ## Key Decisions

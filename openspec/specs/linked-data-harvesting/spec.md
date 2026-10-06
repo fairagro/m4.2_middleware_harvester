@@ -255,5 +255,5 @@ harvest outcomes for that source.
   JSON-LD.
 - `openspec/specs/regal-jsonld/spec.md` — Regal `/find` discovery, inline Regal JSON-LD datasets, and Regal→ARC mapping.
 - `openspec/specs/regal-to-arc-mapping/spec.md` — Regal ResearchData graph → ARC implementation contract (authoritative
-  field rules in `docs/regal_mapping.md`).
+  field rules in `docs/mappers/regal.md`).
 - `openspec/specs/linked-data-mapper/spec.md` — Graph-to-ARC mapping and RO-Crate serialization.

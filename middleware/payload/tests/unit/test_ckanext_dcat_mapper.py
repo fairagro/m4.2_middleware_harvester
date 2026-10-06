@@ -61,6 +61,13 @@ def test_ckanext_dcat_mapper_requires_a_dataset_subject() -> None:
         list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
+def test_ckanext_dcat_mapper_missing_title_fails_closed_without_untitled() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, DCAT.Dataset))
+    with pytest.raises(ValueError, match="no usable dcterms:title"):
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
 def test_ckanext_dcat_mapper_maps_core_fields() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert root_title(arc_json) == "Soil³ - Sustainable Subsoil Management"

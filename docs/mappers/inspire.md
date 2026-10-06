@@ -1,3 +1,8 @@
+---
+payload_kind: inspire_record
+mapper_id: inspire_general
+---
+
 # INSPIRE to ARC Mapping Documentation
 
 This document describes how INSPIRE-compliant geospatial metadata (ISO 19139 XML) is mapped to the ISA (Investigation,
@@ -32,7 +37,7 @@ Metadata about the metadata record itself.
 | **fileIdentifier**          | `identifier`                  | UUID of the metadata record                   | `Investigation.Identifier`                                                                                                               |
 | **parentIdentifier**        | `parentidentifier`            | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment)                                                                                                    |
 | **language**                | `language` / `languagecode`   | Language of the metadata                      | `Investigation` comment/remark                                                                                                           |
-| **characterSet**            | `charset`                     | Character encoding (UTF-8, etc.)              | `Investigation` comment                                                                                                                  |
+| **characterSet**            | `charset`                     | Character encoding (UTF-8, etc.)              | **Not mapped** today (model may carry `charset`; mapper does not emit a comment)                                                         |
 | **hierarchyLevel**          | `hierarchy`                   | Scope: dataset, series, service, etc.         | `Investigation` comment (non-standard levels documented)                                                                                 |
 | **dateStamp**               | `datestamp` / `datetimestamp` | When metadata was created/updated             | `Investigation` Comment `Metadata Date` (not a dataset date)                                                                             |
 | **metadataStandardName**    | `stdname`                     | Standard name (ISO 19115, etc.)               | `Investigation` comment (provenance)                                                                                                     |
@@ -43,7 +48,7 @@ Metadata about the metadata record itself.
 | **contentInfo**             | `contentinfo`                 | Feature catalogue or image description        | **Assay Protocol** "Feature Catalogue" or "Image Description"                                                                            |
 | **distributionInfo**        | `distribution`                | How to obtain the data                        | **Assay Annotation Table** `Comment [Online Resource]` (semicolon-joined URLs; if no `dataSetURI`, first URL promoted to `Output [URI]`) |
 | **dataQualityInfo**         | `dataquality`                 | Data quality and lineage                      | **Protocol** "Data Processing" (conformance as parameters)                                                                               |
-| **acquisitionInformation**  | `acquisition`                 | Sensor/platform metadata (remote sensing)     | **Assay Technology Platform**                                                                                                            |
+| **acquisitionInformation**  | `acquisition`                 | Sensor/platform metadata (remote sensing)     | **Not extracted** today — Assay `TechnologyPlatform` is hardcoded `"Satellite/Sensor Acquisition"`                                       |
 
 ### 2. MD_DataIdentification (Resource Identification)
 
@@ -75,12 +80,12 @@ Core descriptive metadata about the dataset.
 
 Descriptive keywords with optional thesaurus information.
 
-| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                  |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------- |
-| **keyword**            | `keywords[].name`                                             | Keyword text                                | `OntologyAnnotation` (TAG)                   |
-| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | `OntologyAnnotation.TermAccessionNumber`     |
-| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | `OntologyAnnotation` comment or custom field |
-| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., GEMET)             | `OntologyAnnotation.TermSourceREF`           |
+| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                                             |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
+| **keyword**            | `keywords[].name`                                             | Keyword text                                | **Not mapped** today (`InspireRecord.keywords` is unused by the mapper) |
+| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | **Not mapped** today                                                    |
+| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | **Not mapped** today                                                    |
+| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., GEMET)             | **Not mapped** today                                                    |
 
 ### 4. CI_ResponsibleParty (Contacts)
 
@@ -117,7 +122,7 @@ text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
 `CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (…/legalcode)`); the first text with a URL on a known
 licence host (creativecommons.org, opendatacommons.org, govdata.de, spdx.org, rightsstatements.org). GeoNode
 `Not Specified: …`, access notes ("available on request …") and other text give no licence, so the ARCtrl default "ALL
-RIGHTS RESERVED BY THE AUTHORS" stays. The licence keeps ARCtrl's `LICENSE` path; see `docs/schemaorg_mapping.md`.
+RIGHTS RESERVED BY THE AUTHORS" stays. The licence keeps ARCtrl's `LICENSE` path; see `docs/mappers/schemaorg.md`.
 
 ### 6. MD_Distribution (Distribution Information)
 
@@ -231,9 +236,10 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 
 One INSPIRE record = One Study representing the data creation workflow.
 
-- **Identifier**: `[Investigation_ID]_study`
-- **Title**: "Study for: " + [Investigation Title]
-- **Description**: Lineage statement + purpose + supplementalInformation
+- **Identifier**: title slug, else sanitized `fileIdentifier` (same slug helper as Assay; not
+  `{Investigation_ID}_study`)
+- **Title**: same as Investigation title (`record.title`)
+- **Description**: `Lineage: … | Purpose: … | Supplemental: …` when present, else `"Imported from INSPIRE metadata"`
 
 **Process-Oriented Protocols**:
 
@@ -263,11 +269,11 @@ One INSPIRE record = One Study representing the data creation workflow.
 
 ### Assay (Measurement / Data Output)
 
-- **Identifier**: `[Investigation_ID]_assay`
+- **Identifier**: same slug as Study (title slug / fileIdentifier) — not `{Investigation_ID}_assay`
 - **MeasurementType**: Derived from topicCategory with ontology mapping (e.g., "biota" → "Biological Measurement"
   [NCIT:C19026])
 - **TechnologyType**: "Data Collection"
-- **TechnologyPlatform**: `acquisitionInformation` (Satellite/Sensor platform)
+- **TechnologyPlatform**: hardcoded `"Satellite/Sensor Acquisition"` (acquisition metadata not extracted)
 - **Annotation Table** (always exactly one row):
   - **Input [Source Name]**: `"Dataset Source"`
   - **Output [URI]**: `dataSetURI` (preferred) → `online_resources[0].url` (fallback) → `"<slug>_dataset"` (last resort)
@@ -362,12 +368,10 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 - **dataset** (default): Normal mapping to Investigation/Study/Assay
 - **nonGeographicDataset**: Normal mapping, but without Spatial Sampling protocol
-- **series, collection**: Currently ignored (will be implemented in future versions)
-- **tile**: Ignored (spatial tiles are not harvested as individual datasets)
-- **service, model, application**: Ignored (no scientific relevance)
-
-> [!NOTE] Series and collection handling is planned for future implementation to support hierarchical dataset
-> relationships.
+- **series**: Harvested and mapped like a dataset; non-default hierarchy values also become
+  `Investigation.Comment("Hierarchy Level")`
+- **collection, tile, service, model, application**: Not treated as harvestable dataset hierarchies for mapping here
+  (plugin harvest filters apply upstream)
 
 ### 2. Dataset URI and Lineage URL
 

@@ -313,8 +313,16 @@ class _CkanextDcatRun:
         return name or text
 
     def _title(self, subject: Node) -> str:
-        return self.view(subject).text(DCTERMS.title) or "Untitled"
+        title = (self.view(subject).text(DCTERMS.title) or "").strip()
+        if title:
+            return title
+        raise ValueError("dcat:Dataset has no usable dcterms:title; refusing Untitled fallback")
 
     def _investigation_identifier(self, subject: Node, title: str) -> str:
         slug = self.mapper.sanitize_identifier(str(subject))
-        return slug or self.mapper.to_identifier_slug(title) or "untitled"
+        if slug:
+            return slug
+        title_slug = self.mapper.to_identifier_slug(title)
+        if title_slug:
+            return title_slug
+        raise ValueError("dcat:Dataset has no usable Investigation identifier; refusing untitled fallback")

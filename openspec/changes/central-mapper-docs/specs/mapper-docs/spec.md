@@ -55,3 +55,21 @@ NOT require an implemented generator for the documentation layout to be valid.
 - **WHEN** the mapper-docs layout is adopted
 - **THEN** no automated Markdown→mapper code generator is required to exist; the generation-input role is documented
   only
+
+### Requirement: Mapping docs MUST NOT prescribe invented placeholder field values
+
+Mapping documents MUST NOT instruct mappers to invent display strings such as `Untitled` / `untitled` / `unknown` when a
+source field is missing. Refusal/skip sections MUST require fail-closed mapping (no `HarvestedArc`) for required fields
+whose documented source cascade is empty. Optional fields MUST be omitted. Mapping docs describe `middleware.payload`
+DataMappers; they MUST NOT treat the `linked_data:` plugin key as a documentation target.
+
+#### Scenario: Missing required title is refuse, not Untitled
+
+- **WHEN** a base mapping document describes a required title cascade that yields nothing
+- **THEN** it specifies fail-closed mapping rather than a placeholder title
+
+#### Scenario: Docs target payload mappers, not the linked_data plugin
+
+- **WHEN** a contributor adds mapper documentation
+- **THEN** the document is named and scoped by payload mapper (`schemaorg`, `regal`, …), not by the `linked_data`
+  protocol plugin

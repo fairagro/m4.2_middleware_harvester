@@ -6,7 +6,7 @@ Transforms a Schema.org RDF graph (parsed from JSON-LD embedded in HTML pages or
 investigation components (ISA). The graph may contain one or more `schema:Dataset` entities, optionally nested within
 `schema:DataCatalog`, with associated `schema:DataDownload` distributions.
 
-**Authoritative Mapping Source:** [docs/schemaorg_mapping.md](../../../docs/schemaorg_mapping.md) defines the conceptual
+**Authoritative Mapping Source:** [docs/mappers/schemaorg.md](../../../docs/mappers/schemaorg.md) defines the conceptual
 mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs
@@ -34,7 +34,7 @@ mapping source.
   "https://example.org/dataset/beta")
 - **WHEN** the mapper processes the graph
 - **THEN** two mapping outputs are produced, one per Dataset, each with its own `Investigation.identifier` derived from
-  its respective `@id` or discovered page URL
+  that Dataset's identity cascade (page / harvest identifiers MUST NOT be used when more than one Dataset is present)
 - **AND** the outputs are yielded in deterministic subject order (`StableGraph.subjects_of_types` / sort key),
   independent of RDF triple insertion order
 

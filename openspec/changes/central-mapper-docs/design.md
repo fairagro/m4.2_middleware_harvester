@@ -22,7 +22,8 @@ context, not as separate mapper types. #140 already placed mappers beside config
 - Implementing a generator or registry fields for `builds_on`.
 - Inventing RDI overlay files without a code/config delta to document.
 - Softening parser/mapper separation (context allowlists stay on parser config; see #247 closed as superseded by #391).
-- Behavioural mapper rewrites beyond what an audit proves is documentation/spec mismatch.
+- Documenting the `linked_data:` protocol plugin (see #296); mapping docs are payload-mapper files only.
+- Invented placeholder titles (`Untitled`) as a mapping strategy.
 
 ## Decisions
 

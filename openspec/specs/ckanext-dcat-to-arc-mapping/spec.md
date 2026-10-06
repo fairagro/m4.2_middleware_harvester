@@ -4,6 +4,9 @@
 
 Shared RDF DataMapper that maps one DCAT-AP `dcat:Dataset` graph in the CKAN `ckanext-dcat` flavour to an ARC.
 
+**Authoritative Mapping Source:** [docs/mappers/ckanext-dcat.md](../../../docs/mappers/ckanext-dcat.md) defines the
+conceptual mapping rules. This spec captures the implementation contract.
+
 ## Requirements
 
 ### Requirement: Register a ckanext_dcat DataMapper
@@ -29,6 +32,18 @@ one Study (`<id>_study`) with a dataset-processing table and one Assay (`<id>_as
 
 - **WHEN** a dataset graph has a title and one `dcat:Distribution`
 - **THEN** the ARC root carries the title and a stable identifier derived from the dataset IRI
+
+### Requirement: Fail closed on missing dcat:Dataset title
+
+The mapper MUST require a non-empty `dcterms:title` (after trim) for Investigation / Study / Assay titles. It MUST NOT
+invent display titles such as `Untitled`. When the title is missing or blank, mapping MUST fail closed with a mapping
+error (no `HarvestedArc`). Identifier fallbacks MUST NOT invent `untitled` when sanitization and the title slug are both
+empty.
+
+#### Scenario: Dataset without dcterms:title fails mapping
+
+- **WHEN** a `dcat:Dataset` graph has no non-empty `dcterms:title`
+- **THEN** mapping MUST raise a mapping error and MUST NOT return a HarvestedArc
 
 ### Requirement: Unwrap ckanext-dcat raw CKAN JSON-string fields
 

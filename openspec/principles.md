@@ -15,16 +15,18 @@ this product belong in [`docs/surface-quality-bar.md`](../docs/surface-quality-b
 ## Foundation Contract
 
 The authoritative contract for each harvesting plugin is the mapping domain under `openspec/specs/` (e.g.
-[inspire-to-arc-mapping](specs/inspire-to-arc-mapping/)). Each document defines the source metadata fields, how they map
-to ARC concepts, and required/optional semantics. **All feature specs assume these documents as given.** Feature specs
-do not restate mapping rules; they reference the relevant spec when they need to cite a field or constraint.
+[inspire-to-arc-mapping](specs/inspire-to-arc-mapping/)). Each domain defines the implementation contract (requirements
+and scenarios). **Field tables and conceptual source→ARC rules live under [`docs/mappers/`](../docs/mappers/)** (base
+docs plus optional `rdi/` overlays). **All feature specs assume those mapping documents as given.** Feature specs do not
+restate mapping rules; they reference the mapping document and the relevant OpenSpec domain when they need to cite a
+field or constraint.
 
 The central orchestrator (`middleware/harvester`) never parses source-format records directly. Each plugin owns its
 protocol client and source-format parsing; shared vocabulary→ARC mapping lives in `middleware.payload` and is selected
 via repository `mapper.type`.
 
-Feature specs SHALL treat the mapping documents linked from these principles as the authoritative source→ARC contract,
-and SHALL reference those documents instead of restating mapping rules. Implementations SHALL honour the Values,
+Feature specs SHALL treat the mapping documents under `docs/mappers/` as the authoritative source→ARC contract, and
+SHALL reference those documents instead of restating mapping rules. Implementations SHALL honour the Values,
 Constraints, and Module Dependency Graph documented here and in `principles.global.md`.
 
 ---
@@ -62,6 +64,12 @@ Shared values are in `principles.global.md`. This repo additionally emphasises:
 
 **Correctness over speed** — Valid ARC output matters more than throughput. If a record cannot be mapped cleanly it must
 fail with a clear error, not produce silent garbage.
+
+**No invented field values** — DataMappers MUST NOT fill missing source fields with placeholder strings such as
+`Untitled`, `untitled`, `unknown`, or `n/a`. Source-documented fallbacks to _other real source fields_ (for example
+Regal `dcterms:title` → `skos:prefLabel`) remain allowed. When a required field (or its documented source cascade) is
+still empty, mapping MUST fail closed: no `HarvestedArc`, so the plugin yields a record-level error, logs the cause, and
+continues the harvest. Optional fields MUST be omitted, not stubbed.
 
 **Memory-safe by design** — Source endpoints can contain millions of records. Each plugin must use pagination or
 streaming; the in-memory footprint per batch must be bounded and predictable.

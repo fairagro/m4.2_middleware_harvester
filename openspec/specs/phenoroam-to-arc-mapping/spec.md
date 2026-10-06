@@ -5,6 +5,9 @@
 Map a typed PhenoRoam intermediate record (`PayloadKind.phenoroam_record`) to ARC Investigation / Study / Assay with
 annotation tables, without inventing data-file Output entities from metadata-only harvests.
 
+**Authoritative Mapping Source:** [docs/mappers/phenoroam.md](../../../docs/mappers/phenoroam.md) defines the conceptual
+mapping rules. This spec captures the implementation contract.
+
 ## Requirements
 
 ### Requirement: Provide a phenoroam_general DataMapper

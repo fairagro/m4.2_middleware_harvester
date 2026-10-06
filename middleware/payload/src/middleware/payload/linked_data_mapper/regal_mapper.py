@@ -88,7 +88,7 @@ _KNOWN_PREDICATES = {
     REGAL.catalogId,
     REGAL.itemID,
     REGAL.associatedPublication,
-    # Structural contact-order metadata (docs/regal_mapping.md); not an opaque Comment.
+    # Structural contact-order metadata (docs/mappers/regal.md); not an opaque Comment.
     # Publisso sends lv:contributorOrder; it repeats the creator/contributor @list order,
     # which _add_contacts already keeps, so it is not used for sorting.
     LV.contributorOrder,
@@ -656,11 +656,15 @@ class _RegalRun:
         return self.view(subject).text(REGAL.license)
 
     def _title(self, subject: Node) -> str:
-        title = self.view(subject).text(DCTERMS.title)
+        title = (self.view(subject).text(DCTERMS.title) or "").strip()
         if title:
             return title
-        pref = self.view(subject).text(SKOS.prefLabel)
-        return pref or "Untitled"
+        pref = (self.view(subject).text(SKOS.prefLabel) or "").strip()
+        if pref:
+            return pref
+        raise ValueError(
+            "Regal ResearchData has no usable title (dcterms:title or skos:prefLabel); refusing Untitled fallback"
+        )
 
     def _doi(self, subject: Node) -> str | None:
         return normalize_doi(self.view(subject).text(REGAL.doi))
@@ -683,17 +687,21 @@ class _RegalRun:
     ) -> str:
         if regal_id:
             slug = self.mapper.sanitize_identifier(regal_id)
-            return slug or self.mapper.to_identifier_slug(title) or "untitled"
+            if slug:
+                return slug
         if doi:
             return doi
-        return self.mapper.to_identifier_slug(title) or "untitled"
+        title_slug = self.mapper.to_identifier_slug(title)
+        if title_slug:
+            return title_slug
+        raise ValueError("Regal ResearchData has no usable Investigation identifier; refusing untitled fallback")
 
     def _output_uri(self, *, regal_id: str | None, doi: str | None) -> str:
         if doi:
             return f"https://doi.org/{doi}"
         if regal_id:
             return self._resource_url(regal_id)
-        return "unknown"
+        raise ValueError("Regal ResearchData has no doi or @id for Assay Output URI")
 
     def _resource_url(self, regal_id: str) -> str:
         """Expand a compact Regal id to an absolute resource URL.

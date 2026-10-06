@@ -4,7 +4,7 @@
 
 Transforms the fully populated `InspireRecord` object into ARC investigation components (ISA).
 
-**Authoritative Mapping Source:** [docs/inspire_mapping.md](../../../docs/inspire_mapping.md) defines the conceptual
+**Authoritative Mapping Source:** [docs/mappers/inspire.md](../../../docs/mappers/inspire.md) defines the conceptual
 mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs
@@ -41,14 +41,16 @@ The system SHALL create one `ArcStudy` per record containing a Spatial Sampling 
 - **THEN** Create one `ArcStudy` per record containing a Spatial Sampling protocol (omitted for `nonGeographicDataset`)
   and a Data Acquisition protocol
 
-### Requirement: Create one ArcAssay per record containing a Data Processing protocol
+### Requirement: Create one ArcAssay per record for Measurement output
 
-The system SHALL create one `ArcAssay` per record containing a Data Processing protocol.
+The system SHALL create one `ArcAssay` per record for the Measurement annotation table (dataset URI / online resources).
+The Data Processing protocol table MUST live on the Study, not on the Assay.
 
-#### Scenario: Satisfies — Create one ArcAssay per record containing a Data Processing protocol
+#### Scenario: Assay is Measurement-only; Data Processing is on the Study
 
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Create one `ArcAssay` per record containing a Data Processing protocol
+- **WHEN** an InspireRecord is mapped
+- **THEN** the Study contains the Data Processing protocol table and the Assay contains the Measurement annotation table
+  (not a Data Processing protocol)
 
 ### Requirement: Serialize the resulting ARC via arc.ToROCrateJsonString() and return the JSON…
 

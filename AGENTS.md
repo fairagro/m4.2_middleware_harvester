@@ -210,7 +210,7 @@ Before generating or modifying code, read the relevant OpenSpec domains under `o
 - **[`openspec/specs/regal-jsonld/`](openspec/specs/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD
   datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
 - **[`openspec/specs/regal-to-arc-mapping/`](openspec/specs/regal-to-arc-mapping/)** — Regal ResearchData → ARC
-  implementation contract; authoritative field rules in [`docs/regal_mapping.md`](docs/regal_mapping.md).
+  implementation contract; authoritative field rules in [`docs/mappers/regal.md`](docs/mappers/regal.md).
 
 ---
 

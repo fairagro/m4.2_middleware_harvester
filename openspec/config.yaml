@@ -42,7 +42,7 @@ rules:
     - Reference openspec/principles.md (and principles.global.md) instead of
       restating project constraints
     - Do not restate ARC mapping field tables — link inspire-to-arc-mapping or
-      docs/regal_mapping.md / docs/inspire_mapping.md as appropriate
+      docs/mappers/regal.md / docs/mappers/inspire.md as appropriate
   design:
     - Document non-obvious Key Decisions with a mandatory reasoning clause
     - Describe the current intended design, not a history of past approaches

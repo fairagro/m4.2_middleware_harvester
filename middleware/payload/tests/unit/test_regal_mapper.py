@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
+from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier, root_title
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
@@ -160,6 +160,22 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
+def test_regal_mapper_title_falls_back_to_preflabel() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((SUBJECT, SKOS.prefLabel, Literal("Label only title")))
+    graph.add((SUBJECT, DCTERMS.description, Literal("A useful description")))
+    assert root_title(_mapped_arc_json(graph)) == "Label only title"
+
+
+def test_regal_mapper_missing_title_fails_closed_without_untitled() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((SUBJECT, DCTERMS.description, Literal("A useful description")))
+    with pytest.raises(ValueError, match="no usable title"):
         list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 

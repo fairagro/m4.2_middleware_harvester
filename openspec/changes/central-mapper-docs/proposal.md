@@ -49,6 +49,8 @@ a stable input shape (#170).
 
 - Docs and OpenSpec link updates across mapping domains, principles narrative, READMEs, and code comments that cite old
   paths.
-- No mapper runtime behaviour change intended; audit may surface doc/spec fixes only.
+- **Mapper fail-closed:** Regal and `ckanext_dcat` MUST NOT invent `"Untitled"` / `untitled`; missing required title
+  (after documented source cascade) fails mapping. Same rule in `openspec/principles.md`.
 - Non-goals: implementing #140 again; implementing a Markdown→code generator; materializing full RDI docs that duplicate
-  an entire base; moving StableGraph semantics into mapping docs; coupling parser config to mapper type.
+  an entire base; moving StableGraph semantics into mapping docs; coupling parser config to mapper type; documenting or
+  extending the `linked_data:` plugin (removed after #296 — mapping docs target `middleware.payload` only).
