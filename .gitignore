@@ -71,7 +71,3 @@ node_modules/
 Thumbs.db
 *~
 .cache_ggshield
-
-# --- Claude Code CLI local/session state ---
-.claude/
-skills-lock.json
