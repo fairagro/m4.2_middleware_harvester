@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from arctrl import ARC  # type: ignore[import-untyped]
 from rdflib import Graph
 
+from middleware.payload.arc_comments import VALUE_SEPARATOR
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper import MappingContext
 
@@ -315,7 +316,11 @@ def publisher_comment_text(arc_json: str) -> str | None:
 
 
 def distribution_comment_texts(arc_json: str) -> list[str]:
-    """Return Distribution Investigation Comment texts in @graph encounter order."""
+    """Return Distribution values in @graph encounter order.
+
+    Same-name Comments are merged into one (``arc_comments``), so the values come from
+    splitting the single ``Distribution`` Comment on ``; ``.
+    """
     assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     texts: list[str] = []
@@ -325,7 +330,7 @@ def distribution_comment_texts(arc_json: str) -> list[str]:
         if "Comment" not in type_list:
             continue
         if rocrate_prop(item, "name") == "Distribution":
-            texts.append(rocrate_prop(item, "text"))
+            texts.extend(rocrate_prop(item, "text").split(VALUE_SEPARATOR))
     return texts
 
 

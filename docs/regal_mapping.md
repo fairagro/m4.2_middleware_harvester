@@ -146,9 +146,11 @@ Fields that appear on some FRL templates (e.g. `emi_measurement_techniques`, `li
 `emissions`, `ventilation_system`, `test_design`, `project_title`, `other`, …) are **not** part of the core mapping.
 
 **Rule:** If present, store each as an Investigation comment `Comment.create(<fieldName>, <value>)` so information is
-not lost, without inventing ARC protocol semantics. `<value>` MUST be a Literal, a URIRef string, or a `skos:prefLabel`.
-Unlabelled blank nodes MUST be omitted — never persist rdflib blank-node labels (`N`+32 hex / `_:…`). Promote a facet
-into a first-class protocol parameter only after an explicit mapping update to this document.
+not lost, without inventing ARC protocol semantics. Repeated values of one facet become one Comment with the distinct
+values semicolon-joined (ARCtrl cannot write an ARC with repeated Comment names; see `middleware.payload.arc_comments`).
+`<value>` MUST be a Literal, a URIRef string, or a `skos:prefLabel`. Unlabelled blank nodes MUST be omitted — never
+persist rdflib blank-node labels (`N`+32 hex / `_:…`). Promote a facet into a first-class protocol parameter only after
+an explicit mapping update to this document.
 
 ## Mapping Strategy Summary
 
