@@ -102,7 +102,7 @@ contributors get the roles author and contributor.
 | **`schema:publisher`**    | Publisher (Person or Organization)  | `Investigation.Comment("Publisher")`                                                                                                     |
 | **`schema:conformsTo`**   | Specification or standard           | `Investigation.Comment("Conforms To")`                                                                                                   |
 | **(title fallback used)** | Which fallback supplied the title   | `Investigation.Comment("Title Source")` — only when `schema:name` did not win; see [Title Resolution Cascade](#title-resolution-cascade) |
-| **`schema:distribution`** | `schema:DataDownload` resources     | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`)                                                           |
+| **`schema:distribution`** | `schema:DataDownload` resources     | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`; several entries semicolon-joined in one Comment)          |
 
 **ARC licence (`ARC.License`).** `schema:license` also sets the ARC licence (`middleware.payload.arc_license`): a
 CreativeWork with `url` gives `name (url)`, otherwise the URL or text is used. The licence keeps ARCtrl's `LICENSE` path
