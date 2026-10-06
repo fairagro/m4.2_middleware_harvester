@@ -30,6 +30,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.arc_license import license_from_value
 from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
@@ -51,6 +52,7 @@ logger = logging.getLogger(__name__)
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
 LV = Namespace("http://purl.org/lobid/lv#")
+ORE = Namespace("http://www.openarchives.org/ore/terms/")
 JOINED_FUNDING = URIRef("info:regal/regal/joinedFunding")
 RESEARCH_DATA_TYPE = REGAL.ResearchData
 _LOC_LANGUAGE_IRI = re.compile(r"^https?://id\.loc\.gov/vocabulary/iso639-[12]/([a-z]{2,3})$", re.IGNORECASE)
@@ -569,6 +571,12 @@ class _RegalRun:
         languages = self._language_value(subject)
         if languages:
             inv.Comments.append(Comment.create("Language", languages))
+
+        # Regal has no dataset-level modified date; isDescribedBy.modified is when the repository object last changed.
+        described_by = self.view(subject).resource(ORE.isDescribedBy)
+        modified = date_modified_comment(described_by.text(DCTERMS.modified) if described_by else None)
+        if modified:
+            inv.Comments.append(modified)
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):

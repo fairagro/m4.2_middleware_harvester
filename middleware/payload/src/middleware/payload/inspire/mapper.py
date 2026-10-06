@@ -21,6 +21,7 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
+from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.dois import normalize_doi
@@ -338,6 +339,12 @@ class InspireMapper(DataMapper[MappingContext]):
         for label, value in fields:
             if value:
                 comments.append(Comment.create(label, value))
+
+        # Latest citation revision date only; dateStamp is the metadata record's date (Metadata Date).
+        revisions = sorted(d.date for d in record.dates if d.datetype == "revision")
+        modified = date_modified_comment(revisions[-1]) if revisions else None
+        if modified:
+            comments.append(modified)
 
         self._add_hierarchy_comments(comments, record)
         self._add_constraint_comments(comments, record)

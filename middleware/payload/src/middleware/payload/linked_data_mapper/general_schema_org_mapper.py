@@ -31,6 +31,7 @@ from arctrl.py.license import License  # type: ignore[import-untyped]
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
+from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.arc_license import license_from_value
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.iso_dates import iso_date
@@ -297,6 +298,9 @@ class _SchemaOrgRun:
         for term, (iso, raw) in dates.items():
             if raw and not iso:
                 inv.Comments.append(Comment.create(f"Unparsed {term}", raw))
+        modified = date_modified_comment(dates["dateModified"][0])
+        if modified:
+            inv.Comments.append(modified)
 
         self._add_contacts(inv, subject)
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
