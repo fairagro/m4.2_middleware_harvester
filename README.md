@@ -79,8 +79,8 @@ subdirectories:
 - **[INSPIRE Plugin README](middleware/inspire/README.md)**: Metadata mapping rules and CSW connection settings.
 - **[Architectural Design](openspec/specs/harvester-orchestration/design.md)**: Deep dive into the concurrency model and
   data flow.
-- **[INSPIRE Mapping Spec](docs/inspire_mapping.md)**: The rules for transforming INSPIRE/ISO19139 metadata into ARC
-  objects.
+- **[Mapper documentation](docs/mappers/)**: Authoritative source→ARC field tables (Schema.org, Regal, INSPIRE,
+  PhenoRoam, CKAN `ckanext-dcat`) under `docs/mappers/`.
 
 ## 🤖 AI-Native Development
 

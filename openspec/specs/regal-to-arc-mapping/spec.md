@@ -4,13 +4,24 @@
 
 Transforms a Regal `ResearchData` RDF graph (from inline `/find` JSON-LD) into ARC investigation components (ISA).
 
-**Authoritative Mapping Source:** [docs/regal_mapping.md](../../../docs/regal_mapping.md) defines the conceptual mapping
+**Authoritative Mapping Source:** [docs/mappers/regal.md](../../../docs/mappers/regal.md) defines the conceptual mapping
 rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs
 `ArcInvestigation`, `ArcStudy`, or `ArcAssay` objects.
 
 ## Requirements
+
+### Requirement: Authoritative Regal mapping document path
+
+The Regal→ARC field tables and conceptual mapping rules SHALL live in
+[`docs/mappers/regal.md`](../../../docs/mappers/regal.md). This spec remains the implementation contract and MUST NOT
+restate those field tables. Implementations SHALL honour the mapping document linked here.
+
+#### Scenario: Spec points at central Regal mapping doc
+
+- **WHEN** a contributor needs Regal source→ARC field placement rules
+- **THEN** they use `docs/mappers/regal.md` as the authoritative mapping source for this domain
 
 ### Requirement: Map each Regal ResearchData graph to exactly one ArcInvestigation with…
 
@@ -85,18 +96,32 @@ The system SHALL implement mapping in a dedicated Regal mapper registered under 
 - **THEN** Implement mapping in a dedicated Regal mapper registered under the Regal `payload_type`; do not reuse
   `GeneralSchemaOrgMapper`
 
-### Requirement: Edge case — - Missing title
+### Requirement: Edge case — missing title, empty hasPart, duplicate funding
 
-The system SHALL handle this edge case: when - Missing title, then use `prefLabel` if present; otherwise `"Untitled"`. -
-`prefLabel` without `", "` → entire string as `Person.LastName`. - Empty `hasPart` → omit Online Resource comment
-columns. - Duplicate funder information in flat and `joinedFunding` fields → prefer `joinedFunding`.
+The system SHALL handle these edge cases: when `dcterms:title` is missing, use `skos:prefLabel` if present; otherwise
+fail closed (no `HarvestedArc`, no `"Untitled"` placeholder). Empty `hasPart` → omit Online Resource comment columns.
+Duplicate funder information in flat and `joinedFunding` fields → prefer `joinedFunding`. Person/`prefLabel` given-name
+rules are defined in the given-name requirement (not here).
 
-#### Scenario: Edge case — - Missing title
+#### Scenario: Missing title falls back to prefLabel
 
-- **WHEN** - Missing title
-- **THEN** use `prefLabel` if present; otherwise `"Untitled"`. - `prefLabel` without `", "` → entire string as
-  `Person.LastName`. - Empty `hasPart` → omit Online Resource comment columns. - Duplicate funder information in flat
-  and `joinedFunding` fields → prefer `joinedFunding`
+- **WHEN** a ResearchData record has no usable `dcterms:title` but has a non-empty `skos:prefLabel`
+- **THEN** the Investigation title is that `skos:prefLabel`
+
+#### Scenario: Missing title and prefLabel fails closed
+
+- **WHEN** a ResearchData record has neither a usable `dcterms:title` nor `skos:prefLabel`
+- **THEN** mapping MUST fail closed with a mapping error and MUST NOT invent an `"Untitled"` title
+
+#### Scenario: Empty hasPart omits Online Resource columns
+
+- **WHEN** `dcterms:hasPart` is absent or empty
+- **THEN** Online Resource comment columns are omitted from the Assay annotation table
+
+#### Scenario: joinedFunding wins over flat funder duplicates
+
+- **WHEN** the same funder information appears in flat funding fields and `joinedFunding`
+- **THEN** the mapper prefers `joinedFunding`
 
 ### Requirement: Regal Person contacts MUST satisfy given-name rules
 
@@ -105,7 +130,7 @@ columns. - Duplicate funder information in flat and `joinedFunding` fields → p
 MUST NOT produce a Person contact with empty first name; such a contact MUST cause fail-closed mapping failure for that
 record unless the node is treated as an organization and represented via Comment / Affiliation instead of Person.
 
-Authoritative field tables remain in [docs/regal_mapping.md](../../../docs/regal_mapping.md); this requirement overrides
+Authoritative field tables remain in [docs/mappers/regal.md](../../../docs/mappers/regal.md); this requirement overrides
 any reading that allows empty FirstName on contacts.
 
 #### Scenario: Comma-split prefLabel with given name succeeds
@@ -136,7 +161,7 @@ the graph with a Regal label policy that includes `skos:prefLabel` for labelled-
 private copies of shared literal/resource / BNode-safe string helpers once ResourceView provides them. Regal-specific
 ARC policy — PUBLISSO `Family, Given` splitting, `joinedFunding` preference over flat funding fields, resource base URL
 / compact Regal id handling, opaque known-predicate filtering, and Investigation identifier cascade — MUST remain in the
-mapper. Authoritative field placement remains [`docs/regal_mapping.md`](../../../docs/regal_mapping.md).
+mapper. Authoritative field placement remains [`docs/mappers/regal.md`](../../../docs/mappers/regal.md).
 
 #### Scenario: Title and description come from ResourceView accessors
 
@@ -215,7 +240,7 @@ hex digits, or `_:…`). For each RDF object:
 - blank node → use `skos:prefLabel` when present; otherwise omit that object.
 
 Unlabelled blank nodes MUST be skipped rather than stringified. Authoritative field placement for funding remains
-[`docs/regal_mapping.md`](../../../docs/regal_mapping.md) §6. Private Regal-only duplicates of this policy MUST NOT
+[`docs/mappers/regal.md`](../../../docs/mappers/regal.md) §6. Private Regal-only duplicates of this policy MUST NOT
 remain after the ResourceView migration.
 
 #### Scenario: Flat fundingProgram blank node without prefLabel is omitted
@@ -368,3 +393,13 @@ IRI. Duplicate values MUST be written once, joined with `; `.
 
 - **WHEN** a record has `isDescribedBy.modified` "2024-09-04T09:34:30.938+0200"
 - **THEN** the RO-Crate root `dateModified` MUST be "2024-09-04T09:34:30.938+0200"
+
+### Requirement: Regal issued MUST be datePublished
+
+`RegalMapper` MUST set Investigation and Study `PublicReleaseDate` (RO-Crate `datePublished`) from `dcterms:issued`.
+`SubmissionDate` (RO-Crate `dateCreated`) MUST stay empty, since Regal has no creation date.
+
+#### Scenario: Publisso record
+
+- **WHEN** a record has `issued` "2024"
+- **THEN** the RO-Crate root `datePublished` MUST be "2024" and the root MUST NOT have `dateCreated`

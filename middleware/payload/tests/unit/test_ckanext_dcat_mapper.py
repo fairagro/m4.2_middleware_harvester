@@ -9,6 +9,7 @@ from mapper_test_helpers import (
     NO_DISCOVERY,
     assert_harvest_has_no_bnode_labels,
     rocrate_prop,
+    root_dates,
     root_identifier,
     root_title,
 )
@@ -61,10 +62,29 @@ def test_ckanext_dcat_mapper_requires_a_dataset_subject() -> None:
         list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
+def test_ckanext_dcat_mapper_missing_title_fails_closed_without_untitled() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, DCAT.Dataset))
+    with pytest.raises(ValueError, match="no usable dcterms:title"):
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
 def test_ckanext_dcat_mapper_maps_core_fields() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert root_title(arc_json) == "Soil³ - Sustainable Subsoil Management"
     assert root_identifier(arc_json)
+
+
+def test_ckanext_dcat_mapper_issued_is_date_published() -> None:
+    """``dcterms:issued`` is the release date, not ``dateCreated`` nor the harvest time (#407)."""
+    assert root_dates(_mapped_arc_json(_base_graph())) == {"datePublished": "2025-11-25T11:58:28"}
+
+
+def test_ckanext_dcat_mapper_release_date_falls_back_to_modified() -> None:
+    graph = _base_graph()
+    graph.remove((SUBJECT, DCTERMS.issued, None))
+    graph.add((SUBJECT, DCTERMS.modified, Literal("2026-01-02")))
+    assert root_dates(_mapped_arc_json(graph)) == {"datePublished": "2026-01-02"}
 
 
 def test_ckanext_dcat_mapper_identifier_uses_shared_sanitize() -> None:

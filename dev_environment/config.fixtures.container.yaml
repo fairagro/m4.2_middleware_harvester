@@ -17,6 +17,7 @@ repositories:
           entry_url: "http://fixtures:8080/servlets/solr/select"
     parser:
       type: html_jsonld
+      allowed_context_url: "https://schema.org/"
     mapper:
       type: schema_org_general
 

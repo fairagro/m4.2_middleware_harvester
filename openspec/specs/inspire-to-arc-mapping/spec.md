@@ -4,13 +4,24 @@
 
 Transforms the fully populated `InspireRecord` object into ARC investigation components (ISA).
 
-**Authoritative Mapping Source:** [docs/inspire_mapping.md](../../../docs/inspire_mapping.md) defines the conceptual
+**Authoritative Mapping Source:** [docs/mappers/inspire.md](../../../docs/mappers/inspire.md) defines the conceptual
 mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs
 `ArcInvestigation`, `ArcStudy`, or `ArcAssay` objects.
 
 ## Requirements
+
+### Requirement: Authoritative INSPIRE mapping document path
+
+The INSPIRE→ARC field tables and conceptual mapping rules SHALL live in
+[`docs/mappers/inspire.md`](../../../docs/mappers/inspire.md). This spec remains the implementation contract and MUST
+NOT restate those field tables. Implementations SHALL honour the mapping document linked here.
+
+#### Scenario: Spec points at central INSPIRE mapping doc
+
+- **WHEN** a contributor needs INSPIRE/`InspireRecord` source→ARC field placement rules
+- **THEN** they use `docs/mappers/inspire.md` as the authoritative mapping source for this domain
 
 ### Requirement: Map each InspireRecord to exactly one ArcInvestigation with title, description,…
 
@@ -41,14 +52,16 @@ The system SHALL create one `ArcStudy` per record containing a Spatial Sampling 
 - **THEN** Create one `ArcStudy` per record containing a Spatial Sampling protocol (omitted for `nonGeographicDataset`)
   and a Data Acquisition protocol
 
-### Requirement: Create one ArcAssay per record containing a Data Processing protocol
+### Requirement: Create one ArcAssay per record for Measurement output
 
-The system SHALL create one `ArcAssay` per record containing a Data Processing protocol.
+The system SHALL create one `ArcAssay` per record for the Measurement annotation table (dataset URI / online resources).
+The Data Processing protocol table MUST live on the Study, not on the Assay.
 
-#### Scenario: Satisfies — Create one ArcAssay per record containing a Data Processing protocol
+#### Scenario: Assay is Measurement-only; Data Processing is on the Study
 
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Create one `ArcAssay` per record containing a Data Processing protocol
+- **WHEN** an InspireRecord is mapped
+- **THEN** the Study contains the Data Processing protocol table and the Assay contains the Measurement annotation table
+  (not a Data Processing protocol)
 
 ### Requirement: Serialize the resulting ARC via arc.ToROCrateJsonString() and return the JSON…
 
@@ -122,25 +135,27 @@ become a licence; then the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" s
 
 ### Requirement: The dataset date MUST come from the citation, not gmd:dateStamp
 
-`InspireMapper` MUST set Investigation and Study `SubmissionDate` from the citation `CI_Date` entries: the earliest
-`publication` date, else the latest `revision` date, else the earliest `creation` date; without any of these it MUST
-stay empty. `gmd:dateStamp` MUST NOT be used as a dataset date; it MUST be kept as the Investigation Comment
-`Metadata Date`.
+`InspireMapper` MUST set Investigation and Study `PublicReleaseDate` (RO-Crate `datePublished`) from the citation
+`CI_Date` entries: the earliest `publication` date, else the latest `revision` date, else the earliest `creation` date;
+without any of these it MUST stay empty. Investigation and Study `SubmissionDate` (RO-Crate `dateCreated`) MUST be the
+earliest `creation` date, and empty without one. `gmd:dateStamp` MUST NOT be used as a dataset date; it MUST be kept as
+the Investigation Comment `Metadata Date`.
 
 #### Scenario: BonaRes record
 
 - **WHEN** a record has `dateStamp` 2026-08-18T12:06:54Z and a citation `publication` date 2026-05-19T16:11:37Z
-- **THEN** `SubmissionDate` MUST be 2026-05-19T16:11:37Z and the `Metadata Date` Comment 2026-08-18T12:06:54Z
+- **THEN** `PublicReleaseDate` MUST be 2026-05-19T16:11:37Z, `SubmissionDate` MUST be empty and the `Metadata Date`
+  Comment 2026-08-18T12:06:54Z
 
 #### Scenario: No publication date
 
 - **WHEN** a record has `creation` and `revision` dates only
-- **THEN** `SubmissionDate` MUST be the latest `revision` date
+- **THEN** `PublicReleaseDate` MUST be the latest `revision` date and `SubmissionDate` the earliest `creation` date
 
 #### Scenario: No citation date
 
 - **WHEN** a record has no typed citation date
-- **THEN** `SubmissionDate` MUST be empty
+- **THEN** `PublicReleaseDate` and `SubmissionDate` MUST be empty
 
 ### Requirement: DOIs MUST be bare and normalised
 

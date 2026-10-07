@@ -6,13 +6,24 @@ Transforms a Schema.org RDF graph (parsed from JSON-LD embedded in HTML pages or
 investigation components (ISA). The graph may contain one or more `schema:Dataset` entities, optionally nested within
 `schema:DataCatalog`, with associated `schema:DataDownload` distributions.
 
-**Authoritative Mapping Source:** [docs/schemaorg_mapping.md](../../../docs/schemaorg_mapping.md) defines the conceptual
+**Authoritative Mapping Source:** [docs/mappers/schemaorg.md](../../../docs/mappers/schemaorg.md) defines the conceptual
 mapping rules. This spec captures the implementation contract.
 
 **Skill Reference:** Agents must load `.agents/skills/arctrl/SKILL.md` when writing or modifying code that constructs
 `ArcInvestigation`, `ArcStudy`, or `ArcAssay` objects.
 
 ## Requirements
+
+### Requirement: Authoritative Schema.org mapping document path
+
+The Schema.org→ARC field tables and conceptual mapping rules SHALL live in
+[`docs/mappers/schemaorg.md`](../../../docs/mappers/schemaorg.md). This spec remains the implementation contract and
+MUST NOT restate those field tables. Implementations SHALL honour the mapping document linked here.
+
+#### Scenario: Spec points at central Schema.org mapping doc
+
+- **WHEN** a contributor needs Schema.org source→ARC field placement rules
+- **THEN** they use `docs/mappers/schemaorg.md` as the authoritative mapping source for this domain
 
 ### Requirement: Map each Schema.org Dataset to exactly one Investigation
 
@@ -34,7 +45,7 @@ mapping source.
   "https://example.org/dataset/beta")
 - **WHEN** the mapper processes the graph
 - **THEN** two mapping outputs are produced, one per Dataset, each with its own `Investigation.identifier` derived from
-  its respective `@id` or discovered page URL
+  that Dataset's identity cascade (page / harvest identifiers MUST NOT be used when more than one Dataset is present)
 - **AND** the outputs are yielded in deterministic subject order (`StableGraph.subjects_of_types` / sort key),
   independent of RDF triple insertion order
 
@@ -64,49 +75,62 @@ The system SHALL reject (mapping error) RDF graphs that contain no `schema:Datas
 
 ### Requirement: Validate @context before mapping
 
-The system SHALL extract `@context` from the raw JSON-LD payload before RDF parsing, accept known Schema.org and
-extension context IRIs (HTTP and HTTPS variants), and reject unknown remote context IRIs with a mapping error. `@import`
-and nested remote `@context` loads MUST be absolute allowlisted `http(s)` IRIs (relative imports are rejected). Absolute
-`http(s)` `@vocab` values MUST be allowlisted; relative `@vocab` MAY be accepted (IRI expansion only). Namespace
-aliasing of `http://schema.org/` and `https://schema.org/` terms happens during RDF access via `StableGraph`, not by
-rewriting the `@context` string.
+The system SHALL ensure harvest-time acceptance of remote JSON-LD `@context` IRIs for Schema.org HTML/`jsonld` sources
+is governed by `parser.allowed_context_url` and the shared context loader (not a hard-coded Schema.org-only parse-time
+allowlist). Mapper-side vocabulary expectations for Schema.org graphs MAY remain, but MUST NOT reintroduce a second
+hard-coded remote-context allowlist that rejects an IRI already accepted by the parser for that repository. `@import`
+and nested remote `@context` loads discovered while resolving a root MUST be absolute `http(s)` IRIs resolved through
+the shared loader cache. Relative imports remain rejected.
 
 #### Scenario: Standard Schema.org HTTPS context
 
-- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; all `schema:` terms resolve to `https://schema.org/`
+- **GIVEN** a JSON-LD payload with `"@context": "https://schema.org/"` and
+  `parser.allowed_context_url: "https://schema.org/"`
+- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Standard Schema.org HTTP context
 
-- **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; HTTP and HTTPS Schema.org namespaces are treated as aliases via `StableGraph`
+- **GIVEN** a JSON-LD payload with `"@context": "http://schema.org/"` and
+  `parser.allowed_context_url: "http://schema.org/"`
+- **WHEN** the record is harvested through `html_jsonld` or `jsonld`
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Mixed http/https in same graph
 
-- **GIVEN** a JSON-LD payload where some terms use `http://schema.org/` and others `https://schema.org/`
-- **WHEN** the mapper processes the payload
-- **THEN** both namespaces are treated as aliases; term accessors return values from both without duplication
+- **GIVEN** payloads that use different Schema.org IRI variants across records
+- **WHEN** each repository sets `parser.allowed_context_url` to the IRI (or IRI list) used by that source
+- **THEN** each record resolves under its configured URL (exact match; no cross-variant aliasing required)
 
 #### Scenario: Known extension context (Bioschemas)
 
-- **GIVEN** a JSON-LD payload with `"@context": ["https://schema.org/", {"bioschemas": "https://bioschemas.org/"}]` and
-  a `bioschemas:Sample` entity
-- **WHEN** the mapper processes the payload
-- **THEN** parsing proceeds; extension terms are available for mapping
+- **GIVEN** a remote Bioschemas context IRI appears only via `@import` from the allowlisted root context document
+- **WHEN** the root `parser.allowed_context_url` is fetched and imports are cached
+- **THEN** parse succeeds without requiring a second operator-configured URL for Bioschemas
 
-#### Scenario: Unknown context
+#### Scenario: Unknown context when pinned
 
-- **GIVEN** a JSON-LD payload with `"@context": "https://unknown-vocabulary.example.org/"`
-- **WHEN** the mapper processes the payload
-- **THEN** a mapping error is raised before RDF parsing
+- **GIVEN** `parser.allowed_context_url` is set and a payload `@context` URL that does not equal it
+- **WHEN** parse runs
+- **THEN** the record fails closed at the parser (no mapping)
+
+#### Scenario: Unset pin still resolves remote context
+
+- **GIVEN** `parser.allowed_context_url` is unset and the payload `@context` is an absolute http(s) Schema.org IRI
+- **WHEN** parse runs with a polite HTTP client
+- **THEN** context resolution uses the shared loader and mapping may proceed on the resulting graph
 
 #### Scenario: Relative @import rejected
 
-- **GIVEN** a JSON-LD payload with a dict `@context` containing `"@import": "./remote-context.jsonld"`
-- **WHEN** the mapper processes the payload
-- **THEN** a mapping error is raised before RDF parsing
+- **GIVEN** a context document (payload or fetched root) contains a relative `@import`
+- **WHEN** context resolution runs
+- **THEN** resolution fails closed (relative imports are rejected)
+
+#### Scenario: Parser allowlisted Schema.org context reaches mapping
+
+- **GIVEN** a repository with `parser.allowed_context_url` set to the payload's Schema.org context IRI
+- **WHEN** the payload parses to an `rdf_graph` and is passed to the Schema.org mapper
+- **THEN** mapping is not rejected solely because the context IRI is absent from a hard-coded module allowlist
 
 ### Requirement: Support vocabulary extensions via declared extension namespaces
 
@@ -438,27 +462,40 @@ creating another.
 
 ### Requirement: Dates MUST be ISO 8601
 
-`GeneralSchemaOrgMapper` MUST pass `datePublished` and `dateModified` through `middleware.payload.iso_dates.iso_date`
-before writing them to Investigation or Study `SubmissionDate`. ISO 8601 dates and date-times MUST pass unchanged. Java
-`Date.toString()` values with an unambiguous zone abbreviation MUST become an ISO date-time with that zone's offset,
-keeping the local day, and MUST log a warning. Other values MUST NOT be written as a date: they MUST log a warning and
-be kept as the Investigation Comment `Unparsed <term>`. Investigation `SubmissionDate` is the first of `datePublished`,
-`dateModified` that is a date.
+`GeneralSchemaOrgMapper` MUST pass `datePublished`, `dateModified` and `dateCreated` through
+`middleware.payload.iso_dates.iso_date` before writing them to an Investigation or Study date. ISO 8601 dates and
+date-times MUST pass unchanged. Java `Date.toString()` values with an unambiguous zone abbreviation MUST become an ISO
+date-time with that zone's offset, keeping the local day, and MUST log a warning. Other values MUST NOT be written as a
+date: they MUST log a warning and be kept as the Investigation Comment `Unparsed <term>`. Investigation and Study
+`PublicReleaseDate` (RO-Crate `datePublished`) is the first of `datePublished`, `dateModified`, `dateCreated` that is a
+date. `SubmissionDate` (RO-Crate `dateCreated`) is `dateCreated` only.
 
 #### Scenario: e!DAL Java date
 
 - **WHEN** `datePublished` is `Sat Jan 01 00:00:00 CET 2011`
-- **THEN** Investigation and Study `SubmissionDate` MUST be `2011-01-01T00:00:00+01:00`
+- **THEN** Investigation and Study `PublicReleaseDate` MUST be `2011-01-01T00:00:00+01:00`, `SubmissionDate` MUST be
+  empty and the RO-Crate root MUST NOT have `dateCreated` (not even an empty string)
 
 #### Scenario: ISO year
 
 - **WHEN** `datePublished` is `2011`
-- **THEN** `SubmissionDate` MUST be `2011` and no warning is logged
+- **THEN** `PublicReleaseDate` MUST be `2011` and no warning is logged
 
 #### Scenario: Not a date
 
-- **WHEN** `datePublished` is `sometime in 2011` and there is no `dateModified`
-- **THEN** `SubmissionDate` MUST be empty and the Comment `Unparsed datePublished` MUST hold `sometime in 2011`
+- **WHEN** `datePublished` is `sometime in 2011` and there is no other date
+- **THEN** `PublicReleaseDate` MUST be empty and the Comment `Unparsed datePublished` MUST hold `sometime in 2011`
+
+#### Scenario: Creation and publication dates
+
+- **WHEN** `datePublished` is `2011-01-01` and `dateCreated` is `2010-06-30`
+- **THEN** the RO-Crate root `datePublished` MUST be `2011-01-01` and `dateCreated` MUST be `2010-06-30`, also after the
+  API reads the RO-Crate and writes it with `ARC.Write`
+
+#### Scenario: No publication date
+
+- **WHEN** there is no `datePublished`, `dateModified` is `2014` and `dateCreated` is `2010`
+- **THEN** `PublicReleaseDate` MUST be `2014`
 
 ### Requirement: Person affiliation MUST fall back to a flat address
 
@@ -501,3 +538,17 @@ date MUST NOT produce the Comment. The harvest time MUST NOT be used.
 
 - **WHEN** a Dataset has no `dateModified`
 - **THEN** the RO-Crate root MUST NOT have `dateModified`
+
+### Requirement: A bare-DOI @id MUST give the dataset DOI
+
+The `html_jsonld` and `jsonld` parsers MUST turn every JSON-LD `@id` that is a bare DOI (`10.<registrant>/<suffix>`)
+into `https://doi.org/<doi>` before parsing, so it is never resolved against the working directory.
+`GeneralSchemaOrgMapper` MUST then use that DOI as the dataset DOI (Publication DOI) when `schema:identifier` has none.
+The Investigation identifier MUST NOT change.
+
+#### Scenario: e!DAL landing page
+
+- **WHEN** the page `https://doi.org/10.5447/ipk/2011/0` has a Dataset with `"@id": "10.5447/ipk/2011/0"` and no
+  `schema:identifier`
+- **THEN** the RO-Crate MUST have a `PropertyValue` named `DOI` with value `10.5447/ipk/2011/0`, and the Investigation
+  identifier MUST stay `doi_org_10_5447_ipk_2011_0`

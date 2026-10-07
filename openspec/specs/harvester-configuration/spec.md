@@ -297,3 +297,24 @@ The same field MUST apply to every plugin (`inspire`, `linked_data`, `generic`, 
 
 - **WHEN** a repository omits `mapper.placeholders`
 - **THEN** no value counts as a placeholder, including "None" and `$licenseURL`
+
+### Requirement: Top-level jsonld_context_cache_max_entries bounds the shared context cache
+
+The system SHALL accept optional top-level `jsonld_context_cache_max_entries` (positive integer; default 64) on the
+harvester `Config`. At startup the harvester MUST apply that value as the process-lifetime JSON-LD context-document
+cache size cap (see `jsonld-context-loader`).
+
+#### Scenario: Default cache size
+
+- **WHEN** config omits `jsonld_context_cache_max_entries`
+- **THEN** configuration validation succeeds and the effective cache size cap is 64
+
+#### Scenario: Explicit cache size
+
+- **WHEN** config sets `jsonld_context_cache_max_entries: 8`
+- **THEN** configuration validation succeeds and startup configures the shared cache for at most 8 entries
+
+#### Scenario: Non-positive cache size rejected
+
+- **WHEN** config sets `jsonld_context_cache_max_entries: 0`
+- **THEN** configuration validation fails

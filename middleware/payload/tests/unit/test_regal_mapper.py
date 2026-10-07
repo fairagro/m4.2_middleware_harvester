@@ -10,7 +10,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
+from arctrl import ARC  # type: ignore[import-untyped]
+from mapper_test_helpers import (
+    NO_DISCOVERY,
+    assert_harvest_has_no_bnode_labels,
+    root_dates,
+    root_identifier,
+    root_title,
+)
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
@@ -49,6 +56,16 @@ def _base_graph() -> Graph:
     graph.add((SUBJECT, REGAL.doi, Literal("10.4126/FRL01-0000123")))
     graph.add((SUBJECT, DCTERMS.issued, Literal("2024")))
     return graph
+
+
+def test_regal_issued_is_date_published_not_date_created() -> None:
+    """``dcterms:issued`` is the release date, not ``dateCreated`` nor the harvest time (#407)."""
+    arc_json = _mapped_arc_json(_base_graph())
+
+    assert root_dates(arc_json) == {"datePublished": "2024"}
+    study = ARC.from_rocrate_json_string(arc_json).Studies[0]
+    assert study.PublicReleaseDate == "2024"
+    assert not study.SubmissionDate
 
 
 def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
@@ -161,6 +178,22 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
+        list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
+def test_regal_mapper_title_falls_back_to_preflabel() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((SUBJECT, SKOS.prefLabel, Literal("Label only title")))
+    graph.add((SUBJECT, DCTERMS.description, Literal("A useful description")))
+    assert root_title(_mapped_arc_json(graph)) == "Label only title"
+
+
+def test_regal_mapper_missing_title_fails_closed_without_untitled() -> None:
+    graph = Graph()
+    graph.add((SUBJECT, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((SUBJECT, DCTERMS.description, Literal("A useful description")))
+    with pytest.raises(ValueError, match="no usable title"):
         list(_mapper().map_graph(graph, NO_DISCOVERY))
 
 
