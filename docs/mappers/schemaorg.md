@@ -93,10 +93,10 @@ contributors get the roles author and contributor.
 
 ### 3. Publications
 
-| Schema.org Field                 | Description                            | ARC Mapping                                                         |
-| -------------------------------- | -------------------------------------- | ------------------------------------------------------------------- |
-| **DOI from `schema:identifier`** | Canonical DOI (see Identifier Cascade) | `Investigation.Publications` (Publication with DOI, title, authors) |
-| **`schema:citation`**            | Citation text or DOI                   | `Investigation.Publications` (Publication with citation text)       |
+| Schema.org Field                                | Description                            | ARC Mapping                                                         |
+| ----------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------- |
+| **DOI from `schema:identifier` or a DOI `@id`** | Canonical DOI (see Identifier Cascade) | `Investigation.Publications` (Publication with DOI, title, authors) |
+| **`schema:citation`**                           | Citation text or DOI                   | `Investigation.Publications` (Publication with citation text)       |
 
 ### 4. Investigation Comments
 
@@ -192,49 +192,40 @@ collapse distinct Datasets onto one `Investigation.identifier`.
 - DOIs MUST appear in `Publication` and/or `Investigation` Comments; they MUST NOT become the primary identifier when a
   harvest-source identifier (1 or 2) is available.
 - All DOIs are extracted from `schema:identifier` (including `PropertyValue` nodes with `propertyID` containing "doi",
-  case-insensitive).
+  case-insensitive) and from the Dataset's own `@id` when it is a DOI. A bare-DOI `@id` (e!DAL:
+  `"@id": "10.5447/ipk/2011/0"`) is read as `https://doi.org/<doi>` by the JSON-LD parsers; JSON-LD would otherwise
+  treat it as a relative IRI and resolve it against the harvester's working directory.
 - The canonical DOI is the casefold lexicographic minimum among extracted DOIs.
 - Blank-node identifiers are never used (mapping error if no stable identifier found).
 
-## @context Validation
+## @context handling (parsers)
 
-Before RDF parsing, the raw JSON-LD payload is validated to ensure the `@context` is Schema.org or a known extension.
-This fails closed early (before rdflib parsing) and rejects unknown vocabularies; HTML extraction already JSON-decodes
-each block once for normalization and reuses that object for validation.
+Remote `@context` / `@import` IRIs are resolved by the shared JSON-LD parsers (`jsonld` / `html_jsonld`) via
+[`jsonld-context-loader`](../../openspec/specs/jsonld-context-loader/) and
+[`jsonld-parser`](../../openspec/specs/jsonld-parser/) — not by the Schema.org mapper. Remotes are fetched through
+`NiceHttpClient` into a process-lifetime cache and inlined before `rdflib` parses, so mapping never triggers uncached
+context network I/O.
 
-### Allowlist
+### Operator pin (`parser.allowed_context_url`)
 
-| Context                                      | Status                                                    |
-| -------------------------------------------- | --------------------------------------------------------- |
-| `https://schema.org/`                        | Allowed                                                   |
-| `http://schema.org/`                         | Allowed (same vocabulary; dual-namespace aliasing in RDF) |
-| `https://schema.org` (no trailing slash)     | Allowed                                                   |
-| `http://schema.org` (no trailing slash)      | Allowed                                                   |
-| `https://bioschemas.org/`                    | Allowed (known extension)                                 |
-| `http://bioschemas.org/`                     | Allowed (known extension)                                 |
-| `https://bioschemas.org` (no trailing slash) | Allowed                                                   |
-| `http://bioschemas.org` (no trailing slash)  | Allowed                                                   |
-| Any other remote context IRI                 | **Rejected** (`JsonLdContextError`)                       |
+| Config                                            | Behaviour                                                                                                                                     |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set (one IRI or list)                             | Every payload remote `@context` / `@import` string MUST match an entry after trailing-slash normalisation; an `http` pin also accepts `https` |
+| Unset                                             | Remotes are still fetched (legacy); `ParserConfig` warns at load recommending a pin                                                           |
+| Relative / non-http(s)                            | Fail closed (`ParserError`)                                                                                                                   |
+| HTTP client missing when a remote must be fetched | Fail closed (`ParserError`)                                                                                                                   |
 
-### Context Formats
+Pin the exact IRI(s) the source emits (e!DAL: `http://schema.org`). There is no code-level Schema.org/Bioschemas
+extension allowlist in the mapper; operators extend the pin list in config. See also
+[`docs/mappers/README.md`](README.md).
 
-The validator supports all JSON-LD `@context` formats:
+### Context formats
+
+Supported JSON-LD `@context` shapes:
 
 - **String**: `"@context": "https://schema.org/"`
 - **List**: `"@context": ["https://schema.org/", {"bios": "https://bioschemas.org/"}]`
-- **Dict**: `"@context": {"schema": "https://schema.org/"}`
-
-Remote context loads via `@import` or a nested `@context` inside a term definition must be absolute allowlisted
-`http(s)` IRIs (relative `@import` is rejected). Absolute `http(s)` `@vocab` values must be allowlisted; relative
-`@vocab` is allowed (expansion only). Scheme matching is case-insensitive and values are stripped before allowlist
-comparison (`HTTPS://schema.org/` → allowlisted). Other JSON-LD keywords (`@language`, `@version`, …) are ignored.
-
-### Extension Mechanism
-
-Remote `@context` IRIs are validated in `middleware.parsing.jsonld_validation` against the code allowlists
-`SCHEMAORG_CONTEXTS` and `_KNOWN_EXTENSION_CONTEXTS` (combined as `SCHEMAORG_CONTEXT_ALLOWLIST`: Schema.org plus
-Bioschemas). See [`jsonld-parser`](../../openspec/specs/jsonld-parser/) and [`docs/mappers/README.md`](README.md). There
-is no operator config key to extend that list today; unknown remote contexts fail closed before mapping.
+- **Dict / inline object**: `"@context": {"schema": "https://schema.org/"}` (inline objects stay allowed without a pin)
 
 ## Multi-Dataset Handling
 

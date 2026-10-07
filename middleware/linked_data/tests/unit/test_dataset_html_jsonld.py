@@ -21,9 +21,23 @@ from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType, SitemapType
 from middleware.linked_data.dataset.html_jsonld import HtmlJsonLdDataset
 from middleware.linked_data.errors import LinkedDataDatasetError
+from middleware.parsing.jsonld_context_loader import clear_context_document_cache
 
 EXPECTED_RETRY_CALLS = 2
 MAX_BACKOFF_DELAY_SECONDS = 0.5
+
+
+@pytest.fixture(autouse=True)
+def _stub_remote_context_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    clear_context_document_cache()
+
+    async def _fake_ensure(_url: str, _client: object) -> dict[str, object]:
+        return {"@context": {"@vocab": "http://schema.org/"}}
+
+    monkeypatch.setattr(
+        "middleware.parsing.jsonld_context_loader.ensure_document_cached",
+        _fake_ensure,
+    )
 
 
 def test_html_jsonld_dataset_identifier() -> None:
@@ -177,6 +191,7 @@ def test_html_jsonld_dataset_retries_transient_server_error() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
+            allowed_context_url=["https://schema.org"],
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=0.01,
@@ -210,6 +225,7 @@ def test_html_jsonld_dataset_uses_retry_after_header_if_present() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
+            allowed_context_url=["https://schema.org"],
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=0.01,
@@ -243,6 +259,7 @@ def test_html_jsonld_dataset_caps_backoff_delay() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
+            allowed_context_url=["https://schema.org"],
             http=NiceHttpClientConfig(
                 retry_attempts=1,
                 retry_backoff_base=10.0,
@@ -275,6 +292,7 @@ async def test_html_jsonld_dataset_offloads_large_jsonld_to_thread() -> None:
             sitemap_url="https://example.org/sitemap.xml",
             sitemap_type=SitemapType.xml,
             dataset_type=DatasetType.html_jsonld,
+            allowed_context_url=["https://schema.org"],
             http=NiceHttpClientConfig(),
             jsonld_parse_threshold_bytes=1,
         )
