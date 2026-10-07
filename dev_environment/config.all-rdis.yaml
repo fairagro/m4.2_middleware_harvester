@@ -44,19 +44,21 @@ repositories:
         unrendered_templates: true
 
   # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
-  # did not disturb the other mapper.
-  # Stay on linked_data until a regal_jsonld PayloadParser exists: shared
-  # parser.type: jsonld rejects Regal's remote @context (e.g. …/context.json).
+  # did not disturb the other mapper. Prefer generic + jsonld with pinned
+  # allowed_context_url (see docs/linked_data_to_generic.md).
   - rdi: "publisso"
-    linked_data:
-      sitemap_url: "https://frl.publisso.de/find"
-      sitemap_type: regal_find
-      dataset_type: regal_jsonld
+    generic:
+      protocol:
+        http:
+          # FRL robots.txt is User-agent: * / Disallow: / -- /find is a public
+          # machine API, so robots checks are disabled for this RDI.
+          respect_robots_txt: false
+        regal_find:
+          entry_url: "https://frl.publisso.de/find"
       resource_base_url: "https://repository.publisso.de/resource/"
-      http:
-        # FRL robots.txt is User-agent: * / Disallow: / -- /find is a public
-        # machine API, so robots checks are disabled for this RDI.
-        respect_robots_txt: false
+    parser:
+      type: jsonld
+      allowed_context_url: "https://frl.publisso.de/context.json"
     mapper:
       type: regal_general
 
