@@ -7,7 +7,7 @@ import asyncio
 import httpx
 import pytest
 
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import (
     clear_context_document_cache,

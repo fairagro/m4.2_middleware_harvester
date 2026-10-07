@@ -8,7 +8,7 @@ from rdflib import Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import clear_context_document_cache

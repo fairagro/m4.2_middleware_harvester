@@ -8,7 +8,7 @@ from typing import ClassVar, cast, override
 
 from rdflib import Graph
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import materialize_payload_contexts

@@ -65,6 +65,11 @@ commandTests:
     args: ['-x', '/middleware/harvester/harvester']
     exitCode: 0
 
+  - name: 'Harvester --help starts (contracts packaged)'
+    command: '/middleware/harvester/harvester'
+    args: ['--help']
+    exitCode: 0
+
   - name: 'Minimal package count (Alpine security)'
     command: 'sh'
     args: ['-lc', 'apk info | wc -l']

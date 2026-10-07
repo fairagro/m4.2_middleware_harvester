@@ -8,7 +8,7 @@ from typing import TypeVar
 
 from rdflib import Graph
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType
 from middleware.linked_data.errors import LinkedDataDatasetError
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult

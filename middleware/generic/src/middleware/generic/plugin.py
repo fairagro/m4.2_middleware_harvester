@@ -10,6 +10,9 @@ from dataclasses import replace
 import httpx
 
 import middleware.parsing.register_builtin_parsers as _register_builtin_parsers
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.generic.config import Config
 from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
@@ -21,9 +24,6 @@ from middleware.generic.protocol import (
     xml as _register_xml_protocol,
 )
 from middleware.generic.protocol.protocol import Protocol, ProtocolType
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser

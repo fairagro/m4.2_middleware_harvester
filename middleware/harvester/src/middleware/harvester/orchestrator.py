@@ -10,6 +10,7 @@ from pathlib import Path
 from opentelemetry import trace
 
 from middleware.api_client import ApiClient
+from middleware.contracts.plugin_base import Plugin
 from middleware.generic.plugin import GenericPlugin
 from middleware.harvester.config import Config, RepositoryConfig
 from middleware.harvester.errors import (
@@ -17,7 +18,6 @@ from middleware.harvester.errors import (
     format_exception_for_report,
     harvest_id_from_exception,
 )
-from middleware.harvester.plugin_base import Plugin
 from middleware.harvester.upload import execute_harvest_upload
 from middleware.inspire.plugin import InspirePlugin
 from middleware.linked_data.plugin import LinkedDataPlugin

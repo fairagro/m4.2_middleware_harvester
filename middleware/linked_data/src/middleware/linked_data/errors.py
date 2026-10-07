@@ -4,7 +4,7 @@ This module defines the plugin-specific exception hierarchy. All plugin-specific
 errors inherit from `HarvesterError` in the central harvester package.
 """
 
-from middleware.harvester.errors import HarvesterError
+from middleware.contracts.errors import HarvesterError
 
 
 class LinkedDataError(HarvesterError):

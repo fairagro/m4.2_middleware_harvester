@@ -6,8 +6,8 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import ClassVar, cast
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.payload import register_builtin_mappers as _register_builtin_mappers

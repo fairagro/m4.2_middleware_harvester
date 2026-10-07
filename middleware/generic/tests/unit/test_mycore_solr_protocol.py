@@ -7,9 +7,9 @@ import asyncio
 import httpx
 import pytest
 
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.mycore_solr import MycoreSolrProtocol, MycoreSolrProtocolConfig
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.discovery import UrlDiscoveryResult
 
 _TEST_HTTP = NiceHttpClientConfig(respect_robots_txt=False, max_requests_per_second=None)

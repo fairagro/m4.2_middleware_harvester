@@ -5,13 +5,14 @@ description = "The FAIRagro Middleware Harvester"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "inspire",
-  "harvester",
-  "linked_data",
-  "generic",
-  "oai_pmh",
-  "parsing",
-  "payload",
+    "inspire",
+    "harvester",
+    "linked_data",
+    "generic",
+    "oai_pmh",
+    "parsing",
+    "payload",
+    "contracts",
 ]
 
 [dependency-groups]
@@ -38,6 +39,7 @@ generic = { workspace = true }
 oai_pmh = { workspace = true }
 parsing = { workspace = true }
 payload = { workspace = true }
+contracts = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -48,6 +50,7 @@ members = [
     "middleware/oai_pmh",
     "middleware/parsing",
     "middleware/payload",
+    "middleware/contracts",
 ]
 
 # Ruff / Mypy / Pylint configs: synced ruff.toml, mypy.ini, .pylintrc (no product ruff overlay).
@@ -64,6 +67,7 @@ testpaths = [
     "middleware/oai_pmh/tests",
     "middleware/parsing/tests",
     "middleware/payload/tests",
+    "middleware/contracts/tests",
 ]
 pythonpath = [
     "middleware/inspire/src",
@@ -73,11 +77,13 @@ pythonpath = [
     "middleware/oai_pmh/src",
     "middleware/parsing/src",
     "middleware/payload/src",
+    "middleware/contracts/src",
     "middleware/linked_data/tests/unit",
     "middleware/inspire/tests/unit",
     "middleware/oai_pmh/tests/unit",
     "middleware/parsing/tests/unit",
     "middleware/payload/tests/unit",
+    "middleware/contracts/tests/unit",
 ]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -120,6 +126,7 @@ source = [
     "middleware/oai_pmh/src/middleware/oai_pmh",
     "middleware/parsing/src/middleware/parsing",
     "middleware/payload/src/middleware/payload",
+    "middleware/contracts/src/middleware/contracts",
 ]
 omit = [
     "*/tests/*",

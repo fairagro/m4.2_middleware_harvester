@@ -22,7 +22,7 @@ stable identifier and produces an `rdflib.Graph` representation of the payload.
 
 5. **Yield shared harvester signals from discovery (inspire-style)** — Unusable entries yield `RecordProcessingError`
    from `_discover` / `discover`. Duplicates become `SkippedRecord`. Do not invent plugin-local failure/duplicate
-   wrapper types; the orchestrator already understands the shared `middleware.harvester.errors` contract.
+   wrapper types; the orchestrator already understands the shared `middleware.contracts.errors` contract.
 
 6. **Construct dataset wrappers from discovery results** — Dataset implementations expose `from_discovery_result(...)`
    so the plugin can instantiate provider-specific payload handlers from a raw sitemap discovery result.

@@ -9,10 +9,10 @@ from xml.etree.ElementTree import ParseError
 from defusedxml.ElementTree import fromstring  # type: ignore[import-untyped]
 from pydantic import ConfigDict, Field
 
+from middleware.contracts.errors import RecordProcessingError
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
-from middleware.harvester.errors import RecordProcessingError
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 
 

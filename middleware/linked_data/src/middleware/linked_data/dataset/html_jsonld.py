@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 
 from rdflib import Graph
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.linked_data.config import Config, DatasetType
 from middleware.linked_data.dataset.dataset import Dataset
 from middleware.linked_data.errors import LinkedDataDatasetError

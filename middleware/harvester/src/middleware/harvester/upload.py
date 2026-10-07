@@ -9,15 +9,14 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from middleware.api_client import ApiClient
+from middleware.contracts.errors import HarvesterError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.config import RepositoryConfig
 from middleware.harvester.errors import (
-    HarvesterError,
-    SkippedRecord,
     failure_url_for_exception,
     format_exception_for_report,
     harvest_id_from_exception,
 )
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.harvester.reporting import (
     ArcStreamState,
     handle_skipped_record,

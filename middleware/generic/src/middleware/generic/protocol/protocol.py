@@ -9,8 +9,8 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.payload.registry import Registry
 

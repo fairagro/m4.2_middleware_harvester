@@ -48,6 +48,26 @@ protocol plugin packages. The orchestrator MAY depend on `middleware.payload` fo
 - **THEN** it selects shared `inspire_general` via repository `mapper.type` and does not embed vocabulary→ARC mapping in
   the plugin package
 
+### Requirement: Leaf contracts package owns plugin-facing harvest types
+
+The system SHALL provide a `middleware.contracts` workspace package that owns the plugin-facing harvest types
+`HarvesterError`, `RecordProcessingError`, `SkippedRecord`, `NiceHttpClient` / `NiceHttpClientConfig`, and the `Plugin`
+protocol. Protocol plugins and `middleware.parsing` MUST depend on `middleware.contracts` for those types and MUST NOT
+import `middleware.harvester`. `middleware.contracts` MUST NOT depend on `middleware.harvester`, `middleware.parsing`,
+or protocol plugin packages. `middleware.contracts` MAY depend on `middleware.payload` only for `HarvestedArc` on the
+`Plugin` yield union. `middleware.payload` MUST NOT depend on `middleware.contracts`.
+
+#### Scenario: Plugins do not import the orchestrator package
+
+- **WHEN** a protocol plugin needs `HarvesterError`, `SkippedRecord`, `NiceHttpClient`, or `Plugin`
+- **THEN** it imports them from `middleware.contracts` and has no `middleware.harvester` import
+
+#### Scenario: Contracts package does not depend on orchestrator or plugins
+
+- **WHEN** module dependencies are reviewed
+- **THEN** `contracts` does not import `harvester`, `parsing`, or protocol plugins (it MAY import `payload` for
+  `HarvestedArc`)
+
 ### Requirement: Extension point for new mapper types
 
 When adding a new vocabulary→ARC mapper that reuses an existing `PayloadKind`, implementations SHALL register a new

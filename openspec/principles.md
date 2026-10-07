@@ -105,7 +105,7 @@ Shared Type Safety, Configuration, and quality-tool identity rules are in `princ
 - The plugin `AsyncGenerator` contract is `AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None]`. Plugins
   yield `HarvestedArc` (serialized ARC JSON plus study/assay counts and optional source URL) on success and
   `HarvesterError` / `SkippedRecord` for record-level outcomes — never raise for expected failures.
-- All plugin-specific exceptions inherit from `HarvesterError` (defined in `middleware.harvester.errors`).
+- All plugin-specific exceptions inherit from `HarvesterError` (defined in `middleware.contracts.errors`).
 - Code quality gates: Ruff (lint + format), mypy, pylint, bandit, pytest — all must pass before merge. Every new feature
   requires matching tests. Tool invocations (IDE, pre-commit, CI) must produce identical results via shared config
   (`pyproject.toml` / `.bandit`) and `uv run` / locked versions. The merge type-check gate is **mypy**
@@ -133,28 +133,37 @@ promoted to `middleware/harvester` solely for speculative reuse.
 harvester/main.py          →  harvester/orchestrator.py
 harvester/main.py          →  harvester/reporting.py
 harvester/orchestrator.py  →  harvester/config.py
-harvester/orchestrator.py  →  harvester/errors.py
+harvester/orchestrator.py  →  harvester/errors.py          # report formatting helpers
 harvester/orchestrator.py  →  harvester/upload.py
 harvester/orchestrator.py  →  <plugin>/plugin.py  (dynamic dispatch by plugin key)
 harvester/upload.py        →  harvester/reporting.py
-harvester/upload.py        →  harvester/plugin_base.py
+harvester/upload.py        →  contracts/plugin_base.py
 harvester/upload.py        →  api_client (shared lib)
 harvester/config.py        →  payload  (MapperConfig / registry validation)
 harvester/config.py        →  parsing  (PayloadParser registry validation)
+
+# Shared plugin-facing contracts (below orchestrator; depends on payload only)
+# Owns HarvesterError / RecordProcessingError / SkippedRecord, NiceHttpClient,
+# and the Plugin protocol. HarvestedArc stays in payload (runtime import).
+contracts/  ↛  harvester / parsing / inspire / linked_data / generic / oai_pmh
+contracts/plugin_base.py  →  payload/harvested_arc.py
+contracts/plugin_base.py  →  contracts/errors.py
+harvester/  →  contracts
+parsing/    →  contracts
+# Protocol plugins MUST import errors / NiceHttpClient / Plugin from contracts,
+# not from harvester.
 
 # Shared payload / mapper layer (cross-cutting; not a protocol plugin)
 # Owns PayloadKind, ParsedPayload, HarvestedArc, person-name helpers,
 # DataMapper registry, RDF LinkedDataMapper / StableGraph / Schema.org + Regal,
 # and inspire_general (InspireRecord → ARC).
-payload/  ↛  harvester / parsing / inspire / linked_data / generic / oai_pmh / future protocol plugins
-harvester/plugin_base.py  →  payload/harvested_arc.py
-# Protocol plugins MAY import harvester errors / NiceHttpClient / Plugin; see #155.
+payload/  ↛  harvester / parsing / contracts / inspire / linked_data / generic / oai_pmh / future protocol plugins
 
 # Shared parsing layer (discovery units + PayloadParser registry)
-# MAY import harvester (NiceHttpClient, HarvesterError) and payload; MUST NOT
-# import protocol plugins.
-parsing/  ↛  inspire / linked_data / generic / oai_pmh / future protocol plugins
-parsing/  →  harvester/nice_http_client, harvester/errors, payload
+# MAY import contracts (NiceHttpClient, HarvesterError) and payload; MUST NOT
+# import harvester or protocol plugins.
+parsing/  ↛  harvester / inspire / linked_data / generic / oai_pmh / future protocol plugins
+parsing/  →  contracts/nice_http_client, contracts/errors, payload
 generic/plugin.py   →  parsing  (PayloadParser + DiscoveryResult)
 oai_pmh/plugin.py   →  parsing  (PayloadParser + XmlDiscoveryResult)
 linked_data/dataset →  parsing  (DiscoveryResult + HtmlJsonLdParser)
@@ -164,7 +173,7 @@ linked_data/dataset →  parsing  (DiscoveryResult + HtmlJsonLdParser)
 inspire/plugin.py  →  inspire/csw_client.py  →  payload/inspire/models  (IsoParser path)
 inspire/plugin.py  →  payload/inspire  (inspire_general DataMapper)
 inspire/plugin.py  →  inspire/config.py
-inspire/plugin.py  →  harvester/errors.py
+inspire/plugin.py  →  contracts/errors.py
 inspire/  ↛  embed vocabulary→ARC mapping (prefer payload/inspire)
 
 # Linked Data plugin — domain wiring vs concurrency plumbing
@@ -196,9 +205,11 @@ config  ←── all modules (read-only)
 Circular imports are forbidden. Within a plugin, the mapper must not import the source client and vice versa. Plugins
 must not import each other (except the documented temporary `linked_data` → `generic` Protocol shims during migration).
 Infrastructure modules MUST NOT import mappers or execute mapping logic. Protocol plugins MAY depend on
-`middleware.payload` and `middleware.parsing`. `middleware.payload` MUST NOT depend on `middleware.harvester`,
-`middleware.parsing`, or on protocol plugin packages (`inspire`, `linked_data`, `generic`, `oai_pmh`, …).
-`middleware.parsing` MAY depend on `middleware.harvester` and `middleware.payload` but MUST NOT depend on protocol
+`middleware.payload`, `middleware.parsing`, and `middleware.contracts`. `middleware.payload` MUST NOT depend on
+`middleware.harvester`, `middleware.parsing`, `middleware.contracts`, or on protocol plugin packages (`inspire`,
+`linked_data`, `generic`, `oai_pmh`, …). `middleware.parsing` MAY depend on `middleware.contracts` and
+`middleware.payload` but MUST NOT depend on `middleware.harvester` or protocol plugin packages. `middleware.contracts`
+MAY depend on `middleware.payload` but MUST NOT depend on `middleware.harvester`, `middleware.parsing`, or protocol
 plugin packages.
 
 ### Import policy (product; candidate for Devinfra sync)

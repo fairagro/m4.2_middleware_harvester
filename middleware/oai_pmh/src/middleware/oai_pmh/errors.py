@@ -1,6 +1,6 @@
 """Errors for the OAI-PMH harvest plugin."""
 
-from middleware.harvester.errors import HarvesterError
+from middleware.contracts.errors import HarvesterError
 
 
 class OaiPmhError(HarvesterError):

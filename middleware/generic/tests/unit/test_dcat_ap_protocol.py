@@ -10,13 +10,13 @@ from rdflib import Graph, Namespace
 from rdflib.namespace import DCTERMS
 
 import middleware.generic.plugin as plugin_mod
+from middleware.contracts.nice_http_client import NiceHttpClient, NiceHttpClientConfig
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.dcat_ap import DcatApProtocol, DcatApProtocolConfig
 from middleware.generic.protocol.protocol import ProtocolType
-from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
-from middleware.harvester.plugin_base import HarvestedArc
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType

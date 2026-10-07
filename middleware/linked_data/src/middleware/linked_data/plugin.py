@@ -8,9 +8,9 @@ from typing import ClassVar
 
 import httpx
 
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config
 from middleware.linked_data.dataset import (
     Dataset,

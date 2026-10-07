@@ -23,10 +23,10 @@ from pydantic import ConfigDict, Field
 from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
+from middleware.contracts.errors import RecordProcessingError
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
-from middleware.harvester.errors import RecordProcessingError
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 
 DCAT = Namespace("http://www.w3.org/ns/dcat#")

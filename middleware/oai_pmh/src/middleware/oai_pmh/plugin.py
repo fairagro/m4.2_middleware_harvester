@@ -9,8 +9,8 @@ from typing import cast
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
 import middleware.payload.register_builtin_mappers as _register_builtin_mappers
-from middleware.harvester.errors import HarvesterError, RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.oai_pmh.client import RateLimiter, check_robots_allowed, create_scythe
 from middleware.oai_pmh.config import Config
 from middleware.oai_pmh.errors import OaiPmhError, OaiPmhProtocolError, OaiPmhRobotsDisallowedError

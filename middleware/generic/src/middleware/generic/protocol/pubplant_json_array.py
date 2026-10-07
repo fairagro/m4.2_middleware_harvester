@@ -20,9 +20,9 @@ from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.protocol.json_array import JsonArrayProtocol
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 

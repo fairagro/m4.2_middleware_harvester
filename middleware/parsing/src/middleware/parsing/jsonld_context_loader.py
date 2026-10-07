@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 
-from middleware.harvester.nice_http_client import NiceHttpClient
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.allowed_context import context_url_is_allowed, validate_allowed_context_url_value
 from middleware.parsing.errors import ParserError
 from middleware.shared.json_types import JsonObject, JsonValue

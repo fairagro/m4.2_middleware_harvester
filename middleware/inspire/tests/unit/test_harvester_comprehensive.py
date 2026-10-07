@@ -10,7 +10,7 @@ import pytest
 from owslib.fes import OgcExpression  # type: ignore
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore
 
-from middleware.harvester.errors import RecordProcessingError
+from middleware.contracts.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import SemanticError

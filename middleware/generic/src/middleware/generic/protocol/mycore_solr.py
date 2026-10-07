@@ -8,10 +8,10 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pydantic import ConfigDict, Field
 
+from middleware.contracts.errors import RecordProcessingError
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
-from middleware.harvester.errors import RecordProcessingError
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.shared.json_types import JsonValue
 

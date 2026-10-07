@@ -5,13 +5,13 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.generic.config import Config
 from middleware.generic.errors import GenericProtocolError
 from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.json_array import JsonArrayProtocol
 from middleware.generic.protocol.regal_find import RegalFindProtocol, RegalFindProtocolConfig
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 
 _FIND_URL = "https://frl.publisso.de/find"

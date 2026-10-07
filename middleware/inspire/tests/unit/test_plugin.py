@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from middleware.harvester.errors import RecordProcessingError, SkippedRecord
-from middleware.harvester.plugin_base import HarvestedArc
+from middleware.contracts.errors import RecordProcessingError, SkippedRecord
+from middleware.contracts.plugin_base import HarvestedArc
 from middleware.inspire.config import Config
 from middleware.inspire.plugin import InspirePlugin
 from middleware.payload.data_mapper import DataMapper
