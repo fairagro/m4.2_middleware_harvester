@@ -228,9 +228,9 @@ comparison (`HTTPS://schema.org/` → allowlisted). Other JSON-LD keywords (`@la
 
 ### Extension Mechanism
 
-New extension contexts can be added by updating `_KNOWN_EXTENSION_CONTEXTS` in
-`middleware/linked_data/src/middleware/linked_data/jsonld_validation.py`. The allowlist is a frozen set — code changes
-are required to add new extensions.
+Remote `@context` IRIs are gated by repository `parser.allowed_context_url` (optional list) on the shared JSON-LD
+parsers (`jsonld` / `html_jsonld`). Operators pin the exact IRI(s) used by the source (for e!DAL use
+`http://schema.org`); there is no code-level Schema.org extension allowlist in the mapper.
 
 ## Multi-Dataset Handling
 
