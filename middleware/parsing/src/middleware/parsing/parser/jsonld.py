@@ -4,32 +4,30 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, ClassVar, override
+from typing import ClassVar, cast, override
 
 from rdflib import Graph
 
 from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 from middleware.parsing.errors import ParserError
-from middleware.parsing.jsonld_validation import SCHEMAORG_CONTEXTS
+from middleware.parsing.jsonld_context_loader import materialize_payload_contexts
+from middleware.parsing.jsonld_doi_ids import doi_ids_as_iris
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.parsed_payload import ParsedPayload
-
-_LOCAL_SCHEMAORG_CONTEXT: dict[str, str] = {"@vocab": "http://schema.org/"}
+from middleware.shared.json_types import JsonObject
 
 
 @PayloadParser.register(ParserType.jsonld)
 class JsonLdParser(PayloadParser):
     """Parse an inline JSON-LD payload from a discovery unit into an ``rdf_graph`` payload.
 
-    Vocabulary-agnostic (DCAT-AP, Schema.org, …): no ``@context`` allowlist is
-    applied. Remote context references (string ``@context`` / ``@import``) are
-    rejected so parsing never triggers network retrieval, with one exception:
-    a top-level Schema.org context IRI (e.g. ``"http://schema.org"``) is
-    replaced by the local ``{"@vocab": "http://schema.org/"}`` instead of being
-    fetched.
+    Vocabulary-agnostic (DCAT-AP, Schema.org, …). Remote ``@context`` IRIs are resolved
+    through the shared process-lifetime context cache. Prefer
+    ``parser.allowed_context_url`` (slash-normalised allowlist); when unset, remotes are
+    still fetched (``ParserConfig`` warns at load) for backward compatibility.
     """
 
     produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
@@ -41,15 +39,20 @@ class JsonLdParser(PayloadParser):
         client: NiceHttpClient | None,
         config: object,
     ) -> ParsedPayload:
-        """Parse inline JSON-LD without requiring an HTTP client."""
-        _ = client
+        """Parse inline JSON-LD; HTTP client required only when resolving a remote context."""
         if not isinstance(discovery_result, JsonLdDiscoveryResult):
             raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
         if not discovery_result.payload:
             raise ParserError(f"Missing JSON-LD payload for {discovery_result.identifier}")
-        document = _localize_schemaorg_context(discovery_result.payload)
-        if _has_remote_context(document):
-            raise ParserError(f"Remote JSON-LD @context is not supported for {discovery_result.identifier}")
+
+        allowed = getattr(config, "allowed_context_url", None)
+        document = doi_ids_as_iris(
+            await materialize_payload_contexts(
+                cast(JsonObject, discovery_result.payload),
+                allowed_context_url=allowed if isinstance(allowed, list) else None,
+                client=client,
+            )
+        )
 
         data = json.dumps(document)
         threshold = int(getattr(config, "jsonld_parse_threshold_bytes", 65536))
@@ -69,43 +72,3 @@ class JsonLdParser(PayloadParser):
         except Exception as exc:  # noqa: BLE001
             raise ParserError(f"Failed to parse JSON-LD for {identifier}: {exc}") from exc
         return graph
-
-
-def _localize_schemaorg_context(payload: dict[str, object]) -> dict[str, object]:
-    """Return ``payload`` with top-level Schema.org context IRIs swapped for a local ``@vocab``.
-
-    Only exact Schema.org IRIs are replaced (as a string ``@context`` or as a list
-    entry); any other remote reference is kept so it is still rejected.
-    """
-    context = payload.get("@context")
-    if isinstance(context, str) and context in SCHEMAORG_CONTEXTS:
-        return {**payload, "@context": _LOCAL_SCHEMAORG_CONTEXT}
-    if isinstance(context, list) and any(isinstance(item, str) and item in SCHEMAORG_CONTEXTS for item in context):
-        localized = [
-            _LOCAL_SCHEMAORG_CONTEXT if isinstance(item, str) and item in SCHEMAORG_CONTEXTS else item
-            for item in context
-        ]
-        return {**payload, "@context": localized}
-    return payload
-
-
-def _has_remote_context(value: Any) -> bool:
-    """Return True if any ``@context`` / ``@import`` in ``value`` references a remote document."""
-    if isinstance(value, list):
-        return any(_has_remote_context(item) for item in value)
-    if not isinstance(value, dict):
-        return False
-    for key, item in value.items():
-        if key in {"@context", "@import"} and _references_document(item):
-            return True
-        if _has_remote_context(item):
-            return True
-    return False
-
-
-def _references_document(context: Any) -> bool:
-    if isinstance(context, str):
-        return True
-    if isinstance(context, list):
-        return any(_references_document(item) for item in context)
-    return False

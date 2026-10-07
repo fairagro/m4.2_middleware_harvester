@@ -15,6 +15,7 @@ repositories:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
       type: html_jsonld
+      allowed_context_url: "https://schema.org/"
     mapper:
       type: schema_org_general
   # Deprecated flat protocol tree (still lifted with a warning):
@@ -24,6 +25,7 @@ repositories:
   #     protocol_type: xml
   #   parser:
   #     type: html_jsonld
+  #     allowed_context_url: "https://schema.org/"
   #   mapper:
   #     type: schema_org_general
   # Legacy linked_data form (still supported during migration):
@@ -32,6 +34,7 @@ repositories:
   #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
   #     sitemap_type: xml
   #     dataset_type: html_jsonld
+  #     allowed_context_url: "https://schema.org/"
   #   mapper:
   #     type: schema_org_general
   # Example: MyCoRe Solr discovery via nested protocol (query-free select URL;
@@ -47,6 +50,7 @@ repositories:
   #         # page_size: 200
   #   parser:
   #     type: html_jsonld
+  #     allowed_context_url: "https://schema.org/"
   #   mapper:
   #     type: schema_org_general
   # Deprecated linked_data mycore_solr shim (warns; prefer nested generic above):
@@ -55,6 +59,7 @@ repositories:
   #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
   #     sitemap_type: mycore_solr
   #     dataset_type: html_jsonld
+  #     allowed_context_url: "https://schema.org/"
   #     http:
   #       respect_robots_txt: false
   #   mapper:

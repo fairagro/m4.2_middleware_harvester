@@ -314,3 +314,14 @@ class Config(ConfigBase):
         int,
         Field(description="Interval in seconds between heartbeat file touches.", ge=1),
     ] = 30
+    jsonld_context_cache_max_entries: Annotated[
+        int,
+        Field(
+            description=(
+                "Maximum number of remote JSON-LD context documents retained in the "
+                "process-lifetime shared cache (LRU eviction when full). Applies to "
+                "``jsonld`` / ``html_jsonld`` parsers."
+            ),
+            ge=1,
+        ),
+    ] = 64

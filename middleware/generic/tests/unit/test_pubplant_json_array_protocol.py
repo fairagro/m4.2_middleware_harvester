@@ -18,12 +18,20 @@ from middleware.generic.protocol.pubplant_json_array import (
     PubPlantJsonArrayProtocolConfig,
 )
 from middleware.parsing.discovery import JsonLdDiscoveryResult
+from middleware.parsing.jsonld_context_loader import clear_context_document_cache
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 from middleware.payload.mapper_config import MapperConfig, MapperType
 
 _ARRAY_URL = "https://example.org/genomes.json"
+_SCHEMA_ORG_CONTEXT = "http://schema.org"
+_SCHEMA_ORG_DOC = {"@context": {"@vocab": "http://schema.org/"}}
+
+
+@pytest.fixture(autouse=True)
+def _clear_jsonld_context_cache() -> None:
+    clear_context_document_cache()
 
 
 def _config(url: str = _ARRAY_URL) -> Config:
@@ -41,8 +49,10 @@ def _type_config(config: Config) -> PubPlantJsonArrayProtocolConfig:
     return type_config
 
 
-def _transport_for(body: object) -> httpx.MockTransport:
-    async def handler(_request: httpx.Request) -> httpx.Response:
+def _transport_for(body: object, *, context_url: str | None = None) -> httpx.MockTransport:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if context_url is not None and str(request.url) == context_url:
+            return httpx.Response(200, json=_SCHEMA_ORG_DOC)
         return httpx.Response(200, json=body)
 
     return httpx.MockTransport(handler)
@@ -179,13 +189,14 @@ async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_disti
     Regression for the PlabiPD genomes.json shape (fairagro/m4_rdi_portfolio#7): several
     records legitimately share a DOI (one paper describing multiple species' genomes). All
     must survive as distinct ARCs with distinct identifiers, while sharing the same
-    Publication.DOI. Records use the remote ``http://schema.org`` context string, which the
-    parser must resolve locally.
+    Publication.DOI. Records use the remote ``http://schema.org`` context string.
+    With ``allowed_context_url`` unset (legacy configs), the shared loader still
+    fetches and caches that IRI (and emits a one-time warning).
     """
     shared_doi = "10.1038/shared"
     records = [
         {
-            "@context": "http://schema.org",
+            "@context": _SCHEMA_ORG_CONTEXT,
             "@type": "Dataset",
             "@id": f"https://doi.org/{shared_doi}",
             "identifier": shared_doi,
@@ -194,14 +205,14 @@ async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_disti
         for name in ("Species A genome", "Species B genome")
     ] + [
         {
-            "@context": "http://schema.org",
+            "@context": _SCHEMA_ORG_CONTEXT,
             "@type": "Dataset",
             "@id": "https://doi.org/10.1038/unique",
             "identifier": "10.1038/unique",
             "name": "Species C genome",
         }
     ]
-    transport = _transport_for(records)
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
 
     def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
         return NiceHttpClient(config, transport=transport)

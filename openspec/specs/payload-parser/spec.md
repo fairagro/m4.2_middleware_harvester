@@ -74,3 +74,25 @@ The system SHALL register a PayloadParser implementation under registry key `phe
 
 - **WHEN** an `oai_pmh` repository sets `parser: { type: phenoroam_xml }` and `mapper: { type: phenoroam_general }`
 - **THEN** startup kind alignment succeeds
+
+### Requirement: ParserConfig carries optional allowed_context_url
+
+The system SHALL expose optional `allowed_context_url` on the repository sibling `parser:` / `ParserConfig` model. Both
+`parser.type: jsonld` and `parser.type: html_jsonld` SHALL apply the shared JSON-LD context-loader policy keyed by that
+field (see `jsonld-context-loader`): when set (string or list), slash-normalised allowlist pin with one-way
+`http`→`https` matching; when unset, remote fetch with warning. Other parser types MAY ignore the field.
+
+#### Scenario: Field accepted on parser block
+
+- **WHEN** a repository sets `parser: { type: html_jsonld, allowed_context_url: "https://schema.org/" }`
+- **THEN** configuration validation succeeds and the Html JSON-LD parser uses that allowlisted URL
+
+#### Scenario: List accepted on parser block
+
+- **WHEN** a repository sets `parser.allowed_context_url` to a YAML list of http(s) IRIs
+- **THEN** configuration validation succeeds and every payload remote must match one list entry
+
+#### Scenario: Ignored by non-JSON-LD parsers
+
+- **WHEN** a repository sets `parser.type` to a non-JSON-LD parser with `allowed_context_url` present
+- **THEN** configuration validation still succeeds and that parser ignores the field

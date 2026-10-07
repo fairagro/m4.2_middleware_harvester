@@ -197,6 +197,8 @@ config:
   # -- Logging level for the harvester process.
   # -- Allowed: DEBUG | INFO | WARNING | ERROR | CRITICAL
   log_level: INFO
+  # -- Max remote JSON-LD context documents in the process-lifetime LRU cache.
+  jsonld_context_cache_max_entries: 64
 
   # -- OpenTelemetry / OTLP settings.
   otel:
@@ -298,6 +300,9 @@ config:
         worker_tasks: null
       parser:
         type: html_jsonld
+        # -- Pin remote @context IRIs (string or list; trailing-slash-insensitive).
+        # -- An http pin also accepts the same IRI under https.
+        allowed_context_url: "http://schema.org"
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
         jsonld_parse_threshold_bytes: 65536
@@ -330,6 +335,7 @@ config:
             page_size: 100
       parser:
         type: html_jsonld
+        allowed_context_url: "http://schema.org"
       mapper:
         type: schema_org_general
 

@@ -9,6 +9,13 @@ Same-name Comments are therefore merged into one, with their distinct values joi
 ARCtrl also duplicates the ``dateModified`` Comment on every read: it keeps the Comment node
 and adds one more from the root ``dateModified``. The RO-Crate is written with the root
 property only, so a read gives exactly one Comment.
+
+Both are ARCtrl bugs, reported upstream; remove each workaround once the API's arctrl has the fix:
+
+- duplicate names: https://github.com/nfdi4plants/ARCtrl/issues/641 (``unique_comment_names``)
+- duplicated ``dateModified``: https://github.com/nfdi4plants/ARCtrl/issues/642
+  (``drop_date_modified_comment_node``); a first-class ``DateModified`` is requested in
+  https://github.com/nfdi4plants/ARCtrl/issues/643.
 """
 
 from __future__ import annotations
