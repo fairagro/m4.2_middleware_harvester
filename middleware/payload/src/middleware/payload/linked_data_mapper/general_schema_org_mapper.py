@@ -1,8 +1,8 @@
 """Mapper module for converting Schema.org RDF graphs to ARC objects.
 
-THIS IS AN EXAMPLE IMPLEMENTATION. A PRODUCTION-READY IMPLEMENTATION WOULD
-REQUIRE A DEFINITIVE SPEC HOW TO MAP SCHEMA.ORG TO ARC IN A MEANINGFUL WAY.
-Field access goes through StableGraph / ResourceView; ARC assembly stays here.
+Registered as ``MapperType.schema_org_general``. Field access goes through StableGraph /
+ResourceView; ARC assembly and Schema.org→ARC policy stay here. Authoritative field tables:
+``docs/mappers/schemaorg.md``.
 """
 
 from __future__ import annotations

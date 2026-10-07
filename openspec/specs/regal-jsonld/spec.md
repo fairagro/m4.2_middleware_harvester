@@ -274,13 +274,13 @@ The system SHALL support a dedicated Regal payload type that selects a Regal→A
 ### Requirement: Map Regal ResearchData graphs to serialized ARC RO-Crate JSON-LD as…
 
 The system SHALL map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in
-[`docs/regal_mapping.md`](../../../docs/regal_mapping.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md).
+[`docs/mappers/regal.md`](../../../docs/mappers/regal.md) and [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md).
 
 #### Scenario: Satisfies — Map Regal ResearchData graphs to serialized ARC RO-Crate JSON-LD as…
 
 - **WHEN** the conditions described by this requirement apply
 - **THEN** Map Regal `ResearchData` graphs to serialized ARC RO-Crate JSON-LD as defined in
-  [`docs/regal_mapping.md`](../../../docs/regal_mapping.md) and
+  [`docs/mappers/regal.md`](../../../docs/mappers/regal.md) and
   [`regal-to-arc-mapping`](../regal-to-arc-mapping/spec.md)
 
 ### Requirement: Keep Regal mapping logic separate from schema.org mapping implementations (GeneralSchemaOrgMapper)
