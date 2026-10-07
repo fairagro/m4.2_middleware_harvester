@@ -20,6 +20,7 @@ from middleware.harvester.errors import RecordProcessingError
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 def _set_attrs(target: MagicMock, attrs: dict[str, Any]) -> None:
@@ -116,7 +117,7 @@ def mock_csw() -> MagicMock:
 def csw_client_with_mock(mock_csw: MagicMock) -> CSWClient:
     """Create CSW client with mocked service."""
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=mock_csw):
-        client = CSWClient(Config(csw_url="http://mock-csw.example.com/csw"))
+        client = CSWClient(Config(csw_url="http://mock-csw.example.com/csw"), PlaceholderConfig())
         client._csw = mock_csw
         return client
 
@@ -227,7 +228,7 @@ def test_record_count_uses_config_cql(mock_csw: MagicMock) -> None:
     cql = "AnyText LIKE '%biota%'"
 
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=mock_csw):
-        client = CSWClient(Config(csw_url="http://mock-csw.example.com/csw", cql_query=cql))
+        client = CSWClient(Config(csw_url="http://mock-csw.example.com/csw", cql_query=cql), PlaceholderConfig())
         client._csw = mock_csw
 
     count = client.get_record_count()

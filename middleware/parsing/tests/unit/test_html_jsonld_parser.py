@@ -24,6 +24,7 @@ from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.mapping_context import MappingContext
+from middleware.payload.placeholders import PlaceholderConfig
 
 SDO_DATASET = URIRef("http://schema.org/Dataset")
 
@@ -231,7 +232,7 @@ async def test_edal_dataset_doi_reaches_the_arc_as_typed_doi() -> None:
             allowed_context_url=["http://schema.org", "http://schema.org/"],
         )
     context = MappingContext(source_url="https://doi.org/10.5447/ipk/2011/0")
-    harvested = next(iter(GeneralSchemaOrgMapper().map_graph(graph, context)))
+    harvested = next(iter(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, context)))
 
     nodes = json.loads(harvested.arc_json)["@graph"]
     dois = [n["value"] for n in nodes if n.get("@type") == "PropertyValue" and n.get("name") == "DOI"]

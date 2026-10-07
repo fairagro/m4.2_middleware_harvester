@@ -19,13 +19,14 @@ from rdflib.namespace import RDF
 from middleware.payload.linked_data_mapper import LinkedDataMapper, MappingContext, as_source_url
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 def test_as_source_url_preserves_original_string() -> None:
     """HttpUrl re-serialization must not rewrite discovery URLs used for stable identifiers."""
     raw = "https://www.openagrar.de/receive/openagrar_mods_00107322/päth"
     assert as_source_url(raw) == raw
-    assert GeneralSchemaOrgMapper().resolve_harvest_source_identifier(
+    assert GeneralSchemaOrgMapper(PlaceholderConfig()).resolve_harvest_source_identifier(
         MappingContext(source_url=as_source_url(raw))
     ) == LinkedDataMapper.sanitize_identifier(raw)
     assert as_source_url("https://example.org") == "https://example.org"
@@ -41,7 +42,7 @@ def test_pick_canonical_doi_casefold_ties_prefer_lexicographic_original() -> Non
 def test_openagrar_with_doi_uses_harvest_source_id_not_doi() -> None:
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI),
             MappingContext(
                 source_url=as_source_url(source_url),
@@ -65,7 +66,7 @@ def test_openagrar_propertyvalue_doi_is_investigation_identifier_when_no_source_
             break
     assert isinstance(subject, BNode)
 
-    harvested = first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY))
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
     identifier = root_identifier(harvested.arc_json)
 
     assert identifier == "10.3220/253-2025-42"
@@ -78,12 +79,16 @@ def test_openagrar_propertyvalue_doi_is_investigation_identifier_when_no_source_
 def test_openagrar_propertyvalue_doi_is_stable_across_parses() -> None:
     first = root_identifier(
         first_harvest(
-            GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+                parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY
+            )
         ).arc_json
     )
     second = root_identifier(
         first_harvest(
-            GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+                parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY
+            )
         ).arc_json
     )
     assert first == second == "10.3220/253-2025-42"
@@ -101,7 +106,9 @@ def test_openagrar_without_doi_uses_sanitized_source_url_without_pattern() -> No
     )
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(graph, MappingContext(source_url=as_source_url(source_url)))
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+            graph, MappingContext(source_url=as_source_url(source_url))
+        )
     )
     identifier = root_identifier(harvested.arc_json)
     assert identifier == "www_openagrar_de_receive_openagrar_mods_00107322"
@@ -120,7 +127,7 @@ def test_openagrar_with_harvest_source_id_uses_catalog_id() -> None:
     )
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107322"
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             graph,
             MappingContext(
                 source_url=as_source_url(source_url),
@@ -142,7 +149,7 @@ def test_schema_org_without_stable_identifier_raises_and_does_not_use_blank_node
         }
         """
     )
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     with pytest.raises(ValueError, match="no stable identifier"):
         list(mapper.map_graph(graph, NO_DISCOVERY))
 
@@ -154,7 +161,9 @@ def test_http_dataset_id_is_kept_as_identifier() -> None:
     graph.add((dataset, RDF.type, schema.Dataset))
     graph.add((dataset, schema.name, Literal("Example Dataset")))
 
-    identifier = root_identifier(first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)).arc_json)
+    identifier = root_identifier(
+        first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
+    )
     assert identifier == "example_org_dataset_1"
 
 
@@ -165,7 +174,7 @@ def test_assay_table_falls_back_to_dataset_iri_when_schema_url_missing() -> None
     graph.add((dataset, RDF.type, schema.Dataset))
     graph.add((dataset, schema.name, Literal("Example Dataset")))
 
-    arc_json = first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)).arc_json
+    arc_json = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
     assert '"@id":"URI=https://example.org/dataset/1"' in arc_json
     assert '"@id":"URI="' not in arc_json
 
@@ -179,7 +188,9 @@ def test_schema_url_is_preferred_over_http_identifier_literal() -> None:
     graph.add((dataset, schema.identifier, Literal("https://example.org/other-id")))
     graph.add((dataset, schema.url, Literal("https://example.org/canonical")))
 
-    identifier = root_identifier(first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)).arc_json)
+    identifier = root_identifier(
+        first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
+    )
     assert identifier == "example_org_canonical"
 
 
@@ -197,14 +208,14 @@ def test_multiple_schema_urls_pick_lexicographic_minimum_regardless_of_graph_ord
 
     first = root_identifier(
         first_harvest(
-            GeneralSchemaOrgMapper().map_graph(
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
                 build(["https://example.org/zeta", "https://example.org/alpha"]), NO_DISCOVERY
             )
         ).arc_json
     )
     second = root_identifier(
         first_harvest(
-            GeneralSchemaOrgMapper().map_graph(
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
                 build(["https://example.org/alpha", "https://example.org/zeta"]), NO_DISCOVERY
             )
         ).arc_json
@@ -226,8 +237,12 @@ def test_multiple_schema_urls_with_casefold_ties_are_stable() -> None:
 
     urls_a = ["https://Example.org/Page", "https://example.org/page"]
     urls_b = list(reversed(urls_a))
-    first = root_identifier(first_harvest(GeneralSchemaOrgMapper().map_graph(build(urls_a), NO_DISCOVERY)).arc_json)
-    second = root_identifier(first_harvest(GeneralSchemaOrgMapper().map_graph(build(urls_b), NO_DISCOVERY)).arc_json)
+    first = root_identifier(
+        first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(build(urls_a), NO_DISCOVERY)).arc_json
+    )
+    second = root_identifier(
+        first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(build(urls_b), NO_DISCOVERY)).arc_json
+    )
     assert first == second == "Example_org_Page"
 
 
@@ -244,12 +259,12 @@ def test_assay_measurement_uri_stable_with_multiple_schema_urls() -> None:
         return graph
 
     first = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             build(["https://example.org/zeta", "https://example.org/alpha"]), NO_DISCOVERY
         )
     ).arc_json
     second = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             build(["https://example.org/alpha", "https://example.org/zeta"]), NO_DISCOVERY
         )
     ).arc_json
@@ -270,7 +285,7 @@ def test_propertyvalue_without_doi_property_id_is_not_treated_as_doi() -> None:
     graph.add((property_value, schema.value, Literal("10.3220/not-marked-as-doi")))
 
     with pytest.raises(ValueError, match="no stable identifier"):
-        list(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY))
+        list(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
 
 
 def test_named_property_value_with_doi_is_extracted() -> None:
@@ -285,12 +300,14 @@ def test_named_property_value_with_doi_is_extracted() -> None:
     graph.add((pv, schema.propertyID, Literal("DOI")))
     graph.add((pv, schema.value, Literal("10.1234/named-pv")))
 
-    identifier = root_identifier(first_harvest(GeneralSchemaOrgMapper().map_graph(graph, NO_DISCOVERY)).arc_json)
+    identifier = root_identifier(
+        first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
+    )
     assert identifier == "10.1234/named-pv"
 
 
 def test_multi_doi_with_source_url_uses_harvest_identifier_and_preserves_alternate() -> None:
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107508"
     payload = dual_doi_payload("10.5281/zenodo.15672440", "10.3220/253-2025-54")
     harvested = first_harvest(
@@ -308,7 +325,7 @@ def test_multi_doi_with_source_url_uses_harvest_identifier_and_preserves_alterna
 
 
 def test_multi_doi_harvest_identifier_stable_under_permuted_jsonld_order() -> None:
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     source_url = "https://www.openagrar.de/receive/openagrar_mods_00107508"
     first_payload = dual_doi_payload("10.5281/zenodo.15672440", "10.3220/253-2025-54")
     second_payload = dual_doi_payload("10.3220/253-2025-54", "10.5281/zenodo.15672440")
@@ -320,14 +337,14 @@ def test_multi_doi_harvest_identifier_stable_under_permuted_jsonld_order() -> No
 
 def test_single_doi_without_source_url_has_no_alternate_identifier_comment() -> None:
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
     )
     assert root_identifier(harvested.arc_json) == "10.3220/253-2025-42"
     assert not alternate_identifier_values(harvested.arc_json)
 
 
 def test_shared_doi_on_two_pages_uses_distinct_harvest_identifiers() -> None:
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     graph = pangaea_doi_graph()
     url_a = "https://www.openagrar.de/receive/openagrar_mods_00088718"
     url_b = "https://www.openagrar.de/receive/openagrar_mods_00109919"
@@ -359,7 +376,7 @@ def test_shared_doi_on_two_pages_uses_distinct_harvest_identifiers() -> None:
 
 
 def test_shared_doi_with_generic_source_url_uses_sanitized_page_url() -> None:
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     graph = pangaea_doi_graph()
     identifier = root_identifier(
         first_harvest(
@@ -371,7 +388,7 @@ def test_shared_doi_with_generic_source_url_uses_sanitized_page_url() -> None:
 
 
 def test_sorcering_pair_pages_keep_distinct_harvest_identifiers() -> None:
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     graph_a = parse_jsonld(
         """
         {
@@ -447,7 +464,7 @@ def test_multi_dataset_page_uses_per_subject_ids_not_shared_harvest_source() -> 
         graph.add((subject, schema.name, Literal(title)))
 
     harvested = list(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             graph,
             MappingContext(
                 source_url=as_source_url("https://example.org/catalog/page"),
@@ -470,7 +487,7 @@ def test_edal_pgp_sibling_replicates_get_distinct_identifiers_not_title_slug() -
     chars) would collide across all three; the harvest-source-id/source-url
     cascade must not.
     """
-    mapper = GeneralSchemaOrgMapper()
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     identifiers = [
         root_identifier(
             first_harvest(
@@ -508,9 +525,11 @@ def test_multi_dataset_yield_order_is_deterministic() -> None:
     ]
     order_b = list(reversed(order_a))
     ids_a = [
-        root_identifier(item.arc_json) for item in GeneralSchemaOrgMapper().map_graph(build(order_a), NO_DISCOVERY)
+        root_identifier(item.arc_json)
+        for item in GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(build(order_a), NO_DISCOVERY)
     ]
     ids_b = [
-        root_identifier(item.arc_json) for item in GeneralSchemaOrgMapper().map_graph(build(order_b), NO_DISCOVERY)
+        root_identifier(item.arc_json)
+        for item in GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(build(order_b), NO_DISCOVERY)
     ]
     assert ids_a == ids_b == ["example_org_dataset_alpha", "example_org_dataset_zeta"]

@@ -2,8 +2,8 @@
 
 The parser only extracts and type-guards values; bounding and codelist checks are
 validation on `InspireRecord` (see `middleware.payload.inspire.models`). Nested entries are
-built as dicts so the configured `ValueBounds` reach their validators through the
-validation context.
+built as dicts so the configured `ValueBounds` and `PlaceholderConfig` reach their
+validators through the validation context.
 """
 
 import logging
@@ -12,8 +12,9 @@ from typing import Any, cast
 from owslib.iso import MD_DataIdentification, MD_Metadata  # type: ignore[import-untyped]
 
 from middleware.inspire.errors import SemanticError
-from middleware.payload.inspire.models import VALUE_BOUNDS_CONTEXT_KEY, InspireRecord
+from middleware.payload.inspire.models import PLACEHOLDERS_CONTEXT_KEY, VALUE_BOUNDS_CONTEXT_KEY, InspireRecord
 from middleware.payload.inspire.value_bounds import ValueBounds
+from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,10 @@ type _Data = dict[str, Any]
 class IsoParser:
     """Parser for OWSLib MD_Metadata objects into InspireRecord domain objects."""
 
-    def __init__(self, value_bounds: ValueBounds | None = None) -> None:
-        """Initialize the parser with the limits enforced when validating records."""
-        self._value_bounds = value_bounds or ValueBounds()
+    def __init__(self, value_bounds: ValueBounds, placeholders: PlaceholderConfig) -> None:
+        """Initialize with the limits enforced and the RDI's placeholders dropped when validating records."""
+        self._value_bounds = value_bounds
+        self._placeholders = placeholders
 
     def parse_record(self, iso: MD_Metadata, record_uuid: str) -> InspireRecord:
         """Parse an OWSLib MD_Metadata object into an InspireRecord.
@@ -96,7 +98,11 @@ class IsoParser:
             # Supplemental (new)
             "supplemental_information": self._extract_identification_str("supplementalinformation", identification),
         }
-        return InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: self._value_bounds})
+        context = {
+            VALUE_BOUNDS_CONTEXT_KEY: self._value_bounds,
+            PLACEHOLDERS_CONTEXT_KEY: self._placeholders,
+        }
+        return InspireRecord.model_validate(data, context=context)
 
     @staticmethod
     def _extract_identification(iso: MD_Metadata) -> MD_DataIdentification | None:

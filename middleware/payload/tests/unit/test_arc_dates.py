@@ -15,6 +15,7 @@ from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.inspire.models import InspireRecord
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.regal_mapper import ORE, REGAL, RESEARCH_DATA_TYPE, RegalMapper
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 def _root(arc_json: str) -> dict[str, object]:
@@ -46,7 +47,9 @@ def test_schema_org_date_modified_on_root() -> None:
         "datePublished": "2011-01-01",
         "dateModified": "2019-03-04",
     })
-    arc_json = first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
+    arc_json = first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY)
+    ).arc_json
 
     assert _root(arc_json)["dateModified"] == "2019-03-04"
 
@@ -58,7 +61,9 @@ def test_schema_org_without_date_modified_has_none() -> None:
         "@id": "https://example.org/ds/2",
         "name": "Plain",
     })
-    arc_json = first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
+    arc_json = first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY)
+    ).arc_json
 
     assert "dateModified" not in _root(arc_json)
 
@@ -101,7 +106,7 @@ def test_regal_described_by_modified_is_date_modified() -> None:
     graph.add((subject, ORE.isDescribedBy, described_by))
     graph.add((described_by, DCTERMS.modified, Literal("2024-09-04T09:34:30.938+0200")))
 
-    mapper = RegalMapper(resource_base_url="https://example.org/resource/")
+    mapper = RegalMapper("https://example.org/resource/", PlaceholderConfig())
     arc_json = first_harvest(mapper.map_graph(graph, NO_DISCOVERY)).arc_json
 
     assert _root(arc_json)["dateModified"] == "2024-09-04T09:34:30.938+0200"

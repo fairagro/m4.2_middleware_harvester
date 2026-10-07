@@ -12,6 +12,7 @@ from mapper_test_helpers import NO_DISCOVERY, first_harvest, parse_jsonld, root_
 
 from middleware.payload.iso_dates import iso_date
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 @pytest.mark.parametrize(
@@ -50,7 +51,9 @@ def _arc_json(**dates: str) -> str:
         "name": "e!DAL dataset",
         **dates,
     })
-    return first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
+    return first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY)
+    ).arc_json
 
 
 def _map(**dates: str) -> ARC:
