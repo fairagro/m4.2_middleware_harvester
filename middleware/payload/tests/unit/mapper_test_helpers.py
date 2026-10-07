@@ -202,6 +202,13 @@ def root_title(arc_json: str) -> str:
     return rocrate_prop(root, "name")
 
 
+def root_dates(arc_json: str) -> dict[str, str]:
+    """RO-Crate root ``dateCreated`` / ``datePublished`` (absent keys are left out)."""
+    payload = json.loads(arc_json)
+    root = next(item for item in payload["@graph"] if item.get("@id") == "./")
+    return {key: root[key] for key in ("dateCreated", "datePublished") if key in root}
+
+
 def title_source_comment_text(arc_json: str) -> str | None:
     assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
