@@ -91,6 +91,6 @@ subclasses are vocabulary-specific (e.g. `GeneralSchemaOrgMapper` for schema.org
 
 12. **Schema.org refuses missing Dataset titles (no Untitled invent)** — ISA/ARC titles and Study/Assay identifier slugs
     come from `schema:name`. Inventing `Untitled Dataset` / `untitled` / `dataset` hides bad source metadata and still
-    produces an uploadable ARC. Schema.org therefore fail- closes with a mapping error (plugin → `RecordProcessingError`
+    produces an uploadable ARC. Schema.org therefore fails closed with a mapping error (plugin → `RecordProcessingError`
     / harvest report). `to_identifier_slug` returns `None` for blank/unusable input. Other RDF mappers (Regal,
     `ckanext_dcat`) MUST likewise fail closed rather than invent `Untitled` / `untitled`.
