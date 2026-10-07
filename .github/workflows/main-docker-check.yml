@@ -1,0 +1,30 @@
+name: Main Docker Check
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: main-docker-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  build:
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
+    with:
+      components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
+    secrets: inherit
+
+  check:
+    needs: [build]
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-check.yml@main
+    with:
+      version: ${{ needs.build.outputs.version }}
+      components: '["harvester"]'
+      image_base_name: fairagro-advanced-middleware
+    secrets: inherit
