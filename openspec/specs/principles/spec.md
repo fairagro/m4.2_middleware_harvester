@@ -62,10 +62,11 @@ or protocol plugin packages. `middleware.contracts` MAY depend on `middleware.pa
 - **WHEN** a protocol plugin needs `HarvesterError`, `SkippedRecord`, `NiceHttpClient`, or `Plugin`
 - **THEN** it imports them from `middleware.contracts` and has no `middleware.harvester` import
 
-#### Scenario: Contracts package stays a leaf under the orchestrator
+#### Scenario: Contracts package does not depend on orchestrator or plugins
 
 - **WHEN** module dependencies are reviewed
-- **THEN** `contracts` does not import `harvester`, `parsing`, or protocol plugins
+- **THEN** `contracts` does not import `harvester`, `parsing`, or protocol plugins (it MAY import `payload` for
+  `HarvestedArc`)
 
 ### Requirement: Extension point for new mapper types
 

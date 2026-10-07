@@ -128,9 +128,9 @@ harvester/upload.py        →  api_client (shared lib)
 harvester/config.py        →  payload  (MapperConfig / registry validation)
 harvester/config.py        →  parsing  (PayloadParser registry validation)
 
-# Shared plugin-facing contracts (leaf under orchestrator)
+# Shared plugin-facing contracts (below orchestrator; depends on payload only)
 # Owns HarvesterError / RecordProcessingError / SkippedRecord, NiceHttpClient,
-# and the Plugin protocol. HarvestedArc stays in payload.
+# and the Plugin protocol. HarvestedArc stays in payload (runtime import).
 contracts/  ↛  harvester / parsing / inspire / linked_data / generic / oai_pmh
 contracts/plugin_base.py  →  payload/harvested_arc.py
 contracts/plugin_base.py  →  contracts/errors.py
