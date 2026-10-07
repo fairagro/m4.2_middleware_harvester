@@ -12,6 +12,7 @@ from middleware.harvester.config import Config
 from middleware.harvester.errors import format_exception_for_report
 from middleware.harvester.orchestrator import run_orchestrator
 from middleware.harvester.reporting import all_repositories_failed, emit_report
+from middleware.parsing.jsonld_context_loader import configure_document_cache_max_entries
 from middleware.shared.tracing import initialize_logging, initialize_tracing
 
 _SERVICE_NAME = "middleware-harvester"
@@ -57,6 +58,7 @@ def main() -> int:
     try:
         config = Config.from_yaml_file(config_path)
         logging.getLogger().setLevel(getattr(logging, config.log_level, logging.INFO))
+        configure_document_cache_max_entries(config.jsonld_context_cache_max_entries)
         shutdown_tracing = _init_tracing(config)
         report = asyncio.run(run_orchestrator(config))
         if all_repositories_failed(report):

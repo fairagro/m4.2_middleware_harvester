@@ -31,6 +31,8 @@ repositories:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
       type: html_jsonld
+      # Live e!DAL pages use http://schema.org; http pin also accepts https forms.
+      allowed_context_url: "http://schema.org"
     mapper:
       type: schema_org_general
 
@@ -79,6 +81,8 @@ repositories:
           entry_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
     parser:
       type: jsonld
+      # Exact IRI from genomes.json records (no trailing slash).
+      allowed_context_url: "http://schema.org"
     mapper:
       type: schema_org_general
 
@@ -93,6 +97,7 @@ repositories:
           entry_url: "http://localhost:8080/servlets/solr/select"
     parser:
       type: html_jsonld
+      allowed_context_url: "https://schema.org/"
     mapper:
       type: schema_org_general
 

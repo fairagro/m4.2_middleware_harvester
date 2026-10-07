@@ -16,6 +16,7 @@ repositories:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
       type: html_jsonld
+      allowed_context_url: "https://schema.org/"
     mapper:
       type: schema_org_general
 api_client:
