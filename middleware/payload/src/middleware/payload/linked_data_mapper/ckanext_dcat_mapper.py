@@ -135,9 +135,9 @@ class _CkanextDcatRun:
         self._add_ontology_sources(inv)
         return inv
 
-    def _release_date(self, subject: Node) -> str:
+    def _release_date(self, subject: Node) -> str | None:
         """RO-Crate ``datePublished``: ``dcterms:issued``, else ``dcterms:modified``."""
-        return self.view(subject).text(DCTERMS.issued) or self.view(subject).text(DCTERMS.modified) or ""
+        return self.view(subject).text(DCTERMS.issued) or self.view(subject).text(DCTERMS.modified) or None
 
     def _map_study(self, subject: Node, investigation_id: str, *, title: str) -> ArcStudy:
         description = self.view(subject).text(DCTERMS.description) or ""

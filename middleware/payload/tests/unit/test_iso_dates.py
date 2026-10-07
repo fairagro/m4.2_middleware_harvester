@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
-from mapper_test_helpers import NO_DISCOVERY, first_harvest, parse_jsonld
+from mapper_test_helpers import NO_DISCOVERY, first_harvest, parse_jsonld, root_dates
 
 from middleware.payload.iso_dates import iso_date
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
@@ -42,7 +42,7 @@ def test_iso_date(value: str | None, expected: str | None) -> None:
     assert iso_date(value) == expected
 
 
-def _map(**dates: str) -> ARC:
+def _arc_json(**dates: str) -> str:
     payload = json.dumps({
         "@context": {"@vocab": "https://schema.org/"},
         "@id": "https://doi.org/10.5447/ipk/2011/0",
@@ -50,8 +50,11 @@ def _map(**dates: str) -> ARC:
         "name": "e!DAL dataset",
         **dates,
     })
-    arc_json = first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
-    return ARC.from_rocrate_json_string(arc_json)
+    return first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
+
+
+def _map(**dates: str) -> ARC:
+    return ARC.from_rocrate_json_string(_arc_json(**dates))
 
 
 def _comments(arc: ARC) -> list[tuple[str, str]]:
@@ -104,10 +107,16 @@ def test_date_published_is_release_date_and_date_created_is_submission_date() ->
     assert (study.PublicReleaseDate, study.SubmissionDate) == ("2011-01-01T00:00:00+01:00", "2010-06-30")
 
 
-def test_date_published_only_leaves_date_created_empty() -> None:
-    arc = _map(datePublished="2011-01-01")
-    assert arc.PublicReleaseDate == "2011-01-01"
-    assert not arc.SubmissionDate
+def test_date_published_only_leaves_date_created_out() -> None:
+    """No ``dateCreated: ""`` on the RO-Crate root (e!DAL has no creation date)."""
+    assert root_dates(_arc_json(datePublished="2011-01-01")) == {"datePublished": "2011-01-01"}
+
+
+def test_no_source_date_is_not_an_empty_date() -> None:
+    """Without any source date ARCtrl stamps the serialisation time; the mapper must not write ``""``."""
+    dates = root_dates(_arc_json())
+    assert list(dates) == ["datePublished"]
+    assert dates["datePublished"]
 
 
 @pytest.mark.parametrize(

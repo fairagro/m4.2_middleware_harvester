@@ -13,8 +13,8 @@ date. `SubmissionDate` (RO-Crate `dateCreated`) is `dateCreated` only.
 #### Scenario: e!DAL Java date
 
 - **WHEN** `datePublished` is `Sat Jan 01 00:00:00 CET 2011`
-- **THEN** Investigation and Study `PublicReleaseDate` MUST be `2011-01-01T00:00:00+01:00` and `SubmissionDate` MUST be
-  empty
+- **THEN** Investigation and Study `PublicReleaseDate` MUST be `2011-01-01T00:00:00+01:00`, `SubmissionDate` MUST be
+  empty and the RO-Crate root MUST NOT have `dateCreated` (not even an empty string)
 
 #### Scenario: ISO year
 

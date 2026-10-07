@@ -185,7 +185,7 @@ class _RegalRun:
         identifier = self._investigation_identifier(regal_id=regal_id, doi=doi, title=title)
         description = self._join_texts(subject, DCTERMS.description)
         # dcterms:issued is the publication date (RO-Crate datePublished); Regal has no creation date.
-        release_date = self.view(subject).text(DCTERMS.issued) or ""
+        release_date = self.view(subject).text(DCTERMS.issued) or None
 
         inv = ArcInvestigation.create(
             identifier=identifier,
@@ -213,7 +213,7 @@ class _RegalRun:
             identifier=f"{investigation_id}_study",
             title=title,
             description=description,
-            public_release_date=self.view(subject).text(DCTERMS.issued) or "",
+            public_release_date=self.view(subject).text(DCTERMS.issued) or None,
         )
 
         spatial = self._create_spatial_sampling_table(subject)

@@ -142,8 +142,8 @@ class _SchemaOrgRun:
         study = self._map_study(
             subject,
             title=title,
-            release_date=investigation.PublicReleaseDate,
-            creation_date=investigation.SubmissionDate,
+            release_date=investigation.PublicReleaseDate or None,
+            creation_date=investigation.SubmissionDate or None,
         )
         investigation.AddStudy(study)
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
@@ -276,15 +276,15 @@ class _SchemaOrgRun:
 
         description = self.view(subject)["description"] or ""
         # Release date (RO-Crate datePublished): datePublished, else dateModified, else dateCreated.
-        # Left empty, ARCtrl stamps the serialisation time instead (#407).
+        # Left as None, ARCtrl stamps the serialisation time instead (#407); "" would be written as an empty date.
         dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified", "dateCreated")}
-        release_date = next((iso for iso, _ in dates.values() if iso), "")
+        release_date = next((iso for iso, _ in dates.values() if iso), None)
 
         inv = ArcInvestigation.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=dates["dateCreated"][0] or "",
+            submission_date=dates["dateCreated"][0],
             public_release_date=release_date,
         )
         for term, (iso, raw) in dates.items():
