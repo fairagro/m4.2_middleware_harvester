@@ -710,6 +710,7 @@ class _RegalRun:
             return f"https://doi.org/{doi}"
         if regal_id:
             return self._resource_url(regal_id)
+        # Defensive guard: map_arc already refuses when both regal_id and doi are missing.
         raise ValueError("Regal ResearchData has no doi or @id for Assay Output URI")
 
     def _resource_url(self, regal_id: str) -> str:

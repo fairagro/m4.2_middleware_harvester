@@ -231,10 +231,10 @@ comparison (`HTTPS://schema.org/` → allowlisted). Other JSON-LD keywords (`@la
 
 ### Extension Mechanism
 
-Remote `@context` IRIs are gated by repository `parser.allowed_context_url` (optional list) on the shared JSON-LD
-parsers — see [`jsonld-context-loader`](../../openspec/specs/jsonld-context-loader/) and
-[`docs/mappers/README.md`](README.md). Operators extend the pin list in config; there is no code-level Schema.org
-extension allowlist in the mapper.
+Remote `@context` IRIs are validated in `middleware.parsing.jsonld_validation` against the code allowlists
+`SCHEMAORG_CONTEXTS` and `_KNOWN_EXTENSION_CONTEXTS` (combined as `SCHEMAORG_CONTEXT_ALLOWLIST`: Schema.org plus
+Bioschemas). See [`jsonld-parser`](../../openspec/specs/jsonld-parser/) and [`docs/mappers/README.md`](README.md). There
+is no operator config key to extend that list today; unknown remote contexts fail closed before mapping.
 
 ## Multi-Dataset Handling
 

@@ -51,8 +51,9 @@ tables as needed).
 
 Documents speak RDF predicates or typed-record fields, not StableGraph APIs.
 
-Mappers MUST NOT invent placeholder strings (`Untitled`, `untitled`, …) for missing fields. Required-field refusal is
-fail closed. These files document `middleware.payload` DataMappers, not the `linked_data:` plugin key.
+For required title/identifier cascades, mappers MUST NOT invent placeholder strings (`Untitled`, `untitled`, …); refusal
+is fail closed. That rule targets mapper-invented fallbacks, not source-supplied placeholders the RDI sent (see
+`mapper.placeholders` / #437). These files document `middleware.payload` DataMappers, not the `linked_data:` plugin key.
 
 ## Future code generation
 

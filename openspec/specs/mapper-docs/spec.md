@@ -58,10 +58,13 @@ NOT require an implemented generator for the documentation layout to be valid.
 
 ### Requirement: Mapping docs MUST NOT prescribe invented placeholder field values
 
-Mapping documents MUST NOT instruct mappers to invent display strings such as `Untitled` / `untitled` / `unknown` when a
-source field is missing. Refusal/skip sections MUST require fail-closed mapping (no `HarvestedArc`) for required fields
-whose documented source cascade is empty. Optional fields MUST be omitted. Mapping docs describe `middleware.payload`
-DataMappers; they MUST NOT treat the `linked_data:` plugin key as a documentation target.
+For **required title and investigation identifier** cascades, mapping documents MUST NOT instruct mappers to invent
+display strings such as `Untitled` / `untitled` / `unknown` when the documented source cascade is empty. Refusal/skip
+sections MUST require fail-closed mapping (no `HarvestedArc`) for those required fields. Optional fields MUST be
+omitted. Docs MAY still record pre-existing structural defaults outside that rule (e.g. PhenoRoam Study title) as known
+debt. Mapper-invented fallbacks are distinct from **source-supplied** placeholders the RDI emitted; the latter are
+handled by placeholder-stripping config (#437), not this rule. Mapping docs describe `middleware.payload` DataMappers;
+they MUST NOT treat the `linked_data:` plugin key as a documentation target.
 
 #### Scenario: Missing required title is refuse, not Untitled
 

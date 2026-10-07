@@ -39,7 +39,7 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 | ------------------------- | ---------------------- | ------------------------------------------------------------------------ |
 | **`dcterms:title`**       | Title                  | `Investigation.Title`                                                    |
 | **`dcterms:description`** | Description            | `Investigation.Description` (empty string when absent)                   |
-| **`dcterms:issued`**      | Issue date             | `Investigation.SubmissionDate`                                           |
+| **`dcterms:issued`**      | Issue date             | `Investigation.PublicReleaseDate` (else `dcterms:modified`)              |
 | **`dcterms:identifier`**  | Source identifier      | `Investigation.Comment("Source Identifier")`                             |
 | **`dcterms:modified`**    | Modified date          | `Investigation.Comment("Modified")`                                      |
 | **`dcat:keyword`**        | Keywords               | `Investigation.Comment("Keywords")` (semicolon-joined)                   |
@@ -55,23 +55,23 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Study
 
-| Source field            | Description  | ARC Mapping                                                                                                                                                                          |
-| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Title / description     | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                 |
-| **`dcterms:issued`**    | Issue date   | `Study.SubmissionDate`                                                                                                                                                               |
-| (fixed + keywords/lang) | Processing   | Table `Dataset Processing`: Input Raw Data → Parameter “Published dataset metadata harvested via DCAT-AP.” → Output Data “Published Dataset”; optional Keyword / Language parameters |
+| Source field            | Description  | ARC Mapping                                                                                                                                                                                                                                          |
+| ----------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title / description     | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                                                                                 |
+| **`dcterms:issued`**    | Issue date   | `Study.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                                                                                                  |
+| (fixed + keywords/lang) | Processing   | Table `Dataset Processing`: Input Raw Data → Parameter `Processing Description` = “Published dataset metadata harvested via DCAT-AP.” → Output Data “Published Dataset”; optional `Keywords` (`", "`-joined) / `Language` (`"; "`-joined) parameters |
 
 ## Assay
 
-| Source field                       | Description      | ARC Mapping                                                                                          |
-| ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
-| Title                              | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                 |
-| (fixed)                            | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                  |
-| **`dcat:distribution`**            | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`, else dataset IRI |
-| Distribution **`dcterms:title`**   | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                   |
-| Distribution **`dcterms:format`**  | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                               |
-| Distribution access/download URLs  | URLs             | `Comment("Access URL")` (semicolon-joined) when any URL present                                      |
-| Distribution **`dcterms:license`** | Licenses         | `Comment("License")` (unique, sorted, semicolon-joined)                                              |
+| Source field                       | Description      | ARC Mapping                                                                                           |
+| ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
+| Title                              | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                  |
+| (fixed)                            | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                   |
+| **`dcat:distribution`**            | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`, else dataset IRI  |
+| Distribution **`dcterms:title`**   | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                    |
+| Distribution **`dcterms:format`**  | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                                |
+| Distribution access/download URLs  | URLs             | `Comment("Access URL")`: per distribution `dcat:accessURL`, else `dcat:downloadURL`; semicolon-joined |
+| Distribution **`dcterms:license`** | Licenses         | `Comment("License")` (unique, sorted, semicolon-joined)                                               |
 
 ## Org labels (publisher / contact)
 

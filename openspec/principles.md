@@ -65,11 +65,17 @@ Shared values are in `principles.global.md`. This repo additionally emphasises:
 **Correctness over speed** — Valid ARC output matters more than throughput. If a record cannot be mapped cleanly it must
 fail with a clear error, not produce silent garbage.
 
-**No invented field values** — DataMappers MUST NOT fill missing source fields with placeholder strings such as
-`Untitled`, `untitled`, `unknown`, or `n/a`. Source-documented fallbacks to _other real source fields_ (for example
-Regal `dcterms:title` → `skos:prefLabel`) remain allowed. When a required field (or its documented source cascade) is
+**No invented field values** — For **required title and investigation identifier** cascades, DataMappers MUST NOT invent
+display strings such as `Untitled`, `untitled`, or `unknown` when the documented source cascade is empty. Fallbacks to
+_other real source fields_ (for example Regal `dcterms:title` → `skos:prefLabel`) remain allowed. When that cascade is
 still empty, mapping MUST fail closed: no `HarvestedArc`, so the plugin yields a record-level error, logs the cause, and
 continues the harvest. Optional fields MUST be omitted, not stubbed.
+
+This forbids **mapper-invented** fallbacks. It does **not** forbid echoing **source-supplied** placeholder text the RDI
+sent (e.g. `n/a`, `None`); stripping or normalizing those is a separate concern (`mapper.placeholders` / #437). Some
+mappers still ship **documented structural defaults** outside the required title/identifier rule (e.g. PhenoRoam Study
+title/ids, INSPIRE Study description / conformance boilerplate) — treat those as known debt, not a license to add new
+invented titles.
 
 **Memory-safe by design** — Source endpoints can contain millions of records. Each plugin must use pagination or
 streaming; the in-memory footprint per batch must be bounded and predictable.
