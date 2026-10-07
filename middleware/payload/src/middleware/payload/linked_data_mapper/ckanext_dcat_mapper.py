@@ -121,13 +121,11 @@ class _CkanextDcatRun:
 
     def _map_investigation(self, subject: Node, *, identifier: str, title: str) -> ArcInvestigation:
         description = self.view(subject).text(DCTERMS.description) or ""
-        submission_date = self.view(subject).text(DCTERMS.issued) or ""
-
         inv = ArcInvestigation.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=submission_date,
+            public_release_date=self._release_date(subject),
         )
         # No Person-level creator in ckanext-dcat output today (only org-level
         # publisher/contactPoint) -- Contacts stays empty; call kept for parity
@@ -137,13 +135,17 @@ class _CkanextDcatRun:
         self._add_ontology_sources(inv)
         return inv
 
+    def _release_date(self, subject: Node) -> str | None:
+        """RO-Crate ``datePublished``: ``dcterms:issued``, else ``dcterms:modified``."""
+        return self.view(subject).text(DCTERMS.issued) or self.view(subject).text(DCTERMS.modified) or None
+
     def _map_study(self, subject: Node, investigation_id: str, *, title: str) -> ArcStudy:
         description = self.view(subject).text(DCTERMS.description) or ""
         study = ArcStudy.create(
             identifier=f"{investigation_id}_study",
             title=title,
             description=description,
-            submission_date=self.view(subject).text(DCTERMS.issued) or "",
+            public_release_date=self._release_date(subject),
         )
         study.AddTable(self._create_dataset_processing_table(subject))
         return study

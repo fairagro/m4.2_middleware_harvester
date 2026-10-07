@@ -56,14 +56,17 @@ namespaces (dual-namespace aliasing via `StableGraph`).
 | **`schema:url`**                 | Canonical landing page URL              | `Investigation.Identifier` (sanitized); Assay `Output [URI]`                                                                                                                  |
 | **`schema:sameAs`**              | Equivalent URLs                         | `Investigation.Identifier` fallback (lexicographic min)                                                                                                                       |
 | **`schema:identifier`**          | DOI, URL, or other identifiers          | `Investigation.Identifier` (DOI as last resort); Publication DOI; `Investigation.Comment("Alternate Identifier")`                                                             |
-| **`schema:datePublished`**       | Publication date                        | `Investigation.SubmissionDate`, `Study.SubmissionDate` as ISO 8601 (see Dates below)                                                                                          |
-| **`schema:dateModified`**        | Last modification date                  | Investigation Comment `dateModified` (RO-Crate root `dateModified`, ISO 8601); also `Investigation.SubmissionDate` when `datePublished` is missing or not a date              |
+| **`schema:datePublished`**       | Publication date                        | `Investigation.PublicReleaseDate`, `Study.PublicReleaseDate` (RO-Crate `datePublished`), ISO 8601 (see Dates below)                                                           |
+| **`schema:dateModified`**        | Last modification date                  | Investigation Comment `dateModified` (RO-Crate root `dateModified`, ISO 8601); also `PublicReleaseDate` when `datePublished` is missing or not a date                         |
+| **`schema:dateCreated`**         | Creation date                           | `Investigation.SubmissionDate`, `Study.SubmissionDate` (RO-Crate `dateCreated`); also `PublicReleaseDate` when neither other date is usable                                   |
 
 **Dates.** Values go through `middleware.payload.iso_dates.iso_date`: ISO 8601 dates and date-times (`2011`,
 `2011-01-01`, `2011-01-01T10:00:00Z`) pass unchanged; Java `Date.toString()` values (e!DAL:
 `Sat Jan 01 00:00:00 CET 2011`) become `2011-01-01T00:00:00+01:00` (local day kept, offset from the zone abbreviation)
 with a warning. Anything else is never written as a date: it is logged and kept as the Investigation Comment
-`Unparsed datePublished` / `Unparsed dateModified`.
+`Unparsed datePublished` / `Unparsed dateModified` / `Unparsed dateCreated`. `PublicReleaseDate` falls back to
+`dateModified`, then `dateCreated`: left empty, ARCtrl would write the serialisation (harvest) time as `datePublished`.
+`SubmissionDate` (`dateCreated`) is never filled from another date.
 
 ### 2. Contacts (Creators, Authors, Contributors)
 
@@ -122,7 +125,8 @@ ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays.
 | -------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | **`schema:name`**          | Dataset title      | `Study.Title` (same resolved title as `Investigation.Title`, see [Title Resolution Cascade](#title-resolution-cascade)) |
 | **`schema:description`**   | Abstract / summary | `Study.Description` (fallback: "Imported from Schema.org metadata")                                                     |
-| **`schema:datePublished`** | Publication date   | `Study.SubmissionDate`                                                                                                  |
+| **`schema:datePublished`** | Publication date   | `Study.PublicReleaseDate` (same as the Investigation, see above)                                                        |
+| **`schema:dateCreated`**   | Creation date      | `Study.SubmissionDate`                                                                                                  |
 
 ### 6. Assay (Measurement)
 

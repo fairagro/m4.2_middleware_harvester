@@ -128,8 +128,9 @@ def test_bonares_citation_publication_date_not_date_stamp() -> None:
     )
     arc = InspireMapper().map_record(record)
 
-    assert arc.SubmissionDate == "2026-05-19T09:13:00Z"
-    assert arc.Studies[0].SubmissionDate == "2026-05-19T09:13:00Z"
+    assert arc.PublicReleaseDate == "2026-05-19T09:13:00Z"
+    assert arc.Studies[0].PublicReleaseDate == "2026-05-19T09:13:00Z"
+    assert not arc.SubmissionDate
     assert [(c.Name, c.Value) for c in arc.Comments if c.Name == "Metadata Date"] == [
         ("Metadata Date", "2026-08-18T07:29:17Z")
     ]
@@ -148,7 +149,7 @@ def test_bonares_citation_publication_date_not_date_stamp() -> None:
         ([], None),
     ],
 )
-def test_dataset_date_order_publication_revision_creation(
+def test_release_date_order_publication_revision_creation(
     dates: list[tuple[str, str | None]], expected: str | None
 ) -> None:
     record = _minimal_record(
@@ -156,7 +157,25 @@ def test_dataset_date_order_publication_revision_creation(
         dates=[{"date": date, "datetype": datetype} for date, datetype in dates],
     )
     arc = InspireMapper().map_record(record)
+    assert (arc.PublicReleaseDate or None) == expected
+
+
+@pytest.mark.parametrize(
+    ("dates", "expected"),
+    [
+        ([("2023-05-01", "publication"), ("2021-06-01", "creation"), ("2020-06-01", "creation")], "2020-06-01"),
+        ([("2023-05-01", "publication"), ("2024-02-01", "revision")], None),
+    ],
+)
+def test_creation_date_is_submission_date(dates: list[tuple[str, str]], expected: str | None) -> None:
+    """Only a citation ``creation`` date becomes RO-Crate dateCreated (#407)."""
+    record = _minimal_record(
+        date_stamp="2026-08-18",
+        dates=[{"date": date, "datetype": datetype} for date, datetype in dates],
+    )
+    arc = InspireMapper().map_record(record)
     assert (arc.SubmissionDate or None) == expected
+    assert (arc.Studies[0].SubmissionDate or None) == expected
 
 
 # --- DOI normalisation (#410) -----------------------------------------------
