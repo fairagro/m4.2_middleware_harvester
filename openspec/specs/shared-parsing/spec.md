@@ -19,7 +19,7 @@ reuse).
 - **WHEN** a protocol plugin needs a registered PayloadParser by `parser.type`
 - **THEN** it resolves the implementation from `middleware.parsing` without importing another protocol plugin package
 
-### Requirement: parsing may depend on harvester and payload
+### Requirement: parsing may depend on contracts and payload
 
 The `middleware.parsing` package MAY depend on `middleware.contracts` (for polite HTTP client types and shared harvest
 error bases) and on `middleware.payload` (for `PayloadKind`, `ParsedPayload`, and related contracts). It MUST NOT depend
