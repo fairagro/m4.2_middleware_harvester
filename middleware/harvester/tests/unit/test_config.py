@@ -198,6 +198,31 @@ def test_legacy_payload_type_conflicts_with_mapper() -> None:
         })
 
 
+def test_linked_data_plugin_key_emits_deprecation_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": _minimal_linked_data(),
+            "mapper": {"type": "schema_org_general"},
+        })
+    assert repo.linked_data is not None
+    assert any("linked_data: plugin key is deprecated" in record.message for record in caplog.records)
+    assert any("generic:" in record.message for record in caplog.records)
+
+
+def test_generic_repository_skips_linked_data_plugin_key_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        RepositoryConfig.model_validate({
+            "rdi": "gen",
+            "generic": {
+                "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
+            },
+            "parser": {"type": "html_jsonld"},
+            "mapper": {"type": "schema_org_general"},
+        })
+    assert not any("linked_data: plugin key is deprecated" in record.message for record in caplog.records)
+
+
 def test_linked_data_mycore_solr_emits_deprecation_warning(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
         repo = RepositoryConfig.model_validate({
@@ -213,6 +238,7 @@ def test_linked_data_mycore_solr_emits_deprecation_warning(caplog: pytest.LogCap
     assert repo.linked_data.sitemap_type.value == "mycore_solr"
     assert any("sitemap_type: mycore_solr is deprecated" in record.message for record in caplog.records)
     assert any("generic.protocol.mycore_solr" in record.message for record in caplog.records)
+    assert any("linked_data: plugin key is deprecated" in record.message for record in caplog.records)
 
 
 def test_linked_data_other_sitemap_types_skip_mycore_deprecation(caplog: pytest.LogCaptureFixture) -> None:
