@@ -51,9 +51,9 @@ _discover(client)
    MyCoRe-based data portal.
 
 4. **Protocol SoT + linked_data Sitemap shim** — Discovery logic lives on `MycoreSolrProtocol` so `generic:`
-   repositories can use `protocol.mycore_solr` (deprecated flat `protocol_type: mycore_solr` still lifts). The
-   linked_data `SitemapType.mycore_solr` entry remains as a temporary shim that reuses the same Protocol instance
-   (preserving the first-page cache across `get_expected_count` and `discover`).
+   repositories use nested `protocol.mycore_solr`. The linked_data `SitemapType.mycore_solr` entry remains as a
+   temporary shim that reuses the same Protocol instance (preserving the first-page cache across `get_expected_count`
+   and `discover`).
 
 5. **Pagination via `start` query parameter, not cursor** — Solr supports both offset (`start`) and cursor-based
    pagination. Offset pagination is simpler to implement and sufficient here because the result set is bounded (`rows`

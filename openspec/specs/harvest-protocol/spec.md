@@ -32,12 +32,12 @@ at configuration validation. Protocol constructors SHALL receive the concrete ty
 
 #### Scenario: Registered xml protocol resolves
 
-- **WHEN** `generic.protocol` sets the `xml` child (or deprecated flat config lifts to `xml`)
+- **WHEN** `generic.protocol` sets the `xml` child
 - **THEN** the generic plugin constructs the XML Protocol implementation with `xml` settings
 
 #### Scenario: Registered mycore_solr protocol resolves
 
-- **WHEN** `generic.protocol` sets the `mycore_solr` child (or deprecated flat config lifts to `mycore_solr`)
+- **WHEN** `generic.protocol` sets the `mycore_solr` child
 - **THEN** the generic plugin constructs the MyCoRe Solr Protocol implementation with `mycore_solr` settings
 
 ### Requirement: Nested protocol config separates shared and type-specific settings
