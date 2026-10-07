@@ -4,7 +4,7 @@
 
 A `RegalMapper` (name illustrative) implements `LinkedDataMapper` for `PayloadType.regal_general`. It consumes an
 `rdflib.Graph` produced by the Regal dataset strategy and builds ARC objects with arctrl according to
-[docs/regal_mapping.md](../../../docs/regal_mapping.md).
+[docs/mappers/regal.md](../../../docs/mappers/regal.md).
 
 ```text
 Regal JSON-LD → Graph → RegalMapper.map_graph()
@@ -16,7 +16,7 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
 
 ## Key Decisions
 
-1. **Authoritative rules live in `docs/regal_mapping.md`** — Same pattern as INSPIRE (`docs/inspire_mapping.md`).
+1. **Authoritative rules live in `docs/mappers/regal.md`** — Same pattern as INSPIRE (`docs/mappers/inspire.md`).
    Feature specs state the implementation contract; they do not duplicate field tables.
 
 2. **Dedicated Regal mapper, not `GeneralSchemaOrgMapper`** — Regal predicates are DC/SKOS/Regal, not schema.org.
@@ -31,7 +31,7 @@ Regal JSON-LD → Graph → RegalMapper.map_graph()
 5. **Person contacts require non-empty FirstName; org-style labels are not empty-given Persons** — `prefLabel` without
    `", "` must not become `Person(first_name="")`. Organizational/ label-only agents become Investigation comments;
    ORCID agents without a given name fail closed. Institutions continue via Affiliation / Institution comments (see
-   `docs/regal_mapping.md` and `person-contact-given-name`).
+   `docs/mappers/regal.md` and `person-contact-given-name`).
 
 6. **Opaque Comments never embed rdflib blank-node labels** — Unlabelled blank nodes are skipped; Literals, URIRefs, and
    `skos:prefLabel` remain. `lv:contributorOrder` (Publisso) / `regal:contributorOrder` are known metadata (not opaque

@@ -55,7 +55,7 @@ always set by the software.
 5. **Regal→ARC mapper as its own `payload_type`, not reuse of `schema_org_general` / `GeneralSchemaOrgMapper`** — Regal
    uses `https://frl.publisso.de/context.json` (DC, SKOS, BIBO, Bibframe, `hbz-nrw.de/regal#`), not
    `schema.org/Dataset`. Reusing the schema.org mapper would force a lossy intermediate crosswalk. Authoritative field
-   rules: [`docs/regal_mapping.md`](../../../docs/regal_mapping.md).
+   rules: [`docs/mappers/regal.md`](../../../docs/mappers/regal.md).
 
 6. **Keep vocabulary-specific mapper class names** — Plugin package and ABC are `linked_data` / `LinkedDataMapper`.
    Concrete mappers stay vocabulary-accurate (`GeneralSchemaOrgMapper`, future `RegalMapper`). Generic renaming must not

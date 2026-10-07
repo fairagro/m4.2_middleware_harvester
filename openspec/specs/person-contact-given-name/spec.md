@@ -88,7 +88,7 @@ or Comment-mapped. The INSPIRE mapper MUST use the same helper for `individualNa
 given name is missing; see INSPIRE ISO field requirement above).
 
 Regal agent `skos:prefLabel` values follow the PUBLISSO/Regal `FamilyName, Given Name(s)` convention and MUST be split
-on the first `", "` as specified in `regal-to-arc-mapping` / `docs/regal_mapping.md` (not via `split_display_name`).
+on the first `", "` as specified in `regal-to-arc-mapping` / `docs/mappers/regal.md` (not via `split_display_name`).
 Labels without `", "` are organization/label agents.
 
 #### Scenario: Particle and title-bearing display names split consistently
