@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
+from arctrl import ARC  # type: ignore[import-untyped]
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.inspire.mapper import InspireMapper
-from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.inspire.models import Contact, InspireRecord, ResourceIdentifier
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
@@ -86,3 +89,160 @@ def test_map_rejects_wrong_kind() -> None:
                 )
             )
         )
+
+
+def test_publication_authors_survive_ro_crate_serialization() -> None:
+    """Authors use "F. Last" so the RO-Crate writer's comma split cannot fragment them (#420)."""
+    record = _minimal_record(
+        contacts=[
+            Contact(name="John Doe", organization="Test Org", role="author"),
+            Contact(name="Rita Roe", organization="Test Org", role="author"),
+        ],
+        resource_identifiers=[ResourceIdentifier(code="10.1234/doi", codespace="DOI")],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    author_ids = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if str(item.get("@id", "")).startswith("#Author_")
+    ]
+    assert author_ids == ["#Author_J. Doe; R. Roe"]
+
+
+# --- dataset date (#408) ----------------------------------------------------
+
+
+def test_bonares_citation_publication_date_not_date_stamp() -> None:
+    """BonaRes 00015394-…: dateStamp 2026-08-18 (metadata), citation publication 2026-05-19."""
+    record = _minimal_record(
+        date_stamp="2026-08-18T07:29:17Z",
+        dates=[{"date": "2026-05-19T09:13:00Z", "datetype": "publication"}],
+    )
+    arc = InspireMapper().map_record(record)
+
+    assert arc.PublicReleaseDate == "2026-05-19T09:13:00Z"
+    assert arc.Studies[0].PublicReleaseDate == "2026-05-19T09:13:00Z"
+    assert not arc.SubmissionDate
+    assert [(c.Name, c.Value) for c in arc.Comments if c.Name == "Metadata Date"] == [
+        ("Metadata Date", "2026-08-18T07:29:17Z")
+    ]
+
+
+@pytest.mark.parametrize(
+    ("dates", "expected"),
+    [
+        (
+            [("2021-01-01", "creation"), ("2023-05-01", "publication"), ("2022-03-01", "publication")],
+            "2022-03-01",
+        ),
+        ([("2021-01-01", "creation"), ("2024-02-01", "revision"), ("2025-02-01", "revision")], "2025-02-01"),
+        ([("2021-06-01", "creation"), ("2020-06-01", "creation")], "2020-06-01"),
+        ([("2021-06-01", None)], None),
+        ([], None),
+    ],
+)
+def test_release_date_order_publication_revision_creation(
+    dates: list[tuple[str, str | None]], expected: str | None
+) -> None:
+    record = _minimal_record(
+        date_stamp="2026-08-18",
+        dates=[{"date": date, "datetype": datetype} for date, datetype in dates],
+    )
+    arc = InspireMapper().map_record(record)
+    assert (arc.PublicReleaseDate or None) == expected
+
+
+@pytest.mark.parametrize(
+    ("dates", "expected"),
+    [
+        ([("2023-05-01", "publication"), ("2021-06-01", "creation"), ("2020-06-01", "creation")], "2020-06-01"),
+        ([("2023-05-01", "publication"), ("2024-02-01", "revision")], None),
+    ],
+)
+def test_creation_date_is_submission_date(dates: list[tuple[str, str]], expected: str | None) -> None:
+    """Only a citation ``creation`` date becomes RO-Crate dateCreated (#407)."""
+    record = _minimal_record(
+        date_stamp="2026-08-18",
+        dates=[{"date": date, "datetype": datetype} for date, datetype in dates],
+    )
+    arc = InspireMapper().map_record(record)
+    assert (arc.SubmissionDate or None) == expected
+    assert (arc.Studies[0].SubmissionDate or None) == expected
+
+
+# --- DOI normalisation (#410) -----------------------------------------------
+
+
+def test_geonode_doi_is_bare_and_deduplicated_in_ro_crate() -> None:
+    """BonaRes 00de8e8c-…: ``doi:https://doi.org/…`` must not become ``https://dx.doi.org/https://…``."""
+    record = _minimal_record(
+        resource_identifiers=[
+            ResourceIdentifier(
+                code="doi:https://doi.org/10.4228/zalf.vjcp-vep3",
+                url="https://dx.doi.org/https://doi.org/10.4228/zalf.vjcp-vep3",
+            ),
+            ResourceIdentifier(code="https://doi.org/10.4228/ZALF.VJCP-VEP3"),
+            ResourceIdentifier(code="doi:https://www.ncbi.nlm.nih.gov/search/all/?term=PRJNA1140101"),
+            ResourceIdentifier(code="978-3-16-148410-0", codespace="ISBN"),
+        ],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    graph = json.loads(harvested.arc_json)["@graph"]
+    citation_ids = [
+        ident["@id"]
+        for item in graph
+        if item.get("@type") == "ScholarlyArticle"
+        for ident in (item["identifier"] if isinstance(item["identifier"], list) else [item["identifier"]])
+    ]
+    assert citation_ids == ["10.4228/zalf.vjcp-vep3"]
+
+
+# --- organisational creators (#411) -----------------------------------------
+
+
+def test_thuenen_organisation_creator_survives_ro_crate_round_trip() -> None:
+    """Thünen Atlas: every contact is an organisation; originator/author become ``Creator Organization``."""
+    org = "Thünen-Institut Zentrum für Informationsmanagement"
+    url = "https://www.thuenen.de/"
+    record = _minimal_record(
+        contacts=[
+            Contact(organization=org, organization_url=url, role="originator"),
+            Contact(organization=org, organization_url=url, role="author"),
+            Contact(organization=org, role="pointOfContact"),
+            Contact(organization="BonaRes Data Centre", role="owner"),
+        ],
+        creators=[Contact(organization=org.upper(), role="originator")],
+    )
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier=record.identifier),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    arc = ARC.from_rocrate_json_string(harvested.arc_json)
+    assert not list(arc.Contacts)
+    assert [(c.Name, c.Value) for c in arc.Comments if c.Name.startswith(("Creator", "Point", "Owner"))] == [
+        ("Creator Organization", org),
+        ("Creator Organization URL", url),
+        ("Point of Contact", org),
+        ("Owner", "BonaRes Data Centre"),
+    ]

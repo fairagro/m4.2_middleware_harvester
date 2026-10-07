@@ -4,16 +4,21 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
-from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_identifier
+from arctrl import ARC  # type: ignore[import-untyped]
+from mapper_test_helpers import NO_DISCOVERY, assert_harvest_has_no_bnode_labels, root_dates, root_identifier
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
+from rdflib.term import Node
 
 from middleware.payload.linked_data_mapper.regal_mapper import (
     DBO,
+    LV,
     REGAL,
     RESEARCH_DATA_TYPE,
     RegalMapper,
@@ -46,6 +51,16 @@ def _base_graph() -> Graph:
     return graph
 
 
+def test_regal_issued_is_date_published_not_date_created() -> None:
+    """``dcterms:issued`` is the release date, not ``dateCreated`` nor the harvest time (#407)."""
+    arc_json = _mapped_arc_json(_base_graph())
+
+    assert root_dates(arc_json) == {"datePublished": "2024"}
+    study = ARC.from_rocrate_json_string(arc_json).Studies[0]
+    assert study.PublicReleaseDate == "2024"
+    assert not study.SubmissionDate
+
+
 def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
     graph = Graph()
     subject = URIRef(f"{RESOURCE_BASE}frl:12.3")
@@ -58,14 +73,24 @@ def test_regal_investigation_identifier_uses_shared_sanitize() -> None:
     assert harvested.identifier == RegalMapper.sanitize_identifier("frl:12.3")
 
 
-def test_regal_mapper_maps_orcid_comment_only_for_orcid_host() -> None:
+def _person_ids(arc_json: str) -> dict[str, str]:
+    """``"Family, Given"`` → RO-Crate Person ``@id`` (the ORCID URL when ``Person.ORCID`` is set)."""
+    return {
+        f"{item['familyName']}, {item['givenName']}": item["@id"]
+        for item in json.loads(arc_json)["@graph"]
+        if item.get("@type") == "Person" and "jobTitle" in item
+    }
+
+
+def test_regal_mapper_sets_person_orcid_only_for_orcid_host() -> None:
     graph = _base_graph()
     orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
     graph.add((SUBJECT, DCTERMS.creator, orcid))
     graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
 
-    text = json.dumps(json.loads(_mapped_arc_json(graph)))
-    assert "https://orcid.org/0000-0003-2547-933X" in text
+    arc_json = _mapped_arc_json(graph)
+    assert _person_ids(arc_json) == {"Fuerst, Julia": "http://orcid.org/0000-0003-2547-933X"}
+    assert '"ORCID"' not in arc_json
 
 
 def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
@@ -77,6 +102,20 @@ def test_regal_mapper_ignores_lookalike_orcid_host() -> None:
     text = json.dumps(json.loads(_mapped_arc_json(graph)))
     assert "Fuerst" in text
     assert "evil-orcid.org" not in text
+    assert "0000-0003-2547-933X" not in text
+
+
+def test_regal_mapper_same_orcid_as_creator_and_contributor_is_one_contact() -> None:
+    graph = _base_graph()
+    orcid = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((orcid, SKOS.prefLabel, Literal("Fuerst, Julia")))
+    graph.add((SUBJECT, DCTERMS.creator, orcid))
+    graph.add((SUBJECT, DCTERMS.contributor, orcid))
+
+    graph_nodes = json.loads(_mapped_arc_json(graph))["@graph"]
+    persons = [item for item in graph_nodes if item.get("@type") == "Person" and "jobTitle" in item]
+    assert len(persons) == 1
+    assert persons[0]["jobTitle"] == [{"@id": "#OA_author"}, {"@id": "#OA_contributor"}]
 
 
 def test_regal_mapper_maps_core_fields() -> None:
@@ -232,7 +271,8 @@ def test_regal_mapper_multiword_org_pref_label_without_comma_is_comment() -> Non
 
     arc_json = _mapped_arc_json(graph)
     entries = set(_comment_entries(arc_json))
-    assert ("Creator", "NFDI4Health Task Force COVID-19 (https://example.org/org/nfdi4health-tf)") in entries
+    assert ("Creator Organization", "NFDI4Health Task Force COVID-19") in entries
+    assert ("Creator Organization URL", "https://example.org/org/nfdi4health-tf") in entries
     payload = json.loads(arc_json)
     people = [
         item
@@ -251,7 +291,7 @@ def test_regal_mapper_org_style_bnode_pref_label_comment_omits_bnode_id() -> Non
 
     arc_json = _mapped_arc_json(graph)
     entries = {(name, text) for name, text in _comment_entries(arc_json) if name != "@id"}
-    assert ("Creator", "Zenodo") in entries
+    assert ("Creator Organization", "Zenodo") in entries
     assert not any("Zenodo (" in text for _, text in entries)
     assert _BLANK_NODE_LABEL.search(json.dumps(json.loads(arc_json))) is None
 
@@ -533,3 +573,146 @@ def test_regal_mapper_has_no_private_string_hygiene_helpers() -> None:
     module_source = inspect.getsource(module)
     for name in forbidden:
         assert f"def {name}(" not in module_source
+
+
+_FRL_6420709_FIXTURE = Path(__file__).parent / "fixtures" / "regal_frl_6420709.json"
+SUBJECT_FRL_6420709 = URIRef("frl:6420709")
+
+
+def _rdf_list(graph: Graph, items: list[Node]) -> Node:
+    """Build an ``rdf:List`` of ``items`` (as JSON-LD ``@list`` parses) and return its head."""
+    head: Node = RDF.nil
+    for item in reversed(items):
+        cell = BNode()
+        graph.add((cell, RDF.first, item))
+        graph.add((cell, RDF.rest, head))
+        head = cell
+    return head
+
+
+def _contacts_with_roles(arc_json: str) -> list[tuple[str, str, str]]:
+    """Return (family, given, role @id) for Investigation contacts, in RO-Crate order."""
+    contacts: list[tuple[str, str, str]] = []
+    for item in json.loads(arc_json).get("@graph", []):
+        if item.get("@type") != "Person" or "jobTitle" not in item:
+            continue
+        contacts.append((item.get("familyName", ""), item.get("givenName", ""), item["jobTitle"]["@id"]))
+    return contacts
+
+
+def test_regal_mapper_maps_real_publisso_creator_list_in_order() -> None:
+    """frl:6420709 (live /find payload, inline context): @list creators keep order and ORCIDs (#403)."""
+    graph = Graph().parse(data=_FRL_6420709_FIXTURE.read_bytes(), format="json-ld")
+    assert len(list(graph.objects(None, DCTERMS.creator))) == 1  # one triple → rdf:List head
+
+    arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [
+        ("Janke", "David", "#OA_author"),
+        ("Willink", "Dilya", "#OA_author"),
+        ("Hempel", "Sabrina", "#OA_author"),
+        ("Amon", "Barbara", "#OA_author"),
+        ("Römer", "Anke", "#OA_author"),
+        ("Amon", "Thomas", "#OA_author"),
+    ]
+    ids = _person_ids(arc_json)
+    assert ids["Janke, David"] == "http://orcid.org/0000-0002-4211-3404"
+    assert ids["Amon, Thomas"] == "http://orcid.org/0000-0003-2468-3160"
+    assert ids["Willink, Dilya"].startswith("#Person_")
+    assert ids["Römer, Anke"].startswith("#Person_")
+    assert "D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon" in arc_json
+
+
+def test_regal_mapper_contributor_list_maps_persons_and_org_comment() -> None:
+    graph = _base_graph()
+    person = URIRef("https://orcid.org/0000-0002-8398-4820")
+    org = URIRef("https://frl.publisso.de/adhoc/uri/TkZESTRIZWFsdGg=")
+    graph.add((person, SKOS.prefLabel, Literal("Hempel, Sabrina")))
+    graph.add((org, SKOS.prefLabel, Literal("NFDI4Health")))
+    graph.add((SUBJECT, DCTERMS.contributor, _rdf_list(graph, [person, org])))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [("Hempel", "Sabrina", "#OA_contributor")]
+    assert ("Contributor", f"NFDI4Health ({org})") in _comment_entries(arc_json)
+
+
+def test_regal_mapper_empty_creator_list_maps_no_contacts(caplog: pytest.LogCaptureFixture) -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [])))
+
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+    assert not _contacts_with_roles(arc_json)
+    assert not caplog.records
+
+
+def test_regal_mapper_unlabelled_creator_list_member_warns(caplog: pytest.LogCaptureFixture) -> None:
+    graph = _base_graph()
+    labelled = URIRef("https://orcid.org/0000-0003-2547-933X")
+    graph.add((labelled, SKOS.prefLabel, Literal("Fuerst, Julia")))
+    graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [BNode(), labelled])))
+
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+    assert _contacts_with_roles(arc_json) == [("Fuerst", "Julia", "#OA_author")]
+    assert [r.getMessage() for r in caplog.records] == [
+        "Regal author entry (blank node) has no skos:prefLabel; skipping contact"
+    ]
+
+
+def test_lv_contributor_order_literal_does_not_create_comment() -> None:
+    """Publisso's real predicate is lobid ``lv:contributorOrder`` (#419), not ``regal:``."""
+    graph = _base_graph()
+    graph.add((SUBJECT, LV.contributorOrder, Literal("https://orcid.org/0000-0002-4211-3404 | https://orcid.org/x")))
+
+    entries = _comment_entries(_mapped_arc_json(graph))
+    assert not any(name == "contributorOrder" for name, _ in entries)
+
+
+def test_real_publisso_contributor_order_list_is_not_a_comment() -> None:
+    graph = Graph().parse(data=_FRL_6420709_FIXTURE.read_bytes(), format="json-ld")
+    assert (SUBJECT_FRL_6420709, LV.contributorOrder, None) in graph
+
+    arc_json = _mapped_arc_json(graph)
+    assert not any(name == "contributorOrder" for name, _ in _comment_entries(arc_json))
+    assert "0000-0002-4211-3404 |" not in arc_json
+
+
+def test_regal_doi_url_is_normalised_to_bare_doi() -> None:
+    """A ``doi`` written as a URL must not produce ``https://doi.org/https://doi.org/…`` (#410)."""
+    graph = _base_graph()
+    graph.remove((SUBJECT, REGAL.doi, None))
+    graph.add((SUBJECT, REGAL.doi, Literal("https://doi.org/10.4126/FRL01-0000123")))
+
+    text = json.dumps(json.loads(_mapped_arc_json(graph)))
+    assert '"URI=https://doi.org/10.4126/FRL01-0000123"' in text
+    assert "doi.org/https" not in text
+
+
+def _language_texts(arc_json: str) -> list[str]:
+    return [text for name, text in _comment_entries(arc_json) if name == "Language"]
+
+
+def test_regal_mapper_language_uses_iso639_code_from_loc_iri() -> None:
+    graph = _base_graph()
+    english = URIRef("http://id.loc.gov/vocabulary/iso639-2/eng")
+    graph.add((SUBJECT, DCTERMS.language, english))
+    graph.add((english, SKOS.prefLabel, Literal("Englisch")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _language_texts(arc_json) == ["eng"]
+    assert "Englisch" not in arc_json
+
+
+def test_regal_mapper_language_dedupes_codes_and_falls_back_to_label() -> None:
+    graph = _base_graph()
+    for iri, label in (
+        ("http://id.loc.gov/vocabulary/iso639-2/eng", "Englisch"),
+        ("https://id.loc.gov/vocabulary/iso639-2/ENG", "English"),
+    ):
+        graph.add((SUBJECT, DCTERMS.language, URIRef(iri)))
+        graph.add((URIRef(iri), SKOS.prefLabel, Literal(label)))
+    unknown = BNode()
+    graph.add((SUBJECT, DCTERMS.language, unknown))
+    graph.add((unknown, SKOS.prefLabel, Literal("Plattdeutsch")))
+
+    assert _language_texts(_mapped_arc_json(graph)) == ["eng; Plattdeutsch"]

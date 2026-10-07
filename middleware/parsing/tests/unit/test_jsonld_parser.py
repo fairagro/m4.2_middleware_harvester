@@ -211,3 +211,37 @@ async def test_jsonld_parser_accepts_inline_context() -> None:
     )
 
     assert (URIRef(_SUBJECT), DCTERMS.title, Literal("Dataset One")) in parsed.value
+
+
+@pytest.mark.asyncio
+async def test_jsonld_parser_turns_bare_doi_id_into_doi_iri() -> None:
+    """Bare DOI ``@id`` must become ``https://doi.org/…`` before rdflib expands relative IRIs (#416)."""
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(200, json=_SCHEMA_ORG_DOC)
+
+    payload: dict[str, object] = {
+        "@context": "http://schema.org",
+        "@id": "10.5447/ipk/2011/0",
+        "@type": "Dataset",
+        "name": "D",
+    }
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
+    ) as client:
+        parsed = await JsonLdParser().parse(
+            JsonLdDiscoveryResult(identifier="edal", payload=payload),
+            client=client,
+            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=["http://schema.org"]),
+        )
+
+    assert (
+        URIRef("https://doi.org/10.5447/ipk/2011/0"),
+        RDF.type,
+        URIRef("http://schema.org/Dataset"),
+    ) in parsed.value
+    assert hits["n"] == 1

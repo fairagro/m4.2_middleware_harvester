@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from typing import ClassVar, override
 
@@ -22,14 +21,22 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
+from middleware.payload.arc_dates import date_modified_comment
+from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
+from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_creator_organization,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 from middleware.payload.person_names import split_display_name
 
 # Map INSPIRE role codes to ontology terms / Comment names.
@@ -46,6 +53,13 @@ _ROLE_MAPPING: dict[str, tuple[str, str | None, str | None]] = {
     "processor": ("Processor", "http://purl.obolibrary.org/obo/NCIT_C70911", "NCIT"),
     "metadatacontact": ("Metadata Contact", "http://purl.obolibrary.org/obo/NCIT_C70912", "NCIT"),
 }
+# CI_RoleCode values that make an organisation the dataset's creator ("owner" holds rights only).
+_CREATOR_ROLES = frozenset({"author", "originator", "principalinvestigator"})
+
+
+def _cited_dates(record: InspireRecord, datetype: str) -> list[str]:
+    """Sorted citation ``CI_Date`` values of one ``CI_DateTypeCode``."""
+    return sorted(d.date for d in record.dates if d.datetype == datetype)
 
 
 @DataMapper.register(MapperType.inspire_general)
@@ -78,27 +92,16 @@ class InspireMapper(DataMapper[MappingContext]):
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
 
-        # 4. Wrap in ARC
-        return ARC.from_arc_investigation(investigation)
-
-    @staticmethod
-    def _to_identifier_slug(title: str) -> str:
-        """Convert a title to a machine-readable identifier slug."""
-        if not title:
-            return "untitled"
-        # Lowercase, replace non-alphanumeric with underscores
-        slug = re.sub(r"[^a-z0-9]+", "_", title.lower())
-        # Remove leading/trailing underscores
-        slug = slug.strip("_")
-        # Truncate to a reasonable length
-        return slug[:80]
+        # 4. Wrap in ARC (licence from gmd:otherConstraints; ARCtrl default when none)
+        license_ = inspire_license(record.other_constraints, record.other_constraints_url)
+        return ARC.from_arc_investigation(investigation, license=license_)
 
     def map_person(self, contact: Contact) -> Person | None:
         """Map an ISO individualName contact to Person.
 
-        ``organisationName``-only contacts are handled in ``_add_contacts`` as
-        Investigation comments. When ``individualName`` is present but yields no
-        given name after splitting, mapping fails closed.
+        ``organisationName``-only contacts and individualNames without a given
+        name are demoted to Investigation comments in ``_add_contacts`` before
+        this is called; a direct call with such a name still raises.
         """
         if not contact.name or not contact.name.strip():
             return None
@@ -185,15 +188,22 @@ class InspireMapper(DataMapper[MappingContext]):
         """Map to ArcInvestigation with enhanced metadata-level fields."""
         # Sanitize identifier: use a slug if it looks like a URL to avoid filesystem issues
         identifier = record.identifier
-        if identifier and ("://" in identifier or "/" in identifier):
-            identifier = self._to_identifier_slug(record.title) or identifier.split("/")[-1]
+        if "://" in identifier or "/" in identifier:
+            identifier = to_identifier_slug(record.title) or identifier.split("/")[-1]
+        # A raw (non-URL-shaped) fileIdentifier still needs character-allowlisting —
+        # sanitize_identifier is idempotent on an already-slugified value.
+        identifier = sanitize_identifier(identifier)
+        if not identifier:
+            raise ValueError(f"fileIdentifier {record.identifier!r} yields an empty Investigation identifier.")
 
         title = record.title
         description = record.abstract
-        submission_date = record.date_stamp
-
         inv = ArcInvestigation.create(
-            identifier=identifier, title=title, description=description, submission_date=submission_date
+            identifier=identifier,
+            title=title,
+            description=description,
+            submission_date=self._creation_date(record),
+            public_release_date=self._release_date(record),
         )
 
         self._add_contacts(inv, record)
@@ -236,7 +246,13 @@ class InspireMapper(DataMapper[MappingContext]):
             )
 
     def _add_contacts(self, inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add contacts: Persons from individualName, Comments from organisation-only."""
+        """Add contacts: Persons from parseable individualName, Comments otherwise.
+
+        Organisation-only contacts and individualNames without a given name (e.g.
+        DWD's ``RTH`` org-unit acronym) become Investigation comments, never
+        empty-given Persons: ``Creator Organization`` for creator roles (author,
+        originator, principal investigator), else named after the role.
+        """
         all_contacts = list(record.contacts)
         all_contacts.extend(record.creators)
         all_contacts.extend(record.publishers)
@@ -247,41 +263,66 @@ class InspireMapper(DataMapper[MappingContext]):
             organization = (contact.organization or "").strip()
             if not individual:
                 if organization:
-                    comment_name = self._contact_role_label(contact)
-                    key = (comment_name.casefold(), organization.casefold())
-                    if key not in seen_org_comments:
-                        seen_org_comments.add(key)
-                        inv.Comments.append(Comment.create(comment_name, organization))
+                    self._append_role_comment(inv, contact, organization, seen_org_comments)
+                continue
+            first_name, _ = self._split_name(individual)
+            if not first_name.strip():
+                value = f"{organization} ({individual})" if organization else individual
+                self._append_role_comment(inv, contact, value, seen_org_comments)
                 continue
             person = self.map_person(contact)
             if person:
                 inv.Contacts.append(person)
 
+    def _append_role_comment(
+        self, inv: ArcInvestigation, contact: Contact, value: str, seen: set[tuple[str, str]]
+    ) -> None:
+        """Append a role-named Investigation comment unless an equal one exists."""
+        if (contact.role or "").lower() in _CREATOR_ROLES:
+            org_url = str(contact.organization_url) if contact.organization_url else None
+            add_creator_organization(inv, value, org_url)
+            return
+        comment_name = self._contact_role_label(contact)
+        key = (comment_name.casefold(), value.casefold())
+        if key not in seen:
+            seen.add(key)
+            inv.Comments.append(Comment.create(comment_name, value))
+
     @staticmethod
     def _add_publications(inv: ArcInvestigation, record: InspireRecord) -> None:
-        """Add publications from resource_identifiers, enriching with investigation metadata."""
-        # Get authors from the investigation's contacts and format them as a string
-        authors_list = [
-            p for p in inv.Contacts if any(hasattr(role, "Name") and role.Name == "author" for role in p.Roles)
-        ]
-        author_strings = []
-        for p in authors_list:
-            first_initial = f"{p.FirstName[0]}." if p.FirstName else ""
-            author_strings.append(f"{p.LastName}, {first_initial}")
-        authors_str = "; ".join(author_strings) if author_strings else None
+        """Add one Publication per distinct DOI in resource_identifiers (bare ``10.…/…`` form).
+
+        Codes that are not DOIs (ISBN, accession URLs, UUIDs) are not publications.
+        """
+        authors_str = publication_authors(inv)
+        seen: set[str] = set()
         for res_id in record.resource_identifiers:
-            codespace_str = str(res_id.codespace) if res_id.codespace else ""
-            if res_id.code and (
-                res_id.code.startswith("10.") or "doi" in res_id.code.lower() or "isbn" in codespace_str.lower()
-            ):
-                # Create a Publication object with DOI, title, and formatted authors string
-                pub = Publication.create(
-                    title=record.title,
-                    authors=authors_str,
-                    doi=res_id.code,
-                    # status and pub_date could be added if available
-                )
-                inv.Publications.append(pub)
+            doi = normalize_doi(res_id.code) or normalize_doi(str(res_id.url) if res_id.url else None)
+            if doi is None or doi.casefold() in seen:
+                continue
+            seen.add(doi.casefold())
+            inv.Publications.append(Publication.create(title=record.title, authors=authors_str, doi=doi))
+
+    @staticmethod
+    def _release_date(record: InspireRecord) -> str | None:
+        """Dataset release date (RO-Crate ``datePublished``) from the citation ``CI_Date`` entries.
+
+        In order: earliest publication, latest revision, earliest creation. Never ``gmd:dateStamp``,
+        which is when the metadata record last changed (kept as a ``Metadata Date`` Comment); left
+        empty, ARCtrl would stamp the serialisation time instead (#407).
+        """
+        publication, revision, creation = (_cited_dates(record, t) for t in ("publication", "revision", "creation"))
+        if publication:
+            return publication[0]
+        if revision:
+            return revision[-1]
+        return creation[0] if creation else None
+
+    @staticmethod
+    def _creation_date(record: InspireRecord) -> str | None:
+        """Earliest citation ``creation`` date (RO-Crate ``dateCreated``)."""
+        creation = _cited_dates(record, "creation")
+        return creation[0] if creation else None
 
     def _add_comments(self, inv: ArcInvestigation, record: InspireRecord) -> None:
         """Add metadata-level comments to the investigation."""
@@ -303,10 +344,17 @@ class InspireMapper(DataMapper[MappingContext]):
             ("Alternate Title", record.alternate_title),
             ("Purpose", record.purpose),
             ("Supplemental Information", record.supplemental_information),
+            ("Metadata Date", record.date_stamp),
         ]
         for label, value in fields:
             if value:
                 comments.append(Comment.create(label, value))
+
+        # Latest citation revision date only; dateStamp is the metadata record's date (Metadata Date).
+        revisions = sorted(d.date for d in record.dates if d.datetype == "revision")
+        modified = date_modified_comment(revisions[-1]) if revisions else None
+        if modified:
+            comments.append(modified)
 
         self._add_hierarchy_comments(comments, record)
         self._add_constraint_comments(comments, record)
@@ -340,9 +388,23 @@ class InspireMapper(DataMapper[MappingContext]):
         if record.other_constraints_url:
             comments.append(Comment.create("Other Constraints URLs", "; ".join(record.other_constraints_url[:3])))
 
+    @staticmethod
+    def _record_slug(record: InspireRecord) -> str:
+        """Study/assay identifier: title slug, else the sanitized fileIdentifier.
+
+        Never a placeholder — a record whose title and fileIdentifier both sanitize to
+        nothing fails mapping instead.
+        """
+        slug = to_identifier_slug(record.title) or sanitize_identifier(record.identifier)
+        if not slug:
+            raise ValueError(
+                f"Record {record.identifier!r}: neither title nor fileIdentifier yields a usable identifier."
+            )
+        return slug
+
     def map_study(self, record: InspireRecord) -> ArcStudy:
         """Map to ArcStudy with process-oriented protocols."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = self._record_slug(record)
         title = record.title
 
         # Enhanced description with lineage, purpose, and supplemental info
@@ -356,7 +418,11 @@ class InspireMapper(DataMapper[MappingContext]):
         description = " | ".join(desc_parts) if desc_parts else "Imported from INSPIRE metadata"
 
         study = ArcStudy.create(
-            identifier=identifier, title=title, description=description, submission_date=record.date_stamp
+            identifier=identifier,
+            title=title,
+            description=description,
+            submission_date=self._creation_date(record),
+            public_release_date=self._release_date(record),
         )
 
         # Add Process-Oriented Protocols (max 3)
@@ -616,7 +682,7 @@ class InspireMapper(DataMapper[MappingContext]):
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""
-        identifier = self._to_identifier_slug(record.title)
+        identifier = self._record_slug(record)
         title = record.title
 
         measurement_type = self._get_measurement_type(record)
@@ -637,7 +703,8 @@ class InspireMapper(DataMapper[MappingContext]):
 
         return assay
 
-    def _create_assay_table(self, record: InspireRecord) -> ArcTable:
+    @staticmethod
+    def _create_assay_table(record: InspireRecord) -> ArcTable:
         """Create the assay annotation table (always exactly one row).
 
         Columns:
@@ -663,7 +730,7 @@ class InspireMapper(DataMapper[MappingContext]):
             output_uri = record.online_resources[0].url
             fallback_used = True
         else:
-            output_uri = f"{self._to_identifier_slug(record.title)}_dataset"
+            output_uri = f"{InspireMapper._record_slug(record)}_dataset"
 
         table = ArcTable.init("Measurement")
         table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])

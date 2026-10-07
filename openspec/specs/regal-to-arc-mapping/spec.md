@@ -161,8 +161,8 @@ mapper. Authoritative field placement remains [`docs/regal_mapping.md`](../../..
 When multiple RDF objects contribute to hash-relevant ARC content (Investigation Contacts from `dcterms:creator` /
 `dcterms:contributor`, multi-value string fields joined into Comments or protocol parameters, labelled keyword /
 institution lists, and opaque Investigation Comments for unknown predicates), `RegalMapper` MUST emit a deterministic
-order that does not depend on rdflib iteration order or parser-local blank-node labels. Implementing
-`regal:contributorOrder`-based Contact sorting remains optional and out of scope for this requirement.
+order that does not depend on rdflib iteration order or parser-local blank-node labels. `contributorOrder` is not used
+for Contact sorting (see the contributorOrder requirement).
 
 #### Scenario: Creator blank-node order permutation yields same Contacts
 
@@ -247,10 +247,17 @@ remain after the ResourceView migration.
 
 ### Requirement: Regal contributorOrder MUST NOT become an Investigation Comment
 
-The predicate `http://hbz-nrw.de/regal#contributorOrder` (`regal:contributorOrder`) MUST be treated as known mapping
-metadata and MUST NOT be emitted as an opaque Investigation Comment. Per
-[`docs/regal_mapping.md`](../../../docs/regal_mapping.md), `contributorOrder` is intended to order Contacts when stable
-order keys are available; implementing that ordering is optional and MUST NOT use blank-node strings as order keys.
+The predicates `http://purl.org/lobid/lv#contributorOrder` (`lv:contributorOrder`, what the Publisso context declares,
+as `@list`) and `http://hbz-nrw.de/regal#contributorOrder` (`regal:contributorOrder`) MUST be treated as known mapping
+metadata and MUST NOT be emitted as an opaque Investigation Comment, whether the value is a literal, an `rdf:List` or a
+blank node. `contributorOrder` MUST NOT be used to sort Contacts: in Publisso data it repeats the creator (then
+contributor) `@list` order, which Contacts already keep.
+
+#### Scenario: lv:contributorOrder pipe-string does not create a Comment
+
+- **WHEN** a Regal ResearchData graph has `lv:contributorOrder` with a pipe-separated literal of agent IRIs, either
+  directly or as the member of a JSON-LD `@list` (real `/find` record `frl:6420709`)
+- **THEN** the mapped ARC MUST NOT contain an Investigation Comment named `contributorOrder` or the pipe-string
 
 #### Scenario: contributorOrder blank node does not create a Comment
 
@@ -265,3 +272,109 @@ order keys are available; implementing that ordering is optional and MUST NOT us
   allocated blank-node identities
 - **THEN** both mappings MUST produce the same set of Investigation Comment names and texts with respect to
   `contributorOrder` (no harvest-unstable `contributorOrder` Comment)
+
+### Requirement: Regal contacts MUST resolve rdf:List creator and contributor values in list order
+
+The Publisso/Regal JSON-LD context declares `creator` and `contributor` with `"@container": "@list"`, so a parsed record
+has one `dcterms:creator` / `dcterms:contributor` triple whose object is an `rdf:List` head. `RegalMapper` MUST map
+every list member through the same contact path as a directly attached value (literal → label; resource →
+`skos:prefLabel` "Family, Given", `Person.ORCID` for `orcid.org` IRIs, organization labels → Comment), and MUST keep
+list order (source author order). Directly attached values (no list) keep their StableGraph order. A list head MUST NOT
+be treated as an agent itself. A creator or contributor resource without `skos:prefLabel` MUST be skipped with a logged
+warning (never silently, never with a blank-node label in the message or ARC).
+
+#### Scenario: Real Publisso creator list keeps order and ORCIDs
+
+- **WHEN** the `/find` record `frl:6420709` (six creators as JSON-LD `@list`, four with ORCID `@id`) is mapped
+- **THEN** the Investigation MUST have six author Contacts in source order (Janke, Willink, Hempel, Amon B., Römer, Amon
+  T.) and `Person.ORCID` only on the four ORCID creators
+
+#### Scenario: Contributor list with an organization label
+
+- **WHEN** a `dcterms:contributor` list contains a person (`Hempel, Sabrina`) and an organization (`NFDI4Health`)
+- **THEN** the person MUST become a contributor Contact and the organization a `Contributor` Investigation Comment
+
+#### Scenario: Empty list
+
+- **WHEN** `dcterms:creator` is `rdf:nil` (JSON-LD `"creator": []`)
+- **THEN** no Contact is created and no warning is logged
+
+#### Scenario: Unlabelled list member
+
+- **WHEN** a creator list member has no `skos:prefLabel`
+- **THEN** it MUST be skipped with a warning, and the other members MUST still be mapped
+
+### Requirement: Regal Publication authors MUST use initial-space-last form without commas
+
+The RO-Crate writer splits `Publication.authors` on `,`. `RegalMapper` MUST format each author as `F. Last` joined by
+`; ` (same rule as `GeneralSchemaOrgMapper` in `linked-data-mapper`), and MUST NOT use the `Last, F.` form.
+
+#### Scenario: Publication authors for frl:6420709
+
+- **WHEN** `frl:6420709` is mapped
+- **THEN** the Publication authors string MUST be `D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon` and no
+  `#Author_*` node MUST start with a stray `" "` fragment
+
+### Requirement: The ARC licence MUST come from the Regal license
+
+`RegalMapper` MUST set `ARC.License` from the Regal `license` value (the same value as the `License` Comment) via
+`middleware.payload.arc_license.license_from_value`, keeping ARCtrl's default `LICENSE` path. Without a licence the
+ARCtrl default stays.
+
+#### Scenario: Publisso licence
+
+- **WHEN** a record has `license` `http://opendatacommons.org/licenses/by/1.0/`
+- **THEN** the RO-Crate licence node text MUST be `http://opendatacommons.org/licenses/by/1.0/`
+
+### Requirement: Regal person ORCIDs MUST be Person.ORCID
+
+For agent `@id`s that are orcid.org URLs, `RegalMapper` MUST set `Person.ORCID` (bare iD, via
+`middleware.payload.person_contacts.orcid_id`) instead of a Person `ORCID` Comment, and MUST add contacts via
+`add_contact`, so an agent that is both creator and contributor is one contact with both roles.
+
+#### Scenario: ORCID creator
+
+- **WHEN** a creator has `@id` `https://orcid.org/0000-0003-2547-933X` and `prefLabel` `Fuerst, Julia`
+- **THEN** the RO-Crate Person `@id` MUST be `http://orcid.org/0000-0003-2547-933X` and there MUST be no `ORCID` Comment
+
+#### Scenario: Same ORCID as creator and contributor
+
+- **WHEN** one ORCID agent is both `creator` and `contributor`
+- **THEN** there MUST be one contact with the roles author and contributor
+
+### Requirement: Regal language MUST be an ISO 639 code
+
+`RegalMapper` MUST write the `Language` Investigation comment and Assay `Comment [Language]` column from
+`dcterms:language` as the ISO 639 code taken from an `id.loc.gov/vocabulary/iso639-1/<code>` or
+`id.loc.gov/vocabulary/iso639-2/<code>` IRI, in lower case. It MUST use the `prefLabel` only when the value has no such
+IRI. Duplicate values MUST be written once, joined with `; `.
+
+#### Scenario: Localised label with a LoC IRI
+
+- **WHEN** a record has `language: [{"prefLabel": "Englisch", "@id": "http://id.loc.gov/vocabulary/iso639-2/eng"}]`
+- **THEN** the `Language` comment MUST be `eng` and the ARC MUST NOT contain `Englisch`
+
+#### Scenario: No LoC IRI
+
+- **WHEN** a language value is a blank node with `prefLabel` "Plattdeutsch"
+- **THEN** the `Language` comment MUST contain `Plattdeutsch`
+
+### Requirement: Regal isDescribedBy.modified MUST be dateModified
+
+`RegalMapper` MUST add the Investigation Comment `dateModified` (RO-Crate root `dateModified`) from `ore:isDescribedBy`
+→ `dcterms:modified`, normalised by `iso_date`. Without it there MUST be no `dateModified`.
+
+#### Scenario: Publisso record
+
+- **WHEN** a record has `isDescribedBy.modified` "2024-09-04T09:34:30.938+0200"
+- **THEN** the RO-Crate root `dateModified` MUST be "2024-09-04T09:34:30.938+0200"
+
+### Requirement: Regal issued MUST be datePublished
+
+`RegalMapper` MUST set Investigation and Study `PublicReleaseDate` (RO-Crate `datePublished`) from `dcterms:issued`.
+`SubmissionDate` (RO-Crate `dateCreated`) MUST stay empty, since Regal has no creation date.
+
+#### Scenario: Publisso record
+
+- **WHEN** a record has `issued` "2024"
+- **THEN** the RO-Crate root `datePublished` MUST be "2024" and the root MUST NOT have `dateCreated`

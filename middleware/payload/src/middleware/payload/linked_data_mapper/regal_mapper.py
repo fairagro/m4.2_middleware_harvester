@@ -5,9 +5,11 @@ Field access goes through StableGraph / ResourceView; ARC assembly stays here.
 
 from __future__ import annotations
 
+import logging
+import re
 from dataclasses import dataclass
 from typing import override
-from urllib.parse import quote, urlparse
+from urllib.parse import quote
 
 from arctrl import (  # type: ignore[import-untyped]
     ARC,
@@ -28,17 +30,31 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
+from middleware.payload.arc_dates import date_modified_comment
+from middleware.payload.arc_license import license_from_value
+from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_contact,
+    add_creator_organization,
+    orcid_id,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
+
+logger = logging.getLogger(__name__)
 
 REGAL = Namespace("http://hbz-nrw.de/regal#")
 DBO = Namespace("http://dbpedia.org/ontology/")
+LV = Namespace("http://purl.org/lobid/lv#")
+ORE = Namespace("http://www.openarchives.org/ore/terms/")
 JOINED_FUNDING = URIRef("info:regal/regal/joinedFunding")
 RESEARCH_DATA_TYPE = REGAL.ResearchData
+_LOC_LANGUAGE_IRI = re.compile(r"^https?://id\.loc\.gov/vocabulary/iso639-[12]/([a-z]{2,3})$", re.IGNORECASE)
 
 # Predicates handled explicitly; remaining subject predicates become opaque comments.
 _KNOWN_PREDICATES = {
@@ -75,7 +91,9 @@ _KNOWN_PREDICATES = {
     REGAL.itemID,
     REGAL.associatedPublication,
     # Structural contact-order metadata (docs/regal_mapping.md); not an opaque Comment.
-    # TODO: when order keys are stable Literals/URIRefs, use them to sort Contacts.
+    # Publisso sends lv:contributorOrder; it repeats the creator/contributor @list order,
+    # which _add_contacts already keeps, so it is not used for sorting.
+    LV.contributorOrder,
     REGAL.contributorOrder,
 }
 
@@ -154,7 +172,7 @@ class _RegalRun:
         assay = self._map_assay(subject, investigation.Identifier, regal_id=regal_id, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
+        return ARC.from_arc_investigation(investigation, license=license_from_value(self._license_value(subject)))
 
     def _map_investigation(
         self,
@@ -166,13 +184,14 @@ class _RegalRun:
         title = self._title(subject)
         identifier = self._investigation_identifier(regal_id=regal_id, doi=doi, title=title)
         description = self._join_texts(subject, DCTERMS.description)
-        submission_date = self.view(subject).text(DCTERMS.issued) or ""
+        # dcterms:issued is the publication date (RO-Crate datePublished); Regal has no creation date.
+        release_date = self.view(subject).text(DCTERMS.issued) or None
 
         inv = ArcInvestigation.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=submission_date,
+            public_release_date=release_date,
         )
         institutions = self._labelled_pairs(subject, DBO.institution)
         affiliation = institutions[0][0] if len(institutions) == 1 else None
@@ -194,7 +213,7 @@ class _RegalRun:
             identifier=f"{investigation_id}_study",
             title=title,
             description=description,
-            submission_date=self.view(subject).text(DCTERMS.issued) or "",
+            public_release_date=self.view(subject).text(DCTERMS.issued) or None,
         )
 
         spatial = self._create_spatial_sampling_table(subject)
@@ -352,10 +371,9 @@ class _RegalRun:
         if license_value:
             table.AddColumn(CompositeHeader.comment("License"), [CompositeCell.free_text(license_value)])
 
-        languages = self._labelled_pairs(subject, DCTERMS.language)
+        languages = self._language_value(subject)
         if languages:
-            labels = "; ".join(label for label, _ in languages)
-            table.AddColumn(CompositeHeader.comment("Language"), [CompositeCell.free_text(labels)])
+            table.AddColumn(CompositeHeader.comment("Language"), [CompositeCell.free_text(languages)])
 
         parts = self._labelled_pairs(subject, DCTERMS.hasPart)
         if parts:
@@ -388,15 +406,21 @@ class _RegalRun:
         affiliation: str | None,
     ) -> None:
         view = self.view(subject)
-        # Literals then resources, each in StableGraph order — never rdflib iteration order.
-        for lit in view.literals(DCTERMS.creator):
-            self._append_contact_from_label(inv, lit.value, "author", affiliation=affiliation, node_id=None)
-        for res in view.resources(DCTERMS.creator):
-            self._append_contact_from_resource(inv, res, "author", affiliation=affiliation)
-        for lit in view.literals(DCTERMS.contributor):
-            self._append_contact_from_label(inv, lit.value, "contributor", affiliation=affiliation, node_id=None)
-        for res in view.resources(DCTERMS.contributor):
-            self._append_contact_from_resource(inv, res, "contributor", affiliation=affiliation)
+        for role, predicate in (("author", DCTERMS.creator), ("contributor", DCTERMS.contributor)):
+            # Direct literals, then rdf:List members (JSON-LD @list, source order), then direct
+            # resources; direct values in StableGraph order — never rdflib iteration order.
+            for lit in view.literals(predicate):
+                self._append_contact_from_label(inv, lit.value, role, affiliation=affiliation, node_id=None)
+            for member in view.list_members(predicate):
+                if isinstance(member, Literal):
+                    label = str(member).strip()
+                    if label:
+                        self._append_contact_from_label(inv, label, role, affiliation=affiliation, node_id=None)
+                    continue
+                self._append_contact_from_resource(inv, self.view(member), role, affiliation=affiliation)
+            for res in view.resources(predicate):
+                if not res.is_list:
+                    self._append_contact_from_resource(inv, res, role, affiliation=affiliation)
 
     def _append_contact_from_label(
         self,
@@ -416,8 +440,7 @@ class _RegalRun:
         )
         if person is None:
             return
-        person.Roles.append(OntologyAnnotation(name=role))
-        inv.Contacts.append(person)
+        add_contact(inv, person, role)
 
     def _append_contact_from_resource(
         self,
@@ -429,6 +452,11 @@ class _RegalRun:
     ) -> None:
         pref_label = res.text(SKOS.prefLabel) or ""
         if not pref_label:
+            logger.warning(
+                "Regal %s entry %s has no skos:prefLabel; skipping contact",
+                role,
+                res.iri or "(blank node)",
+            )
             return
         self._append_contact_from_label(
             inv,
@@ -452,8 +480,8 @@ class _RegalRun:
         family, given = stripped.split(", ", 1)
         return family.strip(), given.strip()
 
+    @staticmethod
     def _person_from_label(
-        self,
         inv: ArcInvestigation,
         names: tuple[str, str],
         *,
@@ -462,27 +490,22 @@ class _RegalRun:
         node_id: str | None,
     ) -> Person | None:
         family, given = names[0].strip(), names[1].strip()
+        orcid = orcid_id(node_id)
         if given:
-            person = Person.create(last_name=family, first_name=given, affiliation=affiliation or "")
-            if node_id and self._is_orcid_uri(node_id):
-                person.Comments.append(Comment.create("ORCID", node_id))
-            return person
+            return Person.create(orcid=orcid, last_name=family, first_name=given, affiliation=affiliation or "")
 
         # Empty given name: Organization/label agent → Comment; person identity → fail closed.
-        if node_id and self._is_orcid_uri(node_id):
+        if orcid:
             raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
         if not family:
             return None
-        comment_name = "Creator" if role == "author" else role.capitalize()
+        if role == "author":
+            add_creator_organization(inv, family, node_id)
+            return None
+        comment_name = role.capitalize()
         value = family if not node_id else f"{family} ({node_id})"
         inv.Comments.append(Comment.create(comment_name, value))
         return None
-
-    @staticmethod
-    def _is_orcid_uri(uri: str) -> bool:
-        """Return True when ``uri`` has host ``orcid.org`` (or a subdomain)."""
-        host = (urlparse(uri).hostname or "").lower()
-        return host == "orcid.org" or host.endswith(".orcid.org")
 
     def _add_publications(
         self,
@@ -493,17 +516,10 @@ class _RegalRun:
         doi: str | None,
     ) -> None:
         if doi:
-            authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
-            author_strs: list[str] = []
-            for person in authors:
-                if person.FirstName and person.LastName:
-                    author_strs.append(f"{person.LastName}, {person.FirstName[0]}.")
-                elif person.LastName:
-                    author_strs.append(person.LastName)
             inv.Publications.append(
                 Publication.create(
                     title=title,
-                    authors="; ".join(author_strs) if author_strs else None,
+                    authors=publication_authors(inv),
                     doi=doi,
                 )
             )
@@ -543,9 +559,15 @@ class _RegalRun:
         if license_value:
             inv.Comments.append(Comment.create("License", license_value))
 
-        languages = self._labelled_pairs(subject, DCTERMS.language)
+        languages = self._language_value(subject)
         if languages:
-            inv.Comments.append(Comment.create("Language", "; ".join(label for label, _ in languages)))
+            inv.Comments.append(Comment.create("Language", languages))
+
+        # Regal has no dataset-level modified date; isDescribedBy.modified is when the repository object last changed.
+        described_by = self.view(subject).resource(ORE.isDescribedBy)
+        modified = date_modified_comment(described_by.text(DCTERMS.modified) if described_by else None)
+        if modified:
+            inv.Comments.append(modified)
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):
@@ -650,8 +672,7 @@ class _RegalRun:
         return pref or "Untitled"
 
     def _doi(self, subject: Node) -> str | None:
-        doi = self.view(subject).text(REGAL.doi)
-        return doi.strip() if doi else None
+        return normalize_doi(self.view(subject).text(REGAL.doi))
 
     def _regal_id(self, subject: Node) -> str | None:
         if isinstance(subject, URIRef):
@@ -696,6 +717,16 @@ class _RegalRun:
 
     def _join_texts(self, subject: Node, predicate: Node) -> str:
         return "\n\n".join(self.view(subject).texts(predicate))
+
+    def _language_value(self, subject: Node) -> str:
+        """Join ISO 639 codes from ``id.loc.gov`` language IRIs; the label only when there is no such IRI."""
+        values: list[str] = []
+        for label, node_id in self._labelled_pairs(subject, DCTERMS.language):
+            match = _LOC_LANGUAGE_IRI.match(node_id or "")
+            value = match.group(1).lower() if match else label
+            if value not in values:
+                values.append(value)
+        return "; ".join(values)
 
     def _labelled_pairs(self, subject: Node, predicate: Node) -> list[tuple[str, str | None]]:
         labelled = self._sorted_labelled(self.view(subject).labelled(predicate))

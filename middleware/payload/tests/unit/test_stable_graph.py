@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
+from rdflib.term import Node
 
 from middleware.payload.linked_data_mapper.stable_graph import SCHEMA_ORG_NAMESPACES, StableGraph
 
@@ -219,3 +220,70 @@ def test_subjects_predicate_object_is_ordered() -> None:
             "https://example.org/b",
         ]
     )
+
+
+def _rdf_list(graph: Graph, items: list[Node]) -> Node:
+    """Build an ``rdf:List`` of ``items`` and return its head (``rdf:nil`` when empty)."""
+    head: Node = RDF.nil
+    for item in reversed(items):
+        cell = BNode()
+        graph.add((cell, RDF.first, item))
+        graph.add((cell, RDF.rest, head))
+        head = cell
+    return head
+
+
+def test_list_members_keep_list_order() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/ds")
+    items: list[Node] = [URIRef("https://example.org/z"), Literal("middle"), URIRef("https://example.org/a")]
+    graph.add((subject, SCHEMA.author, _rdf_list(graph, items)))
+
+    view = _wrap(graph).view(subject)
+    assert view.list_members(SCHEMA.author) == items
+    assert [res.is_list for res in view.resources(SCHEMA.author)] == [True]
+
+
+def test_list_members_empty_list_is_nil() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/ds")
+    graph.add((subject, SCHEMA.author, _rdf_list(graph, [])))
+
+    view = _wrap(graph).view(subject)
+    assert not view.list_members(SCHEMA.author)
+    assert all(res.is_list for res in view.resources(SCHEMA.author))
+
+
+def test_list_members_ignore_non_list_objects() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/ds")
+    person = URIRef("https://example.org/person")
+    graph.add((subject, SCHEMA.author, person))
+    graph.add((subject, SCHEMA.author, Literal("Plain")))
+
+    view = _wrap(graph).view(subject)
+    assert not view.list_members(SCHEMA.author)
+    assert not view.resource(SCHEMA.author).is_list  # type: ignore[union-attr]
+
+
+def test_list_members_cyclic_list_terminates() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/ds")
+    first, second = BNode(), BNode()
+    graph.add((first, RDF.first, Literal("one")))
+    graph.add((first, RDF.rest, second))
+    graph.add((second, RDF.first, Literal("two")))
+    graph.add((second, RDF.rest, first))
+    graph.add((subject, SCHEMA.author, first))
+
+    assert _wrap(graph).view(subject).list_members(SCHEMA.author) == [Literal("one"), Literal("two")]
+
+
+def test_list_members_missing_rest_stops() -> None:
+    graph = Graph()
+    subject = URIRef("https://example.org/ds")
+    cell = BNode()
+    graph.add((cell, RDF.first, Literal("only")))
+    graph.add((subject, SCHEMA.author, cell))
+
+    assert _wrap(graph).view(subject).list_members(SCHEMA.author) == [Literal("only")]

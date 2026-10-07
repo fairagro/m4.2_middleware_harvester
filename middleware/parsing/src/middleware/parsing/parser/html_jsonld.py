@@ -14,6 +14,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import materialize_payload_contexts
+from middleware.parsing.jsonld_doi_ids import doi_ids_as_iris
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
@@ -149,18 +150,22 @@ class HtmlJsonLdParser(PayloadParser):
                         f"JSON-LD array item {index} at {url} must be a JSON object, got {type(item).__name__}"
                     )
                 items.append(
-                    await materialize_payload_contexts(
-                        cast(JsonObject, item),
-                        allowed_context_url=allowed_context_url,
-                        client=client,
+                    doi_ids_as_iris(
+                        await materialize_payload_contexts(
+                            cast(JsonObject, item),
+                            allowed_context_url=allowed_context_url,
+                            client=client,
+                        )
                     )
                 )
             return json.dumps(items)
         if isinstance(parsed, dict):
-            materialized = await materialize_payload_contexts(
-                cast(JsonObject, parsed),
-                allowed_context_url=allowed_context_url,
-                client=client,
+            materialized = doi_ids_as_iris(
+                await materialize_payload_contexts(
+                    cast(JsonObject, parsed),
+                    allowed_context_url=allowed_context_url,
+                    client=client,
+                )
             )
             return json.dumps(materialized)
         raise ParserError(f"JSON-LD block at {url} must be a JSON object or array, got {type(parsed).__name__}")

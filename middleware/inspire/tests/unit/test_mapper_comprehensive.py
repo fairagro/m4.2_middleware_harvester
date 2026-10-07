@@ -18,6 +18,7 @@ from arctrl import (  # type: ignore[import-untyped]
 from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # type: ignore[import-untyped]
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 
+from middleware.payload.identifiers import to_identifier_slug
 from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.inspire.models import (
     ConformanceResult,
@@ -59,7 +60,7 @@ def sample_record() -> InspireRecord:
                 name="Jane Doe",
                 organization="Test Org",
                 email="jane@example.com",
-                role="creator",
+                role="originator",
                 type="resource",
             )
         ],
@@ -76,7 +77,7 @@ def sample_record() -> InspireRecord:
         language="eng",
         metadata_standard_name="ISO 19115",
         metadata_standard_version="2003/Cor.1:2006",
-        resource_language=["en"],
+        resource_language=["eng"],
         graphic_overviews=["https://example.com/graphic.png"],
         dates=[InspireDate(date="2023-10-27", datetype="creation")],
         spatial_resolution_denominators=[10000],
@@ -159,6 +160,7 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     assert inv.Identifier == "uuid-123"
     assert inv.Title == "Test Dataset"
     assert inv.SubmissionDate == "2023-10-27"
+    assert inv.PublicReleaseDate == "2023-10-27"
 
     # Check Contacts
     assert len(inv.Contacts) == 4
@@ -172,6 +174,8 @@ def test_map_investigation(mapper: InspireMapper, sample_record: InspireRecord) 
     assert len(inv.Publications) == 1
     pub = inv.Publications[0]
     assert pub.DOI == "10.1234/doi"
+    # Role "author" maps to NCIT "Author"; the author filter must still match (#420).
+    assert pub.Authors == "J. Doe"
 
     # Check Comments (Metadata fields)
     comment_names = [c.Name for c in inv.Comments]
@@ -282,6 +286,61 @@ def test_add_contacts_dedupes_identical_organisation_comments(mapper: InspireMap
     inv2 = ArcInvestigation.create(identifier="test2", title="Test")
     mapper._add_contacts(inv2, record2)
     assert {c.Name for c in inv2.Comments if c.Value == "BGR"} == {"Point of Contact", "Publisher"}
+
+
+def test_add_contacts_unparseable_individual_with_organisation_becomes_comment(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert inv.Contacts == []
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "Deutscher Wetterdienst (RTH)")]
+
+
+def test_add_contacts_unparseable_individual_alone_becomes_comment(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(contacts=[Contact(name=" RTH ", role="pointOfContact")])
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert inv.Contacts == []
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "RTH")]
+
+
+def test_add_contacts_dedupes_repeated_unparseable_individuals(mapper: InspireMapper) -> None:
+    dwd = Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact")
+    record = _create_minimal_record(
+        contacts=[dwd.model_copy(update={"type": "metadata"}), dwd],
+        publishers=[Contact(name="rth", organization="deutscher wetterdienst", role="pointOfContact")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert len(inv.Comments) == 1
+
+
+def test_add_contacts_mixed_person_and_unparseable_individual(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact")],
+        creators=[Contact(name="Jane Doe", organization="Deutscher Wetterdienst", role="author")],
+    )
+    inv = ArcInvestigation.create(identifier="test", title="Test")
+    mapper._add_contacts(inv, record)
+    assert [(p.FirstName, p.LastName, p.Affiliation) for p in inv.Contacts] == [
+        ("Jane", "Doe", "Deutscher Wetterdienst")
+    ]
+    assert [(c.Name, c.Value) for c in inv.Comments] == [("Point of Contact", "Deutscher Wetterdienst (RTH)")]
+
+
+def test_map_investigation_dwd_like_record_succeeds(mapper: InspireMapper) -> None:
+    record = _create_minimal_record(
+        identifier="urn:x-wmo:md:de.dwd.cdc::obsgermany-climate-daily-kl",
+        contacts=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="pointOfContact", type="metadata")],
+        publishers=[Contact(name="RTH", organization="Deutscher Wetterdienst", role="publisher")],
+    )
+    inv = mapper.map_investigation(record)
+    assert inv.Contacts == []
+    values = {(c.Name, c.Value) for c in inv.Comments}
+    assert ("Point of Contact", "Deutscher Wetterdienst (RTH)") in values
+    assert ("Publisher", "Deutscher Wetterdienst (RTH)") in values
 
 
 def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
@@ -429,13 +488,13 @@ def test_add_role_with_ontology_mapping(mapper: InspireMapper) -> None:
     assert role_annotation.TermAccessionNumber == "http://purl.obolibrary.org/obo/NCIT_C70908"
     assert role_annotation.TermSourceREF == "NCIT"
 
-    # Test unknown role (fallback)
-    contact = Contact(role="unknownRole", name="Empty Role")
+    # Test a valid CI_RoleCode without an ontology mapping (name-only fallback)
+    contact = Contact(role="resourceProvider", name="Empty Role")
     person = mapper.map_person(contact)
 
     assert person is not None
     assert len(person.Roles) == 1
-    assert person.Roles[0].Name == "unknownRole"
+    assert person.Roles[0].Name == "resourceProvider"
     assert person.Roles[0].TermAccessionNumber is None
     assert person.Roles[0].TermSourceREF is None
 
@@ -539,8 +598,14 @@ def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_recor
     assert lineage_url_params[0].cells[0].AsTerm.Name == "https://example.com/lineage"
 
 
-def test_to_identifier_slug(mapper: InspireMapper) -> None:
-    """Test conversion of titles to identifier slugs."""
+def test_to_identifier_slug() -> None:
+    """Test conversion of titles to identifier slugs (shared middleware.payload helper).
+
+    InspireMapper no longer has its own private slugifier — it imports
+    ``middleware.payload.identifiers.to_identifier_slug`` directly. An empty title
+    returns ``None``; the mapper then falls back to the sanitized fileIdentifier, never to a
+    placeholder (see ``test_map_study_falls_back_to_file_identifier...``).
+    """
     test_cases = [
         ("Test Dataset", "test_dataset"),
         ("Dataset with Spaces", "dataset_with_spaces"),
@@ -548,15 +613,80 @@ def test_to_identifier_slug(mapper: InspireMapper) -> None:
         ("Dataset_with_underscores", "dataset_with_underscores"),
         ("Dataset with numbers 123", "dataset_with_numbers_123"),
         ("Dataset with special chars!@#", "dataset_with_special_chars"),
-        ("", "untitled"),
         ("http://example.com/dataset", "http_example_com_dataset"),  # URL should be converted
         ("dataset/with/slashes", "dataset_with_slashes"),  # Slashes should be converted
     ]
 
     for title, expected in test_cases:
-        result = mapper._to_identifier_slug(title)
+        result = to_identifier_slug(title)
         assert result == expected
+        assert result is not None
         assert len(result) <= 80  # Should be truncated to 80 chars
+
+    assert to_identifier_slug("") is None
+    assert to_identifier_slug("   ") is None
+
+
+def test_map_study_falls_back_to_file_identifier_when_title_does_not_slugify(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A title with no slug-able characters yields the sanitized fileIdentifier, never "untitled"."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "rec-42"
+
+    study = mapper.map_study(sample_record)
+
+    assert study.Identifier == "rec-42"
+
+
+def test_map_assay_falls_back_to_file_identifier_when_title_does_not_slugify(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A title with no slug-able characters yields the sanitized fileIdentifier, never "untitled"."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "rec-42"
+
+    assay = mapper.map_assay(sample_record)
+
+    assert assay.Identifier == "rec-42"
+
+
+def test_map_study_raises_when_no_identifier_can_be_derived(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """Title and fileIdentifier both sanitize to nothing: mapping fails instead of inventing an id."""
+    sample_record.title = "!!!"
+    sample_record.identifier = "@@@"
+
+    with pytest.raises(ValueError, match="usable identifier"):
+        mapper.map_study(sample_record)
+
+
+def test_map_investigation_raises_when_identifier_sanitizes_to_empty(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A fileIdentifier of only disallowed characters fails mapping — no placeholder id."""
+    sample_record.identifier = "!!!"
+
+    with pytest.raises(ValueError, match="empty Investigation identifier"):
+        mapper.map_investigation(sample_record)
+
+
+def test_map_investigation_sanitizes_raw_non_url_identifier(
+    sample_record: InspireRecord, mapper: InspireMapper
+) -> None:
+    """A raw fileIdentifier with disallowed characters gets allowlist-sanitized too.
+
+    Previously only identifiers that "looked like a URL" (contained ``://`` or ``/``) were
+    sanitized at all; a plain fileIdentifier reached ArcInvestigation.create unsanitized.
+    """
+    sample_record.identifier = "weird id!@#"
+
+    inv = mapper.map_investigation(sample_record)
+
+    # sanitize_identifier allowlists [a-zA-Z0-9 _-] (space included), collapses runs of
+    # "_" and trims — "!@#" become "_", collapse to one, then get trimmed off the end.
+    assert inv.Identifier == "weird id"
 
 
 def test_split_name(mapper: InspireMapper) -> None:
@@ -624,7 +754,7 @@ def test_add_contacts(mapper: InspireMapper) -> None:
     """Test adding multiple contacts to investigation."""
     record = _create_minimal_record(
         contacts=[Contact(name="Ann Author", role="author")],
-        creators=[Contact(name="Chris Creator", role="creator")],
+        creators=[Contact(name="Chris Creator", role="custodian")],
         publishers=[Contact(name="Pat Publisher", role="publisher")],
         contributors=[Contact(name="Con Tributor", role="contributor")],
     )
@@ -637,7 +767,7 @@ def test_add_contacts(mapper: InspireMapper) -> None:
     # Check that roles are properly mapped
     roles = [role.Name for contact in inv.Contacts for role in contact.Roles]
     assert "Author" in roles
-    assert "creator" in roles
+    assert "Custodian" in roles
     assert "Publisher" in roles
     assert "contributor" in roles
 
@@ -661,22 +791,10 @@ def test_add_publications(mapper: InspireMapper) -> None:
 
     mapper._add_publications(inv, record)
 
-    # Current implementation creates publications for all identifiers
-    assert len(inv.Publications) == 3
-
-    # Check DOI publication
-    doi_pub = next(p for p in inv.Publications if p.DOI == "10.1234/doi")
-    assert doi_pub.Title == "Test Dataset"
-    # Note: Authors field is not set in current implementation
-    assert doi_pub.Authors is None
-
-    # Check ISBN publication
-    isbn_pub = next(p for p in inv.Publications if p.DOI == "ISBN:123456789")
-    assert isbn_pub.Title == "Test Dataset"
-
-    # Check OTHER publication
-    other_pub = next(p for p in inv.Publications if p.DOI == "not-a-doi")
-    assert other_pub.Title == "Test Dataset"
+    # Only DOIs become publications; ISBN and other codes are not DOIs (#410).
+    assert [p.DOI for p in inv.Publications] == ["10.1234/doi"]
+    assert inv.Publications[0].Title == "Test Dataset"
+    assert inv.Publications[0].Authors == "J. Doe"
 
 
 def test_generate_comments(mapper: InspireMapper) -> None:
@@ -711,7 +829,7 @@ def test_add_constraint_comments(mapper: InspireMapper) -> None:
         access_constraints=["restricted"],
         use_constraints=["license"],
         classification=["confidential"],
-        other_constraints=["None"],
+        other_constraints=["Data available on request."],
         other_constraints_url=["https://example.com/constraints"],
     )
 
@@ -751,11 +869,11 @@ def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
         assert measurement_type.TermAccessionNumber == expected_tan
         assert measurement_type.TermSourceREF == expected_tsr
 
-    # Test unknown topic category: name only, no TAN/TSR
-    record = _create_minimal_record(topic_categories=["unknownTopic"])
+    # Test a valid topic category without an ontology mapping: name only, no TAN/TSR
+    record = _create_minimal_record(topic_categories=["extraTerrestrial"])
 
     measurement_type = mapper._get_measurement_type(record)
-    assert measurement_type.Name == "unknownTopic"
+    assert measurement_type.Name == "extraTerrestrial"
     assert measurement_type.TermAccessionNumber is None
     assert measurement_type.TermSourceREF is None
 

@@ -12,6 +12,7 @@ from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import materialize_payload_contexts
+from middleware.parsing.jsonld_doi_ids import doi_ids_as_iris
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
@@ -45,10 +46,12 @@ class JsonLdParser(PayloadParser):
             raise ParserError(f"Missing JSON-LD payload for {discovery_result.identifier}")
 
         allowed = getattr(config, "allowed_context_url", None)
-        document = await materialize_payload_contexts(
-            cast(JsonObject, discovery_result.payload),
-            allowed_context_url=allowed if isinstance(allowed, list) else None,
-            client=client,
+        document = doi_ids_as_iris(
+            await materialize_payload_contexts(
+                cast(JsonObject, discovery_result.payload),
+                allowed_context_url=allowed if isinstance(allowed, list) else None,
+                client=client,
+            )
         )
 
         data = json.dumps(document)

@@ -34,7 +34,7 @@ Metadata about the metadata record itself.
 | **language**                | `language` / `languagecode`   | Language of the metadata                      | `Investigation` comment/remark                                                                                                           |
 | **characterSet**            | `charset`                     | Character encoding (UTF-8, etc.)              | `Investigation` comment                                                                                                                  |
 | **hierarchyLevel**          | `hierarchy`                   | Scope: dataset, series, service, etc.         | `Investigation` comment (non-standard levels documented)                                                                                 |
-| **dateStamp**               | `datestamp` / `datetimestamp` | When metadata was created/updated             | `Investigation.SubmissionDate`                                                                                                           |
+| **dateStamp**               | `datestamp` / `datetimestamp` | When metadata was created/updated             | `Investigation` Comment `Metadata Date` (not a dataset date)                                                                             |
 | **metadataStandardName**    | `stdname`                     | Standard name (ISO 19115, etc.)               | `Investigation` comment (provenance)                                                                                                     |
 | **metadataStandardVersion** | `stdver`                      | Standard version                              | `Investigation` comment (provenance)                                                                                                     |
 | **dataSetURI**              | `dataseturi`                  | Direct URI to the dataset                     | **Assay Annotation Table** `Output [URI]` (preferred Output value)                                                                       |
@@ -49,27 +49,27 @@ Metadata about the metadata record itself.
 
 Core descriptive metadata about the dataset.
 
-| INSPIRE Field                 | OWSLib Attribute                                 | Description                                   | ARC Mapping                                                                     |
-| ----------------------------- | ------------------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| **citation/title**            | `title`                                          | Dataset title                                 | `Investigation.Title`                                                           |
-| **citation/alternateTitle**   | `alternatetitle`                                 | Alternative title                             | `Investigation` comment                                                         |
-| **citation/identifier**       | `uricode`, `uricodespace`                        | Resource identifiers (DOI, ISBN, etc.)        | `Investigation.Publications` (if DOI/ISBN)                                      |
-| **citation/date**             | `date` (list of `CI_Date`)                       | Creation, publication, revision dates         | **Study Protocol** parameter "Data Citation"                                    |
-| **citation/edition**          | `edition`                                        | Version/edition of the dataset                | `Investigation` comment or `Study.Description`                                  |
-| **abstract**                  | `abstract`                                       | Abstract/summary                              | `Investigation.Description`                                                     |
-| **purpose**                   | `purpose`                                        | Why the dataset was created                   | `Study.Description` (in addition to lineage)                                    |
-| **status**                    | `status`                                         | Progress: completed, onGoing, planned, etc.   | `Study` comment or Protocol parameter                                           |
-| **pointOfContact**            | `contact`, `creator`, `publisher`, `contributor` | Resource contacts by role                     | `Investigation.Contacts` (Person) split by role                                 |
-| **graphicOverview**           | `graphicoverview`                                | Thumbnail/preview image URLs                  | **Assay Annotation Table** `Comment [Graphic Overview]` (semicolon-joined URLs) |
-| **resourceConstraints**       | Various constraint fields (see below)            | Legal and security constraints                | **Investigation Comments**                                                      |
-| **spatialRepresentationType** | `spatialrepresentationtype`                      | Vector, grid, TIN, etc.                       | `Assay.TechnologyType` or comment                                               |
-| **spatialResolution**         | `denominators`, `distance`, `uom`                | Resolution (scale or distance)                | **Study Protocol** "Spatial Resolution" with parameters                         |
-| **language**                  | `resourcelanguage`, `resourcelanguagecode`       | Language of the dataset                       | `Investigation` comment                                                         |
-| **topicCategory**             | `topiccategory`                                  | ISO topic category (biota, environment, etc.) | `Assay.MeasurementType` (via ontology mapping to domain-specific ontologies)    |
-| **extent/geographicElement**  | `bbox`, `boundingPolygon`, `description_code`    | Spatial extent (bounding box or polygon)      | **Study Protocol** "Data Collection" parameter "Spatial Extent"                 |
-| **extent/temporalElement**    | `temporalextent_start`, `temporalextent_end`     | Temporal extent (start/end dates)             | **Study Protocol** "Data Collection" parameter "Temporal Extent"                |
-| **supplementalInformation**   | `supplementalinformation`                        | Additional free text                          | `Study.Description` or comment                                                  |
-| **aggregationInfo**           | `aggregationinfo`                                | Links to related datasets/papers              | `Investigation.Publications` + README comment                                   |
+| INSPIRE Field                 | OWSLib Attribute                                 | Description                                   | ARC Mapping                                                                                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **citation/title**            | `title`                                          | Dataset title                                 | `Investigation.Title`                                                                                                                                                                                                                                                                           |
+| **citation/alternateTitle**   | `alternatetitle`                                 | Alternative title                             | `Investigation` comment                                                                                                                                                                                                                                                                         |
+| **citation/identifier**       | `uricode`, `uricodespace`                        | Resource identifiers (DOI, ISBN, etc.)        | `Investigation.Publications`: one per distinct DOI, bare `10.…/…` (prefixes such as `doi:https://doi.org/` stripped); other codes are not publications                                                                                                                                          |
+| **citation/date**             | `date` (list of `CI_Date`)                       | Creation, publication, revision dates         | `PublicReleaseDate` (RO-Crate `datePublished`) of Investigation and Study: earliest publication, else latest revision, else earliest creation (empty without any); `SubmissionDate` (RO-Crate `dateCreated`): earliest creation; also Study Protocol parameters (Acquisition / Processing Date) |
+| **citation/edition**          | `edition`                                        | Version/edition of the dataset                | `Investigation` comment or `Study.Description`                                                                                                                                                                                                                                                  |
+| **abstract**                  | `abstract`                                       | Abstract/summary                              | `Investigation.Description`                                                                                                                                                                                                                                                                     |
+| **purpose**                   | `purpose`                                        | Why the dataset was created                   | `Study.Description` (in addition to lineage)                                                                                                                                                                                                                                                    |
+| **status**                    | `status`                                         | Progress: completed, onGoing, planned, etc.   | `Study` comment or Protocol parameter                                                                                                                                                                                                                                                           |
+| **pointOfContact**            | `contact`, `creator`, `publisher`, `contributor` | Resource contacts by role                     | `Investigation.Contacts` (Person) split by role                                                                                                                                                                                                                                                 |
+| **graphicOverview**           | `graphicoverview`                                | Thumbnail/preview image URLs                  | **Assay Annotation Table** `Comment [Graphic Overview]` (semicolon-joined URLs)                                                                                                                                                                                                                 |
+| **resourceConstraints**       | Various constraint fields (see below)            | Legal and security constraints                | **Investigation Comments**                                                                                                                                                                                                                                                                      |
+| **spatialRepresentationType** | `spatialrepresentationtype`                      | Vector, grid, TIN, etc.                       | `Assay.TechnologyType` or comment                                                                                                                                                                                                                                                               |
+| **spatialResolution**         | `denominators`, `distance`, `uom`                | Resolution (scale or distance)                | **Study Protocol** "Spatial Resolution" with parameters                                                                                                                                                                                                                                         |
+| **language**                  | `resourcelanguage`, `resourcelanguagecode`       | Language of the dataset                       | `Investigation` comment                                                                                                                                                                                                                                                                         |
+| **topicCategory**             | `topiccategory`                                  | ISO topic category (biota, environment, etc.) | `Assay.MeasurementType` (via ontology mapping to domain-specific ontologies)                                                                                                                                                                                                                    |
+| **extent/geographicElement**  | `bbox`, `boundingPolygon`, `description_code`    | Spatial extent (bounding box or polygon)      | **Study Protocol** "Data Collection" parameter "Spatial Extent"                                                                                                                                                                                                                                 |
+| **extent/temporalElement**    | `temporalextent_start`, `temporalextent_end`     | Temporal extent (start/end dates)             | **Study Protocol** "Data Collection" parameter "Temporal Extent"                                                                                                                                                                                                                                |
+| **supplementalInformation**   | `supplementalinformation`                        | Additional free text                          | `Study.Description` or comment                                                                                                                                                                                                                                                                  |
+| **aggregationInfo**           | `aggregationinfo`                                | Links to related datasets/papers              | `Investigation.Publications` + README comment                                                                                                                                                                                                                                                   |
 
 ### 3. MD_Keywords (Keywords and Thesauri)
 
@@ -86,30 +86,38 @@ Descriptive keywords with optional thesaurus information.
 
 Detailed contact information for persons and organizations.
 
-| INSPIRE Field                         | OWSLib Attribute                                   | Description                                | ARC Mapping                                                                                                                                                   |
-| ------------------------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. Missing given name → mapping failure (fail closed).                                              |
-| **organisationName**                  | `organization`                                     | Organization name                          | With individualName: `Person.Affiliation`. Organisation-only (no individualName): Investigation Comment named from the role (e.g. `Publisher`), not a Person. |
-| **positionName**                      | `position`                                         | Job title                                  | `Person` comment or custom field                                                                                                                              |
-| **contactInfo/phone**                 | `phone`                                            | Telephone number                           | `Person.Phone`                                                                                                                                                |
-| **contactInfo/fax**                   | `fax`                                              | Fax number                                 | `Person.Fax`                                                                                                                                                  |
-| **contactInfo/address**               | `address`, `city`, `region`, `postcode`, `country` | Full postal address                        | `Person.Address` (formatted)                                                                                                                                  |
-| **contactInfo/electronicMailAddress** | `email`                                            | Email address                              | `Person.Email`                                                                                                                                                |
-| **contactInfo/onlineResource**        | `onlineresource` (CI_OnlineResource)               | Website URL                                | `Person` comment (ORCID or website)                                                                                                                           |
-| **role**                              | `role`                                             | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms); also names organisation-only Comments                                                                    |
+| INSPIRE Field                         | OWSLib Attribute                                   | Description                                | ARC Mapping                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. No given name (e.g. `RTH`) → Comment `<organisationName> (<individualName>)` (named as for organisation-only contacts), not a Person.                                                                                                                                                            |
+| **organisationName**                  | `organization`                                     | Organization name                          | With individualName: `Person.Affiliation`. Organisation-only (no individualName): Investigation Comment `Creator Organization` for creator roles (author, originator, principalInvestigator; plus `Creator Organization URL`; several organisations are semicolon-joined in one Comment), else named from the role (e.g. `Publisher`, `Owner`); not a Person. |
+| **positionName**                      | `position`                                         | Job title                                  | `Person` comment or custom field                                                                                                                                                                                                                                                                                                                              |
+| **contactInfo/phone**                 | `phone`                                            | Telephone number                           | `Person.Phone`                                                                                                                                                                                                                                                                                                                                                |
+| **contactInfo/fax**                   | `fax`                                              | Fax number                                 | `Person.Fax`                                                                                                                                                                                                                                                                                                                                                  |
+| **contactInfo/address**               | `address`, `city`, `region`, `postcode`, `country` | Full postal address                        | `Person.Address` (formatted)                                                                                                                                                                                                                                                                                                                                  |
+| **contactInfo/electronicMailAddress** | `email`                                            | Email address                              | `Person.Email`                                                                                                                                                                                                                                                                                                                                                |
+| **contactInfo/onlineResource**        | `onlineresource` (CI_OnlineResource)               | Website URL                                | `Person` comment (ORCID or website)                                                                                                                                                                                                                                                                                                                           |
+| **role**                              | `role`                                             | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms); also names organisation-only Comments                                                                                                                                                                                                                                                                    |
 
 ### 5. MD_Constraints (Legal and Security Constraints)
 
 Access and use restrictions.
 
-| INSPIRE Field           | OWSLib Attribute                           | Description                                    | ARC Mapping                |
-| ----------------------- | ------------------------------------------ | ---------------------------------------------- | -------------------------- |
-| **useLimitation**       | `uselimitation`, `uselimitation_url`       | Usage limitations                              | **Investigation Comments** |
-| **accessConstraints**   | `accessconstraints`                        | Legal access restrictions (e.g., "restricted") | **Investigation Comments** |
-| **useConstraints**      | `useconstraints`                           | Legal use restrictions (e.g., "license")       | **Investigation Comments** |
-| **otherConstraints**    | `otherconstraints`, `otherconstraints_url` | Other constraint text                          | **Investigation Comments** |
-| **classification**      | `classification`                           | Security classification                        | **Investigation Comments** |
-| **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments** |
+| INSPIRE Field           | OWSLib Attribute                           | Description                                    | ARC Mapping                                         |
+| ----------------------- | ------------------------------------------ | ---------------------------------------------- | --------------------------------------------------- |
+| **useLimitation**       | `uselimitation`, `uselimitation_url`       | Usage limitations                              | **Investigation Comments**                          |
+| **accessConstraints**   | `accessconstraints`                        | Legal access restrictions (e.g., "restricted") | **Investigation Comments**                          |
+| **useConstraints**      | `useconstraints`                           | Legal use restrictions (e.g., "license")       | **Investigation Comments**                          |
+| **otherConstraints**    | `otherconstraints`, `otherconstraints_url` | Other constraint text                          | **Investigation Comments**, **ARC licence** (below) |
+| **classification**      | `classification`                           | Security classification                        | **Investigation Comments**                          |
+| **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments**                          |
+
+**ARC licence (`ARC.License`).** `otherConstraints` also sets the ARC licence (`middleware.payload.arc_license`), in
+order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GeoNode licence
+text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
+`CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (…/legalcode)`); the first text with a URL on a known
+licence host (creativecommons.org, opendatacommons.org, govdata.de, spdx.org, rightsstatements.org). GeoNode
+`Not Specified: …`, access notes ("available on request …") and other text give no licence, so the ARCtrl default "ALL
+RIGHTS RESERVED BY THE AUTHORS" stays. The licence keeps ARCtrl's `LICENSE` path; see `docs/schemaorg_mapping.md`.
 
 ### 6. MD_Distribution (Distribution Information)
 
@@ -205,10 +213,15 @@ Metadata specific to OGC web services (WMS, WFS, WCS, etc.).
 - **Identifier**: fileIdentifier
 - **Title**: citation/title
 - **Description**: abstract + purpose
-- **SubmissionDate**: dateStamp
+- **PublicReleaseDate** (RO-Crate `datePublished`): citation date (earliest publication, else latest revision, else
+  earliest creation); `dateStamp` is the metadata timestamp and only goes to the `Metadata Date` Comment
+- **SubmissionDate** (RO-Crate `dateCreated`): earliest citation creation date; empty without one
+- **dateModified**: latest citation `CI_Date` of type `revision`, as the Comment `dateModified`, which ARCtrl writes as
+  the RO-Crate root `dateModified`. Never `dateStamp`; without a revision date there is no `dateModified`
 - **Contacts**: All CI_ResponsibleParty objects (metadata contacts, creators, publishers, contributors) with appropriate
   roles
-- **Publications**: Resource identifiers (DOIs, ISBNs) from citation/identifier and aggregationInfo
+- **Publications**: DOIs (bare, normalised by `middleware.payload.dois.normalize_doi`) from citation/identifier and
+  aggregationInfo
 - **Comments/Remarks**:
   - All comments are stored as **Name/Value pairs** (using `Comment.create(name, value)`)
   - parentIdentifier (if hierarchy)
@@ -275,9 +288,12 @@ One INSPIRE record = One Study representing the data creation workflow.
 Map CI_ResponsibleParty objects using ISO field typing:
 
 - **individualName present**: Split with shared `split_display_name` into FirstName / LastName. If given name is empty
-  after split → fail closed (no ARC).
-- **organisationName only** (no individualName): Investigation Comment named from the role (e.g. Publisher), not a
-  Person contact.
+  after split (org-unit labels such as DWD's `RTH`), emit an Investigation Comment named from the role with value
+  `<organisationName> (<individualName>)`, or just `individualName` when there is no organisation; no Person. Same
+  policy as the Schema.org Organization→Comment rule (`openspec/specs/linked-data-mapper`).
+- **organisationName only** (no individualName): Investigation Comment `Creator Organization` for creator roles (author,
+  originator, principalInvestigator; one per organisation), else named from the role (e.g. Publisher), not a Person
+  contact.
 - **Email**: electronicMailAddress
 - **Phone / Fax**: contact phone/fax
 - **Address**: Formatted from address, city, region, postcode, country
@@ -332,10 +348,13 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 ### Publication (Related Resources)
 
-- Extract from citation/identifier (DOIs, ISBNs)
+- Extract DOIs from citation/identifier (code, else its URL); ISBNs and other codes are not publications
 - Extract from aggregationInfo (related datasets/papers)
 - **Title**: From citation or aggregationInfo
-- **DOI**: Extracted from identifier
+- **DOI**: bare `10.…/…`; repeated `doi:`, `doi.org`, `dx.doi.org`, `www.doi.org` prefixes are stripped (GeoNode writes
+  `doi:https://doi.org/…`). A `doi:` CURIE in the RO-Crate would expand to `https://dx.doi.org/…`
+- **Authors**: Contacts with role `author` (NCIT `Author`), in contact order, as `F. Last; F. Last` — no commas, because
+  the RO-Crate writer splits Publication authors on `,`
 - **Comments**: Explain if from aggregationInfo (link to related dataset)
 
 ## Special Cases and Limitations
@@ -360,18 +379,29 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 
-### 3. Opaque Fields
+### 3. Placeholder Values
+
+GeoNode catalogues (BonaRes, Thünen Atlas) fill empty optional elements with placeholder text, e.g.
+`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`,
+and "No information provided" for `supplementalInformation`. `InspireRecord` and its nested models treat a whole-value
+placeholder (case-insensitive) in an **optional** field as absent: a scalar falls back to its default and list items are
+removed. The list is `value_bounds.placeholder_values` (defaults in `middleware.payload.placeholders`: `None`, `null`,
+`N/A`, `No abstract provided`, `Keine Zusammenfassung vorhanden`, `No information provided`); unrendered `$var` /
+`{{var}}` templates always count. Required fields (`identifier`, `title`, `abstract`) keep their value, so a placeholder
+abstract still reaches `Investigation.Description` (#413).
+
+### 4. Opaque Fields
 
 **aggregationInfo**: OWSLib returns this as raw XML text. We will attempt to parse it for citations/identifiers, create
 Publications, and add a comment explaining the relationship.
 
-### 4. Service Metadata
+### 5. Service Metadata
 
 **SV_ServiceIdentification**: Primarily relevant for OGC web services. If present in a dataset record, it may indicate
 hierarchical metadata or linked services. We document this in Investigation comments but do not create dedicated ARC
 structures.
 
-### 5. Complex Nested Structures
+### 6. Complex Nested Structures
 
 **acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters
 extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on

@@ -371,3 +371,165 @@ The system SHALL implement mapping in a dedicated mapper distinct from Regal or 
 - **GIVEN** a repository configuration for Schema.org payload
 - **WHEN** the plugin constructs the mapper
 - **THEN** the returned mapper is the Schema.org mapper implementation
+
+### Requirement: The ARC licence MUST come from schema:license
+
+`GeneralSchemaOrgMapper` MUST set `ARC.License` from `schema:license` via `middleware.payload.arc_license`: a
+CreativeWork node with `url` gives `name (url)` (or the URL when it has no name); otherwise the URL or text value is the
+licence content. The licence MUST keep ARCtrl's default `LICENSE` path; the URL MUST NOT be the licence path or RO-Crate
+`@id`. Empty values and placeholders (`middleware.payload.placeholders.is_placeholder`, e.g. an unexpanded
+`$licenseURL`) MUST NOT become a licence; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS"
+stays. Placeholder values MUST NOT become the `License`, `Language`, `Version` or `URL` Investigation Comments or the
+Assay `Comment [License]`.
+
+#### Scenario: URL licence
+
+- **WHEN** a Dataset has `schema:license <https://creativecommons.org/licenses/by/4.0/>`
+- **THEN** the RO-Crate licence node text MUST be `https://creativecommons.org/licenses/by/4.0/`
+
+#### Scenario: Placeholder licence
+
+- **WHEN** a Dataset has `schema:license "$licenseURL"`
+- **THEN** the RO-Crate licence node text MUST be "ALL RIGHTS RESERVED BY THE AUTHORS"
+- **AND** the ARC MUST NOT contain `$licenseURL`
+
+### Requirement: Person contacts MUST keep their ORCID
+
+`GeneralSchemaOrgMapper` MUST set `Person.ORCID` (bare iD, via `middleware.payload.person_contacts.orcid_id`) from the
+Person `@id` when it is an orcid.org URL, else from `schema:identifier`: an ORCID string or URL, or a `PropertyValue`
+whose `value` is an orcid.org URL or whose `propertyID` names ORCID. Contacts MUST be added via `add_contact`, so a
+repeated ORCID adds its role to the existing contact. When a `creator` without ORCID and an `author` with ORCID match by
+name, the merged contact MUST keep the ORCID.
+
+#### Scenario: e!DAL author with ORCID
+
+- **WHEN** an `author` has `@id` `https://orcid.org/0000-0003-4387-4923` and an `identifier` PropertyValue (`propertyID`
+  `orcid`)
+- **THEN** the contact's `Person.ORCID` MUST be `0000-0003-4387-4923` and its RO-Crate `@id`
+  `http://orcid.org/0000-0003-4387-4923`
+
+#### Scenario: Non-ORCID identifiers
+
+- **WHEN** a Person has a non-orcid.org `@id` or a bare iD-shaped value under another `propertyID`
+- **THEN** `Person.ORCID` MUST stay empty
+
+#### Scenario: Creator and author merge keeps ORCID
+
+- **WHEN** the same person is a `creator` without ORCID and an `author` with ORCID
+- **THEN** there MUST be one contact, and it MUST carry the ORCID
+
+### Requirement: One contact per person across creator, author and contributor
+
+`GeneralSchemaOrgMapper` MUST add every `creator`, `author` and `contributor` Person via
+`add_contact(..., match_name=True)`. A Person that has the same ORCID as an existing contact, or else the same given and
+family name (case-insensitive) while not both carry different ORCIDs, MUST add its role to that contact instead of
+creating another.
+
+#### Scenario: e!DAL author array repeats contributors
+
+- **WHEN** a Dataset has 5 `creator`s, 8 `author`s (the 5 creators plus 3 contributors) and the 3 `contributor`s
+- **THEN** the Investigation MUST have 8 contacts: the 5 creators with role author and the 3 contributors with roles
+  author and contributor
+
+#### Scenario: Contributor only
+
+- **WHEN** a Person is only a `contributor`
+- **THEN** its contact MUST have only the role contributor
+
+#### Scenario: Same name, different ORCIDs
+
+- **WHEN** two Persons share given and family name but have different ORCIDs
+- **THEN** they MUST stay two contacts
+
+### Requirement: Dates MUST be ISO 8601
+
+`GeneralSchemaOrgMapper` MUST pass `datePublished`, `dateModified` and `dateCreated` through
+`middleware.payload.iso_dates.iso_date` before writing them to an Investigation or Study date. ISO 8601 dates and
+date-times MUST pass unchanged. Java `Date.toString()` values with an unambiguous zone abbreviation MUST become an ISO
+date-time with that zone's offset, keeping the local day, and MUST log a warning. Other values MUST NOT be written as a
+date: they MUST log a warning and be kept as the Investigation Comment `Unparsed <term>`. Investigation and Study
+`PublicReleaseDate` (RO-Crate `datePublished`) is the first of `datePublished`, `dateModified`, `dateCreated` that is a
+date. `SubmissionDate` (RO-Crate `dateCreated`) is `dateCreated` only.
+
+#### Scenario: e!DAL Java date
+
+- **WHEN** `datePublished` is `Sat Jan 01 00:00:00 CET 2011`
+- **THEN** Investigation and Study `PublicReleaseDate` MUST be `2011-01-01T00:00:00+01:00`, `SubmissionDate` MUST be
+  empty and the RO-Crate root MUST NOT have `dateCreated` (not even an empty string)
+
+#### Scenario: ISO year
+
+- **WHEN** `datePublished` is `2011`
+- **THEN** `PublicReleaseDate` MUST be `2011` and no warning is logged
+
+#### Scenario: Not a date
+
+- **WHEN** `datePublished` is `sometime in 2011` and there is no other date
+- **THEN** `PublicReleaseDate` MUST be empty and the Comment `Unparsed datePublished` MUST hold `sometime in 2011`
+
+#### Scenario: Creation and publication dates
+
+- **WHEN** `datePublished` is `2011-01-01` and `dateCreated` is `2010-06-30`
+- **THEN** the RO-Crate root `datePublished` MUST be `2011-01-01` and `dateCreated` MUST be `2010-06-30`, also after the
+  API reads the RO-Crate and writes it with `ARC.Write`
+
+#### Scenario: No publication date
+
+- **WHEN** there is no `datePublished`, `dateModified` is `2014` and `dateCreated` is `2010`
+- **THEN** `PublicReleaseDate` MUST be `2014`
+
+### Requirement: Person affiliation MUST fall back to a flat address
+
+`GeneralSchemaOrgMapper` MUST set `Person.Affiliation` from `schema:affiliation` (Organization `name` or string). When
+there is no affiliation and `schema:address` is a plain string, the affiliation MUST be its first non-empty
+comma-separated segment, and `Person.Address` MUST keep the full string. A plain-string address made only of commas and
+whitespace MUST be absent. A `PostalAddress` MUST be flattened as
+`streetAddress, postalCode, addressLocality, addressRegion, addressCountry` (missing parts skipped) and MUST NOT give an
+affiliation.
+
+#### Scenario: e!DAL flat address
+
+- **WHEN** a Person has no affiliation and the address "Leibniz Institute of Plant Genetics and Crop Plant Research
+  (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+- **THEN** the affiliation MUST be "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK)" and the address
+  MUST be the full string
+
+#### Scenario: Explicit affiliation
+
+- **WHEN** a Person has an affiliation Organization named "Thünen Institute" and a flat address
+- **THEN** the affiliation MUST be "Thünen Institute"
+
+#### Scenario: Empty flat address
+
+- **WHEN** a Person's address is `" ,  , "`
+- **THEN** the Person MUST have neither an address nor an affiliation
+
+### Requirement: Source dateModified MUST reach the RO-Crate root
+
+`GeneralSchemaOrgMapper` MUST add the Investigation Comment `dateModified` (ARCtrl writes it as the RO-Crate root
+`dateModified`) from `schema:dateModified`, normalised by `middleware.payload.iso_dates.iso_date`. A value that is not a
+date MUST NOT produce the Comment. The harvest time MUST NOT be used.
+
+#### Scenario: Dataset with dateModified
+
+- **WHEN** a Dataset has `dateModified` "2019-03-04"
+- **THEN** the RO-Crate root `dateModified` MUST be "2019-03-04"
+
+#### Scenario: No dateModified
+
+- **WHEN** a Dataset has no `dateModified`
+- **THEN** the RO-Crate root MUST NOT have `dateModified`
+
+### Requirement: A bare-DOI @id MUST give the dataset DOI
+
+The `html_jsonld` and `jsonld` parsers MUST turn every JSON-LD `@id` that is a bare DOI (`10.<registrant>/<suffix>`)
+into `https://doi.org/<doi>` before parsing, so it is never resolved against the working directory.
+`GeneralSchemaOrgMapper` MUST then use that DOI as the dataset DOI (Publication DOI) when `schema:identifier` has none.
+The Investigation identifier MUST NOT change.
+
+#### Scenario: e!DAL landing page
+
+- **WHEN** the page `https://doi.org/10.5447/ipk/2011/0` has a Dataset with `"@id": "10.5447/ipk/2011/0"` and no
+  `schema:identifier`
+- **THEN** the RO-Crate MUST have a `PropertyValue` named `DOI` with value `10.5447/ipk/2011/0`, and the Investigation
+  identifier MUST stay `doi_org_10_5447_ipk_2011_0`

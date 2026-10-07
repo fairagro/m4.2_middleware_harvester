@@ -47,13 +47,13 @@ context is noted. Labelled nodes typically expose `prefLabel` (`skos:prefLabel`)
 | Regal Field                                               | Context / IRI (typical)              | Description                                                             | ARC Mapping                                                                                                                                |
 | --------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **`@id`**                                                 | JSON-LD subject (e.g. `frl:6483993`) | Stable Regal resource id                                                | `Investigation.Identifier` (slug from `@id`); landing URL `https://repository.publisso.de/resource/{@id}` as Assay `Output [URI]` fallback |
-| **`doi`**                                                 | `regal:doi`                          | DOI string (without resolver prefix)                                    | `Investigation.Publications` (Publication.DOI); preferred Assay `Output [URI]` as `https://doi.org/{doi}`                                  |
+| **`doi`**                                                 | `regal:doi`                          | DOI string; resolver prefixes are stripped (`normalize_doi`)            | `Investigation.Publications` (Publication.DOI); preferred Assay `Output [URI]` as `https://doi.org/{doi}`                                  |
 | **`itemID`**                                              | labelled node                        | OAI identifier (e.g. `oai:frl.publisso.de:frl:…`)                       | `Investigation` comment `OAI Identifier`                                                                                                   |
 | **`catalogId`**                                           | —                                    | Catalogue / cataloguing id                                              | `Investigation` comment `Catalog ID`                                                                                                       |
 | **`rdftype`**                                             | `rdf:type`                           | Publication type; ResearchData → `http://hbz-nrw.de/regal#ResearchData` | Gate: only map when ResearchData; else mapping error / skip                                                                                |
 | **`contentType`**                                         | `regal:contentType`                  | Object class (`researchData`, …)                                        | Same gate as `rdftype`; comment `Content Type` when present                                                                                |
 | **`prefLabel`**                                           | `skos:prefLabel`                     | Display label for the record                                            | Fallback for title if `title` missing                                                                                                      |
-| **`primaryTopic` / `isPrimaryTopicOf` / `isDescribedBy`** | FRBR/Regal links                     | Internal graph wiring                                                   | **No ARC mapping** (implementation detail)                                                                                                 |
+| **`primaryTopic` / `isPrimaryTopicOf` / `isDescribedBy`** | FRBR/Regal links                     | Internal graph wiring                                                   | **No ARC mapping** (implementation detail), except `isDescribedBy.modified` → `dateModified`                                               |
 | **`transformer`**                                         | —                                    | Available export transformers (`mets`, `mods`, …)                       | **No ARC mapping**                                                                                                                         |
 
 ### 2. Titles and description
@@ -67,36 +67,37 @@ context is noted. Labelled nodes typically expose `prefLabel` (`skos:prefLabel`)
 
 ### 3. Agents (creators, contributors, institutions)
 
-Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@id` is often an ORCID URI.
+Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@id` is often an ORCID URI. `creator` /
+`contributor` are `@list` values (one triple to an `rdf:List`); Contacts keep the list (source) order.
 
-| Regal Field            | Context / IRI (typical)         | Description                                             | ARC Mapping                                                                                                                                                                                           |
-| ---------------------- | ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`creator`**          | `dcterms:creator` (`@list`)     | Authors                                                 | `Investigation.Contacts` (`Person`, role **author**)                                                                                                                                                  |
-| **`contributor`**      | `dcterms:contributor` (`@list`) | Contributors                                            | `Investigation.Contacts` (`Person`, role **contributor**)                                                                                                                                             |
-| **`contributorOrder`** | `regal:contributorOrder`        | Ordered ORCID / agent id pipe-string (or related nodes) | Prefer to order Contacts when stable Literal/URI keys are present; else keep creator/contributor list order. **MUST NOT** be emitted as an Investigation Comment (never stringify blank-node labels). |
-| **`institution`**      | `dbo:institution`               | Issuing / collecting organisation (FRL Sammlung)        | `Person.Affiliation` on contacts when a single institution applies; else `Investigation` comment `Institution` (`prefLabel` + `@id`)                                                                  |
-| **`lastModifiedBy`**   | —                               | Last editor                                             | `Investigation` comment `Last Modified By` (optional)                                                                                                                                                 |
+| Regal Field            | Context / IRI (typical)                                 | Description                                      | ARC Mapping                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`creator`**          | `dcterms:creator` (`@list`)                             | Authors                                          | `Investigation.Contacts` (`Person`, role **author**)                                                                                         |
+| **`contributor`**      | `dcterms:contributor` (`@list`)                         | Contributors                                     | `Investigation.Contacts` (`Person`, role **contributor**)                                                                                    |
+| **`contributorOrder`** | `lv:contributorOrder` (`@list`; `regal:` also accepted) | Ordered ORCID / agent id pipe-string             | Not used: repeats the creator (then contributor) list order that Contacts already keep. **MUST NOT** be emitted as an Investigation Comment. |
+| **`institution`**      | `dbo:institution`                                       | Issuing / collecting organisation (FRL Sammlung) | `Person.Affiliation` on contacts when a single institution applies; else `Investigation` comment `Institution` (`prefLabel` + `@id`)         |
+| **`lastModifiedBy`**   | —                                                       | Last editor                                      | `Investigation` comment `Last Modified By` (optional)                                                                                        |
 
 **Person field rules:**
 
-| Person aspect            | Source                    | Rule                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LastName / FirstName** | `prefLabel`               | Split on first `", "`; leftover → FirstName. FirstName MUST be non-empty after trim. If there is no comma (entire label would be LastName only), do **not** emit a Person with empty FirstName: treat as an organization/label agent via Investigation comment (`Creator` / `Contributor`), unless the agent `@id` is an ORCID (person identity) — then mapping MUST fail closed. |
-| **ORCID / identifier**   | agent `@id`               | If ORCID URI, store as Person comment `ORCID` or equivalent identifier field supported by arctrl                                                                                                                                                                                                                                                                                  |
-| **Roles**                | field provenance          | creator → author; contributor → contributor (NCIT role terms when the shared role ontology is used elsewhere in the harvester)                                                                                                                                                                                                                                                    |
-| **Affiliation**          | `institution[].prefLabel` | Apply when exactly one institution, or the same institution is clearly shared. Institutions MUST NOT be mapped as Person contacts.                                                                                                                                                                                                                                                |
+| Person aspect            | Source                    | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LastName / FirstName** | `prefLabel`               | Split on first `", "`; leftover → FirstName. FirstName MUST be non-empty after trim. If there is no comma (entire label would be LastName only), do **not** emit a Person with empty FirstName: treat as an organization/label agent via Investigation comment (`Creator Organization` plus `Creator Organization URL` from `@id` / `Contributor`), unless the agent `@id` is an ORCID (person identity) — then mapping MUST fail closed. |
+| **ORCID / identifier**   | agent `@id`               | If ORCID URI, `Person.ORCID` (bare iD; RO-Crate Person `@id` `http://orcid.org/<iD>`). One contact per ORCID: an agent that is creator and contributor gets both roles                                                                                                                                                                                                                                                                    |
+| **Roles**                | field provenance          | creator → author; contributor → contributor (NCIT role terms when the shared role ontology is used elsewhere in the harvester)                                                                                                                                                                                                                                                                                                            |
+| **Affiliation**          | `institution[].prefLabel` | Apply when exactly one institution, or the same institution is clearly shared. Institutions MUST NOT be mapped as Person contacts.                                                                                                                                                                                                                                                                                                        |
 
 ### 4. Dates, access, and rights
 
-| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                |
-| --------------------- | ---------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
-| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.SubmissionDate` / Study submission date when parseable      |
-| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                   |
-| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                          |
-| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                    |
-| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                   |
-| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | Assay Annotation `Comment [License]`; also Investigation comment `License` |
-| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                           |
+| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                             |
+| --------------------- | ---------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.PublicReleaseDate`, `Study.PublicReleaseDate` (RO-Crate `datePublished`) |
+| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                                |
+| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                                       |
+| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                                 |
+| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                                |
+| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | Assay Annotation `Comment [License]`; also Investigation comment `License`              |
+| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                                        |
 
 ### 5. Subjects, classification, and techniques
 
@@ -105,7 +106,7 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 | **`subject`**    | `dcterms:subject`       | Subject headings            | Ontology-style Investigation comments `keyword [{@id or subject}]` = `prefLabel`, and/or **Data Collection** protocol parameter `Keywords` |
 | **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Same as keywords with TermSourceREF `DDC` / `https://www.oclc.org/en/dewey.html`                                                           |
 | **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                 |
-| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language` (`prefLabel` or `@id`)                                                                            |
+| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                |
 
 ### 6. Funding
 
@@ -145,9 +146,11 @@ Fields that appear on some FRL templates (e.g. `emi_measurement_techniques`, `li
 `emissions`, `ventilation_system`, `test_design`, `project_title`, `other`, …) are **not** part of the core mapping.
 
 **Rule:** If present, store each as an Investigation comment `Comment.create(<fieldName>, <value>)` so information is
-not lost, without inventing ARC protocol semantics. `<value>` MUST be a Literal, a URIRef string, or a `skos:prefLabel`.
-Unlabelled blank nodes MUST be omitted — never persist rdflib blank-node labels (`N`+32 hex / `_:…`). Promote a facet
-into a first-class protocol parameter only after an explicit mapping update to this document.
+not lost, without inventing ARC protocol semantics. Repeated values of one facet become one Comment with the distinct
+values semicolon-joined (ARCtrl cannot write an ARC with repeated Comment names; see `middleware.payload.arc_comments`).
+`<value>` MUST be a Literal, a URIRef string, or a `skos:prefLabel`. Unlabelled blank nodes MUST be omitted — never
+persist rdflib blank-node labels (`N`+32 hex / `_:…`). Promote a facet into a first-class protocol parameter only after
+an explicit mapping update to this document.
 
 ## Mapping Strategy Summary
 
@@ -156,7 +159,10 @@ into a first-class protocol parameter only after an explicit mapping update to t
 - **Identifier**: slug from Regal `@id` (required); fail mapping if neither `@id` nor `doi` exists
 - **Title**: `title[0]` (fallback `prefLabel`)
 - **Description**: joined `description` values
-- **SubmissionDate**: `issued` when parseable
+- **PublicReleaseDate**: `issued` (RO-Crate `datePublished`). Regal has no creation date, so `SubmissionDate` (RO-Crate
+  `dateCreated`) stays empty
+- **dateModified**: `isDescribedBy.modified` (when the repository object last changed; Regal has no other modification
+  date), as the Comment `dateModified`, which ARCtrl writes as the RO-Crate root `dateModified`
 - **Contacts**: creators + contributors (ordered)
 - **Publications**: DOI publication when `doi` present; plus associated publications when resolvable
 - **Comments**: alternative title, license, language, medium, access/publish scheme, copyright year, embargo,
@@ -202,7 +208,8 @@ One Regal ResearchData record = one Study.
   - **Output [URI]**: `https://doi.org/{doi}` if DOI present → else landing page
     `https://repository.publisso.de/resource/{@id}` → else raw `@id`
   - **Comment [License]**: license `@id` or label
-  - **Comment [Language]**: language prefLabel / `@id`
+  - **Comment [Language]**: ISO 639 code from the `id.loc.gov/vocabulary/iso639-2/<code>` `@id` (e.g. `eng`), else
+    prefLabel; codes are deduplicated and semicolon-joined
   - **Comment [Online Resource]**: semicolon-joined `hasPart` URLs
   - **Comment [Online Resource Name]**: semicolon-joined `hasPart` prefLabels (omit column if all empty)
   - **Comment [Institution]**: institution prefLabel(s) when useful on the assay row
@@ -214,6 +221,7 @@ See §3. Prefer ORCID `@id` preservation. Do not invent emails or affiliations R
 ### Publications
 
 - Primary: `doi` → `Publication` with Investigation title and author string derived from creator contacts
+  (`F. Last; F. Last`, no commas — the RO-Crate writer splits authors on `,`)
 - Secondary: `associatedPublication` URIs → Publication or Investigation comment with URI
 
 ## Special Cases and Limitations
@@ -241,7 +249,9 @@ comments.
 
 ### 5. License shape
 
-`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string.
+`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string. The same
+value sets the ARC licence (`ARC.License`, RO-Crate node `{"@id": "LICENSE", "text": …}`); without a licence the ARCtrl
+default "ALL RIGHTS RESERVED BY THE AUTHORS" stays. See `docs/schemaorg_mapping.md` for why the URL is not the `@id`.
 
 ### 6. Funding duplication
 
@@ -266,12 +276,13 @@ Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the 
 | `description`                     | `description`                               | Investigation/Study Description   |
 | `creator` / `contributor`         | `creator` / `contributor`                   | Contacts                          |
 | `sourceOrganization`              | `institution`                               | Affiliation / Institution comment |
-| `datePublished`                   | `issued`                                    | SubmissionDate                    |
+| `datePublished`                   | `issued`                                    | PublicReleaseDate                 |
+| `dateModified`                    | `isDescribedBy.modified`                    | dateModified Comment              |
 | `identifier` (DOI + frl-internal) | `doi`, `@id`                                | Publications + Output [URI]       |
 | `keywords`                        | `subject`, `ddc`                            | Keywords / Ontology comments      |
 | `measurementTechnique`            | `dataOrigin`                                | Data Collection parameter         |
 | `funder` / `funding`              | `fundingId`, `joinedFunding`, …             | Data Processing parameters        |
 | `distribution`                    | `hasPart`                                   | Assay Online Resource comments    |
-| `inLanguage`                      | `language`                                  | Language comment                  |
+| `inLanguage`                      | `language`                                  | Language comment (ISO 639 code)   |
 | `license`                         | `license`                                   | License comment                   |
 | `spatial`                         | `recordingCoordinates`, `recordingLocation` | Spatial Sampling protocol         |

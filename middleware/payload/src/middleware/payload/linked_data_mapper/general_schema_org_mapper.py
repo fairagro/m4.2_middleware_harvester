@@ -27,10 +27,14 @@ from arctrl import (  # type: ignore[import-untyped]
     Publication,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
+from arctrl.py.license import License  # type: ignore[import-untyped]
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Node
 
+from middleware.payload.arc_dates import date_modified_comment
+from middleware.payload.arc_license import license_from_value
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.iso_dates import iso_date
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
@@ -40,8 +44,15 @@ from middleware.payload.linked_data_mapper.stable_graph import (
 )
 from middleware.payload.mapper_config import MapperType
 from middleware.payload.mapping_context import MappingContext
-from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_contact,
+    add_creator_organization,
+    orcid_id,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 from middleware.payload.person_names import split_display_name
+from middleware.payload.placeholders import is_placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -128,12 +139,25 @@ class _SchemaOrgRun:
             identifier_plan=identifier_plan,
             title_fallback_source=title_fallback_source,
         )
-        study = self._map_study(subject, title=title)
+        study = self._map_study(
+            subject,
+            title=title,
+            release_date=investigation.PublicReleaseDate or None,
+            creation_date=investigation.SubmissionDate or None,
+        )
         investigation.AddStudy(study)
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
+        return ARC.from_arc_investigation(investigation, license=self._license(subject))
+
+    def _license(self, subject: Node) -> License | None:
+        """ARC licence from ``schema:license``: a CreativeWork's ``url`` wins over its label."""
+        for res in self.view(subject).schema_resources("license"):
+            url = res.schema_text("url")
+            if url:
+                return license_from_value(url, name=res.schema_text("name"))
+        return license_from_value(self.view(subject).schema_text("license"))
 
     def _resolve_dataset_title(self, subject: Node, context: MappingContext) -> tuple[str, str | None]:
         """Resolve a non-empty title, or fail closed (no ``Untitled`` fallback).
@@ -251,14 +275,24 @@ class _SchemaOrgRun:
         identifier = plan.investigation_id
 
         description = self.view(subject)["description"] or ""
-        submission_date = self.view(subject)["datePublished"] or self.view(subject)["dateModified"] or ""
+        # Release date (RO-Crate datePublished): datePublished, else dateModified, else dateCreated.
+        # Left as None, ARCtrl stamps the serialisation time instead (#407); "" would be written as an empty date.
+        dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified", "dateCreated")}
+        release_date = next((iso for iso, _ in dates.values() if iso), None)
 
         inv = ArcInvestigation.create(
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=submission_date,
+            submission_date=dates["dateCreated"][0],
+            public_release_date=release_date,
         )
+        for term, (iso, raw) in dates.items():
+            if raw and not iso:
+                inv.Comments.append(Comment.create(f"Unparsed {term}", raw))
+        modified = date_modified_comment(dates["dateModified"][0])
+        if modified:
+            inv.Comments.append(modified)
 
         self._add_contacts(inv, subject)
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
@@ -267,6 +301,18 @@ class _SchemaOrgRun:
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
         return inv
+
+    def _source_date(self, subject: Node, term: str) -> tuple[str | None, str | None]:
+        """``(iso, raw)`` for a Schema.org date term; non-ISO values are logged, never passed on raw."""
+        raw = (self.view(subject)[term] or "").strip() or None
+        iso = iso_date(raw)
+        if raw and iso != raw:
+            subject_id = self.view(subject).iri or "(blank node)"
+            if iso:
+                logger.warning("Schema.org %s %r of %s is not ISO 8601; normalised to %s", term, raw, subject_id, iso)
+            else:
+                logger.warning("Schema.org %s %r of %s is not a date; kept as Comment only", term, raw, subject_id)
+        return iso, raw
 
     @staticmethod
     def _add_alternate_identifier_comments(inv: ArcInvestigation, alternate_dois: tuple[str, ...]) -> None:
@@ -292,27 +338,15 @@ class _SchemaOrgRun:
             )
 
     def _add_contacts(self, inv: ArcInvestigation, subject: Node) -> None:
-        creators = sorted(
-            self.view(subject).schema_objects("creator"),
-            key=self._contact_sort_key,
-        )
-        for node in creators:
-            self._append_contact(inv, node, "author")
+        """Contacts from ``creator`` and ``author`` (role author), then ``contributor``.
 
-        authors = sorted(
-            self.view(subject).schema_objects("author"),
-            key=self._contact_sort_key,
-        )
-        for node in authors:
-            if not self._contact_exists(inv, node):
-                self._append_contact(inv, node, "author")
-
-        contributors = sorted(
-            self.view(subject).schema_objects("contributor"),
-            key=self._contact_sort_key,
-        )
-        for node in contributors:
-            self._append_contact(inv, node, "contributor")
+        One contact per person (same ORCID, else same given and family name): a person listed
+        again adds its role to the existing contact. e!DAL's ``author`` repeats the creators and
+        the contributors.
+        """
+        for term, role in (("creator", "author"), ("author", "author"), ("contributor", "contributor")):
+            for node in sorted(self.view(subject).schema_objects(term), key=self._contact_sort_key):
+                self._append_contact(inv, node, role)
         require_nonempty_person_given_names(inv)
 
     def _contact_sort_key(self, node: Node) -> tuple[str, str, str, tuple[int, str]]:
@@ -333,8 +367,7 @@ class _SchemaOrgRun:
         person = self._node_to_person(node)
         if person is None:
             return
-        person.Roles.append(OntologyAnnotation(name=role))
-        inv.Contacts.append(person)
+        add_contact(inv, person, role, match_name=True)
 
     def _append_organization_comment(self, inv: ArcInvestigation, node: Node, role: str) -> bool:
         """Append Organization comment(s). Return True if a comment was emitted."""
@@ -344,18 +377,42 @@ class _SchemaOrgRun:
                 org_name = str(node)
             else:
                 return False
+        org_url = self.view(node)["url"] or (str(node) if isinstance(node, URIRef) else None)
+        if role == "author":
+            add_creator_organization(inv, org_name, org_url)
+            return True
         comment_name = "Publisher" if role == "publisher" else role.capitalize()
         inv.Comments.append(Comment.create(comment_name, org_name))
-        org_url = self.view(node)["url"] or (str(node) if isinstance(node, URIRef) else None)
         if org_url and org_url != org_name:
             inv.Comments.append(Comment.create(f"{comment_name} URL", org_url))
         return True
 
-    def _contact_exists(self, inv: ArcInvestigation, node: Node) -> bool:
-        given, family = self._person_names(node)
-        if given is None:
-            return False
-        return any(c.FirstName == given and c.LastName == family for c in inv.Contacts)
+    def _person_orcid(self, node: Node) -> str | None:
+        """Bare ORCID iD of a Person, from its ``@id`` or its ``identifier``.
+
+        ``identifier`` may be an ORCID string or URL, or a ``PropertyValue`` whose ``value``
+        is an orcid.org URL or, with a ``propertyID`` naming ORCID, a bare iD.
+        """
+        if isinstance(node, Literal):
+            return None
+        view = self.view(node)
+        if orcid := orcid_id(view.iri):
+            return orcid
+        candidates: set[str] = set()
+        for obj in view.schema_objects("identifier"):
+            if isinstance(obj, Literal):
+                values = [str(obj)]
+            else:
+                ident = self.view(obj)
+                named_orcid = any("orcid" in pid.casefold() for pid in ident.schema_texts("propertyID"))
+                values = [ident.iri or ""] + [
+                    value
+                    for value in ident.schema_texts("value") + ident.schema_texts("url")
+                    # A bare iD needs a propertyID naming ORCID; orcid_id checks a URL's host itself.
+                    if named_orcid or value.strip().casefold().startswith(("http://", "https://"))
+                ]
+            candidates.update(orcid for value in values if (orcid := orcid_id(value)))
+        return min(candidates) if candidates else None
 
     def _person_names(self, node: Node) -> tuple[str | None, str]:
         """Return ``(given, family)`` or ``(None, ...)`` when given name would be empty."""
@@ -402,9 +459,10 @@ class _SchemaOrgRun:
                 raise ValueError(f"Person contact must have a non-empty given name (last_name={family!r})")
             return None
 
-        affiliation = self._extract_affiliation(node)
         address = self._extract_address(node)
+        affiliation = self._extract_affiliation(node) or self._affiliation_from_flat_address(node)
         arc_person = Person.create(
+            orcid=self._person_orcid(node),
             last_name=family,
             first_name=given,
             email=email,
@@ -423,35 +481,41 @@ class _SchemaOrgRun:
             return str(aff_node).strip() or None
         return self.view(aff_node)["name"]
 
+    def _affiliation_from_flat_address(self, node: Node) -> str | None:
+        """First comma-separated segment of a plain-string ``address``.
+
+        e!DAL gives no ``affiliation`` and writes the institute at the start of a flat
+        address ("Leibniz Institute … (IPK), Seeland OT Gatersleben, Corrensstraße 3, …").
+        A structured PostalAddress has no organisation, so it yields nothing.
+        """
+        addr_node = self.view(node).schema_object_node("address")
+        if not isinstance(addr_node, Literal):
+            return None
+        return next((part.strip() for part in str(addr_node).split(",") if part.strip()), None)
+
     def _extract_address(self, node: Node) -> str | None:
         addr_node = self.view(node).schema_object_node("address")
         if addr_node is None:
             return None
         if isinstance(addr_node, Literal):
-            return str(addr_node)
+            text = str(addr_node)
+            # e!DAL renders empty addresses as " ,  , ".
+            return text if text.replace(",", "").strip() else None
         parts = [
             self.view(addr_node)["streetAddress"],
             self.view(addr_node)["postalCode"],
+            self.view(addr_node)["addressLocality"],
+            self.view(addr_node)["addressRegion"],
             self.view(addr_node)["addressCountry"],
         ]
         return ", ".join(p for p in parts if p) or None
 
     def _add_publications(self, inv: ArcInvestigation, subject: Node, *, title: str, doi: str | None) -> None:
         if doi:
-            authors = [p for p in inv.Contacts if any(r.Name == "author" for r in p.Roles)]
-            author_strs: list[str] = []
-            for p in authors:
-                if p.FirstName and p.LastName:
-                    author_strs.append(f"{p.FirstName[0]}. {p.LastName}")
-                elif p.LastName:
-                    author_strs.append(p.LastName)
-                elif p.FirstName:
-                    author_strs.append(p.FirstName)
-
             inv.Publications.append(
                 Publication.create(
                     title=title,
-                    authors="; ".join(author_strs) if author_strs else None,
+                    authors=publication_authors(inv),
                     doi=doi,
                 )
             )
@@ -472,7 +536,7 @@ class _SchemaOrgRun:
             ("URL", "url"),
         ]:
             value = self.view(subject).schema_text(term)
-            if value:
+            if value and not is_placeholder(value):
                 inv.Comments.append(Comment.create(label, value))
 
         self._add_publisher_comment(inv, subject)
@@ -531,7 +595,7 @@ class _SchemaOrgRun:
                 return str(node)
         return None
 
-    def _map_study(self, subject: Node, *, title: str) -> ArcStudy:
+    def _map_study(self, subject: Node, *, title: str, release_date: str | None, creation_date: str | None) -> ArcStudy:
         identifier = self._study_assay_identifier(title)
         description = self.view(subject)["description"] or "Imported from Schema.org metadata"
 
@@ -539,7 +603,8 @@ class _SchemaOrgRun:
             identifier=identifier,
             title=title,
             description=description,
-            submission_date=self.view(subject)["datePublished"],
+            submission_date=creation_date,
+            public_release_date=release_date,
         )
 
         collection_table = self._create_data_collection_table(subject)
@@ -642,7 +707,7 @@ class _SchemaOrgRun:
         )
 
         license_val = self.view(subject)["license"]
-        if license_val:
+        if license_val and not is_placeholder(license_val):
             table.AddColumn(
                 CompositeHeader.comment("License"),
                 [CompositeCell.free_text(license_val)],
