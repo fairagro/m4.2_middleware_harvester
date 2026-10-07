@@ -152,3 +152,21 @@ async def test_jsonld_parser_accepts_inline_context() -> None:
     )
 
     assert (URIRef(_SUBJECT), DCTERMS.title, Literal("Dataset One")) in parsed.value
+
+
+@pytest.mark.asyncio
+async def test_jsonld_parser_turns_bare_doi_id_into_doi_iri() -> None:
+    payload = await JsonLdParser().parse(
+        JsonLdDiscoveryResult(
+            identifier="edal",
+            payload={"@context": "http://schema.org", "@id": "10.5447/ipk/2011/0", "@type": "Dataset", "name": "D"},
+        ),
+        client=None,
+        config=ParserConfig(type=ParserType.jsonld),
+    )
+
+    assert (
+        URIRef("https://doi.org/10.5447/ipk/2011/0"),
+        RDF.type,
+        URIRef("http://schema.org/Dataset"),
+    ) in payload.value

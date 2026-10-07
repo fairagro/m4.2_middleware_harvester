@@ -11,6 +11,7 @@ from rdflib import Graph
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult
 from middleware.parsing.errors import ParserError
+from middleware.parsing.jsonld_doi_ids import doi_ids_as_iris
 from middleware.parsing.jsonld_validation import SCHEMAORG_CONTEXTS
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
@@ -47,7 +48,7 @@ class JsonLdParser(PayloadParser):
             raise ValueError(f"Unsupported discovery result type: {type(discovery_result).__name__}")
         if not discovery_result.payload:
             raise ParserError(f"Missing JSON-LD payload for {discovery_result.identifier}")
-        document = _localize_schemaorg_context(discovery_result.payload)
+        document = doi_ids_as_iris(_localize_schemaorg_context(discovery_result.payload))
         if _has_remote_context(document):
             raise ParserError(f"Remote JSON-LD @context is not supported for {discovery_result.identifier}")
 

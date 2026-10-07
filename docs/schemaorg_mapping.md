@@ -88,10 +88,10 @@ contributors get the roles author and contributor.
 
 ### 3. Publications
 
-| Schema.org Field                 | Description                            | ARC Mapping                                                         |
-| -------------------------------- | -------------------------------------- | ------------------------------------------------------------------- |
-| **DOI from `schema:identifier`** | Canonical DOI (see Identifier Cascade) | `Investigation.Publications` (Publication with DOI, title, authors) |
-| **`schema:citation`**            | Citation text or DOI                   | `Investigation.Publications` (Publication with citation text)       |
+| Schema.org Field                                | Description                            | ARC Mapping                                                         |
+| ----------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------- |
+| **DOI from `schema:identifier` or a DOI `@id`** | Canonical DOI (see Identifier Cascade) | `Investigation.Publications` (Publication with DOI, title, authors) |
+| **`schema:citation`**                           | Citation text or DOI                   | `Investigation.Publications` (Publication with citation text)       |
 
 ### 4. Investigation Comments
 
@@ -187,7 +187,9 @@ collapse distinct Datasets onto one `Investigation.identifier`.
 - DOIs MUST appear in `Publication` and/or `Investigation` Comments; they MUST NOT become the primary identifier when a
   harvest-source identifier (1 or 2) is available.
 - All DOIs are extracted from `schema:identifier` (including `PropertyValue` nodes with `propertyID` containing "doi",
-  case-insensitive).
+  case-insensitive) and from the Dataset's own `@id` when it is a DOI. A bare-DOI `@id` (e!DAL:
+  `"@id": "10.5447/ipk/2011/0"`) is read as `https://doi.org/<doi>` by the JSON-LD parsers; JSON-LD would otherwise
+  treat it as a relative IRI and resolve it against the harvester's working directory.
 - The canonical DOI is the casefold lexicographic minimum among extracted DOIs.
 - Blank-node identifiers are never used (mapping error if no stable identifier found).
 
