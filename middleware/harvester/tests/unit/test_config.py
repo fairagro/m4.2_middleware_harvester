@@ -265,8 +265,7 @@ def test_resource_base_url_matching_linked_data_and_mapper_ok() -> None:
 
 def _minimal_generic() -> dict[str, object]:
     return {
-        "sitemap_url": "https://example.org/sitemap.xml",
-        "protocol_type": "xml",
+        "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
     }
 
 

@@ -187,11 +187,12 @@ async def test_dcat_ap_protocol_payload_has_no_remote_context() -> None:
     assert "@context" not in json.dumps(first.payload)
 
 
-def test_dcat_ap_flat_protocol_lift() -> None:
+def test_dcat_ap_nested_protocol() -> None:
     cfg = Config.model_validate({
-        "protocol_type": "dcat_ap",
-        "sitemap_url": _CATALOG_URL,
-        "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "dcat_ap": {"entry_url": _CATALOG_URL},
+        },
     })
     assert cfg.active_protocol_type is ProtocolType.dcat_ap
     assert cfg.effective_protocol.dcat_ap is not None
