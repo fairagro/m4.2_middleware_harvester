@@ -13,6 +13,7 @@ from rdflib import Graph
 from middleware.harvester.nice_http_client import NiceHttpClient
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
+from middleware.parsing.jsonld_doi_ids import doi_ids_as_iris
 from middleware.parsing.jsonld_validation import JsonLdContextError, validate_jsonld_context_data
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_type import ParserType
@@ -99,7 +100,7 @@ class HtmlJsonLdParser(PayloadParser):
                 validate_jsonld_context_data(parsed)
             except JsonLdContextError as exc:
                 raise ParserError(f"Unsupported @context in JSON-LD block at {url}: {exc}") from exc
-            normalized_blocks.append(json.dumps(parsed))
+            normalized_blocks.append(json.dumps(doi_ids_as_iris(parsed)))
 
         merged = Graph()
         for block in normalized_blocks:

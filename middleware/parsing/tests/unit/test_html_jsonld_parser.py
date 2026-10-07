@@ -7,10 +7,12 @@ the shim on top of it, not this parser).
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
+from rdflib import RDF, URIRef
 
 from middleware.harvester.nice_http_client import NiceHttpClient, NiceHttpClientConfig
 from middleware.parsing.discovery import JsonLdDiscoveryResult, UrlDiscoveryResult
@@ -19,6 +21,10 @@ from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
+from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.mapping_context import MappingContext
+
+SDO_DATASET = URIRef("http://schema.org/Dataset")
 
 PAGE_URL = "https://example.org/page"
 
@@ -43,6 +49,13 @@ NO_JSONLD_HTML = "<html><head><title>No JSON-LD here</title></head><body></body>
 
 BAD_JSON_HTML = """
 <html><head><script type="application/ld+json">{"@context": "https://schema.org/",</script></head></html>
+"""
+
+# e!DAL landing page (https://doi.org/10.5447/ipk/2011/0): the Dataset @id is a bare DOI.
+EDAL_HTML = """
+<html><head><script type="application/ld+json">
+{"@context": "http://schema.org", "@id": "10.5447/ipk/2011/0", "@type": "Dataset", "name": "e!DAL dataset"}
+</script></head></html>
 """
 
 FOREIGN_CONTEXT_HTML = """
@@ -154,3 +167,23 @@ async def test_graph_from_html_parses_inline_when_under_threshold() -> None:
 
     assert not to_thread_mock.called
     assert len(graph) > 0
+
+
+@pytest.mark.asyncio
+async def test_bare_doi_id_becomes_doi_iri_not_a_local_file_iri() -> None:
+    """Rdflib resolved ``10.5447/…`` against the working directory (``file:///app/10.5447/…``) (#416)."""
+    graph = await HtmlJsonLdParser().graph_from_html("https://doi.org/10.5447/ipk/2011/0", EDAL_HTML, 65536)
+
+    assert set(graph.subjects(RDF.type, SDO_DATASET)) == {URIRef("https://doi.org/10.5447/ipk/2011/0")}
+
+
+@pytest.mark.asyncio
+async def test_edal_dataset_doi_reaches_the_arc_as_typed_doi() -> None:
+    graph = await HtmlJsonLdParser().graph_from_html("https://doi.org/10.5447/ipk/2011/0", EDAL_HTML, 65536)
+    context = MappingContext(source_url="https://doi.org/10.5447/ipk/2011/0")
+    harvested = next(iter(GeneralSchemaOrgMapper().map_graph(graph, context)))
+
+    nodes = json.loads(harvested.arc_json)["@graph"]
+    dois = [n["value"] for n in nodes if n.get("@type") == "PropertyValue" and n.get("name") == "DOI"]
+    assert dois == ["10.5447/ipk/2011/0"]
+    assert harvested.identifier == "doi_org_10_5447_ipk_2011_0"  # ARC key unchanged
