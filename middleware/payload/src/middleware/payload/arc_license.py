@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 
 from arctrl.py.license import License  # type: ignore[import-untyped]
 
-from middleware.payload.placeholders import is_placeholder
+from middleware.payload.placeholders import PlaceholderConfig
 
 _URL_RE = re.compile(r"https?://[^\s()<>\"';,]+")
 # GeoNode licence text: "<name> (<identifier>): <description>", e.g.
@@ -52,15 +52,20 @@ def _license(text: str) -> License:
     return License("fulltext", text)
 
 
-def license_from_value(value: str | None, *, name: str | None = None) -> License | None:
+def license_from_value(
+    value: str | None,
+    *,
+    placeholders: PlaceholderConfig,
+    name: str | None = None,
+) -> License | None:
     """Return an ARC licence for a source value that is declared to be a licence.
 
     For schema.org ``license`` and Regal ``license``: the value (URL or text) becomes the
     licence content, as ``name (url)`` when a CreativeWork ``name`` accompanies a URL. Empty
-    values and placeholders (``None``, unexpanded ``$licenseURL``) return ``None``.
+    values and the RDI's ``placeholders`` (e.g. an unexpanded ``$licenseURL``) return ``None``.
     """
     text = (value or "").strip()
-    if not text or is_placeholder(text):
+    if not text or placeholders.matches(text):
         return None
     label = (name or "").strip()
     if label and label != text and _is_http_url(text):

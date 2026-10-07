@@ -19,11 +19,12 @@ from mapper_test_helpers import (
 
 from middleware.payload.linked_data_mapper import MappingContext
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 def test_schema_name_present_no_fallback_used() -> None:
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
     )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert title_source_comment_text(harvested.arc_json) is None
@@ -32,7 +33,9 @@ def test_schema_name_present_no_fallback_used() -> None:
 def test_headline_fallback_used_when_name_missing(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
         harvested = first_harvest(
-            GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_HEADLINE), NO_DISCOVERY)
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+                parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_HEADLINE), NO_DISCOVERY
+            )
         )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert title_source_comment_text(harvested.arc_json) == "headline"
@@ -46,7 +49,9 @@ def test_headline_fallback_used_when_name_missing(caplog: pytest.LogCaptureFixtu
 
 def test_alternative_headline_first_non_empty_used() -> None:
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE), NO_DISCOVERY)
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+            parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE), NO_DISCOVERY
+        )
     )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert title_source_comment_text(harvested.arc_json) == "alternativeHeadline"
@@ -62,7 +67,7 @@ def test_alternative_headline_picks_alphabetically_first_value() -> None:
     would then map to different titles in development and in production.
     """
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
             parse_jsonld(OPENAGRAR_MISSING_NAME_WITH_ALTERNATIVE_HEADLINE_OUT_OF_ALPHA_ORDER), NO_DISCOVERY
         )
     )
@@ -73,7 +78,7 @@ def test_alternative_headline_picks_alphabetically_first_value() -> None:
 def test_html_title_fallback_used_when_context_supplies_it() -> None:
     context = MappingContext(html_title=lambda: "Citation Title From Page")
     harvested = first_harvest(
-        GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_MISSING_NAME_NO_FALLBACK), context)
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_MISSING_NAME_NO_FALLBACK), context)
     )
     assert root_title(harvested.arc_json) == "Citation Title From Page"
     assert title_source_comment_text(harvested.arc_json) == "html_title"
@@ -88,11 +93,17 @@ def test_html_title_provider_not_called_when_name_present() -> None:
         return "Should never be used"
 
     context = MappingContext(html_title=provider)
-    harvested = first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), context))
+    harvested = first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), context)
+    )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert calls == 0
 
 
 def test_no_fallback_available_fails_closed_without_untitled() -> None:
     with pytest.raises(ValueError, match="no usable title"):
-        list(GeneralSchemaOrgMapper().map_graph(parse_jsonld(OPENAGRAR_MISSING_NAME_NO_FALLBACK), NO_DISCOVERY))
+        list(
+            GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(
+                parse_jsonld(OPENAGRAR_MISSING_NAME_NO_FALLBACK), NO_DISCOVERY
+            )
+        )

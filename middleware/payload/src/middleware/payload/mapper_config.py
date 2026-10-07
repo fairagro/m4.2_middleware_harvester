@@ -5,6 +5,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
+from middleware.payload.placeholders import PlaceholderConfig
+
 
 class MapperType(StrEnum):
     """Registered vocabulary→ARC mapper types (shared DataMapper registry keys)."""
@@ -49,6 +51,11 @@ class MapperConfig(BaseModel):
             description="Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers.",
         ),
     ] = None
+
+    placeholders: Annotated[
+        PlaceholderConfig,
+        Field(description="Placeholder text this RDI writes instead of leaving a field empty; none by default."),
+    ] = PlaceholderConfig()
 
     @field_validator("resource_base_url", "catalog_url", mode="before")
     @classmethod

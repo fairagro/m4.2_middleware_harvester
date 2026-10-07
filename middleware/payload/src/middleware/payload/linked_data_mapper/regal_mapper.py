@@ -45,6 +45,7 @@ from middleware.payload.person_contacts import (
     publication_authors,
     require_nonempty_person_given_names,
 )
+from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -106,9 +107,15 @@ class RegalMapper(LinkedDataMapper):
     ``_RegalRun``); Regal ARC policy stays here.
     """
 
-    def __init__(self, resource_base_url: str) -> None:
+    def __init__(self, resource_base_url: str, placeholders: PlaceholderConfig) -> None:
         """Create a mapper that expands/strips Regal ids with ``resource_base_url``."""
         self._resource_base_url = resource_base_url.rstrip("/") + "/"
+        self._placeholders = placeholders
+
+    @property
+    def placeholders(self) -> PlaceholderConfig:
+        """The RDI's placeholders (``mapper.placeholders``), treated as absent."""
+        return self._placeholders
 
     @classmethod
     @override
@@ -119,7 +126,7 @@ class RegalMapper(LinkedDataMapper):
         )
         if base is None:
             raise ValueError("Regal mapper requires resource_base_url on mapper config or a derived fallback")
-        return cls(base)
+        return cls(base, config.placeholders)
 
     @override
     def _stable_wrap(self, graph: Graph) -> StableGraph:
@@ -172,7 +179,10 @@ class _RegalRun:
         assay = self._map_assay(subject, investigation.Identifier, regal_id=regal_id, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation, license=license_from_value(self._license_value(subject)))
+        return ARC.from_arc_investigation(
+            investigation,
+            license=license_from_value(self._license_value(subject), placeholders=self.mapper.placeholders),
+        )
 
     def _map_investigation(
         self,

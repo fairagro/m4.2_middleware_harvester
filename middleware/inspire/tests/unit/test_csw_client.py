@@ -12,13 +12,14 @@ from csw_client_helpers import _make_csw_config, _minimal_get_records_xml
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
+from middleware.payload.placeholders import PlaceholderConfig
 
 _expected_record_count = 42
 
 
 def test_get_record_url_appends_query_parameters() -> None:
     config = _make_csw_config(csw_url="https://example.com/csw?foo=bar")
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     url = client.get_record_url("record-123")
 
@@ -28,7 +29,7 @@ def test_get_record_url_appends_query_parameters() -> None:
 
 def test_get_record_url_handles_base_url_without_query() -> None:
     config = _make_csw_config(csw_url="https://example.com/csw")
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     url = client.get_record_url("record-123")
 
@@ -39,7 +40,7 @@ def test_get_record_url_handles_base_url_without_query() -> None:
 def test_connect_logs_cs_title_on_success(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO)
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
     fake_csw.identification = MagicMock(title="Test CSW")
 
@@ -57,7 +58,7 @@ def test_get_record_count_parses_list_matches() -> None:
         timeout=5,
         chunk_size=10,
     )
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     def getrecords2(**_kwargs: object) -> None:
@@ -73,7 +74,7 @@ def test_get_record_count_parses_list_matches() -> None:
 
 def test_get_record_count_uses_xml_query() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     def getrecords2(**_kwargs: object) -> None:
@@ -90,7 +91,7 @@ def test_get_record_count_uses_xml_query() -> None:
 
 def test_get_record_count_uses_xml_query_with_encoding_declaration() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     def getrecords2(**kwargs: object) -> None:
@@ -116,7 +117,7 @@ def test_config_default_csw_thread_pool_size() -> None:
 @pytest.mark.asyncio
 async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
         fake_executor = MagicMock()
@@ -131,7 +132,7 @@ async def test_csw_client_executor_is_created_and_shutdown_in_context_manager() 
 @pytest.mark.asyncio
 async def test_csw_client_executor_shutdown_on_del_without_warning() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     with patch("middleware.inspire.csw_client.ThreadPoolExecutor") as executor_factory:
         fake_executor = MagicMock()
@@ -151,7 +152,7 @@ async def test_csw_client_executor_shutdown_on_del_without_warning() -> None:
 
 def test_connect_raises_csw_connection_error_on_failure() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     with (
         patch("middleware.inspire.csw_client.CatalogueServiceWeb", side_effect=OSError("connection failed")),
@@ -162,7 +163,7 @@ def test_connect_raises_csw_connection_error_on_failure() -> None:
 
 def test_connect_forwards_user_agent_header() -> None:
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, user_agent="MyAgent")
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
@@ -173,7 +174,7 @@ def test_connect_forwards_user_agent_header() -> None:
 
 def test_connect_forwards_default_verify_ssl() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
@@ -186,7 +187,7 @@ def test_connect_forwards_default_verify_ssl() -> None:
 def test_connect_forwards_verify_ssl_false(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.WARNING)
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, verify_ssl=False)
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
@@ -202,7 +203,7 @@ def test_connect_forwards_verify_ssl_ca_path(caplog: pytest.LogCaptureFixture, t
     ca_path = tmp_path / "custom-ca.pem"
     ca_path.write_text("dummy-ca\n", encoding="utf-8")
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, verify_ssl=str(ca_path))
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     fake_csw = MagicMock()
 
     with patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw) as mock_factory:
@@ -216,7 +217,7 @@ def test_connect_forwards_verify_ssl_ca_path(caplog: pytest.LogCaptureFixture, t
 @pytest.mark.asyncio
 async def test_get_record_count_async_retries_on_oserror() -> None:
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=1)
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     expected_count = 7
     expected_calls = 2
@@ -238,7 +239,7 @@ async def test_get_record_count_async_retries_on_oserror() -> None:
 @pytest.mark.asyncio
 async def test_get_record_count_async_does_not_retry_value_error() -> None:
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=2)
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     with (
         patch.object(CSWClient, "get_record_count", side_effect=ValueError("bad query")) as mock_count,
@@ -256,7 +257,7 @@ async def test_get_record_count_async_does_not_retry_value_error() -> None:
 async def test_get_record_count_async_does_not_retry_http_404() -> None:
     """HTTP 4xx errors must not be retried even though requests.exceptions.HTTPError is an OSError subclass."""
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=3)
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     fake_response = MagicMock()
     fake_response.status_code = 404
@@ -276,7 +277,7 @@ async def test_get_record_count_async_does_not_retry_http_404() -> None:
 async def test_get_record_count_async_retries_http_503() -> None:
     """HTTP 5xx errors are OSErrors without a 4xx status code, so they should be retried."""
     config = Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, retry_attempts=1)
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
 
     fake_response = MagicMock()
     fake_response.status_code = 503
@@ -309,7 +310,7 @@ async def test_get_records_async_retries_on_oserror_in_cql_path() -> None:
         chunk_size=10,
         retry_attempts=1,
     )
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     object.__setattr__(client, "_csw", MagicMock())
     side_effect: list[OSError | list[str]] = [OSError("transient"), ["record1"]]
 
@@ -336,7 +337,7 @@ async def test_get_records_async_uses_run_in_executor_for_cql_path() -> None:
         timeout=5,
         chunk_size=10,
     )
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     object.__setattr__(client, "_csw", MagicMock())
 
     fake_loop = MagicMock()
@@ -358,7 +359,7 @@ async def test_get_records_async_uses_run_in_executor_for_cql_path() -> None:
 @pytest.mark.asyncio
 async def test_get_records_async_uses_run_in_executor_for_xml_path() -> None:
     config = _make_csw_config()
-    client = CSWClient(config)
+    client = CSWClient(config, PlaceholderConfig())
     object.__setattr__(client, "_csw", MagicMock())
 
     fake_loop = MagicMock()

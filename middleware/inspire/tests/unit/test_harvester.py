@@ -11,6 +11,7 @@ from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.payload.inspire.models import InspireRecord
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 @pytest.fixture
@@ -20,7 +21,7 @@ def mock_csw_cls() -> Iterator[MagicMock]:
 
 
 def test_connect(mock_csw_cls: MagicMock) -> None:
-    client = CSWClient(Config(csw_url="http://example.com/csw"))
+    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
     client.connect()
     assert mock_csw_cls.call_count == 1
     assert mock_csw_cls.call_args.kwargs["timeout"] == 30
@@ -61,7 +62,7 @@ def test_get_records(mock_csw_cls: MagicMock) -> None:
     mock_csw_instance.records = {"uuid-123": mock_record}
     mock_csw_instance.results = {"matches": 1}
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"))
+    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
     records = list(client.get_records())
 
     assert len(records) == 1
@@ -99,7 +100,7 @@ def test_get_records_xml(mock_csw_cls: MagicMock) -> None:
     mock_csw_instance.records = {"uuid-xml": mock_record}
     mock_csw_instance.results = {"matches": 1, "returned": 1, "nextrecord": 0}
 
-    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=50))
+    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=50), PlaceholderConfig())
     xml_query = (
         '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
         'service="CSW" version="2.0.2" resultType="results" '

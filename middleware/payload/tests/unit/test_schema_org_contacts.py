@@ -10,6 +10,7 @@ from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import NO_DISCOVERY, first_harvest, parse_jsonld
 
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.placeholders import PlaceholderConfig
 
 COLMSEE = "0000-0003-4387-4923"
 LANGE = "0000-0002-4316-078X"
@@ -42,7 +43,9 @@ def _edal_person(given: str, family: str, orcid: str) -> dict[str, Any]:
 
 
 def _map(payload: str) -> str:
-    return first_harvest(GeneralSchemaOrgMapper().map_graph(parse_jsonld(payload), NO_DISCOVERY)).arc_json
+    return first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY)
+    ).arc_json
 
 
 def _contacts(arc_json: str) -> list[tuple[str, str | None, list[str]]]:
