@@ -75,8 +75,6 @@ repositories:
       type: jsonld
     mapper:
       type: ckanext_dcat
-      catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
-      catalog_url: "https://agrihub.gis.lrg.tum.de"
 
   # PlabiPD (fairagro/m4_rdi_portfolio#7) -- schema.org Dataset dump describing published plant
   # genomes (via usadellab/pubplant2schemaorg), via the generic plugin:
