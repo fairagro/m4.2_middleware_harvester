@@ -228,18 +228,21 @@ Shutdown MUST NOT leave unhandled exceptions on the asyncio event loop.
 ### Requirement: Coexist with generic plugin during incremental migration
 
 The system SHALL keep the `linked_data` plugin key and its Sitemap/Dataset registries valid while equivalent sources
-migrate to `generic`. Operators MAY point a repository at `generic` with a protocol/parser pair that preserves the prior
-harvest outcomes for that source.
+migrate to `generic`. The `linked_data` plugin key is **deprecated**: repository configuration that still uses it MUST
+emit a `logger.warning` at config load (see harvester-configuration). Operators SHOULD point a repository at `generic`
+with a protocol/parser pair that preserves the prior harvest outcomes for that source. A later breaking change MAY
+remove the plugin key and shims after operators migrate.
 
 #### Scenario: Unmigrated linked_data repositories keep working
 
 - **WHEN** a repository still uses `linked_data` after the generic package lands
-- **THEN** harvesting continues to use LinkedDataPlugin without requiring an immediate config rewrite
+- **THEN** harvesting continues to use LinkedDataPlugin without requiring an immediate config rewrite, and config load
+  emits the linked_data plugin-key deprecation warning
 
 #### Scenario: First migrated pair xml + html_jsonld via generic
 
 - **WHEN** a repository that previously used linked_data xml sitemap + html_jsonld is reconfigured to `generic` with the
-  corresponding `protocol_type`, a sibling `parser.type`, and the same `mapper`
+  corresponding nested `protocol`, a sibling `parser.type`, and the same `mapper`
 - **THEN** harvest yields remain observationally equivalent for successful records (same PayloadKind path into the
   shared DataMapper)
 

@@ -187,6 +187,8 @@ Before generating or modifying code, read the relevant OpenSpec domains under `o
   OWSLib calls; `csw_thread_pool_size` config field.
 - **[`openspec/specs/csw-xml-hardening/`](openspec/specs/csw-xml-hardening/)** — Explicit hardened lxml parser installed
   as the process default (no entity expansion, DTD loading or network retrieval).
+- **[`openspec/specs/inspire-value-bounds/`](openspec/specs/inspire-value-bounds/)** — Configurable validation of
+  harvested CSW values on `InspireRecord` (length/list caps, URL schemes, codelists); violating records fail.
 - **[`openspec/specs/inspire-to-arc-mapping/`](openspec/specs/inspire-to-arc-mapping/)** — Rules transforming
   InspireRecord to ArcInvestigation/Study/Assay/Protocols.
 - **[`openspec/specs/inspire-workflow-execution/`](openspec/specs/inspire-workflow-execution/)** — The INSPIRE plugin

@@ -58,6 +58,11 @@ _LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
     "(with sibling parser/mapper) instead. Support for the linked_data shim will be removed "
     "in a future release."
 )
+_LEGACY_LINKED_DATA_PLUGIN_MSG = (
+    "linked_data: plugin key is deprecated; use generic: with nested protocol: and sibling "
+    "parser:/mapper: instead (see docs/linked_data_to_generic.md). Support for linked_data "
+    "will be removed in a future release."
+)
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
     "inspire without a sibling mapper: block is deprecated; "
@@ -76,7 +81,8 @@ class RepositoryConfig(BaseModel):
     sibling ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
     ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
     ``mapper.type``. Deprecated ``linked_data.sitemap_type: mycore_solr`` emits a
-    ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``.
+    ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``. The
+    ``linked_data`` plugin key itself is deprecated in favour of ``generic``.
     """
 
     rdi: Annotated[
@@ -89,7 +95,13 @@ class RepositoryConfig(BaseModel):
     ] = None
     linked_data: Annotated[
         LinkedDataConfig | None,
-        Field(description="Linked Data harvesting plugin configuration"),
+        Field(
+            description=(
+                "Deprecated. Prefer generic: with nested protocol: and sibling parser:/mapper: "
+                "(see docs/linked_data_to_generic.md)."
+            ),
+            deprecated=True,
+        ),
     ] = None
     generic: Annotated[
         GenericConfig | None,
@@ -113,12 +125,16 @@ class RepositoryConfig(BaseModel):
         Field(description="Shared PayloadParser selection (required for generic and oai_pmh)."),
     ] = None
 
+    def _plugin_attr(self, name: str) -> object | None:
+        """Read a plugin field via ``__dict__`` (avoids ``Field(deprecated=True)`` access warnings)."""
+        return self.__dict__.get(name)
+
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
         """Ensure exactly one plugin key is set (``mapper`` / ``parser`` are not plugins)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
         plugin_fields = [name for name in all_field_names if name not in _NON_PLUGIN_FIELDS]
-        set_fields = [f for f in plugin_fields if getattr(self, f) is not None]
+        set_fields = [f for f in plugin_fields if self._plugin_attr(f) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self
@@ -126,11 +142,12 @@ class RepositoryConfig(BaseModel):
     @model_validator(mode="after")
     def lift_legacy_payload_type(self) -> Self:
         """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
-        if self.linked_data is None:
+        linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
+        if linked is None:
             return self
         # Read via __dict__ to avoid Pydantic's DeprecationWarning on field access;
         # operator-facing signal is logger.warning below.
-        legacy_type = self.linked_data.__dict__.get("payload_type")
+        legacy_type = linked.__dict__.get("payload_type")
         if legacy_type is None:
             return self
 
@@ -145,11 +162,20 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def warn_deprecated_linked_data_plugin(self) -> Self:
+        """Warn when operators still use the ``linked_data`` plugin key."""
+        if self._plugin_attr("linked_data") is None:
+            return self
+        logger.warning(_LEGACY_LINKED_DATA_PLUGIN_MSG)
+        return self
+
+    @model_validator(mode="after")
     def warn_deprecated_linked_data_mycore_solr(self) -> Self:
         """Warn when operators still use linked_data ``sitemap_type: mycore_solr``."""
-        if self.linked_data is None:
+        linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
+        if linked is None:
             return self
-        if self.linked_data.sitemap_type is not SitemapType.mycore_solr:
+        if linked.sitemap_type is not SitemapType.mycore_solr:
             return self
         logger.warning(_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG)
         return self
@@ -157,7 +183,8 @@ class RepositoryConfig(BaseModel):
     @model_validator(mode="after")
     def validate_mapper_for_linked_data(self) -> Self:
         """Require and validate ``mapper`` for linked_data repositories."""
-        if self.linked_data is None:
+        linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
+        if linked is None:
             return self
         if self.mapper is None:
             raise ValueError("linked_data repositories require a sibling mapper: block with type")
@@ -172,10 +199,10 @@ class RepositoryConfig(BaseModel):
 
         # Fail closed when both blocks set an explicit base and they disagree —
         # dataset parsing uses linked_data; RegalMapper prefers mapper.
-        linked_base = self.linked_data.resource_base_url
+        linked_base = linked.resource_base_url
         mapper_base = self.mapper.normalize_resource_base_url()
         if linked_base is not None and linked_base.strip() and mapper_base is not None:
-            normalized_linked = self.linked_data.effective_resource_base_url
+            normalized_linked = linked.effective_resource_base_url
             if normalized_linked != mapper_base:
                 raise ValueError(
                     f"linked_data.resource_base_url {normalized_linked!r} conflicts with "
@@ -278,12 +305,12 @@ class RepositoryConfig(BaseModel):
     def plugin_type(self) -> str:
         """The active plugin type name (derived dynamically from model_fields)."""
         all_field_names: list[str] = list(self.__class__.model_fields)
-        return next(f for f in all_field_names if f not in _NON_PLUGIN_FIELDS and getattr(self, f) is not None)
+        return next(f for f in all_field_names if f not in _NON_PLUGIN_FIELDS and self._plugin_attr(f) is not None)
 
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        return cast(PluginConfig, getattr(self, self.plugin_type))
+        return cast(PluginConfig, self._plugin_attr(self.plugin_type))
 
     @property
     def source_url(self) -> str | None:

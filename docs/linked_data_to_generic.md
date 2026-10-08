@@ -1,7 +1,8 @@
 # Migrating `linked_data:` repositories to `generic:`
 
 Operator YAML and Helm values should prefer the `generic:` plugin when an equivalent Protocol + PayloadParser pair
-exists. `linked_data:` remains supported as a temporary shim (some sitemap types emit deprecation warnings).
+exists. The `linked_data:` plugin key is **deprecated** (config load emits a `logger.warning`); it remains a temporary
+shim until a later hard cut. Nested legacy fields (e.g. `sitemap_type: mycore_solr`) may emit additional warnings.
 
 ## Field mapping
 
@@ -44,16 +45,27 @@ DCAT-AP payloads without a remote `@context` can leave it unset (you will still 
 
 ## Regal / PUBLISSO
 
-`RegalFindProtocol` is available under `generic`. Prefer:
+`RegalFindProtocol` is available under `generic`. In-repo examples (`dev_environment/config.all-rdis.yaml`,
+`helm/harvester/values.yaml`) use:
 
 ```yaml
-parser:
-  type: jsonld
-  allowed_context_url: "https://frl.publisso.de/context.json"
+- rdi: "publisso"
+  generic:
+    protocol:
+      http:
+        respect_robots_txt: false
+      regal_find:
+        entry_url: "https://frl.publisso.de/find"
+    resource_base_url: "https://repository.publisso.de/resource/"
+  parser:
+    type: jsonld
+    allowed_context_url: "https://frl.publisso.de/context.json"
+  mapper:
+    type: regal_general
 ```
 
-In-repo Publisso examples may still use `linked_data` + `regal_jsonld` until operators flip them. Prefer pinning
-`allowed_context_url` on the `jsonld` parser; omitting it still works (config-load warning; remotes still fetched).
+Prefer pinning `allowed_context_url` on the `jsonld` parser; omitting it still works (config-load warning; remotes still
+fetched).
 
 ## Out-of-repo configs
 
