@@ -1,6 +1,7 @@
 # inspire-value-bounds Specification
 
 ## Purpose
+
 Validates harvested INSPIRE CSW/ISO-19139 values on the `InspireRecord` model so a hostile or broken endpoint cannot
 inject unbounded strings, unbounded lists, disallowed URL schemes or non-conformant codelist values into an ARC. Limits
 are configurable; a violating record is reported as failed, never silently altered. Plausibility of conformant values
