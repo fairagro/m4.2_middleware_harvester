@@ -52,12 +52,20 @@ def test_protocol_rejects_zero_or_two_type_keys() -> None:
 
 
 def test_flat_protocol_fields_rejected() -> None:
-    with pytest.raises(ValidationError, match="requires nested protocol"):
+    with pytest.raises(ValidationError, match="flat protocol fields were removed"):
         Config.model_validate({
             "protocol_type": "mycore_solr",
             "sitemap_url": "https://example.org/servlets/solr/select",
             "page_size": 25,
             "http": {"respect_robots_txt": False},
+        })
+
+
+def test_flat_protocol_keys_rejected_even_with_nested_protocol() -> None:
+    with pytest.raises(ValidationError, match="protocol_type"):
+        Config.model_validate({
+            "protocol_type": "xml",
+            "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
         })
 
 
