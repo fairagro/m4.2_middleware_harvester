@@ -16,8 +16,8 @@
       `logger.warning`; error when both are set and differ; verify with `caplog` unit tests (lift, conflict, no warning
       when unset, linked-data repos untouched)
 - [x] 2.2 Move in-repo INSPIRE examples (`helm/harvester/values.yaml`, `dev_environment`) to `inspire.placeholders`
-- [ ] 2.3 Open a follow-up issue to reject `mapper.placeholders` on `inspire`, with the m4.2_infrastructure migration as
-      prerequisite
+- [x] 2.3 Open a follow-up issue (#477) to reject `mapper.placeholders` on `inspire`, with the m4.2_infrastructure
+      migration as prerequisite
 
 ## 3. LinkedDataMapper placeholders
 
