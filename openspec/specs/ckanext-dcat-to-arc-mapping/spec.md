@@ -28,8 +28,8 @@ unset).
 
 #### Scenario: Composes with the jsonld parser
 
-- **WHEN** a generic repository uses nested `protocol.dcat_ap.entry_url` (or deprecated flat `protocol_type: dcat_ap` +
-  `sitemap_url`), `parser.type: jsonld` and `mapper.type: ckanext_dcat`
+- **WHEN** a generic repository uses nested `protocol.dcat_ap.entry_url`, `parser.type: jsonld` and
+  `mapper.type: ckanext_dcat`
 - **THEN** config validation succeeds and each discovered dataset yields a `HarvestedArc`
 
 ### Requirement: Map dcat:Dataset to ARC Investigation, Study and Assay

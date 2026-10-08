@@ -144,13 +144,13 @@ async def test_regal_find_protocol_expected_count_is_unknown() -> None:
 
 
 @pytest.mark.asyncio
-async def test_regal_find_flat_lift_still_resolves() -> None:
-    """Deprecated flat protocol_type + sitemap_url still constructs RegalFindProtocol."""
+async def test_regal_find_nested_protocol_resolves() -> None:
+    """Nested protocol.regal_find constructs RegalFindProtocol."""
     config = Config.model_validate({
-        "protocol_type": "regal_find",
-        "sitemap_url": _FIND_URL,
-        "page_size": 2,
-        "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+        "protocol": {
+            "http": {"respect_robots_txt": False, "max_requests_per_second": None},
+            "regal_find": {"entry_url": _FIND_URL, "page_size": 2},
+        },
     })
     async with NiceHttpClient(config.effective_protocol.http) as client:
         protocol = GenericPlugin.create_protocol(config, client=client)
