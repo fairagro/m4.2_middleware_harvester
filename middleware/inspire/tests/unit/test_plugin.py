@@ -22,7 +22,7 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 
 def _mapper_config() -> MapperConfig:
-    return MapperConfig(type=MapperType.inspire_general)
+    return MapperConfig.model_validate({"inspire_general": {}})
 
 
 def _plugin_with_mock_mapper(mock_config: Config, mock_mapper: MagicMock) -> InspirePlugin:
@@ -70,7 +70,7 @@ def test_create_mapper_rejects_incompatible_context_type() -> None:
     DataMapper.registry[key] = _OtherMapper
     try:
         with pytest.raises(TypeError, match="expects context _OtherContext"):
-            InspirePlugin.create_mapper(MapperConfig(type=key))
+            InspirePlugin.create_mapper(MapperConfig.model_validate({MapperType(key).value: {}}))
     finally:
         DataMapper.registry[key] = previous
 

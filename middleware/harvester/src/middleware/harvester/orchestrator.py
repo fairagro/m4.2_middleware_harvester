@@ -38,12 +38,10 @@ def _create_plugin(repo: RepositoryConfig) -> Plugin:
     """Instantiate the plugin for ``repo``, passing mapper/parser config when required."""
     factory = PLUGIN_FACTORIES[repo.plugin_type]
     if repo.plugin_type in {"generic", "oai_pmh"}:
-        if repo.mapper is None or repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
-            raise ValueError(f"{repo.plugin_type} repositories require mapper and parser config")
+        if repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
+            raise ValueError(f"{repo.plugin_type} repositories require parser config")
         return factory(repo.plugin_config, repo.mapper, repo.parser)
     if repo.plugin_type in {"linked_data", "inspire"}:
-        if repo.mapper is None:  # pragma: no cover — guarded by RepositoryConfig validation
-            raise ValueError(f"{repo.plugin_type} repositories require mapper config")
         return factory(repo.plugin_config, repo.mapper)
     return factory(repo.plugin_config)
 

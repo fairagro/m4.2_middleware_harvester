@@ -127,6 +127,23 @@ def test_linked_data_repository_accepts_schema_org_mapper() -> None:
     assert repo.mapper.type == "schema_org_general"
 
 
+def test_repository_accepts_nested_mapper_and_parser_type_as_key() -> None:
+    repo = RepositoryConfig.model_validate({
+        "rdi": "g",
+        "generic": {
+            "protocol": {
+                "xml": {"entry_url": "https://example.org/sitemap.xml"},
+            },
+        },
+        "parser": {"html_jsonld": {"allowed_context_url": "https://schema.org/"}},
+        "mapper": {"schema_org_general": {}},
+    })
+    assert repo.mapper is not None
+    assert repo.mapper.type == "schema_org_general"
+    assert repo.parser is not None
+    assert repo.parser.type == "html_jsonld"
+
+
 def test_linked_data_repository_rejects_unknown_mapper_type() -> None:
     with pytest.raises(ValidationError):
         RepositoryConfig.model_validate({

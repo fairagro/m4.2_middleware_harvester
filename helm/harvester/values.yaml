@@ -266,14 +266,14 @@ config:
         # -- Maximum retry delay cap in seconds (prevents runaway backoff).
         retry_max_delay: 600.0
       mapper:
-        # -- Required for inspire: shared ISO→ARC DataMapper.
-        type: inspire_general
+        # -- Required for inspire: shared ISO→ARC DataMapper (type-as-key child).
         # -- Placeholder text this RDI writes instead of leaving an optional field
         # -- empty; matching values are treated as absent. Empty by default.
         # -- unrendered_templates: also treat $var / ${var} / {{var}} as placeholders.
         placeholders:
           values: []
           unrendered_templates: false
+        inspire_general: {}
 
     # -------------------------------------------------------------------------
     # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
@@ -305,15 +305,15 @@ config:
         # -- null defaults to protocol.http.max_connections.
         worker_tasks: null
       parser:
-        type: html_jsonld
         # -- Pin remote @context IRIs (string or list; trailing-slash-insensitive).
         # -- An http pin also accepts the same IRI under https.
-        allowed_context_url: "http://schema.org"
         # -- Byte threshold above which JSON-LD parsing is offloaded to a
         # -- background thread to avoid blocking the event loop.
-        jsonld_parse_threshold_bytes: 65536
+        html_jsonld:
+          allowed_context_url: "http://schema.org"
+          jsonld_parse_threshold_bytes: 65536
       mapper:
-        type: schema_org_general
+        schema_org_general: {}
 
     # -------------------------------------------------------------------------
     # Example 3: Schema.org via MyCoRe Solr discovery source
@@ -340,10 +340,10 @@ config:
             # -- entry_url has no `rows` parameter; URL `rows` wins when present.
             page_size: 100
       parser:
-        type: html_jsonld
-        allowed_context_url: "http://schema.org"
+        html_jsonld:
+          allowed_context_url: "http://schema.org"
       mapper:
-        type: schema_org_general
+        schema_org_general: {}
 
     # -------------------------------------------------------------------------
     # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD) on generic
@@ -373,10 +373,10 @@ config:
         # -- PUBLISSO landing pages use repository.publisso.de; override if needed:
         resource_base_url: "https://repository.publisso.de/resource/"
       parser:
-        type: jsonld
-        allowed_context_url: "https://frl.publisso.de/context.json"
+        jsonld:
+          allowed_context_url: "https://frl.publisso.de/context.json"
       mapper:
-        type: regal_general
+        regal_general: {}
 
 # =============================================================================
 # Pod scheduling

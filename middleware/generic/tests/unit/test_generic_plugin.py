@@ -23,9 +23,8 @@ from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
-from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 from middleware.payload.parsed_payload import ParsedPayload
 
 _ = (_register_parsers, _register_xml, _register_builtin_mappers)
@@ -44,7 +43,7 @@ def _type_config(**overrides: object) -> ProtocolTypeConfig:
 
 
 def _parser_config() -> ParserConfig:
-    return ParserConfig(type=ParserType.html_jsonld)
+    return ParserConfig.model_validate({"html_jsonld": {}})
 
 
 def _patch_nice_http(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
@@ -68,7 +67,7 @@ async def test_get_expected_datasets_soft_none_on_failure(monkeypatch: pytest.Mo
             if False:  # pragma: no cover  # noqa: make this an async generator
                 yield UrlDiscoveryResult("")
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin.create_protocol = MagicMock(return_value=_BoomProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     _patch_nice_http(monkeypatch)
 
@@ -92,7 +91,7 @@ async def test_process_result_parser_error_stays_record_scoped() -> None:
             _ = discovery_result, client, config
             raise ParserError("No JSON-LD blocks found")
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin._parser_cls = _FailingParser  # noqa: SLF001
 
     outcomes = await plugin._process_result(UrlDiscoveryResult("https://example.org/a"), MagicMock())  # noqa: SLF001
@@ -136,7 +135,7 @@ async def test_run_parser_error_does_not_abort_repository(monkeypatch: pytest.Mo
     stub_mapper.accepts = PayloadKind.rdf_graph
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:arc")]
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin.create_protocol = MagicMock(return_value=_TwoProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     plugin._parser_cls = _SelectiveParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
@@ -167,7 +166,7 @@ async def test_process_result_kind_mismatch_yields_error() -> None:
             _ = client, config
             return ParsedPayload(kind=PayloadKind.rdf_graph, value=Graph(), identifier=discovery_result.identifier)
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     # Runtime kind check: mapper accepts differs from the payload kind (rdf_graph).
     stub_mapper = MagicMock()
     stub_mapper.accepts = object()
@@ -209,7 +208,7 @@ async def test_run_yields_harvested_arc_on_success(monkeypatch: pytest.MonkeyPat
     stub_mapper.accepts = PayloadKind.rdf_graph
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:arc")]
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin.create_protocol = MagicMock(return_value=_OkProtocol(_type_config(), MagicMock()))  # type: ignore[method-assign]
     plugin._parser_cls = _OkParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
@@ -232,7 +231,7 @@ async def test_run_forwards_skipped_record_from_protocol(monkeypatch: pytest.Mon
         async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return None
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin.create_protocol = MagicMock(return_value=_SkipProtocol())  # type: ignore[method-assign]
     _patch_nice_http(monkeypatch)
 
@@ -252,7 +251,7 @@ async def test_run_empty_discovery_exits_cleanly(monkeypatch: pytest.MonkeyPatch
         async def get_expected_count(self) -> int | None:  # noqa: PLR6301
             return 0
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.schema_org_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"schema_org_general": {}}), _parser_config())
     plugin.create_protocol = MagicMock(return_value=_EmptyProtocol())  # type: ignore[method-assign]
     _patch_nice_http(monkeypatch)
 

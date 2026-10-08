@@ -96,12 +96,12 @@ def test_data_mapper_map_contract() -> None:
 
 def test_regal_from_config_requires_base_url() -> None:
     with pytest.raises(ValueError, match="resource_base_url"):
-        RegalMapper.from_config(MapperConfig(type=MapperType.regal_general))
+        RegalMapper.from_config(MapperConfig.model_validate({"regal_general": {}}))
 
 
 def test_regal_from_config_uses_fallback() -> None:
     mapper = RegalMapper.from_config(
-        MapperConfig(type=MapperType.regal_general),
+        MapperConfig.model_validate({"regal_general": {}}),
         resource_base_url="https://example.org/resource",
     )
     assert mapper._resource_base_url == "https://example.org/resource/"
@@ -124,3 +124,34 @@ def test_mapper_config_resource_base_url_requires_http_scheme() -> None:
         })
     with pytest.raises(ValidationError):
         MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "not-a-url"})
+
+
+def test_mapper_config_type_as_key_nested(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING", logger="middleware.payload.mapper_config"):
+        cfg = MapperConfig.model_validate({
+            "regal_general": {"resource_base_url": "https://example.org/resource"},
+        })
+    assert cfg.type == MapperType.regal_general
+    assert cfg.normalize_resource_base_url() == "https://example.org/resource/"
+    assert not any("mapper.type is deprecated" in r.message for r in caplog.records)
+
+
+def test_mapper_config_legacy_type_warns_and_lifts(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING", logger="middleware.payload.mapper_config"):
+        cfg = MapperConfig.model_validate({"type": "schema_org_general"})
+    assert cfg.type == MapperType.schema_org_general
+    assert cfg.schema_org_general is not None
+    assert any("mapper.type is deprecated" in r.message for r in caplog.records)
+
+
+def test_mapper_config_rejects_two_type_keys() -> None:
+    with pytest.raises(ValidationError, match="exactly one"):
+        MapperConfig.model_validate({"schema_org_general": {}, "inspire_general": {}})
+
+
+def test_mapper_config_forbids_unknown_root_fields() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        MapperConfig.model_validate({
+            "regal_general": {},
+            "resource_base_url": "https://example.org/resource/",
+        })
