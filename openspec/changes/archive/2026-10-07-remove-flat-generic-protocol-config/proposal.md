@@ -28,6 +28,8 @@ Changing Protocol behaviour beyond config surface.
 - `harvester-configuration`: Nested-only generic protocol config / `source_url` from `entry_url`.
 - `harvest-protocol`: Drop “or deprecated flat config lifts…” from registry scenarios.
 - `sitemap-mycore-solr`: Drop deprecated flat `protocol_type` / `sitemap_url` acceptance wording.
+- `dcat-ap-protocol`: Drop deprecated flat `protocol_type: dcat_ap` / `sitemap_url` lift wording.
+- `ckanext-dcat-to-arc-mapping`: Nested-only composition scenario (no flat protocol wording).
 
 ## Impact
 

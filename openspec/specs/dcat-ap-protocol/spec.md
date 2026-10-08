@@ -10,12 +10,11 @@ Generic-plugin `Protocol` that discovers records from Hydra-paginated DCAT-AP JS
 ### Requirement: Register a dcat_ap Protocol
 
 The system SHALL register a `Protocol` implementation under `ProtocolType.dcat_ap` whose canonical entry point is nested
-`generic.protocol.dcat_ap.entry_url`. Deprecated flat `protocol_type: dcat_ap` plus `sitemap_url` SHALL still lift into
-that nested form.
+`generic.protocol.dcat_ap.entry_url`.
 
 #### Scenario: dcat_ap resolves from the registry
 
-- **WHEN** a generic repository sets nested `protocol.dcat_ap.entry_url` or deprecated flat `protocol_type: dcat_ap`
+- **WHEN** a generic repository sets nested `protocol.dcat_ap.entry_url`
 - **THEN** config validation and `GenericPlugin.create_protocol` resolve the DCAT-AP Protocol
 
 ### Requirement: Follow Hydra pagination
