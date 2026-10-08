@@ -14,9 +14,10 @@ are mapped to the ISA (Investigation, Study, Assay) model used by ARC.
   [`openspec/specs/ckanext-dcat-to-arc-mapping/`](../../openspec/specs/ckanext-dcat-to-arc-mapping/)
 - Protocol: [`openspec/specs/dcat-ap-protocol/`](../../openspec/specs/dcat-ap-protocol/)
 
-> [!NOTE] Nothing RDI-specific is hardcoded. Catalog provenance comes from repository `mapper.catalog_name` /
-> `mapper.catalog_url`. Field access uses StableGraph / ResourceView; this document speaks DCAT-AP / DCTERMS / FOAF /
-> vCard predicates, not StableGraph APIs.
+> [!NOTE] Nothing RDI-specific is hardcoded. Catalog provenance is added by the middleware API from its `known_rdis`
+> registry (`RDI` / `RDI Description` / `RDI URL` comments); the repository `mapper.catalog_name` / `mapper.catalog_url`
+> fields are **deprecated** (#461, removal in #471) and log a warning at config load. Field access uses StableGraph /
+> ResourceView; this document speaks DCAT-AP / DCTERMS / FOAF / vCard predicates, not StableGraph APIs.
 
 ## Concept
 
@@ -31,7 +32,7 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 | --------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------- |
 | **Dataset subject IRI**           | `dcat:Dataset` node           | `Investigation.Identifier` (sanitized IRI); fallback slug of title; fail closed if both empty |
 | **`dcterms:title`**               | Dataset title                 | `Investigation.Title` / Study / Assay title; required — fail closed if missing                |
-| **`mapper.catalog_name` / `url`** | Repository catalog provenance | `Investigation.Comment("Data Catalog")` — `Name (URL)`, or either alone when only one is set  |
+| **`mapper.catalog_name` / `url`** | Deprecated catalog provenance | `Investigation.Comment("Data Catalog")` — `Name (URL)`, or either alone when only one is set  |
 
 ## Investigation
 

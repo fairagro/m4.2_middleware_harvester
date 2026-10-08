@@ -1,11 +1,20 @@
 """Repository-level mapper configuration models."""
 
+import logging
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 from middleware.payload.placeholders import PlaceholderConfig
+
+logger = logging.getLogger(__name__)
+
+_LEGACY_CATALOG_FIELDS_MSG = (
+    "mapper.catalog_name / mapper.catalog_url are deprecated; catalog provenance is added by the "
+    "middleware API from its known_rdis registry (RDI / RDI Description / RDI URL comments). "
+    "Remove these keys from the repository config; support will be removed in a future release."
+)
 
 
 class MapperType(StrEnum):
@@ -38,17 +47,19 @@ class MapperConfig(BaseModel):
         str | None,
         Field(
             description=(
-                "Optional display name of the source RDI's data catalog (e.g. "
-                "'Smart Rural Areas Data Infrastructure (SRADI)'). Used by DCAT-AP "
-                "mappers to record catalog provenance; kept repository-configurable "
-                "so the same mapper serves any DCAT-AP RDI, not just one."
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional display name of the source RDI's data catalog. Used by DCAT-AP "
+                "mappers to record catalog provenance."
             ),
         ),
     ] = None
     catalog_url: Annotated[
         HttpUrl | None,
         Field(
-            description="Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers.",
+            description=(
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers."
+            ),
         ),
     ] = None
 
@@ -70,6 +81,13 @@ class MapperConfig(BaseModel):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @model_validator(mode="after")
+    def _warn_deprecated_catalog_fields(self) -> Self:
+        """Warn when deprecated catalog provenance fields are still set (behaviour unchanged)."""
+        if self.catalog_name is not None or self.catalog_url is not None:
+            logger.warning(_LEGACY_CATALOG_FIELDS_MSG)
+        return self
 
     def normalize_resource_base_url(self) -> str | None:
         """Return a trailing-slash-normalized resource base URL, or None."""
