@@ -383,17 +383,18 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 
-### 3. Placeholder Values
+### 3. Source placeholders
 
-GeoNode catalogues (BonaRes, Thünen Atlas) fill empty optional elements with placeholder text, e.g.
-`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`,
-and "No information provided" for `supplementalInformation`. `InspireRecord` and its nested models treat a whole-value
-placeholder (case-insensitive) in an **optional** field as absent: a scalar falls back to its default and list items are
-removed. The placeholders are configured per RDI in the repository's `mapper.placeholders` (`values`, plus
-`unrendered_templates` for `$var` / `${var}` / `{{var}}`). Nothing counts as a placeholder by default, so every value
-the harvester drops is visible in the configuration; BonaRes and Thünen Atlas need
-`values: ["None", "No information provided"]`. Required fields (`identifier`, `title`, `abstract`) keep their value, so
-a placeholder abstract still reaches `Investigation.Description` (#413).
+GeoNode catalogues fill empty optional elements with placeholder text, e.g.
+`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`.
+`InspireRecord` and its nested models treat a whole-value match (case-insensitive, surrounding whitespace ignored) of
+the repository's `inspire.placeholders` in an **optional** field as absent: a scalar falls back to its default and list
+items are removed. `unrendered_templates` also matches `$var` / `${var}` / `{{var}}`. The check runs in the parser
+(`IsoParser` validates with `validation_context(value_bounds, placeholders)`), not in the mapper. Nothing counts as a
+placeholder by default; the per-RDI strings live in the deployment config, not here. Required fields (`identifier`,
+`title`, `abstract`) keep their value, so a placeholder abstract still reaches `Investigation.Description` (#413).
+`mapper.placeholders` on an `inspire` repository is deprecated and lifted to `inspire.placeholders` with a warning
+(#459).
 
 ### 4. Opaque Fields
 

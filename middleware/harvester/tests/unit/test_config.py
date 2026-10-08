@@ -164,6 +164,61 @@ def test_inspire_repository_rejects_rdf_mapper() -> None:
         })
 
 
+_INSPIRE_PLACEHOLDERS_MSG = "mapper.placeholders on an inspire repository is deprecated"
+
+
+def _inspire_repo(**blocks: object) -> RepositoryConfig:
+    inspire: dict[str, object] = {"csw_url": "https://csw.example.com"}
+    mapper: dict[str, object] = {"type": "inspire_general"}
+    if "inspire_placeholders" in blocks:
+        inspire["placeholders"] = blocks["inspire_placeholders"]
+    if "mapper_placeholders" in blocks:
+        mapper["placeholders"] = blocks["mapper_placeholders"]
+    return RepositoryConfig.model_validate({"rdi": "inspire", "inspire": inspire, "mapper": mapper})
+
+
+def test_inspire_placeholders_on_plugin_block(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = _inspire_repo(inspire_placeholders={"values": ["None"]})
+    assert repo.inspire is not None
+    assert repo.inspire.placeholders.values == frozenset({"none"})
+    assert not any(_INSPIRE_PLACEHOLDERS_MSG in record.message for record in caplog.records)
+
+
+def test_inspire_mapper_placeholders_lift_to_plugin_block(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = _inspire_repo(mapper_placeholders={"values": ["None", "No information provided"]})
+    assert repo.inspire is not None
+    assert repo.inspire.placeholders.values == frozenset({"none", "no information provided"})
+    assert any(_INSPIRE_PLACEHOLDERS_MSG in record.message for record in caplog.records)
+
+
+def test_inspire_matching_placeholders_in_both_blocks_still_warn(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = _inspire_repo(inspire_placeholders={"values": ["None"]}, mapper_placeholders={"values": [" none "]})
+    assert repo.inspire is not None
+    assert repo.inspire.placeholders.values == frozenset({"none"})
+    assert any(_INSPIRE_PLACEHOLDERS_MSG in record.message for record in caplog.records)
+
+
+def test_inspire_conflicting_placeholders_fail() -> None:
+    with pytest.raises(ValidationError, match="conflicts with inspire.placeholders"):
+        _inspire_repo(inspire_placeholders={"values": ["n/a"]}, mapper_placeholders={"values": ["None"]})
+
+
+def test_generic_mapper_placeholders_do_not_warn(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        repo = RepositoryConfig.model_validate({
+            "rdi": "gen",
+            "generic": {"protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}}},
+            "parser": {"type": "html_jsonld"},
+            "mapper": {"type": "schema_org_general", "placeholders": {"unrendered_templates": True}},
+        })
+    assert repo.mapper is not None
+    assert repo.mapper.placeholders.unrendered_templates
+    assert not any(_INSPIRE_PLACEHOLDERS_MSG in record.message for record in caplog.records)
+
+
 def test_legacy_payload_type_lifts_to_mapper(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
         repo = RepositoryConfig.model_validate({

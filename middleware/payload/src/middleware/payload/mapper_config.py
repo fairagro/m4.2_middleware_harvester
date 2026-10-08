@@ -54,7 +54,12 @@ class MapperConfig(BaseModel):
 
     placeholders: Annotated[
         PlaceholderConfig,
-        Field(description="Placeholder text this RDI writes instead of leaving a field empty; none by default."),
+        Field(
+            description=(
+                "Placeholder text this RDI writes instead of leaving a field empty; none by default. "
+                "Used by linked-data mappers; INSPIRE repositories set inspire.placeholders."
+            ),
+        ),
     ] = PlaceholderConfig()
 
     @field_validator("resource_base_url", "catalog_url", mode="before")

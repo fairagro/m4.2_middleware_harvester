@@ -72,10 +72,10 @@ still empty, mapping MUST fail closed: no `HarvestedArc`, so the plugin yields a
 continues the harvest. Optional fields MUST be omitted, not stubbed.
 
 This forbids **mapper-invented** fallbacks. It does **not** forbid echoing **source-supplied** placeholder text the RDI
-sent (e.g. `n/a`, `None`); stripping or normalizing those is a separate concern (`mapper.placeholders` / #437). Some
-mappers still ship **documented structural defaults** outside the required title/identifier rule (e.g. PhenoRoam Study
-title/ids, INSPIRE Study description / conformance boilerplate) — treat those as known debt, not a license to add new
-invented titles.
+sent (e.g. `n/a`, `None`); stripping or normalizing those is a separate concern (`inspire.placeholders` /
+`mapper.placeholders`, #437, #459). Some mappers still ship **documented structural defaults** outside the required
+title/identifier rule (e.g. PhenoRoam Study title/ids, INSPIRE Study description / conformance boilerplate) — treat
+those as known debt, not a license to add new invented titles.
 
 **Memory-safe by design** — Source endpoints can contain millions of records. Each plugin must use pagination or
 streaming; the in-memory footprint per batch must be bounded and predictable.

@@ -24,7 +24,6 @@ from middleware.inspire.errors import CswConnectionError
 from middleware.inspire.iso_parser import IsoParser
 from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
 from middleware.payload.inspire.models import InspireRecord
-from middleware.payload.placeholders import PlaceholderConfig
 
 T = TypeVar("T")
 
@@ -39,16 +38,15 @@ _DC_OUTPUT_SCHEMA = "http://www.opengis.net/cat/csw/2.0.2"
 class CSWClient:
     """Client for harvesting metadata from a CSW endpoint."""
 
-    def __init__(self, config: Config, placeholders: PlaceholderConfig) -> None:
-        """Initialize the CSWClient from the plugin config and the RDI's ``mapper.placeholders``.
+    def __init__(self, config: Config) -> None:
+        """Initialize the CSWClient from the plugin config.
 
         Args:
-            config: Plugin configuration holding the CSW URL, timeout, and query options.
-            placeholders: The RDI's placeholder text, dropped from optional fields when parsing.
+            config: Plugin configuration holding the CSW URL, timeout, query options and parser settings.
         """
         self._config = config
         self._csw: CatalogueServiceWeb | None = None
-        self._parser = IsoParser(config.value_bounds, placeholders)
+        self._parser = IsoParser(config)
         self._executor: ThreadPoolExecutor | None = None
 
     def _connect(self) -> None:

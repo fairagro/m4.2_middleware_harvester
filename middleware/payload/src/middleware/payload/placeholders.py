@@ -3,7 +3,8 @@
 BonaRes and Thünen (GeoNode CSW) fill optional ISO 19139 elements with ``None`` or
 ``No information provided``; e!DAL renders an unexpanded ``$licenseURL`` template. These
 are not metadata and are treated as absent — but only where the repository's
-``mapper.placeholders`` says so. Nothing counts as a placeholder by default, so every
+config says so (``inspire.placeholders`` for INSPIRE, ``mapper.placeholders`` for the
+linked-data mappers). Nothing counts as a placeholder by default, so every
 value the harvester drops is visible in the configuration.
 
 Matching is exact on the whole value (case-insensitive, surrounding whitespace ignored),
@@ -21,7 +22,7 @@ _TEMPLATE_RE = re.compile(r"^(?:\$\{?[A-Za-z_]\w*\}?|\{\{\s*[A-Za-z_][\w.]*\s*\}
 
 
 class PlaceholderConfig(BaseModel):
-    """Per-RDI placeholder text treated as absent (``mapper.placeholders``)."""
+    """Per-RDI placeholder text treated as absent (``inspire.placeholders`` / ``mapper.placeholders``)."""
 
     model_config = ConfigDict(frozen=True)
 

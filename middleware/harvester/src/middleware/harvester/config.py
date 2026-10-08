@@ -69,6 +69,10 @@ _LEGACY_INSPIRE_MAPPER_MSG = (
     "add mapper: { type: inspire_general }. "
     "Omitting mapper will be rejected in a future release."
 )
+_LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG = (
+    "mapper.placeholders on an inspire repository is deprecated; move it to inspire.placeholders. "
+    "Support for mapper.placeholders on inspire will be removed in a future release."
+)
 
 
 class RepositoryConfig(BaseModel):
@@ -283,6 +287,21 @@ class RepositoryConfig(BaseModel):
             return self
         logger.warning(_LEGACY_INSPIRE_MAPPER_MSG)
         return self.model_copy(update={"mapper": MapperConfig(type=MapperType.inspire_general)})
+
+    @model_validator(mode="after")
+    def lift_inspire_mapper_placeholders(self) -> Self:
+        """Move deprecated ``mapper.placeholders`` on inspire to ``inspire.placeholders``."""
+        if self.inspire is None or self.mapper is None or "placeholders" not in self.mapper.model_fields_set:
+            return self
+        logger.warning(_LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG)
+        legacy = self.mapper.placeholders
+        if "placeholders" in self.inspire.model_fields_set:
+            if self.inspire.placeholders != legacy:
+                raise ValueError(
+                    "mapper.placeholders conflicts with inspire.placeholders; set only inspire.placeholders"
+                )
+            return self
+        return self.model_copy(update={"inspire": self.inspire.model_copy(update={"placeholders": legacy})})
 
     @model_validator(mode="after")
     def validate_mapper_for_inspire(self) -> Self:

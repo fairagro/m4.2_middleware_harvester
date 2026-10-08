@@ -7,6 +7,7 @@ from mapper_test_helpers import NO_DISCOVERY, first_harvest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
+from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import CkanextDcatMapper
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.regal_mapper import REGAL, RESEARCH_DATA_TYPE, RegalMapper
 from middleware.payload.mapper_config import MapperConfig, MapperType
@@ -106,3 +107,20 @@ def test_regal_mapper_uses_repository_placeholders() -> None:
     arc_json = first_harvest(RegalMapper.from_config(config).map_graph(graph, NO_DISCOVERY)).arc_json
 
     assert "ALL RIGHTS RESERVED BY THE AUTHORS" in arc_json
+
+
+def test_linked_data_mapper_license_applies_placeholders() -> None:
+    """``LinkedDataMapper.license`` is ``license_from_value`` with the mapper's placeholders (#459)."""
+    config = MapperConfig.model_validate({"type": "schema_org_general", "placeholders": {"unrendered_templates": True}})
+    mapper = GeneralSchemaOrgMapper.from_config(config)
+
+    assert mapper.placeholders is config.placeholders
+    assert mapper.license("$licenseURL") is None
+    assert mapper.license("CC-BY-4.0") is not None
+
+
+def test_ckanext_dcat_mapper_takes_repository_placeholders() -> None:
+    config = MapperConfig.model_validate({"type": "ckanext_dcat", "placeholders": {"values": ["n/a"]}})
+    mapper = CkanextDcatMapper.from_config(config)
+
+    assert mapper.placeholders is config.placeholders
