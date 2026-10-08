@@ -51,8 +51,9 @@ def test_protocol_rejects_zero_or_two_type_keys() -> None:
         })
 
 
-def test_flat_protocol_fields_rejected() -> None:
-    with pytest.raises(ValidationError, match="flat protocol fields were removed"):
+def test_flat_only_config_fails_for_missing_nested_protocol() -> None:
+    """Removed flat keys are ignored like any unknown field; missing nested protocol fails."""
+    with pytest.raises(ValidationError, match="requires nested protocol"):
         Config.model_validate({
             "protocol_type": "mycore_solr",
             "sitemap_url": "https://example.org/servlets/solr/select",
@@ -61,12 +62,15 @@ def test_flat_protocol_fields_rejected() -> None:
         })
 
 
-def test_flat_protocol_keys_rejected_even_with_nested_protocol() -> None:
-    with pytest.raises(ValidationError, match="protocol_type"):
-        Config.model_validate({
-            "protocol_type": "xml",
-            "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
-        })
+def test_unknown_flat_keys_ignored_when_nested_protocol_present() -> None:
+    cfg = Config.model_validate({
+        "protocol_type": "xml",
+        "sitemap_url": "https://ignored.example/sitemap.xml",
+        "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
+    })
+    assert cfg.active_protocol_type is ProtocolType.xml
+    assert cfg.effective_protocol.xml is not None
+    assert cfg.effective_protocol.xml.entry_url == "https://example.org/sitemap.xml"
 
 
 def test_missing_protocol_fails_closed() -> None:

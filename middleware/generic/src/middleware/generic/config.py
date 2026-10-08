@@ -31,9 +31,6 @@ _PROTOCOL_TYPE_FIELDS = frozenset({
     "regal_find",
 })
 
-# Removed flat generic protocol keys (nested ``protocol:`` only).
-_REMOVED_FLAT_PROTOCOL_KEYS = frozenset({"protocol_type", "sitemap_url", "http", "page_size"})
-
 
 class ProtocolConfig(BaseModel):
     """Shared transport plus exactly one type-named Protocol config child."""
@@ -134,20 +131,6 @@ class Config(BaseModel):
             ge=1,
         ),
     ] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def reject_removed_flat_protocol_keys(cls, data: object) -> object:
-        """Fail closed when legacy flat protocol keys are present in raw config."""
-        if not isinstance(data, dict):
-            return data
-        present = sorted(key for key in _REMOVED_FLAT_PROTOCOL_KEYS if key in data)
-        if present:
-            raise ValueError(
-                "generic flat protocol fields were removed; use nested protocol: "
-                f"{{ http, <type>: {{ entry_url }} }} (got: {', '.join(present)})"
-            )
-        return data
 
     @model_validator(mode="after")
     def require_nested_protocol(self) -> Self:
