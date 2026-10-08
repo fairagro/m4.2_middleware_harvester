@@ -18,12 +18,6 @@ from middleware.generic.protocol.xml import XmlProtocolConfig
 
 logger = logging.getLogger(__name__)
 
-_LEGACY_FLAT_PROTOCOL_MSG = (
-    "generic flat protocol_type/sitemap_url/http/page_size is deprecated; "
-    "use nested protocol: { http: …, <type>: { entry_url: … } } instead. "
-    "Support for the flat tree will be removed in a future release."
-)
-
 _LEGACY_THRESHOLD_MSG = (
     "generic.jsonld_parse_threshold_bytes is deprecated and no longer applies to payload parsing; "
     "set parser.jsonld_parse_threshold_bytes and/or protocol.dcat_ap.jsonld_parse_threshold_bytes instead."
@@ -36,8 +30,6 @@ _PROTOCOL_TYPE_FIELDS = frozenset({
     "pubplant_json_array",
     "regal_find",
 })
-
-_FLAT_PAGE_SIZE_TYPES = frozenset({ProtocolType.mycore_solr, ProtocolType.regal_find})
 
 
 class ProtocolConfig(BaseModel):
@@ -97,10 +89,9 @@ class ProtocolConfig(BaseModel):
 class Config(BaseModel):
     """Configuration for the generic Protocol + shared PayloadParser plugin.
 
-    Canonical protocol selection uses nested ``protocol:``. Flat
-    ``protocol_type`` / ``sitemap_url`` / ``http`` / ``page_size`` remain as a
-    deprecated lift path. Shared parser selection uses the repository-level
-    ``parser:`` block.
+    Protocol selection uses nested ``protocol:`` (shared ``http`` plus exactly one
+    type-named child). Shared parser selection uses the repository-level ``parser:``
+    block.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -108,35 +99,6 @@ class Config(BaseModel):
     protocol: Annotated[
         ProtocolConfig | None,
         Field(description="Nested Protocol config (shared http + one type-named child)."),
-    ] = None
-    protocol_type: Annotated[
-        ProtocolType | None,
-        Field(
-            description="Deprecated. Use protocol.<type> instead.",
-            deprecated=True,
-        ),
-    ] = None
-    sitemap_url: Annotated[
-        str | None,
-        Field(
-            description="Deprecated. Use protocol.<type>.entry_url instead.",
-            deprecated=True,
-        ),
-    ] = None
-    http: Annotated[
-        NiceHttpClientConfig | None,
-        Field(
-            description="Deprecated. Use protocol.http instead.",
-            deprecated=True,
-        ),
-    ] = None
-    page_size: Annotated[
-        int | None,
-        Field(
-            description="Deprecated. Use protocol.<type>.page_size instead (when applicable).",
-            deprecated=True,
-            ge=1,
-        ),
     ] = None
     jsonld_parse_threshold_bytes: Annotated[
         int | None,
@@ -171,134 +133,24 @@ class Config(BaseModel):
     ] = None
 
     @model_validator(mode="after")
-    def lift_legacy_flat_protocol(self) -> Self:
-        """Ensure ``protocol`` is set, lifting deprecated flat fields when needed."""
-        flat_type = self.__dict__.get("protocol_type")
-        flat_sitemap = self.__dict__.get("sitemap_url")
-        flat_http = self.__dict__.get("http")
-        flat_page_size = self.__dict__.get("page_size")
-        flat_threshold = self.__dict__.get("jsonld_parse_threshold_bytes")
-        flat_present = any(value is not None for value in (flat_type, flat_sitemap, flat_http, flat_page_size))
-
-        if flat_threshold is not None:
+    def require_nested_protocol(self) -> Self:
+        """Require nested ``protocol``; warn on deprecated threshold field."""
+        if self.__dict__.get("jsonld_parse_threshold_bytes") is not None:
             logger.warning(_LEGACY_THRESHOLD_MSG)
-
-        if self.protocol is not None:
-            if flat_present:
-                self._assert_flat_agrees_with_protocol(
-                    flat_type=flat_type,
-                    flat_sitemap=flat_sitemap,
-                    flat_http=flat_http,
-                    flat_page_size=flat_page_size,
-                )
-                logger.warning(_LEGACY_FLAT_PROTOCOL_MSG)
-            return self
-
-        if flat_type is None or flat_sitemap is None:
-            raise ValueError(
-                "generic config requires nested protocol: { http, <type>: { entry_url } } "
-                "or deprecated protocol_type + sitemap_url"
-            )
-
-        logger.warning(_LEGACY_FLAT_PROTOCOL_MSG)
-        if flat_page_size is not None and flat_type not in _FLAT_PAGE_SIZE_TYPES:
-            raise ValueError(f"generic.page_size is not valid for protocol_type {flat_type.value} (no page_size field)")
-        http = flat_http if flat_http is not None else NiceHttpClientConfig(respect_robots_txt=True)
-        nested = self._nested_from_flat(flat_type, flat_sitemap, http, flat_page_size, flat_threshold)
-        # Assign in place: pydantic discards a returned copy when built via ``Config(...)``.
-        self.protocol = nested
+        if self.protocol is None:
+            raise ValueError("generic config requires nested protocol: { http, <type>: { entry_url } }")
         return self
-
-    @staticmethod
-    def _nested_from_flat(
-        flat_type: ProtocolType,
-        flat_sitemap: str,
-        http: NiceHttpClientConfig,
-        flat_page_size: int | None,
-        flat_threshold: int | None,
-    ) -> ProtocolConfig:
-        if flat_type is ProtocolType.xml:
-            return ProtocolConfig(http=http, xml=XmlProtocolConfig(entry_url=flat_sitemap))
-        if flat_type is ProtocolType.mycore_solr:
-            return ProtocolConfig(
-                http=http,
-                mycore_solr=MycoreSolrProtocolConfig(
-                    entry_url=flat_sitemap,
-                    page_size=flat_page_size if flat_page_size is not None else 200,
-                ),
-            )
-        if flat_type is ProtocolType.dcat_ap:
-            dcat = (
-                DcatApProtocolConfig(entry_url=flat_sitemap)
-                if flat_threshold is None
-                else DcatApProtocolConfig(entry_url=flat_sitemap, jsonld_parse_threshold_bytes=flat_threshold)
-            )
-            return ProtocolConfig(http=http, dcat_ap=dcat)
-        if flat_type is ProtocolType.pubplant_json_array:
-            return ProtocolConfig(
-                http=http,
-                pubplant_json_array=PubPlantJsonArrayProtocolConfig(entry_url=flat_sitemap),
-            )
-        if flat_type is ProtocolType.regal_find:
-            return ProtocolConfig(
-                http=http,
-                regal_find=RegalFindProtocolConfig(
-                    entry_url=flat_sitemap,
-                    page_size=flat_page_size if flat_page_size is not None else 200,
-                ),
-            )
-        raise ValueError(f"Unsupported deprecated protocol_type: {flat_type}")
-
-    def _assert_flat_agrees_with_protocol(
-        self,
-        *,
-        flat_type: ProtocolType | None,
-        flat_sitemap: str | None,
-        flat_http: NiceHttpClientConfig | None,
-        flat_page_size: int | None,
-    ) -> None:
-        assert self.protocol is not None
-        if flat_type is not None and flat_type != self.protocol.protocol_type:
-            raise ValueError(
-                f"generic.protocol_type {flat_type!r} conflicts with protocol.{self.protocol.protocol_type.value}"
-            )
-        type_config = self.protocol.type_config
-        flat_entry = getattr(type_config, "entry_url", None)
-        if flat_sitemap is not None and flat_entry is not None and flat_sitemap != flat_entry:
-            raise ValueError(f"generic.sitemap_url {flat_sitemap!r} conflicts with protocol entry_url {flat_entry!r}")
-        if flat_sitemap is not None and flat_entry is None:
-            raise ValueError(
-                f"generic.sitemap_url {flat_sitemap!r} set but protocol.{self.protocol.protocol_type.value} "
-                "has no entry_url"
-            )
-        if flat_http is not None and flat_http != self.protocol.http:
-            raise ValueError("generic.http conflicts with protocol.http")
-        if (
-            flat_page_size is not None
-            and isinstance(type_config, (MycoreSolrProtocolConfig, RegalFindProtocolConfig))
-            and flat_page_size != type_config.page_size
-        ):
-            raise ValueError(
-                f"generic.page_size {flat_page_size!r} conflicts with "
-                f"protocol.{self.protocol.protocol_type.value}.page_size {type_config.page_size!r}"
-            )
-        if flat_page_size is not None and isinstance(
-            type_config, (XmlProtocolConfig, DcatApProtocolConfig, PubPlantJsonArrayProtocolConfig)
-        ):
-            raise ValueError(
-                f"generic.page_size is not valid for protocol.{self.protocol.protocol_type.value} (no page_size field)"
-            )
 
     @property
     def effective_protocol(self) -> ProtocolConfig:
-        """Nested protocol config after lift (always set post-validation)."""
+        """Nested protocol config (always set post-validation)."""
         if self.protocol is None:
             raise ValueError("generic.protocol is unset; config validation did not run")
         return self.protocol
 
     @property
     def active_protocol_type(self) -> ProtocolType:
-        """Active Protocol type key after lift."""
+        """Active Protocol type key."""
         return self.effective_protocol.protocol_type
 
     @property

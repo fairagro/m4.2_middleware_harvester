@@ -18,7 +18,7 @@ from middleware.contracts.nice_http_client import NiceHttpClient
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.generic.config import Config
 from middleware.generic.plugin import GenericPlugin
-from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
+from middleware.generic.protocol.protocol import Protocol, ProtocolTypeConfig
 from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
@@ -33,8 +33,7 @@ _ = (_register_parsers, _register_xml, _register_builtin_mappers)
 
 def _config(**overrides: object) -> Config:
     raw: dict[str, object] = {
-        "protocol_type": ProtocolType.xml,
-        "sitemap_url": "https://example.org/sitemap.xml",
+        "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
     }
     raw.update(overrides)
     return Config.model_validate(raw)

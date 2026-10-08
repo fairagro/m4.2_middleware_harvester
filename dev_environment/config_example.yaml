@@ -18,17 +18,7 @@ repositories:
       allowed_context_url: "https://schema.org/"
     mapper:
       type: schema_org_general
-  # Deprecated flat protocol tree (still lifted with a warning):
-  # - rdi: "edal-flat-legacy"
-  #   generic:
-  #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
-  #     protocol_type: xml
-  #   parser:
-  #     type: html_jsonld
-  #     allowed_context_url: "https://schema.org/"
-  #   mapper:
-  #     type: schema_org_general
-  # Legacy linked_data form (still supported during migration):
+  # Legacy linked_data form (deprecated plugin key; prefer nested generic above):
   # - rdi: "edal-legacy"
   #   linked_data:
   #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
