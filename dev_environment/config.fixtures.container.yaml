@@ -16,10 +16,10 @@ repositories:
         mycore_solr:
           entry_url: "http://fixtures:8080/servlets/solr/select"
     parser:
-      type: html_jsonld
-      allowed_context_url: "https://schema.org/"
+      html_jsonld:
+        allowed_context_url: "https://schema.org/"
     mapper:
-      type: schema_org_general
+      schema_org_general: {}
 
 api_client:
   api_url: "http://middleware-api:8000"

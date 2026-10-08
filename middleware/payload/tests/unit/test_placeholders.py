@@ -9,7 +9,7 @@ from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.linked_data_mapper.regal_mapper import REGAL, RESEARCH_DATA_TYPE, RegalMapper
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 from middleware.payload.placeholders import PlaceholderConfig
 
 SCHEMA = Namespace("https://schema.org/")
@@ -51,7 +51,7 @@ def test_does_not_match(placeholders: PlaceholderConfig, value: str) -> None:
 
 def test_nothing_matches_by_default() -> None:
     """Defaults live in the model and are empty: only what the operator configures is dropped."""
-    placeholders = MapperConfig(type=MapperType.schema_org_general).placeholders
+    placeholders = MapperConfig.model_validate({"schema_org_general": {}}).placeholders
 
     assert placeholders == PlaceholderConfig()
     assert not any(placeholders.matches(v) for v in ("None", "null", "N/A", "$licenseURL", "{{x}}"))

@@ -20,11 +20,11 @@ repositories:
     inspire:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
     mapper:
-      type: inspire_general
       # Placeholder text this RDI writes instead of leaving an optional field
       # empty (#413). Nothing counts as a placeholder unless listed here.
       placeholders:
         values: ["None", "No information provided"]
+      inspire_general: {}
 
   # The other real schema_org_general + html_jsonld source, and so the only
   # live RDI that could regress from a GeneralSchemaOrgMapper change.
@@ -34,14 +34,14 @@ repositories:
         xml:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
-      type: html_jsonld
       # Live e!DAL pages use http://schema.org; http pin also accepts https forms.
-      allowed_context_url: "http://schema.org"
+      html_jsonld:
+        allowed_context_url: "http://schema.org"
     mapper:
-      type: schema_org_general
       # e!DAL renders an unexpanded $licenseURL template for some licences (#413).
       placeholders:
         unrendered_templates: true
+      schema_org_general: {}
 
   # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
   # did not disturb the other mapper. Prefer generic + jsonld with pinned
@@ -57,10 +57,10 @@ repositories:
           entry_url: "https://frl.publisso.de/find"
       resource_base_url: "https://repository.publisso.de/resource/"
     parser:
-      type: jsonld
-      allowed_context_url: "https://frl.publisso.de/context.json"
+      jsonld:
+        allowed_context_url: "https://frl.publisso.de/context.json"
     mapper:
-      type: regal_general
+      regal_general: {}
 
   # DCAT-AP (ckanext-dcat, Hydra-paginated) via the generic plugin:
   # dcat_ap Protocol -> jsonld PayloadParser -> ckanext_dcat DataMapper.
@@ -72,11 +72,11 @@ repositories:
         dcat_ap:
           entry_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld"
     parser:
-      type: jsonld
+      jsonld: {}
     mapper:
-      type: ckanext_dcat
-      catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
-      catalog_url: "https://agrihub.gis.lrg.tum.de"
+      ckanext_dcat:
+        catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
+        catalog_url: "https://agrihub.gis.lrg.tum.de"
 
   # PlabiPD (fairagro/m4_rdi_portfolio#7) -- schema.org Dataset dump describing published plant
   # genomes (via usadellab/pubplant2schemaorg), via the generic plugin:
@@ -89,11 +89,11 @@ repositories:
         pubplant_json_array:
           entry_url: "https://raw.githubusercontent.com/usadellab/pubplant2schemaorg/gh-pages/genomes.json"
     parser:
-      type: jsonld
       # Exact IRI from genomes.json records (no trailing slash).
-      allowed_context_url: "http://schema.org"
+      jsonld:
+        allowed_context_url: "http://schema.org"
     mapper:
-      type: schema_org_general
+      schema_org_general: {}
 
   # Static stand-in for OpenAgrar; see fixtures/openagrar/README.md.
   - rdi: "openagrar-fixture"
@@ -105,10 +105,10 @@ repositories:
         mycore_solr:
           entry_url: "http://localhost:8080/servlets/solr/select"
     parser:
-      type: html_jsonld
-      allowed_context_url: "https://schema.org/"
+      html_jsonld:
+        allowed_context_url: "https://schema.org/"
     mapper:
-      type: schema_org_general
+      schema_org_general: {}
 
   # The real OpenAgrar cannot be harvested: record pages, servlets/solr/select
   # and sitemap_google.xml all 302 to /pow-challenge. Tracked in #271.
@@ -120,18 +120,18 @@ repositories:
   #       mycore_solr:
   #         entry_url: "https://www.openagrar.de/servlets/solr/select"
   #   parser:
-  #     type: html_jsonld
+  #     html_jsonld: {}
   #   mapper:
-  #     type: schema_org_general
+  #     schema_org_general: {}
 
   - rdi: "phenoroam"
     oai_pmh:
       endpoint_url: "https://phenoroam.phenorob.de/geonetwork/srv/eng/oaipmh"
       metadata_prefix: phenoroam
     parser:
-      type: phenoroam_xml
+      phenoroam_xml: {}
     mapper:
-      type: phenoroam_general
+      phenoroam_general: {}
 
 api_client:
   api_url: "http://localhost:8000"

@@ -8,17 +8,17 @@ repositories:
       cql_query: ~
       xml_query: ~
     mapper:
-      type: inspire_general
+      inspire_general: {}
   - rdi: "edal"
     generic:
       protocol:
         xml:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
-      type: html_jsonld
-      allowed_context_url: "https://schema.org/"
+      html_jsonld:
+        allowed_context_url: "https://schema.org/"
     mapper:
-      type: schema_org_general
+      schema_org_general: {}
 api_client:
   api_url: "https://middleware-test.fairagro.net"
   timeout: 60.0

@@ -6,7 +6,7 @@ repositories:
     inspire:
       csw_url: "https://repository-staging.dataservice.zalf.de/catalogue/csw"
     mapper:
-      type: inspire_general
+      inspire_general: {}
 
   - rdi: "edal"
     generic:
@@ -14,11 +14,11 @@ repositories:
         xml:
           entry_url: https://doi.ipk-gatersleben.de/sitemap.xml
     parser:
-      type: html_jsonld
+      html_jsonld:
+        allowed_context_url: "http://schema.org"
       # Live e!DAL pages emit http://schema.org; http pin also accepts https.
-      allowed_context_url: "http://schema.org"
     mapper:
-      type: schema_org_general
+      schema_org_general: {}
 # repositories:
 #   - rdi: "dwd"
 #     inspire:
@@ -112,7 +112,7 @@ repositories:
 
 #         </csw:GetRecords>
 #     mapper:
-#       type: inspire_general
+#       inspire_general: {}
 
 api_client:
   api_url: "https://middleware-test.fairagro.net"

@@ -21,7 +21,6 @@ from middleware.parsing.discovery import DiscoveryResult, XmlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
-from middleware.parsing.parser_type import ParserType
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
@@ -43,11 +42,11 @@ def _config(**overrides: object) -> Config:
 
 
 def _parser_config() -> ParserConfig:
-    return ParserConfig(type=ParserType.rdf_xml)
+    return ParserConfig.model_validate({"rdf_xml": {}})
 
 
 def _mapper_config() -> MapperConfig:
-    return MapperConfig(type=MapperType.schema_org_general)
+    return MapperConfig.model_validate({"schema_org_general": {}})
 
 
 def _fake_record(*, identifier: str, deleted: bool = False, xml: str | None = None) -> MagicMock:
@@ -71,9 +70,9 @@ def _fake_record(*, identifier: str, deleted: bool = False, xml: str | None = No
 
 
 def test_create_mapper_accepts_mapping_context_mappers() -> None:
-    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.phenoroam_general))
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig.model_validate({"phenoroam_general": {}}))
     assert mapper.accepts == PayloadKind.phenoroam_record
-    mapper = OaiPmhPlugin.create_mapper(MapperConfig(type=MapperType.schema_org_general))
+    mapper = OaiPmhPlugin.create_mapper(MapperConfig.model_validate({"schema_org_general": {}}))
     assert mapper.accepts == PayloadKind.rdf_graph
 
 
@@ -94,7 +93,7 @@ def test_create_mapper_rejects_incompatible_context_type() -> None:
     DataMapper.registry[key] = _OtherMapper
     try:
         with pytest.raises(TypeError, match="expects context _OtherContext"):
-            OaiPmhPlugin.create_mapper(MapperConfig(type=key))
+            OaiPmhPlugin.create_mapper(MapperConfig.model_validate({MapperType(key).value: {}}))
     finally:
         DataMapper.registry[key] = previous
 

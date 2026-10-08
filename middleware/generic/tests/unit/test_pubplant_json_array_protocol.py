@@ -20,9 +20,8 @@ from middleware.generic.protocol.pubplant_json_array import (
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.parsing.jsonld_context_loader import clear_context_document_cache
 from middleware.parsing.parser_config import ParserConfig
-from middleware.parsing.parser_type import ParserType
 from middleware.payload.linked_data_mapper import LinkedDataMapper
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 
 _ARRAY_URL = "https://example.org/genomes.json"
 _SCHEMA_ORG_CONTEXT = "http://schema.org"
@@ -220,8 +219,8 @@ async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_disti
     monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
     plugin = GenericPlugin(
         _config(),
-        MapperConfig(type=MapperType.schema_org_general),
-        ParserConfig(type=ParserType.jsonld),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
     )
 
     results = [item async for item in plugin.run()]
