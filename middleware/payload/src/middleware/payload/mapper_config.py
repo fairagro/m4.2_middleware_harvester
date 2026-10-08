@@ -165,7 +165,7 @@ class MapperConfig(BaseModel):
             return data
 
         type_key = MapperType(legacy_type).value
-        nested_present = [name for name in _MAPPER_TYPE_FIELDS if data.get(name) is not None]
+        nested_present = sorted(name for name in _MAPPER_TYPE_FIELDS if data.get(name) is not None)
         if nested_present and nested_present != [type_key]:
             raise ValueError(f"mapper.type {type_key!r} conflicts with nested mapper.{', '.join(nested_present)}")
 
@@ -189,7 +189,7 @@ class MapperConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_mapper_type(self) -> Self:
         """Require exactly one type-named mapper child."""
-        set_fields = [name for name in _MAPPER_TYPE_FIELDS if getattr(self, name) is not None]
+        set_fields = sorted(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name) is not None)
         if len(set_fields) != 1:
             raise ValueError(
                 f"mapper must set exactly one of {sorted(_MAPPER_TYPE_FIELDS)}; got: {set_fields or 'none'}"

@@ -19,9 +19,9 @@ _LEGACY_PARSER_TYPE_MSG = (
 )
 
 _UNPINNED_CONTEXT_MSG = (
-    "parser.allowed_context_url is unset for a JSON-LD parser. "
-    "Remote @context IRIs will still be fetched and cached; set allowed_context_url "
-    "to the exact IRI used by the source to pin the expected context."
+    "allowed_context_url is unset for a JSON-LD parser "
+    "(set parser.jsonld.allowed_context_url or parser.html_jsonld.allowed_context_url). "
+    "Remote @context IRIs will still be fetched and cached; pin the expected context IRI."
 )
 
 _PARSER_TYPE_FIELDS = frozenset({
@@ -135,7 +135,7 @@ class ParserConfig(BaseModel):
             return data
 
         type_key = ParserType(legacy_type).value
-        nested_present = [name for name in _PARSER_TYPE_FIELDS if data.get(name) is not None]
+        nested_present = sorted(name for name in _PARSER_TYPE_FIELDS if data.get(name) is not None)
         if nested_present and nested_present != [type_key]:
             raise ValueError(f"parser.type {type_key!r} conflicts with nested parser.{', '.join(nested_present)}")
 
@@ -159,7 +159,7 @@ class ParserConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_parser_type(self) -> Self:
         """Require exactly one type-named parser child; warn if JSON-LD context unpinned."""
-        set_fields = [name for name in _PARSER_TYPE_FIELDS if getattr(self, name) is not None]
+        set_fields = sorted(name for name in _PARSER_TYPE_FIELDS if getattr(self, name) is not None)
         if len(set_fields) != 1:
             raise ValueError(
                 f"parser must set exactly one of {sorted(_PARSER_TYPE_FIELDS)}; got: {set_fields or 'none'}"
