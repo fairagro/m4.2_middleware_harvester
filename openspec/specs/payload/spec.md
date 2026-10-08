@@ -101,17 +101,17 @@ The system SHALL extend `PayloadKind` with `phenoroam_record` for typed PhenoRoa
 
 #### Scenario: phenoroam_general mapper accepts phenoroam_record
 
-- **WHEN** `mapper.type` is `phenoroam_general`
+- **WHEN** the active mapper type is `phenoroam_general`
 - **THEN** the mapper’s `accepts` kind is `phenoroam_record`
 
 ### Requirement: Register phenoroam_general mapper type
 
 The system SHALL register a DataMapper implementation under registry key `phenoroam_general` selectable via repository
-`mapper.type`.
+`mapper` type-as-key (`mapper.phenoroam_general`) or deprecated `mapper.type: phenoroam_general`.
 
 #### Scenario: Unknown mapper type still fails closed
 
-- **WHEN** `mapper.type` is not registered
+- **WHEN** the active mapper type is not registered
 - **THEN** configuration validation fails before harvest
 
 ### Requirement: Harvested ARCs MUST have unique Comment names
