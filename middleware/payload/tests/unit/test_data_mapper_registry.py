@@ -147,3 +147,11 @@ def test_mapper_config_legacy_type_warns_and_lifts(caplog: pytest.LogCaptureFixt
 def test_mapper_config_rejects_two_type_keys() -> None:
     with pytest.raises(ValidationError, match="exactly one"):
         MapperConfig.model_validate({"schema_org_general": {}, "inspire_general": {}})
+
+
+def test_mapper_config_forbids_unknown_root_fields() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        MapperConfig.model_validate({
+            "regal_general": {},
+            "resource_base_url": "https://example.org/resource/",
+        })

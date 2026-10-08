@@ -42,7 +42,7 @@ _PARSER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
 class ParserTypeConfig(BaseModel):
     """Base for type-named parser config children (may be empty)."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 
 class JsonLdParserSettings(ParserTypeConfig):
@@ -105,7 +105,7 @@ class ParserConfig(BaseModel):
     Deprecated ``{ type: …, … }`` lifts into that nested form with a warning.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     html_jsonld: Annotated[
         HtmlJsonldParserConfig | None,

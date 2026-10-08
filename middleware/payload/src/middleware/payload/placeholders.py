@@ -23,7 +23,7 @@ _TEMPLATE_RE = re.compile(r"^(?:\$\{?[A-Za-z_]\w*\}?|\{\{\s*[A-Za-z_][\w.]*\s*\}
 class PlaceholderConfig(BaseModel):
     """Per-RDI placeholder text treated as absent (``mapper.placeholders``)."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     values: Annotated[
         frozenset[str],

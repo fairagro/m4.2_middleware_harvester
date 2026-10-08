@@ -45,7 +45,7 @@ class MapperType(StrEnum):
 class MapperTypeConfig(BaseModel):
     """Base for type-named mapper config children (may be empty)."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 
 class SchemaOrgGeneralMapperConfig(MapperTypeConfig):
@@ -127,7 +127,7 @@ class MapperConfig(BaseModel):
     Deprecated ``{ type: …, … }`` lifts into that nested form with a warning.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     placeholders: Annotated[
         PlaceholderConfig,

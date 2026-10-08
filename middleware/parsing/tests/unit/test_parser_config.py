@@ -74,3 +74,11 @@ def test_parser_config_legacy_type_warns_and_lifts(caplog: pytest.LogCaptureFixt
 def test_parser_config_rejects_two_type_keys() -> None:
     with pytest.raises(ValidationError, match="exactly one"):
         ParserConfig.model_validate({"html_jsonld": {}, "jsonld": {}})
+
+
+def test_parser_config_forbids_unknown_root_fields() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        ParserConfig.model_validate({
+            "html_jsonld": {},
+            "allowed_context_url": "https://schema.org/",
+        })
