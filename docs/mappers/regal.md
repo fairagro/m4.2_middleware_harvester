@@ -273,6 +273,12 @@ equivalent structured model). Do not assume schema.org predicates.
 `GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper implements this document.
 Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the ARC targets above are authoritative.
 
+### 9. Source placeholders
+
+A `license` value matching the repository's `mapper.placeholders` is treated as absent (no ARC licence, no `License`
+comment), through `LinkedDataMapper.license()` as in [schemaorg.md](schemaorg.md#source-placeholders). Nothing counts as
+a placeholder by default; the per-RDI strings live in the deployment config, not here.
+
 ## Traceability to basic middleware
 
 | Publisso jq → schema.org          | Regal source                                | ARC target (this doc)             |

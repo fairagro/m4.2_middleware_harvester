@@ -115,10 +115,9 @@ contributors get the roles author and contributor.
 **ARC licence (`ARC.License`).** `schema:license` also sets the ARC licence (`middleware.payload.arc_license`): a
 CreativeWork with `url` gives `name (url)`, otherwise the URL or text is used. The licence keeps ARCtrl's `LICENSE` path
 (the RO-Crate licence node is `{"@id": "LICENSE", "text": …}`); a URL `@id` would make `ARC.Write` create `https:/…`
-directories. Empty values and the RDI's configured placeholders (`mapper.placeholders`, none by default; e!DAL sets
-`unrendered_templates: true` for its unexpanded `$licenseURL`) are ignored, for the ARC licence and for the `License`,
-`Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS"
-stays.
+directories. Empty values and [source placeholders](#source-placeholders) are ignored, for the ARC licence and for the
+`License`, `Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE
+AUTHORS" stays.
 
 ### 5. Study
 
@@ -141,6 +140,14 @@ stays.
 | **`schema:license`**      | License                         | Assay Measurement column `Comment("License")`                                   |
 | **`schema:publisher`**    | Publisher name                  | Assay Measurement column `Comment("Publisher")`                                 |
 | **`schema:inLanguage`**   | Language code                   | Assay Measurement column `Comment("Language")`                                  |
+
+## Source placeholders
+
+Values matching the repository's `mapper.placeholders` (whole value, case-insensitive, surrounding whitespace ignored;
+`unrendered_templates` also matches `$var` / `${var}` / `{{var}}`) are treated as absent: the ARC licence and the
+`License`, `Language`, `Version` and `URL` Investigation Comments are omitted. The check runs in the mapper through
+`LinkedDataMapper.placeholders` / `LinkedDataMapper.license()`. Nothing counts as a placeholder by default; the per-RDI
+strings live in the deployment config, not here.
 
 ## Title Resolution Cascade
 

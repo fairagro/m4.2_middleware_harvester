@@ -19,12 +19,12 @@ repositories:
   - rdi: "bonares"
     inspire:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
-    mapper:
-      type: inspire_general
       # Placeholder text this RDI writes instead of leaving an optional field
       # empty (#413). Nothing counts as a placeholder unless listed here.
       placeholders:
         values: ["None", "No information provided"]
+    mapper:
+      type: inspire_general
 
   # The other real schema_org_general + html_jsonld source, and so the only
   # live RDI that could regress from a GeneralSchemaOrgMapper change.

@@ -10,12 +10,11 @@ length and list-size limits (``ValueBounds``, exposed by protocol configs such a
 INSPIRE plugin's ``Config.value_bounds``), a URL-scheme allowlist, ISO 19139 codelists
 and ISO 639-2 language codes. A violation raises ``ValidationError`` — values are never
 truncated or dropped — and the record is reported as failed. The one exception is
-placeholder text (the repository's ``mapper.placeholders``, e.g. ``None``) in an
-optional field, which counts as absent; it reaches the validators under
-``PLACEHOLDERS_CONTEXT_KEY``.
+placeholder text (the repository's ``inspire.placeholders``, e.g. ``None``) in an
+optional field, which counts as absent.
 
-The configured limits reach the validators through the validation context
-(``InspireRecord.model_validate(data, context={VALUE_BOUNDS_CONTEXT_KEY: bounds})``).
+The configured limits and placeholders reach the validators through the validation
+context (``InspireRecord.model_validate(data, context=validation_context(bounds, placeholders))``).
 Nested models only see that context when validated from dicts, so parsers must pass
 nested entries as dicts. Without a context (direct construction in tests), the
 ``ValueBounds`` and ``PlaceholderConfig`` model defaults apply.
@@ -39,16 +38,21 @@ from pydantic import (
 from middleware.payload.inspire.value_bounds import ValueBounds
 from middleware.payload.placeholders import PlaceholderConfig
 
-VALUE_BOUNDS_CONTEXT_KEY = "value_bounds"
-PLACEHOLDERS_CONTEXT_KEY = "placeholders"
+_VALUE_BOUNDS_CONTEXT_KEY = "value_bounds"
+_PLACEHOLDERS_CONTEXT_KEY = "placeholders"
 
 _DEFAULT_BOUNDS = ValueBounds()
 _DEFAULT_PLACEHOLDERS = PlaceholderConfig()
 
 
+def validation_context(value_bounds: ValueBounds, placeholders: PlaceholderConfig) -> dict[str, object]:
+    """Return the ``model_validate`` context that applies these limits and placeholders."""
+    return {_VALUE_BOUNDS_CONTEXT_KEY: value_bounds, _PLACEHOLDERS_CONTEXT_KEY: placeholders}
+
+
 def _bounds(info: ValidationInfo) -> ValueBounds:
     if isinstance(info.context, dict):
-        bounds = info.context.get(VALUE_BOUNDS_CONTEXT_KEY)
+        bounds = info.context.get(_VALUE_BOUNDS_CONTEXT_KEY)
         if isinstance(bounds, ValueBounds):
             return bounds
     return _DEFAULT_BOUNDS
@@ -56,7 +60,7 @@ def _bounds(info: ValidationInfo) -> ValueBounds:
 
 def _placeholders(info: ValidationInfo) -> PlaceholderConfig:
     if isinstance(info.context, dict):
-        placeholders = info.context.get(PLACEHOLDERS_CONTEXT_KEY)
+        placeholders = info.context.get(_PLACEHOLDERS_CONTEXT_KEY)
         if isinstance(placeholders, PlaceholderConfig):
             return placeholders
     return _DEFAULT_PLACEHOLDERS
@@ -191,7 +195,7 @@ BooleanLiteral = Literal["true", "false", "1", "0"]
 
 
 class _HarvestedModel(BaseModel):
-    """Treats the RDI's placeholders (``mapper.placeholders``) in optional fields as absent.
+    """Treats the RDI's placeholders (``inspire.placeholders``) in optional fields as absent.
 
     A placeholder scalar falls back to the field default; placeholder list items are removed.
     Required fields keep the value, so a placeholder there still reaches the mapper unchanged.
