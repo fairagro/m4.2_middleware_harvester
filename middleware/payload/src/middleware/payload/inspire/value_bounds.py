@@ -33,7 +33,13 @@ class ValueBounds(BaseModel):
     ] = 1_000
     max_str_long: Annotated[
         int,
-        Field(description="Maximum length of paragraph fields: abstract, lineage, purpose, descriptions.", ge=1),
+        Field(
+            description=(
+                "Maximum length of paragraph fields: abstract, lineage, purpose, descriptions and free-text "
+                "constraints (otherConstraints, useLimitation)."
+            ),
+            ge=1,
+        ),
     ] = 10_000
     max_list_items: Annotated[
         int,

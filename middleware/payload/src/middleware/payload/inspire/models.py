@@ -327,7 +327,7 @@ class InspireRecord(_HarvestedModel):
     lineage: LongStr | None = None
     spatial_extent: Annotated[list[float], Field(min_length=4, max_length=4)] | None = None  # [minx, miny, maxx, maxy]
     temporal_extent: tuple[ShortStr | None, ShortStr | None] | None = None  # (start, end)
-    constraints: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
+    constraints: Annotated[list[LongStr], MaxItems, Field(default_factory=list)]  # useLimitation: free text
 
     # Metadata-level fields (new)
     parent_identifier: MediumStr | None = None
@@ -359,11 +359,11 @@ class InspireRecord(_HarvestedModel):
     publishers: Annotated[list[Contact], MaxItems, Field(default_factory=list)]  # role=publisher
     contributors: Annotated[list[Contact], MaxItems, Field(default_factory=list)]  # role=author
 
-    # Constraints (detailed, new)
+    # Constraints (detailed, new). Codelist values stay single-line; otherConstraints is free text.
     access_constraints: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
     use_constraints: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
     classification: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
-    other_constraints: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
+    other_constraints: Annotated[list[LongStr], MaxItems, Field(default_factory=list)]
     other_constraints_url: Annotated[list[HarvestedUrl], MaxItems, Field(default_factory=list)]
 
     # Distribution (new)

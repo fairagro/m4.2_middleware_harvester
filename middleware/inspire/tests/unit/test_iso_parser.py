@@ -147,6 +147,50 @@ def test_oversized_identifier_is_rejected_not_truncated(mock_iso_record: MagicMo
         parser.parse_record(mock_iso_record, record_uuid="uuid-123")
 
 
+# BonaRes writes a 1136-char author disclaimer into gmd:otherConstraints (#433).
+LONG_DISCLAIMER = "Disclaimer Author (en) " + "x" * 1113
+
+
+def _set_free_text_constraint(record: MagicMock, element: str, text: str) -> None:
+    if element == "otherConstraints":
+        record.identification.otherconstraints = [text]
+    else:  # useLimitation
+        record.identification.resourceconstraint = [MagicMock(use_limitation=[text])]
+
+
+@pytest.mark.parametrize(
+    ("element", "field"), [("otherConstraints", "other_constraints"), ("useLimitation", "constraints")]
+)
+def test_free_text_constraint_uses_paragraph_limit(
+    mock_iso_record: MagicMock, parser: IsoParser, element: str, field: str
+) -> None:
+    assert DEFAULTS.max_str_medium < len(LONG_DISCLAIMER) <= DEFAULTS.max_str_long
+    _set_free_text_constraint(mock_iso_record, element, LONG_DISCLAIMER)
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert getattr(rec, field) == [LONG_DISCLAIMER]
+
+
+@pytest.mark.parametrize(
+    ("element", "field"), [("otherConstraints", "other_constraints"), ("useLimitation", "constraints")]
+)
+def test_free_text_constraint_over_paragraph_limit_is_rejected(
+    mock_iso_record: MagicMock, parser: IsoParser, element: str, field: str
+) -> None:
+    _set_free_text_constraint(mock_iso_record, element, "x" * (DEFAULTS.max_str_long + 1))
+
+    with pytest.raises(ValidationError, match=field):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
+def test_codelist_constraint_keeps_single_line_limit(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.accessconstraints = ["x" * (DEFAULTS.max_str_medium + 1)]
+
+    with pytest.raises(ValidationError, match="access_constraints"):
+        parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+
 def test_error_message_does_not_echo_huge_value(mock_iso_record: MagicMock, parser: IsoParser) -> None:
     mock_iso_record.identification.abstract = "y" * 50_000
 
