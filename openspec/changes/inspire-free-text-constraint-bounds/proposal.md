@@ -4,8 +4,8 @@
 
 #433: 664 of 978 records in the live BonaRes catalogue (`repository.zalf.de`, 2026-10-05) fail validation with
 `other_constraints.N: string of length 1136 exceeds value_bounds.max_str_medium=1000`. `InspireRecord.other_constraints`
-uses the single-line limit, but `gmd:otherConstraints` is free text. BonaRes puts a full author disclaimer there. Since a
-violating value fails the whole record, two thirds of the catalogue never reaches the hub.
+uses the single-line limit, but `gmd:otherConstraints` is free text. BonaRes puts a full author disclaimer there. Since
+a violating value fails the whole record, two thirds of the catalogue never reaches the hub.
 
 ## What Changes
 
