@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 
 import pytest
-from arctrl import ARC  # type: ignore[import-untyped]
+from arctrl import ARC, ArcInvestigation  # type: ignore[import-untyped]
 
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.inspire.models import Contact, InspireRecord, ResourceIdentifier
 from middleware.payload.kinds import PayloadKind
+from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
 
@@ -246,3 +247,56 @@ def test_thuenen_organisation_creator_survives_ro_crate_round_trip() -> None:
         ("Point of Contact", org),
         ("Owner", "BonaRes Data Centre"),
     ]
+
+
+# Every individualName DWD publishes through GDI-DE (live harvest 2026-10-12, #393): departments, not people.
+DWD_DEPARTMENTS = [
+    "KU31 Agrarmeteorologie",
+    "Referat Hydrometeorologische Beratungsleistungen (KU41)",
+    "Zentrales Klimabüro",
+    "Satellitengestütztes Klimamonitoring - DUETT",
+    "CDC - Vertrieb Klima und Umwelt",
+]
+DWD = "Deutscher Wetterdienst"
+
+
+def _contact_comments(inv: ArcInvestigation) -> list[tuple[str, str]]:
+    names = ("Point of Contact", "Creator Organization")
+    return [(c.Name, c.Value) for c in inv.Comments if c.Name in names]
+
+
+@pytest.mark.parametrize("department", DWD_DEPARTMENTS)
+def test_individual_name_as_organisation_becomes_comment(department: str) -> None:
+    record = _minimal_record(contacts=[Contact(name=department, organization=DWD, role="pointOfContact")])
+
+    inv = InspireMapper(individual_name_is_organisation=True).map_investigation(record)
+
+    assert not list(inv.Contacts)
+    assert _contact_comments(inv) == [("Point of Contact", f"{DWD} ({department})")]
+
+
+def test_individual_name_as_organisation_creator_is_creator_organization() -> None:
+    record = _minimal_record(creators=[Contact(name="Zentrales Klimabüro", organization=DWD, role="originator")])
+
+    inv = InspireMapper(individual_name_is_organisation=True).map_investigation(record)
+
+    assert not list(inv.Contacts)
+    assert _contact_comments(inv) == [("Creator Organization", f"{DWD} (Zentrales Klimabüro)")]
+
+
+def test_department_name_is_person_by_default() -> None:
+    """Without the setting a multi-word individualName still maps as a Person (unchanged behaviour)."""
+    record = _minimal_record(contacts=[Contact(name="KU31 Agrarmeteorologie", organization=DWD, role="pointOfContact")])
+
+    inv = InspireMapper().map_investigation(record)
+
+    assert len(list(inv.Contacts)) == 1
+
+
+def test_from_config_passes_individual_name_is_organisation() -> None:
+    config = MapperConfig(type=MapperType.inspire_general, individual_name_is_organisation=True)
+    record = _minimal_record(contacts=[Contact(name="Jane Doe", role="pointOfContact")])
+
+    inv = InspireMapper.from_config(config).map_investigation(record)
+
+    assert not list(inv.Contacts)

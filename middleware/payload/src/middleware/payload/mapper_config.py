@@ -62,6 +62,17 @@ class MapperConfig(BaseModel):
         ),
     ] = PlaceholderConfig()
 
+    individual_name_is_organisation: Annotated[
+        bool,
+        Field(
+            description=(
+                "Treat every ISO individualName as an organisation unit, not a person (e.g. DWD writes department "
+                "names such as 'KU31 Agrarmeteorologie' there). Used by the INSPIRE mapper; no Person is emitted "
+                "for such contacts."
+            ),
+        ),
+    ] = False
+
     @field_validator("resource_base_url", "catalog_url", mode="before")
     @classmethod
     def _blank_url_as_none(cls, value: object) -> object:
