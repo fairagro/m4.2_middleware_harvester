@@ -113,9 +113,17 @@ formatted `F. Last` (or the single available name part) and joined by `; `, via 
 
 `InspireMapper` MUST set `ARC.License` via `middleware.payload.arc_license.inspire_license`, keeping ARCtrl's default
 `LICENSE` path. The licence content MUST be, in order: the first `gmx:Anchor/@xlink:href` that is not an
-`inspire.ec.europa.eu` code-list URI; the first GeoNode licence text `Name (id): description`; the first text that
-contains a URL on a known licence host. A GeoNode `Not Specified` entry, access notes and other free text MUST NOT
-become a licence; then the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays.
+`inspire.ec.europa.eu` code-list URI; the first GDI-DE JSON licence with an http(s) `url`, as `name (url)` or the URL
+alone without a name; the first GeoNode licence text `Name (id): description`; the first text that contains a URL on a
+known licence host. A GeoNode `Not Specified` entry, access notes and other free text MUST NOT become a licence; then
+the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays.
+
+#### Scenario: GDI-DE JSON licence
+
+- **WHEN** `otherConstraints` contains free text naming CC BY 4.0 followed by
+  `{"id": "cc-by/4.0", "name": "Creative Commons Namensnennung – 4.0 International (CC BY 4.0)", "url": "https://creativecommons.org/licenses/by/4.0/"}`
+- **THEN** the RO-Crate licence node text MUST be
+  `Creative Commons Namensnennung – 4.0 International (CC BY 4.0) (https://creativecommons.org/licenses/by/4.0/)`
 
 #### Scenario: GeoNode licence text
 
