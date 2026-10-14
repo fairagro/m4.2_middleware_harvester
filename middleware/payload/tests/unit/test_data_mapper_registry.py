@@ -1,5 +1,6 @@
 """Unit tests for shared DataMapper registry and PayloadKind contracts."""
 
+import logging
 from collections.abc import Iterable
 from typing import ClassVar, override
 
@@ -124,3 +125,27 @@ def test_mapper_config_resource_base_url_requires_http_scheme() -> None:
         })
     with pytest.raises(ValidationError):
         MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "not-a-url"})
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"catalog_name": "Example Catalog"},
+        {"catalog_url": "https://catalog.example.org"},
+        {"catalog_name": "Example Catalog", "catalog_url": "https://catalog.example.org"},
+    ],
+)
+def test_mapper_config_catalog_fields_warn_deprecated(caplog: pytest.LogCaptureFixture, fields: dict[str, str]) -> None:
+    with caplog.at_level(logging.WARNING):
+        cfg = MapperConfig.model_validate({"type": MapperType.ckanext_dcat, **fields})
+    assert cfg.catalog_name == fields.get("catalog_name")
+    assert any("mapper.catalog_name / mapper.catalog_url are deprecated" in r.message for r in caplog.records)
+
+
+@pytest.mark.parametrize("fields", [{}, {"catalog_name": "  ", "catalog_url": ""}])
+def test_mapper_config_without_catalog_fields_does_not_warn(
+    caplog: pytest.LogCaptureFixture, fields: dict[str, str]
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        MapperConfig.model_validate({"type": MapperType.ckanext_dcat, **fields})
+    assert not any("catalog_url are deprecated" in r.message for r in caplog.records)
