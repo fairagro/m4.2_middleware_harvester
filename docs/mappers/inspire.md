@@ -117,8 +117,9 @@ Access and use restrictions.
 | **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments**                          |
 
 **ARC licence (`ARC.License`).** `otherConstraints` also sets the ARC licence (`middleware.payload.arc_license`), in
-order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GeoNode licence
-text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
+order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GDI-DE JSON
+licence `{"id": …, "name": …, "url": …}` as `name (url)` (DWD via GDI-DE; malformed JSON is read field by field); the
+first GeoNode licence text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
 `CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (…/legalcode)`); the first text with a URL on a known
 licence host (creativecommons.org, opendatacommons.org, govdata.de, spdx.org, rightsstatements.org). GeoNode
 `Not Specified: …`, access notes ("available on request …") and other text give no licence, so the ARCtrl default "ALL
