@@ -28,7 +28,9 @@ from middleware.payload.linked_data_mapper.regal_mapper import (
     REGAL,
     RESEARCH_DATA_TYPE,
     RegalMapper,
+    _RegalRun,
 )
+from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.placeholders import PlaceholderConfig
 
 RESOURCE_BASE = "https://example.org/resource/"
@@ -179,6 +181,26 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
         list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
+def test_regal_mapper_doi_only_identifier_is_sanitized() -> None:
+    """A DOI-derived Investigation identifier goes through the shared sanitizer (#358)."""
+    graph = Graph()
+    subject = URIRef("https://example.org/unknown-record")
+    graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((subject, DCTERMS.title, Literal("DOI only")))
+    graph.add((subject, REGAL.doi, Literal("10.4126/FRL01-0000123")))
+
+    harvested = list(_mapper().map_graph(graph, NO_DISCOVERY))[0]
+    assert harvested.identifier == "10_4126_FRL01-0000123"
+    assert root_identifier(harvested.arc_json) == "10_4126_FRL01-0000123"
+
+
+def test_regal_mapper_unusable_identifier_fails_closed() -> None:
+    """No sanitizable id, DOI or title slug → mapping error, never an ``untitled`` id (#358)."""
+    run = _RegalRun(_mapper(), StableGraph.wrap(Graph()), RESOURCE_BASE)
+    with pytest.raises(ValueError, match="no usable Investigation identifier"):
+        run._investigation_identifier(regal_id=":::", doi="///", title="???")  # pylint: disable=protected-access
 
 
 def test_regal_mapper_title_falls_back_to_preflabel() -> None:

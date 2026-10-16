@@ -703,7 +703,9 @@ class _RegalRun:
             if slug:
                 return slug
         if doi:
-            return doi
+            doi_slug = self.mapper.sanitize_identifier(doi)
+            if doi_slug:
+                return doi_slug
         title_slug = self.mapper.to_identifier_slug(title)
         if title_slug:
             return title_slug
