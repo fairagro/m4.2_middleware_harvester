@@ -574,7 +574,14 @@ class _RegalRun:
             inv.Comments.append(modified)
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
-        for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):
+        # "Keywords" is what the API materializes as Schema.org ``keywords`` (same as the Schema.org mapper).
+        # DDC is a classification, not a keyword, and its labels contain commas the API would split on.
+        # The per-term comments below keep the subject / DDC URIs until typed keywords exist (#417).
+        subjects = self._labelled_pairs(subject, DCTERMS.subject)
+        if subjects:
+            inv.Comments.append(Comment.create("Keywords", ", ".join(label.strip() for label, _ in subjects)))
+
+        for label, node_id in subjects:
             comment_name = f"keyword [{node_id}]" if node_id else "keyword"
             inv.Comments.append(Comment.create(comment_name, label))
 
