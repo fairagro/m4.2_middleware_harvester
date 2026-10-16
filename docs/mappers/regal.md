@@ -161,7 +161,8 @@ an explicit mapping update to this document.
 
 ### Investigation (Dataset Context)
 
-- **Identifier**: slug from Regal `@id` (required); fail mapping if neither `@id` nor `doi` exists
+- **Identifier**: sanitized Regal `@id`; else sanitized `doi` (e.g. `10_4126_FRL01-0000123`); else title slug. Fail
+  mapping if neither `@id` nor `doi` exists, or if no non-empty identifier can be derived
 - **Title**: `title[0]` (fallback `prefLabel`); mapping **fails closed** if both are empty — never `"Untitled"`
 - **Description**: joined `description` values
 - **PublicReleaseDate**: `issued` (RO-Crate `datePublished`). Regal has no creation date, so `SubmissionDate` (RO-Crate
