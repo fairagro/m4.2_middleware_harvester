@@ -14,6 +14,7 @@ from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
     assert_harvest_has_no_bnode_labels,
+    keywords_comment_text,
     root_dates,
     root_identifier,
     root_title,
@@ -201,6 +202,27 @@ def test_regal_mapper_unusable_identifier_fails_closed() -> None:
     run = _RegalRun(_mapper(), StableGraph.wrap(Graph()), RESOURCE_BASE)
     with pytest.raises(ValueError, match="no usable Investigation identifier"):
         run._investigation_identifier(regal_id=":::", doi="///", title="???")  # pylint: disable=protected-access
+
+
+def test_regal_subjects_and_ddc_become_keywords_and_keep_term_uris() -> None:
+    """Subject labels reach the ``Keywords`` comment; DDC stays out; URIs stay in per-term comments (#417)."""
+    graph = _base_graph()
+    agrovoc = URIRef("http://aims.fao.org/aos/agrovoc/c_158")
+    ddc = URIRef("http://dewey.info/class/630/")
+    graph.add((SUBJECT, DCTERMS.subject, agrovoc))
+    graph.add((agrovoc, SKOS.prefLabel, Literal("aerosols")))
+    graph.add((SUBJECT, REGAL.ddc, ddc))
+    graph.add((ddc, SKOS.prefLabel, Literal("Natural resources, energy & environment")))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert keywords_comment_text(arc_json) == "aerosols"
+    assert "keyword [http://aims.fao.org/aos/agrovoc/c_158]" in arc_json
+    assert "keyword [DDC:http://dewey.info/class/630/]" in arc_json
+
+
+def test_regal_without_subjects_has_no_keywords_comment() -> None:
+    assert keywords_comment_text(_mapped_arc_json(_base_graph())) is None
 
 
 def test_regal_mapper_title_falls_back_to_preflabel() -> None:

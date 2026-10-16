@@ -106,12 +106,12 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 ### 5. Subjects, classification, and techniques
 
-| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                                                |
-| ---------------- | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`subject`**    | `dcterms:subject`       | Subject headings            | Ontology-style Investigation comments `keyword [{@id or subject}]` = `prefLabel`, and/or **Data Collection** protocol parameter `Keywords` |
-| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Same as keywords with TermSourceREF `DDC` / `https://www.oclc.org/en/dewey.html`                                                           |
-| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                 |
-| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                |
+| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                                                                                                                   |
+| ---------------- | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`subject`**    | `dcterms:subject`       | Subject headings            | Investigation comment `Keywords` (comma-joined labels; the API exports it as `keywords`); per-term comments `keyword [{@id or subject}]` = `prefLabel` keep the URI; **Data Collection** parameter `Keywords` |
+| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Per-term comments `keyword [DDC:{@id}]` = `prefLabel` (classification, not in `Keywords`); **Data Collection** parameter `Keywords`                                                                           |
+| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                                                                                    |
+| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                                                                                   |
 
 ### 6. Funding
 
