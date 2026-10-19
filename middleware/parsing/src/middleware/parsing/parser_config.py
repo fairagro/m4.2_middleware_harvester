@@ -28,10 +28,14 @@ _PARSER_TYPE_FIELDS = frozenset(member.value for member in ParserType)
 
 _JSONLD_PARSER_TYPES = frozenset({ParserType.jsonld, ParserType.html_jsonld})
 
+_JSONLD_ONLY_FIELDS = frozenset({"allowed_context_url", "jsonld_parse_threshold_bytes"})
+
 _PARSER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
-    "html_jsonld": frozenset({"allowed_context_url", "jsonld_parse_threshold_bytes"}),
-    "jsonld": frozenset({"allowed_context_url", "jsonld_parse_threshold_bytes"}),
+    "html_jsonld": _JSONLD_ONLY_FIELDS,
+    "jsonld": _JSONLD_ONLY_FIELDS,
 }
+
+_JSONLD_PARSER_TYPE_KEYS = frozenset(member.value for member in _JSONLD_PARSER_TYPES)
 
 
 class ParserTypeConfig(BaseModel):
@@ -122,34 +126,56 @@ class ParserConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def lift_legacy_type_discriminator(cls, data: object) -> object:
-        """Lift deprecated ``type:`` (+ flat type-local fields) into type-as-key."""
+        """Lift deprecated ``type:`` (+ flat type-local fields) into type-as-key.
+
+        Non-JSON-LD types MUST ignore JSON-LD-only keys (legacy flat or nested child);
+        drop them so ``extra="forbid"`` does not reject the ignore contract.
+        """
         if not isinstance(data, dict):
             return data
-        legacy_type = data.get("type")
-        if legacy_type is None:
-            return data
+        lifted = dict(data)
+        legacy_type = lifted.get("type")
+        if legacy_type is not None:
+            type_key = ParserType(legacy_type).value
+            nested_present = sorted(name for name in _PARSER_TYPE_FIELDS if lifted.get(name) is not None)
+            if nested_present and nested_present != [type_key]:
+                raise ValueError(f"parser.type {type_key!r} conflicts with nested parser.{', '.join(nested_present)}")
 
-        type_key = ParserType(legacy_type).value
-        nested_present = sorted(name for name in _PARSER_TYPE_FIELDS if data.get(name) is not None)
-        if nested_present and nested_present != [type_key]:
-            raise ValueError(f"parser.type {type_key!r} conflicts with nested parser.{', '.join(nested_present)}")
+            logger.warning(_LEGACY_PARSER_TYPE_MSG)
+            lifted = {key: value for key, value in lifted.items() if key != "type"}
+            raw_child = lifted.pop(type_key, None)
+            if raw_child is None:
+                child: dict[str, object] = {}
+            elif isinstance(raw_child, dict):
+                child = dict(raw_child)
+            elif isinstance(raw_child, BaseModel):
+                child = raw_child.model_dump()
+            else:
+                raise ValueError(f"parser.{type_key} must be a mapping")
+            for field_name in _PARSER_TYPE_LOCAL_FIELDS.get(type_key, ()):
+                if field_name in lifted:
+                    child[field_name] = lifted.pop(field_name)
+            lifted[type_key] = child
 
-        logger.warning(_LEGACY_PARSER_TYPE_MSG)
-        lifted = {key: value for key, value in data.items() if key != "type"}
-        raw_child = lifted.pop(type_key, None)
-        if raw_child is None:
-            child: dict[str, object] = {}
-        elif isinstance(raw_child, dict):
-            child = dict(raw_child)
-        elif isinstance(raw_child, BaseModel):
-            child = raw_child.model_dump()
-        else:
-            raise ValueError(f"parser.{type_key} must be a mapping")
-        for field_name in _PARSER_TYPE_LOCAL_FIELDS.get(type_key, ()):
-            if field_name in lifted:
-                child[field_name] = lifted.pop(field_name)
-        lifted[type_key] = child
-        return lifted
+        return cls._drop_jsonld_only_for_non_jsonld(lifted)
+
+    @classmethod
+    def _drop_jsonld_only_for_non_jsonld(cls, data: dict[str, object]) -> dict[str, object]:
+        """Drop JSON-LD-only keys for non-JSON-LD parser selection (ignore contract)."""
+        for type_key in _PARSER_TYPE_FIELDS - _JSONLD_PARSER_TYPE_KEYS:
+            raw_child = data.get(type_key)
+            if isinstance(raw_child, dict) and any(name in raw_child for name in _JSONLD_ONLY_FIELDS):
+                data[type_key] = {key: value for key, value in raw_child.items() if key not in _JSONLD_ONLY_FIELDS}
+            elif isinstance(raw_child, BaseModel):
+                dumped = raw_child.model_dump()
+                if any(name in dumped for name in _JSONLD_ONLY_FIELDS):
+                    data[type_key] = {key: value for key, value in dumped.items() if key not in _JSONLD_ONLY_FIELDS}
+
+        set_types = [name for name in _PARSER_TYPE_FIELDS if data.get(name) is not None]
+        if len(set_types) == 1 and set_types[0] not in _JSONLD_PARSER_TYPE_KEYS:
+            for field_name in _JSONLD_ONLY_FIELDS:
+                data.pop(field_name, None)
+        return data
 
     @model_validator(mode="after")
     def exactly_one_parser_type(self) -> Self:
