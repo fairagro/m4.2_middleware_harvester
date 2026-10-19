@@ -73,13 +73,24 @@ obtain a `ParsedPayload`, fail closed when `payload.kind != mapper.accepts`, the
 ### Requirement: Propagate harvest_source_id from inline JSON-LD discovery units
 
 `JsonLdDiscoveryResult` SHALL carry an optional `harvest_source_id` (default `None`), mirroring
-`UrlDiscoveryResult.harvest_source_id`, and `GenericPlugin` SHALL pass it into `MappingContext.harvest_source_id` while
-`source_url` stays `None`.
+`UrlDiscoveryResult.harvest_source_id`, and `GenericPlugin` SHALL pass it into `MappingContext.harvest_source_id`. When
+the discovery unit's `identifier` is an http(s) URL, `GenericPlugin` SHALL also set `MappingContext.source_url` and
+`HarvestedArc.source_url` from that identifier; otherwise `source_url` stays `None` (opaque ids such as Regal `frl:…`).
 
 #### Scenario: Protocol-supplied id reaches the mapper
 
 - **WHEN** a Protocol yields a `JsonLdDiscoveryResult` with `harvest_source_id` set
 - **THEN** the DataMapper receives it as `MappingContext.harvest_source_id`
+
+#### Scenario: http(s) dataset IRI becomes source_url
+
+- **WHEN** a Protocol yields a `JsonLdDiscoveryResult` whose `identifier` is an http(s) URL (e.g. a DCAT-AP dataset IRI)
+- **THEN** `MappingContext.source_url` and the yielded `HarvestedArc.source_url` equal that identifier
+
+#### Scenario: Opaque identifier leaves source_url unset
+
+- **WHEN** a `JsonLdDiscoveryResult` identifier is not an http(s) URL
+- **THEN** `source_url` stays `None` while `harvest_source_id` still propagates when set
 
 #### Scenario: Default stays None
 
