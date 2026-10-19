@@ -93,7 +93,7 @@ Detailed contact information for persons and organizations.
 
 | INSPIRE Field                         | OWSLib Attribute                                   | Description                                | ARC Mapping                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. No given name (e.g. `RTH`) → Comment `<organisationName> (<individualName>)` (named as for organisation-only contacts), not a Person.                                                                                                                                                            |
+| **individualName**                    | `name`                                             | Person name                                | Split via shared `split_display_name` → `Person` First/Last. No given name (e.g. `RTH`), or `mapper.individual_name_is_organisation: true` (e.g. DWD department names) → Comment `<organisationName> (<individualName>)` (named as for organisation-only contacts), not a Person.                                                                             |
 | **organisationName**                  | `organization`                                     | Organization name                          | With individualName: `Person.Affiliation`. Organisation-only (no individualName): Investigation Comment `Creator Organization` for creator roles (author, originator, principalInvestigator; plus `Creator Organization URL`; several organisations are semicolon-joined in one Comment), else named from the role (e.g. `Publisher`, `Owner`); not a Person. |
 | **positionName**                      | `position`                                         | Job title                                  | `Person` comment or custom field                                                                                                                                                                                                                                                                                                                              |
 | **contactInfo/phone**                 | `phone`                                            | Telephone number                           | `Person.Phone`                                                                                                                                                                                                                                                                                                                                                |
@@ -117,8 +117,9 @@ Access and use restrictions.
 | **securityConstraints** | `securityconstraints`                      | Security-specific constraints                  | **Investigation Comments**                          |
 
 **ARC licence (`ARC.License`).** `otherConstraints` also sets the ARC licence (`middleware.payload.arc_license`), in
-order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GeoNode licence
-text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
+order: the first `gmx:Anchor/@xlink:href` that is not an `inspire.ec.europa.eu` code-list URI; the first GDI-DE JSON
+licence `{"id": …, "name": …, "url": …}` as `name (url)` (DWD via GDI-DE; malformed JSON is read field by field); the
+first GeoNode licence text `Name (id): description` (BonaRes, Thünen Atlas, e.g.
 `CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (…/legalcode)`); the first text with a URL on a known
 licence host (creativecommons.org, opendatacommons.org, govdata.de, spdx.org, rightsstatements.org). GeoNode
 `Not Specified: …`, access notes ("available on request …") and other text give no licence, so the ARCtrl default "ALL
@@ -383,17 +384,18 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 
-### 3. Placeholder Values
+### 3. Source placeholders
 
-GeoNode catalogues (BonaRes, Thünen Atlas) fill empty optional elements with placeholder text, e.g.
-`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`,
-and "No information provided" for `supplementalInformation`. `InspireRecord` and its nested models treat a whole-value
-placeholder (case-insensitive) in an **optional** field as absent: a scalar falls back to its default and list items are
-removed. The placeholders are configured per RDI in the repository's `mapper.placeholders` (`values`, plus
-`unrendered_templates` for `$var` / `${var}` / `{{var}}`). Nothing counts as a placeholder by default, so every value
-the harvester drops is visible in the configuration; BonaRes and Thünen Atlas need
-`values: ["None", "No information provided"]`. Required fields (`identifier`, `title`, `abstract`) keep their value, so
-a placeholder abstract still reaches `Investigation.Description` (#413).
+GeoNode catalogues fill empty optional elements with placeholder text, e.g.
+`<gco:CharacterString>None</gco:CharacterString>` for `purpose`, `lineage`, `otherConstraints` and `graphicOverview`.
+`InspireRecord` and its nested models treat a whole-value match (case-insensitive, surrounding whitespace ignored) of
+the repository's `inspire.placeholders` in an **optional** field as absent: a scalar falls back to its default and list
+items are removed. `unrendered_templates` also matches `$var` / `${var}` / `{{var}}`. The check runs in the parser
+(`IsoParser` validates with `validation_context(value_bounds, placeholders)`), not in the mapper. Nothing counts as a
+placeholder by default; the per-RDI strings live in the deployment config, not here. Required fields (`identifier`,
+`title`, `abstract`) keep their value, so a placeholder abstract still reaches `Investigation.Description` (#413).
+`mapper.placeholders` on an `inspire` repository is deprecated and lifted to `inspire.placeholders` with a warning
+(#459).
 
 ### 4. Opaque Fields
 

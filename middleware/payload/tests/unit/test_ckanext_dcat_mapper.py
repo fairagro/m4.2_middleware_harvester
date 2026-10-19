@@ -17,13 +17,14 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
+from middleware.payload.placeholders import PlaceholderConfig
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
 _LOCN = Namespace("http://www.w3.org/ns/locn#")
 
 
 def _mapper(catalog_name: str | None = None, catalog_url: str | None = None) -> CkanextDcatMapper:
-    return CkanextDcatMapper(catalog_name=catalog_name, catalog_url=catalog_url)
+    return CkanextDcatMapper(PlaceholderConfig(), catalog_name=catalog_name, catalog_url=catalog_url)
 
 
 def _mapped_arc_json(graph: Graph, mapper: CkanextDcatMapper | None = None) -> str:

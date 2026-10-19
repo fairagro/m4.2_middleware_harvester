@@ -110,6 +110,53 @@ def test_inspire_license_prefers_non_registry_anchor_url() -> None:
     assert license_.Content == "https://www.govdata.de/dl-de/by-2-0"
 
 
+DWD_JSON_CC_BY = (
+    '{"id": "cc-by/4.0","name": "Creative Commons Namensnennung – 4.0 International (CC BY 4.0)",'
+    '"url": "https://creativecommons.org/licenses/by/4.0/",'
+    '"quelle": "Datenquelle: CC-BY-4.0 - [Deutscher Wetterdienst](https://www.dwd.de/copyright)"}'
+)
+
+
+def test_inspire_license_gdi_de_json_uses_name_and_url() -> None:
+    """DWD via GDI-DE: the JSON licence wins over free text that also names the licence (#485)."""
+    license_ = inspire_license(
+        [
+            'Nutzungsbedingungen: Es gelten die Bedingungen der Lizenz Creative Commons BY 4.0 "CC BY 4.0". '
+            'Einzelheiten unter "https://www.dwd.de/copyright".',
+            DWD_JSON_CC_BY,
+            "Es gelten keine Zugriffsbeschränkungen",
+        ],
+        ["http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/noLimitations"],
+    )
+    assert license_ is not None
+    assert license_.Content == (
+        "Creative Commons Namensnennung – 4.0 International (CC BY 4.0) (https://creativecommons.org/licenses/by/4.0/)"
+    )
+
+
+def test_inspire_license_gdi_de_json_without_name_uses_url() -> None:
+    license_ = inspire_license(['{"id": "cc-by/4.0", "url": "https://creativecommons.org/licenses/by/4.0/"}'], [])
+    assert license_ is not None
+    assert license_.Content == "https://creativecommons.org/licenses/by/4.0/"
+
+
+def test_inspire_license_gdi_de_malformed_json_still_reads_name_and_url() -> None:
+    """Live DWD record with a stray backslash after ``name`` (invalid JSON)."""
+    license_ = inspire_license(
+        ['{"id": "cc-by/4.0","name\\": "CC BY 4.0","url": "https://creativecommons.org/licenses/by/4.0/"}'], []
+    )
+    assert license_ is not None
+    assert license_.Content == "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)"
+
+
+@pytest.mark.parametrize(
+    "constraint",
+    ['{"id": "cc-by/4.0", "name": "CC BY 4.0"}', '{"url": "not a url"}', "{broken", '{"url": ["x"]}'],
+)
+def test_inspire_license_gdi_de_json_without_http_url_is_no_licence(constraint: str) -> None:
+    assert inspire_license([constraint], []) is None
+
+
 def test_inspire_license_free_text_with_licence_host_url() -> None:
     text = "Nutzung gemäß https://creativecommons.org/licenses/by/4.0/ mit Quellenangabe"
     license_ = inspire_license(["keine", text], [])

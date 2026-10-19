@@ -52,8 +52,10 @@ tables as needed).
 Documents speak RDF predicates or typed-record fields, not StableGraph APIs.
 
 For required title/identifier cascades, mappers MUST NOT invent placeholder strings (`Untitled`, `untitled`, …); refusal
-is fail closed. That rule targets mapper-invented fallbacks, not source-supplied placeholders the RDI sent (see
-`mapper.placeholders` / #437). These files document `middleware.payload` DataMappers, not the `linked_data:` plugin key.
+is fail closed. That rule targets mapper-invented fallbacks, not source-supplied placeholders the RDI sent. Those are
+configured per repository (`inspire.placeholders` for INSPIRE, `mapper.placeholders` for the linked-data mappers; #437,
+#459), and each document states its contract in a `Source placeholders` section without listing per-RDI strings. These
+files document `middleware.payload` DataMappers, not the `linked_data:` plugin key.
 
 ## Future code generation
 

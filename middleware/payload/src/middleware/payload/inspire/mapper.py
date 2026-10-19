@@ -29,7 +29,7 @@ from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
 from middleware.payload.kinds import PayloadKind
-from middleware.payload.mapper_config import MapperType
+from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.person_contacts import (
@@ -67,6 +67,17 @@ class InspireMapper(DataMapper[MappingContext]):
     """Maps ``PayloadKind.inspire_record`` to ARC objects."""
 
     accepts: ClassVar[PayloadKind] = PayloadKind.inspire_record
+
+    def __init__(self, *, individual_name_is_organisation: bool = False) -> None:
+        """Create a mapper; ``individual_name_is_organisation`` maps every individualName as an organisation unit."""
+        self._individual_name_is_organisation = individual_name_is_organisation
+
+    @classmethod
+    @override
+    def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> InspireMapper:
+        """Construct a mapper from repository mapper configuration."""
+        _ = resource_base_url  # INSPIRE identifiers need no base URL.
+        return cls(individual_name_is_organisation=config.individual_name_is_organisation)
 
     @override
     def map(self, payload: ParsedPayload, context: MappingContext) -> Iterable[HarvestedArc]:
@@ -251,7 +262,8 @@ class InspireMapper(DataMapper[MappingContext]):
         Organisation-only contacts and individualNames without a given name (e.g.
         DWD's ``RTH`` org-unit acronym) become Investigation comments, never
         empty-given Persons: ``Creator Organization`` for creator roles (author,
-        originator, principal investigator), else named after the role.
+        originator, principal investigator), else named after the role. With
+        ``individual_name_is_organisation`` every individualName takes that path.
         """
         all_contacts = list(record.contacts)
         all_contacts.extend(record.creators)
@@ -266,7 +278,7 @@ class InspireMapper(DataMapper[MappingContext]):
                     self._append_role_comment(inv, contact, organization, seen_org_comments)
                 continue
             first_name, _ = self._split_name(individual)
-            if not first_name.strip():
+            if self._individual_name_is_organisation or not first_name.strip():
                 value = f"{organization} ({individual})" if organization else individual
                 self._append_role_comment(inv, contact, value, seen_org_comments)
                 continue

@@ -14,6 +14,7 @@ from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
     assert_harvest_has_no_bnode_labels,
+    keywords_comment_text,
     root_dates,
     root_identifier,
     root_title,
@@ -28,7 +29,9 @@ from middleware.payload.linked_data_mapper.regal_mapper import (
     REGAL,
     RESEARCH_DATA_TYPE,
     RegalMapper,
+    _RegalRun,
 )
+from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.placeholders import PlaceholderConfig
 
 RESOURCE_BASE = "https://example.org/resource/"
@@ -179,6 +182,47 @@ def test_regal_mapper_requires_identity() -> None:
     graph.add((subject, DCTERMS.title, Literal("No id")))
     with pytest.raises(ValueError, match="missing both @id and doi"):
         list(_mapper().map_graph(graph, NO_DISCOVERY))
+
+
+def test_regal_mapper_doi_only_identifier_is_sanitized() -> None:
+    """A DOI-derived Investigation identifier goes through the shared sanitizer (#358)."""
+    graph = Graph()
+    subject = URIRef("https://example.org/unknown-record")
+    graph.add((subject, RDF.type, RESEARCH_DATA_TYPE))
+    graph.add((subject, DCTERMS.title, Literal("DOI only")))
+    graph.add((subject, REGAL.doi, Literal("10.4126/FRL01-0000123")))
+
+    harvested = list(_mapper().map_graph(graph, NO_DISCOVERY))[0]
+    assert harvested.identifier == "10_4126_FRL01-0000123"
+    assert root_identifier(harvested.arc_json) == "10_4126_FRL01-0000123"
+
+
+def test_regal_mapper_unusable_identifier_fails_closed() -> None:
+    """No sanitizable id, DOI or title slug → mapping error, never an ``untitled`` id (#358)."""
+    run = _RegalRun(_mapper(), StableGraph.wrap(Graph()), RESOURCE_BASE)
+    with pytest.raises(ValueError, match="no usable Investigation identifier"):
+        run._investigation_identifier(regal_id=":::", doi="///", title="???")  # pylint: disable=protected-access
+
+
+def test_regal_subjects_and_ddc_become_keywords_and_keep_term_uris() -> None:
+    """Subject labels reach the ``Keywords`` comment; DDC stays out; URIs stay in per-term comments (#417)."""
+    graph = _base_graph()
+    agrovoc = URIRef("http://aims.fao.org/aos/agrovoc/c_158")
+    ddc = URIRef("http://dewey.info/class/630/")
+    graph.add((SUBJECT, DCTERMS.subject, agrovoc))
+    graph.add((agrovoc, SKOS.prefLabel, Literal("aerosols")))
+    graph.add((SUBJECT, REGAL.ddc, ddc))
+    graph.add((ddc, SKOS.prefLabel, Literal("Natural resources, energy & environment")))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert keywords_comment_text(arc_json) == "aerosols"
+    assert "keyword [http://aims.fao.org/aos/agrovoc/c_158]" in arc_json
+    assert "keyword [DDC:http://dewey.info/class/630/]" in arc_json
+
+
+def test_regal_without_subjects_has_no_keywords_comment() -> None:
+    assert keywords_comment_text(_mapped_arc_json(_base_graph())) is None
 
 
 def test_regal_mapper_title_falls_back_to_preflabel() -> None:

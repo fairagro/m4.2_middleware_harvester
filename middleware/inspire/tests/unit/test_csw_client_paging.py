@@ -11,12 +11,11 @@ from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
 from middleware.payload.inspire.models import InspireRecord
-from middleware.payload.placeholders import PlaceholderConfig
 
 
 def test_get_records_uses_fes_constraints() -> None:
     config = _make_csw_config()
-    client = CSWClient(config, PlaceholderConfig())
+    client = CSWClient(config)
     object.__setattr__(client, "_csw", MagicMock())
 
     with patch.object(CSWClient, "_get_records_by_fes", return_value=iter(["record1"])) as mock_fes:
@@ -34,14 +33,14 @@ def test_get_record_count_raises_when_both_filters_are_configured() -> None:
         chunk_size=1,
         timeout=5,
     )
-    client = CSWClient(config, PlaceholderConfig())
+    client = CSWClient(config)
 
     with pytest.raises(ValueError, match="Conflicting query parameters"):
         client.get_record_count()
 
 
 def test_next_start_position_prefers_nextrecord() -> None:
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     next_start = 51
     csw.results = {"matches": 113, "returned": 50, "nextrecord": next_start}
@@ -54,7 +53,7 @@ def test_next_start_position_prefers_nextrecord() -> None:
 
 
 def test_next_start_position_falls_back_to_start_plus_returned() -> None:
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     csw.results = {"matches": 113, "returned": 50, "nextrecord": None}
     object.__setattr__(client, "_csw", csw)
@@ -64,7 +63,7 @@ def test_next_start_position_falls_back_to_start_plus_returned() -> None:
 
 def test_next_start_position_falls_back_to_batch_length_when_metadata_missing() -> None:
     """When nextrecord/returned are absent, advance using batch length if matches remain."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     csw.results = {"matches": 113, "returned": None, "nextrecord": None}
     object.__setattr__(client, "_csw", csw)
@@ -77,7 +76,7 @@ def test_next_start_position_falls_back_to_batch_length_when_metadata_missing() 
 def test_paged_harvest_advances_when_nextrecord_and_returned_missing() -> None:
     """Missing pagination metadata must not truncate the harvest while matches remain."""
     starts: list[int] = []
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     batch_sizes = [50, 50, 13]
@@ -113,7 +112,7 @@ def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
     nextrecords = [51, 101, 0]
     last_full_page_index = 1
     starts: list[int] = []
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
 
@@ -144,7 +143,7 @@ def test_paged_harvest_starts_at_one_and_advances_without_overlap() -> None:
 
 def test_all_records_fetched_allows_start_equal_to_matches() -> None:
     """Position ``matches`` is still valid under 1-based CSW indexing."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     csw.results = {"matches": 151}
     object.__setattr__(client, "_csw", csw)
@@ -159,7 +158,7 @@ def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> 
     nextrecords = [141, 151, 0]
     returned_counts = [140, 10, 1]
     starts: list[int] = []
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
 
@@ -191,7 +190,7 @@ def test_paged_harvest_fetches_final_record_when_nextrecord_equals_matches() -> 
 def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
     """A stuck nextrecord must not spin the pagination loop forever."""
     starts: list[int] = []
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
 
@@ -217,7 +216,7 @@ def test_paged_harvest_stops_when_nextrecord_does_not_advance() -> None:
 
 def test_xml_paging_uses_chunk_size_across_pages() -> None:
     """xml_query without maxRecords uses config chunk_size and pages via nextrecord."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     sent: list[str] = []
@@ -246,7 +245,7 @@ def test_xml_paging_uses_chunk_size_across_pages() -> None:
 
 def test_xml_max_records_overrides_chunk_size() -> None:
     """Valid XML maxRecords overrides config chunk_size as page size only."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
@@ -261,7 +260,7 @@ def test_xml_max_records_overrides_chunk_size() -> None:
 
 def test_xml_start_position_overrides_initial_offset() -> None:
     """Valid XML startPosition is used as the first page offset."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 20, "returned": 1, "nextrecord": 0}
@@ -276,9 +275,7 @@ def test_xml_start_position_overrides_initial_offset() -> None:
 
 def test_xml_config_max_records_caps_harvest() -> None:
     """Config max_records stops XML harvest across pages (not XML maxRecords)."""
-    client = CSWClient(
-        Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2, max_records=2), PlaceholderConfig()
-    )
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2, max_records=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     call_count = 0
@@ -301,7 +298,7 @@ def test_xml_config_max_records_caps_harvest() -> None:
 
 def test_xml_invalid_paging_attrs_log_and_fall_back(caplog: pytest.LogCaptureFixture) -> None:
     """Invalid XML maxRecords/startPosition are ignored with a warning."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=9), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=9))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
@@ -326,7 +323,7 @@ def test_xml_invalid_paging_attrs_log_and_fall_back(caplog: pytest.LogCaptureFix
 
 def test_xml_query_requires_get_records_root() -> None:
     """xml_query without a GetRecords root raises before contacting CSW."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
 
     with (
         patch.object(client, "connect") as mock_connect,
@@ -339,7 +336,7 @@ def test_xml_query_requires_get_records_root() -> None:
 
 def test_xml_query_rejects_nested_get_records() -> None:
     """GetRecords must be the document root, not a descendant."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     wrapped = (
         "<wrapper>"
         '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
@@ -358,7 +355,7 @@ def test_xml_query_rejects_nested_get_records() -> None:
 
 def test_xml_query_rejects_wrong_get_records_namespace() -> None:
     """GetRecords in a non-CSW namespace is rejected."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
 
     with (
         patch.object(client, "connect") as mock_connect,
@@ -371,7 +368,7 @@ def test_xml_query_rejects_wrong_get_records_namespace() -> None:
 
 def test_xml_query_rejects_unnamespaced_get_records() -> None:
     """Bare GetRecords without the CSW 2.0.2 namespace is rejected."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
 
     with (
         patch.object(client, "connect") as mock_connect,
@@ -384,9 +381,7 @@ def test_xml_query_rejects_unnamespaced_get_records() -> None:
 
 def test_max_records_truncates_oversized_page() -> None:
     """max_records must not yield more successful records than N within a page."""
-    client = CSWClient(
-        Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, max_records=2), PlaceholderConfig()
-    )
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10, max_records=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 10, "returned": 5, "nextrecord": 6}
@@ -450,9 +445,7 @@ def test_pagination_fallback_uses_fetched_size_not_trimmed_yield() -> None:
     """Missing nextrecord/returned must advance by the fetched page size, not a trimmed yield list."""
     starts: list[int] = []
     batch_sizes_seen: list[int] = []
-    client = CSWClient(
-        Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5, max_records=100), PlaceholderConfig()
-    )
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5, max_records=100))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
 
@@ -498,7 +491,7 @@ def test_pagination_fallback_uses_fetched_size_not_trimmed_yield() -> None:
 
 def test_xml_iso_fetch_does_not_mutate_shared_template() -> None:
     """ISO page fetches must not rewrite the shared xml_query root in-place."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 3, "returned": 2, "nextrecord": 3}
@@ -531,7 +524,7 @@ def test_xml_iso_fetch_does_not_mutate_shared_template() -> None:
 
 def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) -> None:
     """ISO fetch path forces gmd outputSchema even when xml_query sets another schema."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
@@ -559,7 +552,7 @@ def test_xml_non_iso_output_schema_overridden(caplog: pytest.LogCaptureFixture) 
 
 def test_fetch_iso_batch_raises_csw_connection_error_on_failure() -> None:
     """ISO fetch failures raise CswConnectionError so async retry can observe them."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = TimeoutError("timed out")
@@ -570,7 +563,7 @@ def test_fetch_iso_batch_raises_csw_connection_error_on_failure() -> None:
 
 def test_fetch_iso_batch_propagates_value_error() -> None:
     """ValueError from OWSLib must propagate unwrapped (not retryable)."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = ValueError("bad filter")
@@ -581,7 +574,7 @@ def test_fetch_iso_batch_propagates_value_error() -> None:
 
 def test_paged_harvest_raises_on_iso_fetch_failure() -> None:
     """A mid-harvest ISO fetch failure raises CswConnectionError (retryable on async path)."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=2))
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     call_count = 0
@@ -608,7 +601,7 @@ def test_paged_harvest_raises_on_iso_fetch_failure() -> None:
 
 def test_fetch_iso_batch_xml_raises_csw_connection_error_on_failure() -> None:
     """XML ISO fetch failures raise CswConnectionError on network error."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = OSError("boom")
@@ -623,7 +616,7 @@ def test_fetch_iso_batch_xml_raises_csw_connection_error_on_failure() -> None:
 
 def test_fetch_iso_batch_xml_propagates_value_error() -> None:
     """ValueError from XML ISO fetch must propagate unwrapped (not retryable)."""
-    client = CSWClient(_make_csw_config(), PlaceholderConfig())
+    client = CSWClient(_make_csw_config())
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = ValueError("bad xml request")

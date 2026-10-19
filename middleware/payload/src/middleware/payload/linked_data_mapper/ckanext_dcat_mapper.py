@@ -35,6 +35,7 @@ from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataM
 from middleware.payload.linked_data_mapper.stable_graph import ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.person_contacts import require_nonempty_person_given_names
+from middleware.payload.placeholders import PlaceholderConfig
 
 DCAT = Namespace("http://www.w3.org/ns/dcat#")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
@@ -61,8 +62,14 @@ class CkanextDcatMapper(LinkedDataMapper):
     ``_CkanextDcatRun``); DCAT-AP ARC policy stays here.
     """
 
-    def __init__(self, catalog_name: str | None = None, catalog_url: str | None = None) -> None:
-        """Create a mapper with optional repository-configured catalog provenance."""
+    def __init__(
+        self,
+        placeholders: PlaceholderConfig,
+        catalog_name: str | None = None,
+        catalog_url: str | None = None,
+    ) -> None:
+        """Create a mapper with the RDI's placeholders and optional repository-configured catalog provenance."""
+        super().__init__(placeholders)
         self._catalog_name = catalog_name
         self._catalog_url = catalog_url
 
@@ -72,6 +79,7 @@ class CkanextDcatMapper(LinkedDataMapper):
         """Construct a mapper from repository mapper configuration."""
         _ = resource_base_url  # DCAT-AP subjects are already absolute IRIs; unused here.
         return cls(
+            config.placeholders,
             catalog_name=config.catalog_name,
             catalog_url=str(config.catalog_url) if config.catalog_url else None,
         )

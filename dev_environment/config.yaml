@@ -112,7 +112,9 @@ repositories:
 
 #         </csw:GetRecords>
 #     mapper:
-#       inspire_general: {}
+#       inspire_general:
+#         # DWD writes department names (e.g. "KU31 Agrarmeteorologie") into individualName (#393).
+#         individual_name_is_organisation: true
 
 api_client:
   api_url: "https://middleware-test.fairagro.net"

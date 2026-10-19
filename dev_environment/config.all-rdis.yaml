@@ -19,11 +19,11 @@ repositories:
   - rdi: "bonares"
     inspire:
       csw_url: "https://repository-e.dataservice.zalf.de/catalogue/csw"
-    mapper:
       # Placeholder text this RDI writes instead of leaving an optional field
       # empty (#413). Nothing counts as a placeholder unless listed here.
       placeholders:
         values: ["None", "No information provided"]
+    mapper:
       inspire_general: {}
 
   # The other real schema_org_general + html_jsonld source, and so the only
@@ -74,9 +74,7 @@ repositories:
     parser:
       jsonld: {}
     mapper:
-      ckanext_dcat:
-        catalog_name: "Smart Rural Areas Data Infrastructure (SRADI)"
-        catalog_url: "https://agrihub.gis.lrg.tum.de"
+      ckanext_dcat: {}
 
   # PlabiPD (fairagro/m4_rdi_portfolio#7) -- schema.org Dataset dump describing published plant
   # genomes (via usadellab/pubplant2schemaorg), via the generic plugin:

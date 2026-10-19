@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from middleware.payload.inspire.value_bounds import ValueBounds
+from middleware.payload.placeholders import PlaceholderConfig
 
 # Functional constraint, not policy: OWSLib talks to the CSW through `requests`, which
 # only speaks http(s). Also required so GetRecordById URLs pass ``as_source_url`` in
@@ -13,7 +14,21 @@ from middleware.payload.inspire.value_bounds import ValueBounds
 _CSW_URL_SCHEMES = frozenset({"http", "https"})
 
 
-class Config(BaseModel):
+class IsoParserConfig(BaseModel):
+    """Settings the ISO 19139 parser applies when validating harvested records."""
+
+    value_bounds: Annotated[
+        ValueBounds,
+        Field(description="Validation limits for harvested record values."),
+    ] = ValueBounds()
+
+    placeholders: Annotated[
+        PlaceholderConfig,
+        Field(description="Placeholder text this RDI writes into optional fields; treated as absent."),
+    ] = PlaceholderConfig()
+
+
+class Config(IsoParserConfig):
     """Configuration model for the Inspire to ARC middleware."""
 
     model_config = {
@@ -31,11 +46,6 @@ class Config(BaseModel):
         if parsed.scheme.lower() not in _CSW_URL_SCHEMES or not parsed.netloc:
             raise ValueError(f"csw_url must be an http(s) URL, got {v!r}")
         return cleaned
-
-    value_bounds: Annotated[
-        ValueBounds,
-        Field(description="Validation limits for harvested record values."),
-    ] = ValueBounds()
 
     cql_query: Annotated[
         str | None,

@@ -106,12 +106,12 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 ### 5. Subjects, classification, and techniques
 
-| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                                                |
-| ---------------- | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`subject`**    | `dcterms:subject`       | Subject headings            | Ontology-style Investigation comments `keyword [{@id or subject}]` = `prefLabel`, and/or **Data Collection** protocol parameter `Keywords` |
-| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Same as keywords with TermSourceREF `DDC` / `https://www.oclc.org/en/dewey.html`                                                           |
-| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                 |
-| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                |
+| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                                                                                                                   |
+| ---------------- | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`subject`**    | `dcterms:subject`       | Subject headings            | Investigation comment `Keywords` (comma-joined labels; the API exports it as `keywords`); per-term comments `keyword [{@id or subject}]` = `prefLabel` keep the URI; **Data Collection** parameter `Keywords` |
+| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Per-term comments `keyword [DDC:{@id}]` = `prefLabel` (classification, not in `Keywords`); **Data Collection** parameter `Keywords`                                                                           |
+| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                                                                                    |
+| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                                                                                   |
 
 ### 6. Funding
 
@@ -161,7 +161,8 @@ an explicit mapping update to this document.
 
 ### Investigation (Dataset Context)
 
-- **Identifier**: slug from Regal `@id` (required); fail mapping if neither `@id` nor `doi` exists
+- **Identifier**: sanitized Regal `@id`; else sanitized `doi` (e.g. `10_4126_FRL01-0000123`); else title slug. Fail
+  mapping if neither `@id` nor `doi` exists, or if no non-empty identifier can be derived
 - **Title**: `title[0]` (fallback `prefLabel`); mapping **fails closed** if both are empty — never `"Untitled"`
 - **Description**: joined `description` values
 - **PublicReleaseDate**: `issued` (RO-Crate `datePublished`). Regal has no creation date, so `SubmissionDate` (RO-Crate
@@ -272,6 +273,12 @@ equivalent structured model). Do not assume schema.org predicates.
 
 `GeneralSchemaOrgMapper` must **not** be reused for Regal graphs. A dedicated Regal mapper implements this document.
 Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the ARC targets above are authoritative.
+
+### 9. Source placeholders
+
+A `license` value matching the repository's `mapper.placeholders` is treated as absent (no ARC licence, no `License`
+comment), through `LinkedDataMapper.license()` as in [schemaorg.md](schemaorg.md#source-placeholders). Nothing counts as
+a placeholder by default; the per-RDI strings live in the deployment config, not here.
 
 ## Traceability to basic middleware
 

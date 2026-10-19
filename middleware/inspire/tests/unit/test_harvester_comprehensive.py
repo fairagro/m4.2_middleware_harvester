@@ -15,7 +15,6 @@ from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import SemanticError
 from middleware.payload.inspire.models import InspireRecord
-from middleware.payload.placeholders import PlaceholderConfig
 
 
 @pytest.fixture
@@ -88,7 +87,7 @@ def mock_iso_record(create_mock_identification: MagicMock) -> MagicMock:
 
 
 def test_csw_client_init() -> None:
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     assert client._config.csw_url == "http://example.com/csw"
     assert client._config.timeout == 30
 
@@ -106,7 +105,7 @@ def test_config_mutually_exclusive_filters_raises() -> None:
 
 
 def test_csw_client_connect(mock_csw_cls: MagicMock) -> None:
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     client.connect()
     # _connect() creates one CatalogueServiceWeb instance
     assert mock_csw_cls.call_count == 1
@@ -141,7 +140,7 @@ def test_get_records_success(mock_csw_cls: MagicMock, mock_iso_record: MagicMock
         return isinstance(obj, cls)
 
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
-        client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=1), PlaceholderConfig())
+        client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=1))
         records = list(client.get_records())
 
     assert len(records) == 1
@@ -162,7 +161,7 @@ def test_get_records_empty(mock_csw_cls: MagicMock) -> None:
     mock_instance.records = {}
     mock_instance.results = {"matches": 0}
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     records = list(client.get_records())
     assert len(records) == 0
 
@@ -176,7 +175,7 @@ def test_parse_iso_record_minimal(mock_iso_record: MagicMock) -> None:
     mock_iso_record.dataquality = None
     mock_iso_record.distribution = None
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert rec.identifier == "uuid-123"
@@ -191,7 +190,7 @@ def test_parse_iso_record_missing_title(mock_iso_record: MagicMock) -> None:
     """Test parsing a record with missing title should raise SemanticError."""
     mock_iso_record.identification.title = None
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     with pytest.raises(SemanticError, match="missing a title"):
         client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
@@ -200,7 +199,7 @@ def test_parse_iso_record_missing_abstract(mock_iso_record: MagicMock) -> None:
     """Test parsing a record with missing abstract should raise SemanticError."""
     mock_iso_record.identification.abstract = None
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     with pytest.raises(SemanticError, match="missing an abstract"):
         client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
@@ -214,7 +213,7 @@ def test_extract_contacts(mock_iso_record: MagicMock) -> None:
     contact.role = "author"
     mock_iso_record.identification.contact = [contact]
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.contacts) == 1
@@ -230,7 +229,7 @@ def test_extract_spatial_extent_invalid(mock_iso_record: MagicMock) -> None:
     # Set invalid bbox values
     mock_iso_record.identification.bbox.minx = "invalid"
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert rec.spatial_extent is None
 
@@ -240,7 +239,7 @@ def test_extract_resource_identifiers(mock_iso_record: MagicMock) -> None:
     mock_iso_record.identification.uricode = ["10.1234/doi"]
     mock_iso_record.identification.uricodespace = ["DOI"]
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.resource_identifiers) == 1
@@ -261,7 +260,7 @@ def test_extract_distribution_formats(mock_iso_record: MagicMock) -> None:
     dist.online = []
     mock_iso_record.distribution = dist
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
 
     assert len(rec.distribution_formats) == 1
@@ -296,7 +295,7 @@ def test_get_records_skip_invalid_records(mock_csw_cls: MagicMock, mock_iso_reco
             return True
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 
@@ -334,7 +333,7 @@ def test_get_records_skip_generic_exception(mock_csw_cls: MagicMock) -> None:
             return True
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 
@@ -367,7 +366,7 @@ def test_get_records_by_xml(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
         "</csw:Query>"
         "</csw:GetRecords>"
     )
-    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=25), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw", chunk_size=25))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records(xml_query=xml_query))
 
@@ -394,7 +393,7 @@ def test_get_records_by_constraints(mock_csw_cls: MagicMock, mock_iso_record: Ma
         return original_isinstance(obj, cls)
 
     fes = cast(list[OgcExpression], [MagicMock(spec=OgcExpression)])
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         # Trigger constraint path
         results = list(client.get_records(fes_constraints=fes))
@@ -420,7 +419,7 @@ def test_get_records_by_cql(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
             return True
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records(cql_query="AnyText LIKE '%test%'"))
 
@@ -433,7 +432,7 @@ def test_get_records_by_cql(mock_csw_cls: MagicMock, mock_iso_record: MagicMock)
 
 def test_get_records_conflicting_filters_raises() -> None:
     """Test that providing more than one filter mode raises ValueError."""
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     fes = cast(list[OgcExpression], [MagicMock(spec=OgcExpression)])
 
     with pytest.raises(ValueError, match="Conflicting query parameters"):
@@ -449,9 +448,7 @@ def test_get_records_conflicting_filters_raises() -> None:
 def test_get_records_config_and_arg_conflict_raises() -> None:
     """Test that a config filter and a call-site filter conflict also raises ValueError."""
     # Config already provides a cql_query; call also passes fes_constraints → conflict
-    client = CSWClient(
-        Config(csw_url="http://example.com/csw", cql_query="AnyText LIKE '%biota%'"), PlaceholderConfig()
-    )
+    client = CSWClient(Config(csw_url="http://example.com/csw", cql_query="AnyText LIKE '%biota%'"))
     fes = cast(list[OgcExpression], [MagicMock(spec=OgcExpression)])
     with pytest.raises(ValueError, match="Conflicting query parameters"):
         list(client.get_records(fes_constraints=fes))
@@ -472,7 +469,7 @@ def test_get_records_chunk_size_override(mock_csw_cls: MagicMock, mock_iso_recor
         return original_isinstance(obj, cls)
 
     # Config has chunk_size=50 (default), but we override to 7
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         list(client.get_records(chunk_size=7))
 
@@ -489,7 +486,7 @@ def test_get_records_max_records_override(mock_csw_cls: MagicMock) -> None:
     # Return empty records to avoid parse complexity; max_records=0 should stop immediately
     mock_instance.records = {}
 
-    client = CSWClient(Config(csw_url="http://example.com/csw", max_records=None), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw", max_records=None))
     # Override max_records to 0 — pagination should stop after the first empty batch
     results = list(client.get_records(max_records=0))
 
@@ -508,14 +505,14 @@ def test_extract_lineage_complex(mock_iso_record: MagicMock) -> None:
     dq.lineage_url = None
     mock_iso_record.dataquality = dq
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert rec.lineage == "Test Lineage Statement"
 
 
 def test_extract_spatial_extent_variations(mock_iso_record: MagicMock) -> None:
     """Test different spatial extent scenarios."""
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
 
     # 1. Valid numbers as strings
     mock_iso_record.identification.bbox.minx = "10.1"
@@ -535,7 +532,7 @@ def test_extract_resolution(mock_iso_record: MagicMock) -> None:
     ident.distance = ["10"]
     ident.uom = ["m"]
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert 5000 in rec.spatial_resolution_denominators
     assert len(rec.spatial_resolution_distances) == 1
@@ -555,7 +552,7 @@ def test_extract_distribution_formats_complex(mock_iso_record: MagicMock) -> Non
     dist.online = []
     mock_iso_record.distribution = dist
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.distribution_formats) == 1
     assert rec.distribution_formats[0].name == "Format1"
@@ -578,7 +575,7 @@ def test_extract_online_resources(mock_iso_record: MagicMock) -> None:
     dist.online = [res]
     mock_iso_record.distribution = dist
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.online_resources) == 1
     assert rec.online_resources[0].url == "http://data.com"
@@ -596,7 +593,7 @@ def test_extract_conformance(mock_iso_record: MagicMock) -> None:
     dq.conformancedegree = ["true"]
     mock_iso_record.dataquality = dq
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.conformance_results) == 1
     assert rec.conformance_results[0].specification_title == "INSPIRE"
@@ -614,7 +611,7 @@ def test_extract_reference_systems(mock_iso_record: MagicMock) -> None:
     ref.version_url = None
     mock_iso_record.referencesystem = ref
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     assert len(rec.reference_systems) == 1
     assert rec.reference_systems[0].code == "EPSG:4326"
@@ -629,7 +626,7 @@ def test_extract_contacts_metadata_level(mock_iso_record: MagicMock) -> None:
     contact.role = None
     mock_iso_record.contact = [contact]
 
-    client = CSWClient(Config(csw_url="http://dummy"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy"))
     rec = client._parse_iso_record(mock_iso_record, record_uuid="uuid-123")
     # rec.contacts should have 2 contacts now: 1 resource (if added), but in minimal mock it's empty
     # Wait, ident.contact = [] in fixture.
@@ -707,7 +704,7 @@ def test_dwd_filter_xml_request(mock_csw_cls: MagicMock) -> None:
     mock_csw_instance.results = {"matches": 200}
     mock_csw_cls.return_value = mock_csw_instance
 
-    client = CSWClient(Config(csw_url="http://dummy-csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://dummy-csw"))
     client.connect()
 
     # get_record_count should work with the DWD XML
@@ -738,7 +735,7 @@ def test_lazy_dc_not_called_when_all_iso_ids_valid(mock_csw_cls: MagicMock, mock
             return True
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 
@@ -789,7 +786,7 @@ def test_lazy_dc_called_when_iso_record_has_owslib_random_id(
             return obj is bad_record
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 
@@ -827,7 +824,7 @@ def test_lazy_dc_fetch_failure_reports_original_owslib_id(mock_csw_cls: MagicMoc
             return obj is bad_record
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 
@@ -883,7 +880,7 @@ def test_lazy_dc_ignores_successful_iso_ids_when_matching_dc_ids(
             return obj is broken_record or obj is good_record
         return original_isinstance(obj, cls)
 
-    client = CSWClient(Config(csw_url="http://example.com/csw"), PlaceholderConfig())
+    client = CSWClient(Config(csw_url="http://example.com/csw"))
     with patch("middleware.inspire.csw_client.isinstance", side_effect=mock_isinstance):
         results = list(client.get_records())
 

@@ -31,7 +31,6 @@ from rdflib.namespace import DCTERMS, RDF, SKOS
 from rdflib.term import Node
 
 from middleware.payload.arc_dates import date_modified_comment
-from middleware.payload.arc_license import license_from_value
 from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
@@ -109,13 +108,8 @@ class RegalMapper(LinkedDataMapper):
 
     def __init__(self, resource_base_url: str, placeholders: PlaceholderConfig) -> None:
         """Create a mapper that expands/strips Regal ids with ``resource_base_url``."""
+        super().__init__(placeholders)
         self._resource_base_url = resource_base_url.rstrip("/") + "/"
-        self._placeholders = placeholders
-
-    @property
-    def placeholders(self) -> PlaceholderConfig:
-        """The RDI's placeholders (``mapper.placeholders``), treated as absent."""
-        return self._placeholders
 
     @classmethod
     @override
@@ -181,7 +175,7 @@ class _RegalRun:
         study.RegisterAssay(assay.Identifier)
         return ARC.from_arc_investigation(
             investigation,
-            license=license_from_value(self._license_value(subject), placeholders=self.mapper.placeholders),
+            license=self.mapper.license(self._license_value(subject)),
         )
 
     def _map_investigation(
@@ -580,7 +574,14 @@ class _RegalRun:
             inv.Comments.append(modified)
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
-        for label, node_id in self._labelled_pairs(subject, DCTERMS.subject):
+        # "Keywords" is what the API materializes as Schema.org ``keywords`` (same as the Schema.org mapper).
+        # DDC is a classification, not a keyword, and its labels contain commas the API would split on.
+        # The per-term comments below keep the subject / DDC URIs until typed keywords exist (#417).
+        subjects = self._labelled_pairs(subject, DCTERMS.subject)
+        if subjects:
+            inv.Comments.append(Comment.create("Keywords", ", ".join(label.strip() for label, _ in subjects)))
+
+        for label, node_id in subjects:
             comment_name = f"keyword [{node_id}]" if node_id else "keyword"
             inv.Comments.append(Comment.create(comment_name, label))
 
@@ -709,7 +710,9 @@ class _RegalRun:
             if slug:
                 return slug
         if doi:
-            return doi
+            doi_slug = self.mapper.sanitize_identifier(doi)
+            if doi_slug:
+                return doi_slug
         title_slug = self.mapper.to_identifier_slug(title)
         if title_slug:
             return title_slug

@@ -17,6 +17,11 @@ _LEGACY_MAPPER_TYPE_MSG = (
     "(e.g. mapper: { regal_general: { resource_base_url: … } }). "
     "Support for mapper.type will be removed in a future release."
 )
+_LEGACY_CATALOG_FIELDS_MSG = (
+    "mapper.catalog_name / mapper.catalog_url are deprecated; catalog provenance is added by the "
+    "middleware API from its known_rdis registry (RDI / RDI Description / RDI URL comments). "
+    "Remove these keys from the repository config; support will be removed in a future release."
+)
 
 
 class MapperType(StrEnum):
@@ -34,6 +39,7 @@ _MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
 _MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
     "regal_general": frozenset({"resource_base_url"}),
     "ckanext_dcat": frozenset({"catalog_name", "catalog_url"}),
+    "inspire_general": frozenset({"individual_name_is_organisation"}),
 }
 
 
@@ -70,7 +76,18 @@ class RegalGeneralMapperConfig(MapperTypeConfig):
 
 
 class InspireGeneralMapperConfig(MapperTypeConfig):
-    """Type settings for ``inspire_general`` (none today)."""
+    """Type settings for ``inspire_general``."""
+
+    individual_name_is_organisation: Annotated[
+        bool,
+        Field(
+            description=(
+                "Treat every ISO individualName as an organisation unit, not a person (e.g. DWD writes department "
+                "names such as 'KU31 Agrarmeteorologie' there). Used by the INSPIRE mapper; no Person is emitted "
+                "for such contacts."
+            ),
+        ),
+    ] = False
 
 
 class PhenoroamGeneralMapperConfig(MapperTypeConfig):
@@ -84,14 +101,22 @@ class CkanextDcatMapperConfig(MapperTypeConfig):
         str | None,
         Field(
             description=(
-                "Optional display name of the source RDI's data catalog (e.g. "
-                "'Smart Rural Areas Data Infrastructure (SRADI)')."
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional display name of the source RDI's data catalog. Used by DCAT-AP "
+                "mappers to record catalog provenance."
             ),
+            deprecated=True,
         ),
     ] = None
     catalog_url: Annotated[
         HttpUrl | None,
-        Field(description="Optional http(s) URL of the source RDI's data catalog."),
+        Field(
+            description=(
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers."
+            ),
+            deprecated=True,
+        ),
     ] = None
 
     @field_validator("catalog_url", mode="before")
@@ -107,6 +132,13 @@ class CkanextDcatMapperConfig(MapperTypeConfig):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @model_validator(mode="after")
+    def _warn_deprecated_catalog_fields(self) -> Self:
+        """Warn when deprecated catalog provenance fields are still set (behaviour unchanged)."""
+        if self.__dict__.get("catalog_name") is not None or self.__dict__.get("catalog_url") is not None:
+            logger.warning(_LEGACY_CATALOG_FIELDS_MSG)
+        return self
 
 
 class MapperConfig(BaseModel):
@@ -126,7 +158,12 @@ class MapperConfig(BaseModel):
 
     placeholders: Annotated[
         PlaceholderConfig,
-        Field(description="Placeholder text this RDI writes instead of leaving a field empty; none by default."),
+        Field(
+            description=(
+                "Placeholder text this RDI writes instead of leaving a field empty; none by default. "
+                "Used by linked-data mappers; INSPIRE repositories set inspire.placeholders."
+            ),
+        ),
     ] = PlaceholderConfig()
     schema_org_general: Annotated[
         SchemaOrgGeneralMapperConfig | None,
@@ -213,14 +250,21 @@ class MapperConfig(BaseModel):
         """Catalog display name when active type is ``ckanext_dcat``."""
         if self.ckanext_dcat is None:
             return None
-        return self.ckanext_dcat.catalog_name
+        return self.ckanext_dcat.__dict__.get("catalog_name")
 
     @property
     def catalog_url(self) -> HttpUrl | None:
         """Catalog URL when active type is ``ckanext_dcat``."""
         if self.ckanext_dcat is None:
             return None
-        return self.ckanext_dcat.catalog_url
+        return self.ckanext_dcat.__dict__.get("catalog_url")
+
+    @property
+    def individual_name_is_organisation(self) -> bool:
+        """INSPIRE individualName→organisation flag when active type is ``inspire_general``."""
+        if self.inspire_general is None:
+            return False
+        return self.inspire_general.individual_name_is_organisation
 
     def normalize_resource_base_url(self) -> str | None:
         """Return a trailing-slash-normalized Regal resource base URL, or None."""

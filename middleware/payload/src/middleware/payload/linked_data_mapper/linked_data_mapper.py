@@ -6,8 +6,10 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import ClassVar, override
 
+from arctrl.py.license import License  # type: ignore[import-untyped]
 from rdflib import Graph
 
+from middleware.payload.arc_license import license_from_value
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import (
@@ -19,6 +21,7 @@ from middleware.payload.linked_data_mapper.stable_graph import StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
+from middleware.payload.placeholders import PlaceholderConfig
 
 
 class LinkedDataMapper(DataMapper[MappingContext]):
@@ -36,6 +39,19 @@ class LinkedDataMapper(DataMapper[MappingContext]):
 
     accepts: ClassVar[PayloadKind] = PayloadKind.rdf_graph
 
+    def __init__(self, placeholders: PlaceholderConfig) -> None:
+        """Create a mapper that treats the RDI's ``placeholders`` as absent."""
+        self._placeholders = placeholders
+
+    @property
+    def placeholders(self) -> PlaceholderConfig:
+        """The RDI's placeholders (``mapper.placeholders``), treated as absent."""
+        return self._placeholders
+
+    def license(self, value: str | None, *, name: str | None = None) -> License | None:
+        """Return the ARC licence for a source licence value, or ``None`` for empty values and placeholders."""
+        return license_from_value(value, placeholders=self._placeholders, name=name)
+
     @classmethod
     def registered_class(cls, mapper_type: MapperType) -> type[LinkedDataMapper]:
         """Return the ``DataMapper.registry`` entry narrowed to ``LinkedDataMapper``."""
@@ -49,10 +65,10 @@ class LinkedDataMapper(DataMapper[MappingContext]):
     def from_config(cls, config: MapperConfig, *, resource_base_url: str | None = None) -> LinkedDataMapper:
         """Construct a mapper from repository mapper configuration.
 
-        Subclasses that need config fields (e.g. resource base URL) override this.
+        Subclasses that need further config fields (e.g. resource base URL) override this.
         """
-        _ = config, resource_base_url
-        return cls()
+        _ = resource_base_url
+        return cls(config.placeholders)
 
     @override
     def map(self, payload: ParsedPayload, context: MappingContext) -> Iterable[HarvestedArc]:
