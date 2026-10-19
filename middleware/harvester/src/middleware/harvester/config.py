@@ -183,9 +183,7 @@ class RepositoryConfig(BaseModel):
         if legacy_type is None:
             return self
         if self.mapper.type != legacy_type:
-            raise ValueError(
-                f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {self.mapper.type!r}"
-            )
+            raise ValueError(f"linked_data.payload_type {legacy_type!r} conflicts with mapper.{self.mapper.type}")
         return self
 
     @model_validator(mode="after")

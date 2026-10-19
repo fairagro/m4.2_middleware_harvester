@@ -262,7 +262,7 @@ def test_legacy_payload_type_matching_mapper_still_warns(caplog: pytest.LogCaptu
 
 
 def test_legacy_payload_type_conflicts_with_mapper() -> None:
-    with pytest.raises(ValidationError, match="conflicts with mapper.type"):
+    with pytest.raises(ValidationError, match=r"conflicts with mapper\."):
         RepositoryConfig.model_validate({
             "rdi": "ld",
             "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
