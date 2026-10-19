@@ -50,7 +50,8 @@ _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper", "parser"})
 logger = logging.getLogger(__name__)
 
 _LEGACY_PAYLOAD_TYPE_MSG = (
-    "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
+    "linked_data.payload_type is deprecated; use a sibling type-as-key mapper block instead "
+    "(e.g. mapper: { schema_org_general: {} }; legacy mapper: { type: … } still lifts). "
     "Support for payload_type will be removed in a future release."
 )
 _LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
@@ -66,7 +67,8 @@ _LEGACY_LINKED_DATA_PLUGIN_MSG = (
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
     "inspire without a sibling mapper: block is deprecated; "
-    "add mapper: { type: inspire_general }. "
+    "add mapper: { inspire_general: {} } "
+    "(legacy mapper: { type: inspire_general } still lifts). "
     "Omitting mapper will be rejected in a future release."
 )
 
@@ -235,7 +237,9 @@ class RepositoryConfig(BaseModel):
         if self.generic is None:
             return self
         if self.parser is None:
-            raise ValueError("generic repositories require a sibling parser: block with type")
+            raise ValueError(
+                "generic repositories require a sibling type-as-key parser: block (e.g. parser: { html_jsonld: {} })"
+            )
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -273,7 +277,9 @@ class RepositoryConfig(BaseModel):
         if self.oai_pmh is None:
             return self
         if self.parser is None:
-            raise ValueError("oai_pmh repositories require a sibling parser: block with type")
+            raise ValueError(
+                "oai_pmh repositories require a sibling type-as-key parser: block (e.g. parser: { phenoroam_xml: {} })"
+            )
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:

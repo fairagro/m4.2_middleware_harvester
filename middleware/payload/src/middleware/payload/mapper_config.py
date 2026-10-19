@@ -18,19 +18,6 @@ _LEGACY_MAPPER_TYPE_MSG = (
     "Support for mapper.type will be removed in a future release."
 )
 
-_MAPPER_TYPE_FIELDS = frozenset({
-    "schema_org_general",
-    "regal_general",
-    "inspire_general",
-    "phenoroam_general",
-    "ckanext_dcat",
-})
-
-_MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
-    "regal_general": frozenset({"resource_base_url"}),
-    "ckanext_dcat": frozenset({"catalog_name", "catalog_url"}),
-}
-
 
 class MapperType(StrEnum):
     """Registered vocabulary→ARC mapper types (shared DataMapper registry keys)."""
@@ -40,6 +27,14 @@ class MapperType(StrEnum):
     inspire_general = "inspire_general"
     phenoroam_general = "phenoroam_general"
     ckanext_dcat = "ckanext_dcat"
+
+
+_MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
+
+_MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
+    "regal_general": frozenset({"resource_base_url"}),
+    "ckanext_dcat": frozenset({"catalog_name", "catalog_url"}),
+}
 
 
 class MapperTypeConfig(BaseModel):
@@ -189,7 +184,7 @@ class MapperConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_mapper_type(self) -> Self:
         """Require exactly one type-named mapper child."""
-        set_fields = sorted(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name) is not None)
+        set_fields = sorted(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name, None) is not None)
         if len(set_fields) != 1:
             raise ValueError(
                 f"mapper must set exactly one of {sorted(_MAPPER_TYPE_FIELDS)}; got: {set_fields or 'none'}"
@@ -199,7 +194,7 @@ class MapperConfig(BaseModel):
     @property
     def type(self) -> MapperType:
         """Active DataMapper registry key (single set type-named child)."""
-        return MapperType(next(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name) is not None))
+        return MapperType(next(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name, None) is not None))
 
     @property
     def type_config(self) -> MapperTypeConfig:

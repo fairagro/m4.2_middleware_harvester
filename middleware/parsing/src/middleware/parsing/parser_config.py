@@ -24,12 +24,7 @@ _UNPINNED_CONTEXT_MSG = (
     "Remote @context IRIs will still be fetched and cached; pin the expected context IRI."
 )
 
-_PARSER_TYPE_FIELDS = frozenset({
-    "html_jsonld",
-    "rdf_xml",
-    "phenoroam_xml",
-    "jsonld",
-})
+_PARSER_TYPE_FIELDS = frozenset(member.value for member in ParserType)
 
 _JSONLD_PARSER_TYPES = frozenset({ParserType.jsonld, ParserType.html_jsonld})
 
@@ -159,7 +154,7 @@ class ParserConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_parser_type(self) -> Self:
         """Require exactly one type-named parser child; warn if JSON-LD context unpinned."""
-        set_fields = sorted(name for name in _PARSER_TYPE_FIELDS if getattr(self, name) is not None)
+        set_fields = sorted(name for name in _PARSER_TYPE_FIELDS if getattr(self, name, None) is not None)
         if len(set_fields) != 1:
             raise ValueError(
                 f"parser must set exactly one of {sorted(_PARSER_TYPE_FIELDS)}; got: {set_fields or 'none'}"
@@ -171,7 +166,7 @@ class ParserConfig(BaseModel):
     @property
     def type(self) -> ParserType:
         """Active PayloadParser registry key (single set type-named child)."""
-        return ParserType(next(name for name in _PARSER_TYPE_FIELDS if getattr(self, name) is not None))
+        return ParserType(next(name for name in _PARSER_TYPE_FIELDS if getattr(self, name, None) is not None))
 
     @property
     def type_config(self) -> ParserTypeConfig:
