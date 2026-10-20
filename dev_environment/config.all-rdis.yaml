@@ -70,7 +70,10 @@ repositories:
     generic:
       protocol:
         dcat_ap:
-          entry_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld"
+          # Only CKAN group "dataset": SRADI also catalogues methods, software,
+          # online services/apps, devices, projects and landscape objects, all
+          # typed dcat:Dataset (#443). hydra:nextPage keeps the fq filter.
+          entry_url: "https://agrihub.gis.lrg.tum.de/catalog.jsonld?fq=groups:dataset"
     parser:
       jsonld: {}
     mapper:

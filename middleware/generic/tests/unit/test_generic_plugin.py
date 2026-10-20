@@ -19,7 +19,7 @@ from middleware.contracts.plugin_base import HarvestedArc
 from middleware.generic.config import Config
 from middleware.generic.plugin import GenericPlugin
 from middleware.generic.protocol.protocol import Protocol, ProtocolTypeConfig
-from middleware.parsing.discovery import DiscoveryResult, UrlDiscoveryResult
+from middleware.parsing.discovery import DiscoveryResult, JsonLdDiscoveryResult, UrlDiscoveryResult
 from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
@@ -217,6 +217,84 @@ async def test_run_yields_harvested_arc_on_success(monkeypatch: pytest.MonkeyPat
     results = [item async for item in plugin.run()]
     assert results == [HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/dataset/1")]
     stub_mapper.map.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_process_jsonld_http_identifier_sets_source_url() -> None:
+    class _StubParser(PayloadParser):
+        produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        async def parse(
+            self,
+            discovery_result: DiscoveryResult,
+            client: NiceHttpClient | None,
+            config: object,
+        ) -> ParsedPayload:
+            _ = client, config
+            return ParsedPayload(
+                kind=PayloadKind.rdf_graph,
+                value=Graph(),
+                identifier=discovery_result.identifier,
+            )
+
+    stub_mapper = MagicMock()
+    stub_mapper.accepts = PayloadKind.rdf_graph
+    stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:dcat")]
+
+    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.ckanext_dcat), _parser_config())
+    plugin._parser_cls = _StubParser  # noqa: SLF001
+    plugin._mapper = stub_mapper  # noqa: SLF001
+
+    dataset_iri = "https://catalog.example.org/dataset/42"
+    outcomes = await plugin._process_result(  # noqa: SLF001
+        JsonLdDiscoveryResult(identifier=dataset_iri, payload={"@id": dataset_iri}),
+        MagicMock(),
+    )
+    assert outcomes == [HarvestedArc(arc_json="mapped:dcat", source_url=dataset_iri)]
+    context = stub_mapper.map.call_args.args[1]
+    assert context.source_url == dataset_iri
+
+
+@pytest.mark.asyncio
+async def test_process_jsonld_opaque_identifier_leaves_source_url_none() -> None:
+    class _StubParser(PayloadParser):
+        produces: ClassVar[PayloadKind] = PayloadKind.rdf_graph
+
+        @override
+        async def parse(
+            self,
+            discovery_result: DiscoveryResult,
+            client: NiceHttpClient | None,
+            config: object,
+        ) -> ParsedPayload:
+            _ = client, config
+            return ParsedPayload(
+                kind=PayloadKind.rdf_graph,
+                value=Graph(),
+                identifier=discovery_result.identifier,
+            )
+
+    stub_mapper = MagicMock()
+    stub_mapper.accepts = PayloadKind.rdf_graph
+    stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:regal")]
+
+    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.regal_general), _parser_config())
+    plugin._parser_cls = _StubParser  # noqa: SLF001
+    plugin._mapper = stub_mapper  # noqa: SLF001
+
+    outcomes = await plugin._process_result(  # noqa: SLF001
+        JsonLdDiscoveryResult(
+            identifier="frl:123",
+            payload={"@id": "frl:123"},
+            harvest_source_id="native-1",
+        ),
+        MagicMock(),
+    )
+    assert outcomes == [HarvestedArc(arc_json="mapped:regal", source_url=None)]
+    context = stub_mapper.map.call_args.args[1]
+    assert context.source_url is None
+    assert context.harvest_source_id == "native-1"
 
 
 @pytest.mark.asyncio

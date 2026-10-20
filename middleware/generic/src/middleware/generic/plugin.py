@@ -114,12 +114,9 @@ class GenericPlugin:
         discovery_result: DiscoveryResult,
         nice_http: NiceHttpClient,
     ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
-        source_url: str | None = None
+        source_url = GenericPlugin._source_url_from_discovery(discovery_result)
         harvest_source_id: str | None = None
-        if isinstance(discovery_result, UrlDiscoveryResult):
-            source_url = discovery_result.url
-            harvest_source_id = discovery_result.harvest_source_id
-        elif isinstance(discovery_result, JsonLdDiscoveryResult):
+        if isinstance(discovery_result, (UrlDiscoveryResult, JsonLdDiscoveryResult)):
             harvest_source_id = discovery_result.harvest_source_id
 
         parser = self._parser_cls()
@@ -167,18 +164,29 @@ class GenericPlugin:
             ]
 
     @staticmethod
+    def _source_url_from_discovery(discovery_result: DiscoveryResult) -> str | None:
+        """Landing URL from discovery: ``UrlDiscoveryResult.url``, or http(s) ``JsonLd`` identifier."""
+        if isinstance(discovery_result, UrlDiscoveryResult):
+            return discovery_result.url
+        if isinstance(discovery_result, JsonLdDiscoveryResult):
+            try:
+                return as_source_url(discovery_result.identifier)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
     def _processing_failure(
         discovery_result: DiscoveryResult,
         exc: Exception,
     ) -> list[HarvestedArc | RecordProcessingError | SkippedRecord]:
         """Wrap an unexpected process failure as a record-level error."""
-        url = discovery_result.identifier if isinstance(discovery_result, UrlDiscoveryResult) else None
         return [
             RecordProcessingError(
                 f"Failed to process {type(discovery_result).__name__} {discovery_result.identifier}: {exc}",
                 discovery_result.identifier,
                 exc,
-                url=url,
+                url=GenericPlugin._source_url_from_discovery(discovery_result),
             )
         ]
 
