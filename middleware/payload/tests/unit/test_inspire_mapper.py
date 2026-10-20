@@ -11,7 +11,7 @@ from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.inspire.mapper import InspireMapper
 from middleware.payload.inspire.models import Contact, InspireRecord, ResourceIdentifier
 from middleware.payload.kinds import PayloadKind
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
 
@@ -294,7 +294,9 @@ def test_department_name_is_person_by_default() -> None:
 
 
 def test_from_config_passes_individual_name_is_organisation() -> None:
-    config = MapperConfig(type=MapperType.inspire_general, individual_name_is_organisation=True)
+    config = MapperConfig.model_validate({
+        "inspire_general": {"individual_name_is_organisation": True},
+    })
     record = _minimal_record(contacts=[Contact(name="Jane Doe", role="pointOfContact")])
 
     inv = InspireMapper.from_config(config).map_investigation(record)

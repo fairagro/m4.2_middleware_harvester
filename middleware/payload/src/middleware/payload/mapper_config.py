@@ -1,8 +1,10 @@
-"""Repository-level mapper configuration models."""
+"""Repository-level mapper configuration models (type-as-key)."""
+
+from __future__ import annotations
 
 import logging
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
@@ -10,8 +12,14 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
+_LEGACY_MAPPER_TYPE_MSG = (
+    "mapper.type is deprecated; use type-as-key under mapper: "
+    "(e.g. mapper: { regal_general: { resource_base_url: … } }). "
+    "Support for mapper.type will be removed in a future release."
+)
 _LEGACY_CATALOG_FIELDS_MSG = (
-    "mapper.catalog_name / mapper.catalog_url are deprecated; catalog provenance is added by the "
+    "mapper.ckanext_dcat.catalog_name / mapper.ckanext_dcat.catalog_url are deprecated "
+    "(legacy flat mapper.catalog_* still lifts); catalog provenance is added by the "
     "middleware API from its known_rdis registry (RDI / RDI Description / RDI URL comments). "
     "Remove these keys from the repository config; support will be removed in a future release."
 )
@@ -27,51 +35,49 @@ class MapperType(StrEnum):
     ckanext_dcat = "ckanext_dcat"
 
 
-class MapperConfig(BaseModel):
-    """Mapper selection and mapper-specific fields beside the plugin key."""
+_MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
 
-    model_config = ConfigDict(populate_by_name=True)
+_MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
+    "regal_general": frozenset({"resource_base_url"}),
+    "ckanext_dcat": frozenset({"catalog_name", "catalog_url"}),
+    "inspire_general": frozenset({"individual_name_is_organisation"}),
+}
 
-    type: Annotated[MapperType, Field(description="DataMapper registry key.")]
+
+class MapperTypeConfig(BaseModel):
+    """Base for type-named mapper config children (may be empty)."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+
+class SchemaOrgGeneralMapperConfig(MapperTypeConfig):
+    """Type settings for ``schema_org_general`` (none today)."""
+
+
+class RegalGeneralMapperConfig(MapperTypeConfig):
+    """Type settings for ``regal_general``."""
+
     resource_base_url: Annotated[
         HttpUrl | None,
         Field(
             description=(
                 "Optional http(s) base URL for expanding compact Regal resource ids "
-                "(e.g. `frl:123`) to absolute IRIs. Used by Regal mappers; "
-                "when unset, callers may supply a derived fallback."
-            ),
-        ),
-    ] = None
-    catalog_name: Annotated[
-        str | None,
-        Field(
-            description=(
-                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
-                "Optional display name of the source RDI's data catalog. Used by DCAT-AP "
-                "mappers to record catalog provenance."
-            ),
-        ),
-    ] = None
-    catalog_url: Annotated[
-        HttpUrl | None,
-        Field(
-            description=(
-                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
-                "Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers."
+                "(e.g. `frl:123`) to absolute IRIs. When unset, callers may supply a "
+                "derived fallback."
             ),
         ),
     ] = None
 
-    placeholders: Annotated[
-        PlaceholderConfig,
-        Field(
-            description=(
-                "Placeholder text this RDI writes instead of leaving a field empty; none by default. "
-                "Used by linked-data mappers; INSPIRE repositories set inspire.placeholders."
-            ),
-        ),
-    ] = PlaceholderConfig()
+    @field_validator("resource_base_url", mode="before")
+    @classmethod
+    def _blank_url_as_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+
+class InspireGeneralMapperConfig(MapperTypeConfig):
+    """Type settings for ``inspire_general``."""
 
     individual_name_is_organisation: Annotated[
         bool,
@@ -84,7 +90,37 @@ class MapperConfig(BaseModel):
         ),
     ] = False
 
-    @field_validator("resource_base_url", "catalog_url", mode="before")
+
+class PhenoroamGeneralMapperConfig(MapperTypeConfig):
+    """Type settings for ``phenoroam_general`` (none today)."""
+
+
+class CkanextDcatMapperConfig(MapperTypeConfig):
+    """Type settings for ``ckanext_dcat``."""
+
+    catalog_name: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional display name of the source RDI's data catalog. Used by DCAT-AP "
+                "mappers to record catalog provenance."
+            ),
+            deprecated=True,
+        ),
+    ] = None
+    catalog_url: Annotated[
+        HttpUrl | None,
+        Field(
+            description=(
+                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
+                "Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers."
+            ),
+            deprecated=True,
+        ),
+    ] = None
+
+    @field_validator("catalog_url", mode="before")
     @classmethod
     def _blank_url_as_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
@@ -101,12 +137,138 @@ class MapperConfig(BaseModel):
     @model_validator(mode="after")
     def _warn_deprecated_catalog_fields(self) -> Self:
         """Warn when deprecated catalog provenance fields are still set (behaviour unchanged)."""
-        if self.catalog_name is not None or self.catalog_url is not None:
+        if self.__dict__.get("catalog_name") is not None or self.__dict__.get("catalog_url") is not None:
             logger.warning(_LEGACY_CATALOG_FIELDS_MSG)
         return self
 
+
+class MapperConfig(BaseModel):
+    """Mapper selection beside the plugin key (type-as-key + shared siblings).
+
+    Canonical form::
+
+        mapper:
+          placeholders: { … }
+          regal_general:
+            resource_base_url: …
+
+    Deprecated ``{ type: …, … }`` lifts into that nested form with a warning.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    placeholders: Annotated[
+        PlaceholderConfig,
+        Field(
+            description=(
+                "Placeholder text this RDI writes instead of leaving a field empty; none by default. "
+                "Used by linked-data mappers; INSPIRE repositories set inspire.placeholders."
+            ),
+        ),
+    ] = PlaceholderConfig()
+    schema_org_general: Annotated[
+        SchemaOrgGeneralMapperConfig | None,
+        Field(description="schema_org_general mapper settings."),
+    ] = None
+    regal_general: Annotated[
+        RegalGeneralMapperConfig | None,
+        Field(description="regal_general mapper settings."),
+    ] = None
+    inspire_general: Annotated[
+        InspireGeneralMapperConfig | None,
+        Field(description="inspire_general mapper settings."),
+    ] = None
+    phenoroam_general: Annotated[
+        PhenoroamGeneralMapperConfig | None,
+        Field(description="phenoroam_general mapper settings."),
+    ] = None
+    ckanext_dcat: Annotated[
+        CkanextDcatMapperConfig | None,
+        Field(description="ckanext_dcat mapper settings."),
+    ] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def lift_legacy_type_discriminator(cls, data: object) -> object:
+        """Lift deprecated ``type:`` (+ flat type-local fields) into type-as-key."""
+        if not isinstance(data, dict):
+            return data
+        legacy_type = data.get("type")
+        if legacy_type is None:
+            return data
+
+        type_key = MapperType(legacy_type).value
+        nested_present = sorted(name for name in _MAPPER_TYPE_FIELDS if data.get(name) is not None)
+        if nested_present and nested_present != [type_key]:
+            raise ValueError(f"mapper.type {type_key!r} conflicts with nested mapper.{', '.join(nested_present)}")
+
+        logger.warning(_LEGACY_MAPPER_TYPE_MSG)
+        lifted = {key: value for key, value in data.items() if key != "type"}
+        raw_child = lifted.pop(type_key, None)
+        if raw_child is None:
+            child: dict[str, object] = {}
+        elif isinstance(raw_child, dict):
+            child = dict(raw_child)
+        elif isinstance(raw_child, BaseModel):
+            child = raw_child.model_dump()
+        else:
+            raise ValueError(f"mapper.{type_key} must be a mapping")
+        for field_name in _MAPPER_TYPE_LOCAL_FIELDS.get(type_key, ()):
+            if field_name in lifted:
+                child[field_name] = lifted.pop(field_name)
+        lifted[type_key] = child
+        return lifted
+
+    @model_validator(mode="after")
+    def exactly_one_mapper_type(self) -> Self:
+        """Require exactly one type-named mapper child."""
+        set_fields = sorted(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name, None) is not None)
+        if len(set_fields) != 1:
+            raise ValueError(
+                f"mapper must set exactly one of {sorted(_MAPPER_TYPE_FIELDS)}; got: {set_fields or 'none'}"
+            )
+        return self
+
+    @property
+    def type(self) -> MapperType:
+        """Active DataMapper registry key (single set type-named child)."""
+        return MapperType(next(name for name in _MAPPER_TYPE_FIELDS if getattr(self, name, None) is not None))
+
+    @property
+    def type_config(self) -> MapperTypeConfig:
+        """Config model for the active mapper type."""
+        return cast(MapperTypeConfig, getattr(self, self.type.value))
+
+    @property
+    def resource_base_url(self) -> HttpUrl | None:
+        """Regal resource base URL when active type is ``regal_general``."""
+        if self.regal_general is None:
+            return None
+        return self.regal_general.resource_base_url
+
+    @property
+    def catalog_name(self) -> str | None:
+        """Catalog display name when active type is ``ckanext_dcat``."""
+        if self.ckanext_dcat is None:
+            return None
+        return self.ckanext_dcat.__dict__.get("catalog_name")
+
+    @property
+    def catalog_url(self) -> HttpUrl | None:
+        """Catalog URL when active type is ``ckanext_dcat``."""
+        if self.ckanext_dcat is None:
+            return None
+        return self.ckanext_dcat.__dict__.get("catalog_url")
+
+    @property
+    def individual_name_is_organisation(self) -> bool:
+        """INSPIRE individualName→organisation flag when active type is ``inspire_general``."""
+        if self.inspire_general is None:
+            return False
+        return self.inspire_general.individual_name_is_organisation
+
     def normalize_resource_base_url(self) -> str | None:
-        """Return a trailing-slash-normalized resource base URL, or None."""
+        """Return a trailing-slash-normalized Regal resource base URL, or None."""
         if self.resource_base_url is None:
             return None
         return str(self.resource_base_url).rstrip("/") + "/"

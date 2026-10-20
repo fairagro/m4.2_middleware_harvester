@@ -19,8 +19,7 @@ from middleware.generic.protocol.dcat_ap import DcatApProtocol, DcatApProtocolCo
 from middleware.generic.protocol.protocol import ProtocolType
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.parsing.parser_config import ParserConfig
-from middleware.parsing.parser_type import ParserType
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 
 _CATALOG_URL = "https://example.org/catalog.jsonld"
 _FOAF = Namespace("http://xmlns.com/foaf/0.1/")
@@ -228,8 +227,8 @@ async def test_generic_plugin_harvests_dcat_ap_catalog_end_to_end(monkeypatch: p
     monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
     plugin = GenericPlugin(
         _config(),
-        MapperConfig(type=MapperType.ckanext_dcat, catalog_name="Example Catalog"),
-        ParserConfig(type=ParserType.jsonld),
+        MapperConfig.model_validate({"ckanext_dcat": {"catalog_name": "Example Catalog"}}),
+        ParserConfig.model_validate({"jsonld": {}}),
     )
 
     results = [item async for item in plugin.run()]

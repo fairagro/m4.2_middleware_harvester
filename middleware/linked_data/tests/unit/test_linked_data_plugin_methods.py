@@ -14,7 +14,7 @@ from middleware.contracts.nice_http_client import NiceHttpClient, RobotsTxtDisal
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 
 EXPECTED_DATASET_COUNT = 5
 
@@ -26,7 +26,7 @@ def test_create_mapper_from_config() -> None:
         dataset_type=DatasetType.html_jsonld,
         http=NiceHttpClientConfig(),
     )
-    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig(type=MapperType.schema_org_general))
+    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig.model_validate({"schema_org_general": {}}))
     assert mapper is not None
 
 
@@ -40,7 +40,7 @@ def test_create_schema_org_mapper_skips_resource_base_derivation() -> None:
     )
     with pytest.raises(ValueError, match="Cannot derive resource_base_url"):
         _ = config.effective_resource_base_url
-    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig(type=MapperType.schema_org_general))
+    mapper = LinkedDataPlugin.create_mapper(config, MapperConfig.model_validate({"schema_org_general": {}}))
     assert mapper is not None
 
 
@@ -96,7 +96,7 @@ async def test_linked_data_plugin_get_expected_datasets_returns_none_on_failure(
         staticmethod(fake_create_sitemap),
     ):
         result = await LinkedDataPlugin(
-            config, MapperConfig(type=MapperType.schema_org_general)
+            config, MapperConfig.model_validate({"schema_org_general": {}})
         ).get_expected_datasets()
 
     assert result is None
@@ -126,7 +126,7 @@ async def test_linked_data_plugin_get_expected_datasets_returns_count() -> None:
         staticmethod(fake_create_sitemap),
     ):
         result = await LinkedDataPlugin(
-            config, MapperConfig(type=MapperType.schema_org_general)
+            config, MapperConfig.model_validate({"schema_org_general": {}})
         ).get_expected_datasets()
 
     assert result == EXPECTED_DATASET_COUNT
@@ -162,7 +162,9 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -196,7 +198,9 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
         staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -244,7 +248,9 @@ async def test_linked_data_plugin_run_plugin_yields_skipped_record_for_duplicate
         {DatasetType.html_jsonld: GoodFakeDataset},
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], SkippedRecord)
@@ -292,7 +298,9 @@ async def test_linked_data_plugin_run_plugin_forwards_discovery_record_processin
         {DatasetType.html_jsonld: GoodFakeDataset},
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -326,7 +334,9 @@ async def test_linked_data_plugin_run_plugin_maps_valid_dataset(monkeypatch: pyt
         staticmethod(lambda _config, _mapper_config=None: mock_mapper),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert results == [HarvestedArc(arc_json="mapped:arc", source_url="https://example.org/dataset/slow")]
     mock_mapper.map_graph.assert_called_once()
@@ -364,7 +374,9 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_whe
         ),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)

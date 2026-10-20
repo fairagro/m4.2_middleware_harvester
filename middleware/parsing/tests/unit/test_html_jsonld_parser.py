@@ -20,7 +20,6 @@ from middleware.parsing.errors import ParserError
 from middleware.parsing.jsonld_context_loader import clear_context_document_cache
 from middleware.parsing.parser.html_jsonld import HtmlJsonLdParser
 from middleware.parsing.parser_config import ParserConfig
-from middleware.parsing.parser_type import ParserType
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.mapping_context import MappingContext
@@ -76,11 +75,12 @@ def _clear_cache() -> None:
 
 
 def _parser_config(*, jsonld_parse_threshold_bytes: int = 65536) -> ParserConfig:
-    return ParserConfig(
-        type=ParserType.html_jsonld,
-        jsonld_parse_threshold_bytes=jsonld_parse_threshold_bytes,
-        allowed_context_url=_SCHEMA_ORG_ALLOW,
-    )
+    return ParserConfig.model_validate({
+        "html_jsonld": {
+            "jsonld_parse_threshold_bytes": jsonld_parse_threshold_bytes,
+            "allowed_context_url": _SCHEMA_ORG_ALLOW,
+        }
+    })
 
 
 def _transport(html: str) -> httpx.MockTransport:

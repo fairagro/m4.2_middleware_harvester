@@ -51,7 +51,7 @@ async def test_jsonld_parser_parses_inline_payload_to_graph() -> None:
     payload = await JsonLdParser().parse(
         JsonLdDiscoveryResult(identifier=_SUBJECT, payload=_PAYLOAD),
         client=None,
-        config=ParserConfig(type=ParserType.jsonld),
+        config=ParserConfig.model_validate({"jsonld": {}}),
     )
 
     assert payload.kind == PayloadKind.rdf_graph
@@ -64,7 +64,7 @@ async def test_jsonld_parser_offloads_large_payload_to_thread() -> None:
     payload = await JsonLdParser().parse(
         JsonLdDiscoveryResult(identifier=_SUBJECT, payload=_PAYLOAD),
         client=None,
-        config=ParserConfig(type=ParserType.jsonld, jsonld_parse_threshold_bytes=1),
+        config=ParserConfig.model_validate({"jsonld": {"jsonld_parse_threshold_bytes": 1}}),
     )
 
     assert len(payload.value) == 2
@@ -109,7 +109,7 @@ async def test_jsonld_parser_requires_client_for_remote_context_when_unset(conte
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=None,
-            config=ParserConfig(type=ParserType.jsonld),
+            config=ParserConfig.model_validate({"jsonld": {}}),
         )
 
 
@@ -136,12 +136,12 @@ async def test_jsonld_parser_fetches_remote_context_when_unset() -> None:
         parsed = await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=client,
-            config=ParserConfig(type=ParserType.jsonld),
+            config=ParserConfig.model_validate({"jsonld": {}}),
         )
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=client,
-            config=ParserConfig(type=ParserType.jsonld),
+            config=ParserConfig.model_validate({"jsonld": {}}),
         )
 
     assert (URIRef(_SUBJECT), URIRef("http://schema.org/name"), Literal("Genome")) in parsed.value
@@ -164,7 +164,7 @@ async def test_jsonld_parser_resolves_allowlisted_schemaorg_context() -> None:
         "@type": "Dataset",
         "name": "Genome",
     }
-    config = ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG_ALLOW)
+    config = ParserConfig.model_validate({"jsonld": {"allowed_context_url": _SCHEMA_ORG_ALLOW}})
 
     async with NiceHttpClient(
         NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
@@ -193,7 +193,7 @@ async def test_jsonld_parser_requires_client_for_remote_context() -> None:
         await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier=_SUBJECT, payload=payload),
             client=None,
-            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=_SCHEMA_ORG_ALLOW),
+            config=ParserConfig.model_validate({"jsonld": {"allowed_context_url": _SCHEMA_ORG_ALLOW}}),
         )
 
 
@@ -236,7 +236,7 @@ async def test_jsonld_parser_turns_bare_doi_id_into_doi_iri() -> None:
         parsed = await JsonLdParser().parse(
             JsonLdDiscoveryResult(identifier="edal", payload=payload),
             client=client,
-            config=ParserConfig(type=ParserType.jsonld, allowed_context_url=["http://schema.org"]),
+            config=ParserConfig.model_validate({"jsonld": {"allowed_context_url": ["http://schema.org"]}}),
         )
 
     assert (

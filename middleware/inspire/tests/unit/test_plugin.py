@@ -22,7 +22,7 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 
 def _mapper_config() -> MapperConfig:
-    return MapperConfig(type=MapperType.inspire_general)
+    return MapperConfig.model_validate({"inspire_general": {}})
 
 
 def _plugin_with_mock_mapper(mock_config: Config, mock_mapper: MagicMock) -> InspirePlugin:
@@ -70,7 +70,7 @@ def test_create_mapper_rejects_incompatible_context_type() -> None:
     DataMapper.registry[key] = _OtherMapper
     try:
         with pytest.raises(TypeError, match="expects context _OtherContext"):
-            InspirePlugin.create_mapper(MapperConfig(type=key))
+            InspirePlugin.create_mapper(MapperConfig.model_validate({MapperType(key).value: {}}))
     finally:
         DataMapper.registry[key] = previous
 
@@ -318,7 +318,9 @@ async def test_run_plugin_passes_inspire_config_to_csw_client() -> None:
         mock_csw.__aexit__ = AsyncMock(return_value=None)
         mock_csw.get_records_async.return_value = _no_records()
 
-        _ = [result async for result in InspirePlugin(config, MapperConfig(type=MapperType.inspire_general)).run()]
+        _ = [
+            result async for result in InspirePlugin(config, MapperConfig.model_validate({"inspire_general": {}})).run()
+        ]
 
     mock_csw_class.assert_called_with(config)
     assert config.placeholders == PlaceholderConfig(values=frozenset({"keine angabe"}))

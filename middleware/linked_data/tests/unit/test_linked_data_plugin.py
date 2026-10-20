@@ -29,7 +29,7 @@ from middleware.linked_data.errors import LinkedDataSitemapError
 from middleware.linked_data.pipeline import PipelineResult, ResultsQueueHook
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.linked_data.sitemap import Sitemap
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import MapperConfig
 
 
 class FakeSitemap:
@@ -114,7 +114,9 @@ async def test_linked_data_plugin_run_maps_dataset_to_arc(monkeypatch: pytest.Mo
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert results == [HarvestedArc(arc_json="mapped:graph", source_url="https://example.org/dataset/1")]
     mock_mapper.map_graph.assert_called_once()
@@ -161,7 +163,9 @@ async def test_linked_data_plugin_forwards_harvest_source_id_to_mapper(monkeypat
     )
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     mock_mapper.map_graph.assert_called_once()
@@ -237,7 +241,9 @@ async def test_linked_data_plugin_wires_page_title_hint_into_mapper_fallback(
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
     # Deliberately no create_mapper patch: the real GeneralSchemaOrgMapper must run.
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     harvested = results[0]
@@ -284,7 +290,9 @@ async def test_linked_data_plugin_run_yields_error_on_dataset_construction_failu
     monkeypatch.setattr("middleware.linked_data.plugin.Dataset.registry", {DatasetType.html_jsonld: BadDataset})
     monkeypatch.setattr("middleware.linked_data.plugin.NiceHttpClient.ensure_allowed", AsyncMock(return_value=None))
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -345,7 +353,7 @@ async def test_linked_data_plugin_run_closes_cleanly_when_generator_is_cancelled
     loop.set_exception_handler(handle_exception)
 
     try:
-        agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
+        agen = LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
         first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         assert first_result.arc_json == "mapped:graph"
@@ -381,7 +389,9 @@ async def test_linked_data_plugin_run_yields_error_when_robots_disallows_url(mon
         ),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
@@ -418,7 +428,9 @@ async def test_linked_data_plugin_run_yields_sitemap_error_when_discovery_robots
         staticmethod(fake_create_sitemap),
     )
 
-    results = [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
 
     assert len(results) == 1
     assert isinstance(results[0], LinkedDataSitemapError)
@@ -576,7 +588,9 @@ async def test_linked_data_plugin_bounds_pipeline_under_slow_consumer(monkeypatc
     metrics = _install_pipeline_tracking(monkeypatch, worker_tasks)
 
     collected = await _drain_with_slow_consumer(
-        LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run(), catalog_size, item_delay=0.03
+        LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run(),
+        catalog_size,
+        item_delay=0.03,
     )
 
     assert len(collected) == catalog_size
@@ -597,7 +611,10 @@ async def test_linked_data_plugin_empty_sitemap_exits_cleanly(monkeypatch: pytes
     _install_plugin_fakes(monkeypatch, sitemap=FakeSitemap([]))
 
     async def collect() -> list[PipelineResult]:
-        return [item async for item in LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()]
+        return [
+            item
+            async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+        ]
 
     collected = await asyncio.wait_for(collect(), timeout=2.0)
     assert collected == []
@@ -648,7 +665,7 @@ async def test_linked_data_plugin_early_aclose_stops_mapping(monkeypatch: pytest
     loop.set_exception_handler(handle_exception)
 
     try:
-        agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
+        agen = LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
         first_result = await anext(agen)
         assert isinstance(first_result, HarvestedArc)
         await agen.aclose()
@@ -687,7 +704,7 @@ async def test_linked_data_plugin_preserves_arrival_order_under_backpressure(
 
     monkeypatch.setattr(LinkedDataPlugin, "_process_result", slow_process)
 
-    agen = LinkedDataPlugin(config, MapperConfig(type=MapperType.schema_org_general)).run()
+    agen = LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
     collected: list[str] = []
     try:
         for _ in range(catalog_size):

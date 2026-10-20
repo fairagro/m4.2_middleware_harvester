@@ -50,7 +50,8 @@ _NON_PLUGIN_FIELDS = frozenset({"rdi", "mapper", "parser"})
 logger = logging.getLogger(__name__)
 
 _LEGACY_PAYLOAD_TYPE_MSG = (
-    "linked_data.payload_type is deprecated; use a sibling mapper: {type: ...} block instead. "
+    "linked_data.payload_type is deprecated; use a sibling type-as-key mapper block instead "
+    "(e.g. mapper: { schema_org_general: {} }; legacy mapper: { type: … } still lifts). "
     "Support for payload_type will be removed in a future release."
 )
 _LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
@@ -66,7 +67,8 @@ _LEGACY_LINKED_DATA_PLUGIN_MSG = (
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
     "inspire without a sibling mapper: block is deprecated; "
-    "add mapper: { type: inspire_general }. "
+    "add mapper: { inspire_general: {} } "
+    "(legacy mapper: { type: inspire_general } still lifts). "
     "Omitting mapper will be rejected in a future release."
 )
 _LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG = (
@@ -79,14 +81,13 @@ class RepositoryConfig(BaseModel):
     """Configuration for an individual harvesting plugin/repository.
 
     Exactly one plugin key must be set per entry. Shared DataMappers are
-    selected via a sibling ``mapper:`` block (required for ``linked_data`` /
-    ``generic`` / ``oai_pmh``; for ``inspire``, omitted ``mapper`` defaults to
-    ``inspire_general`` with a deprecation warning). Shared PayloadParsers use
-    sibling ``parser:`` (required for ``generic`` / ``oai_pmh``). Deprecated
-    ``linked_data.payload_type`` is accepted with a ``logger.warning`` and lifted to
-    ``mapper.type``. Deprecated ``linked_data.sitemap_type: mycore_solr`` emits a
-    ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``. The
-    ``linked_data`` plugin key itself is deprecated in favour of ``generic``.
+    selected via a sibling ``mapper:`` block (always required after validation).
+    Omitted ``mapper`` is still accepted for two deprecated lifts
+    (``inspire`` → ``inspire_general``; ``linked_data.payload_type`` → mapper) with a
+    ``logger.warning``. Shared PayloadParsers use sibling ``parser:`` (required for
+    ``generic`` / ``oai_pmh``). Deprecated ``linked_data.sitemap_type: mycore_solr``
+    emits a ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``.
+    The ``linked_data`` plugin key itself is deprecated in favour of ``generic``.
     """
 
     rdi: Annotated[
@@ -116,14 +117,9 @@ class RepositoryConfig(BaseModel):
         Field(description="OAI-PMH plugin configuration"),
     ] = None
     mapper: Annotated[
-        MapperConfig | None,
-        Field(
-            description=(
-                "Shared DataMapper selection (required for linked_data, generic, oai_pmh; "
-                "optional for inspire — defaults to inspire_general with deprecation warning)."
-            ),
-        ),
-    ] = None
+        MapperConfig,
+        Field(description="Shared DataMapper selection (type-as-key; required for every repository)."),
+    ]
     parser: Annotated[
         ParserConfig | None,
         Field(description="Shared PayloadParser selection (required for generic and oai_pmh)."),
@@ -132,6 +128,40 @@ class RepositoryConfig(BaseModel):
     def _plugin_attr(self, name: str) -> object | None:
         """Read a plugin field via ``__dict__`` (avoids ``Field(deprecated=True)`` access warnings)."""
         return self.__dict__.get(name)
+
+    @staticmethod
+    def _linked_data_payload_type(linked: object) -> object | None:
+        """Read deprecated ``payload_type`` without triggering Pydantic deprecation access warnings."""
+        if isinstance(linked, dict):
+            return linked.get("payload_type")
+        return cast(dict[str, object], getattr(linked, "__dict__", {})).get("payload_type")
+
+    @model_validator(mode="before")
+    @classmethod
+    def lift_omitted_mapper(cls, data: object) -> object:
+        """Inject deprecated omit→mapper lifts so ``mapper`` is always present for validation."""
+        if not isinstance(data, dict):
+            return data
+        lifted = dict(data)
+        if lifted.get("mapper") is not None:
+            # Still warn when legacy payload_type is set beside an explicit mapper.
+            linked = lifted.get("linked_data")
+            if linked is not None and cls._linked_data_payload_type(linked) is not None:
+                logger.warning(_LEGACY_PAYLOAD_TYPE_MSG)
+            return lifted
+
+        linked = lifted.get("linked_data")
+        if linked is not None:
+            legacy_type = cls._linked_data_payload_type(linked)
+            if legacy_type is not None:
+                logger.warning(_LEGACY_PAYLOAD_TYPE_MSG)
+                lifted["mapper"] = {MapperType(str(legacy_type)).value: {}}
+                return lifted
+
+        if lifted.get("inspire") is not None:
+            logger.warning(_LEGACY_INSPIRE_MAPPER_MSG)
+            lifted["mapper"] = {"inspire_general": {}}
+        return lifted
 
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
@@ -144,25 +174,16 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def lift_legacy_payload_type(self) -> Self:
-        """Map deprecated ``linked_data.payload_type`` onto sibling ``mapper.type``."""
+    def check_legacy_payload_type_conflict(self) -> Self:
+        """Reject conflicting ``linked_data.payload_type`` vs sibling ``mapper`` type."""
         linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
         if linked is None:
             return self
-        # Read via __dict__ to avoid Pydantic's DeprecationWarning on field access;
-        # operator-facing signal is logger.warning below.
         legacy_type = linked.__dict__.get("payload_type")
         if legacy_type is None:
             return self
-
-        logger.warning(_LEGACY_PAYLOAD_TYPE_MSG)
-        if self.mapper is None:
-            return self.model_copy(update={"mapper": MapperConfig(type=legacy_type)})
-
         if self.mapper.type != legacy_type:
-            raise ValueError(
-                f"linked_data.payload_type {legacy_type!r} conflicts with mapper.type {self.mapper.type!r}"
-            )
+            raise ValueError(f"linked_data.payload_type {legacy_type!r} conflicts with mapper.{self.mapper.type}")
         return self
 
     @model_validator(mode="after")
@@ -186,12 +207,10 @@ class RepositoryConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_mapper_for_linked_data(self) -> Self:
-        """Require and validate ``mapper`` for linked_data repositories."""
+        """Validate ``mapper`` for linked_data repositories."""
         linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
         if linked is None:
             return self
-        if self.mapper is None:
-            raise ValueError("linked_data repositories require a sibling mapper: block with type")
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -216,13 +235,13 @@ class RepositoryConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_mapper_and_parser_for_generic(self) -> Self:
-        """Require and validate ``mapper`` + ``parser`` for generic repositories."""
+        """Validate ``mapper`` + require ``parser`` for generic repositories."""
         if self.generic is None:
             return self
-        if self.mapper is None:
-            raise ValueError("generic repositories require a sibling mapper: block with type")
         if self.parser is None:
-            raise ValueError("generic repositories require a sibling parser: block with type")
+            raise ValueError(
+                "generic repositories require a sibling type-as-key parser: block (e.g. parser: { html_jsonld: {} })"
+            )
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -256,13 +275,13 @@ class RepositoryConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_mapper_and_parser_for_oai_pmh(self) -> Self:
-        """Require and validate ``mapper`` + ``parser`` for oai_pmh repositories."""
+        """Validate ``mapper`` + require ``parser`` for oai_pmh repositories."""
         if self.oai_pmh is None:
             return self
-        if self.mapper is None:
-            raise ValueError("oai_pmh repositories require a sibling mapper: block with type")
         if self.parser is None:
-            raise ValueError("oai_pmh repositories require a sibling parser: block with type")
+            raise ValueError(
+                "oai_pmh repositories require a sibling type-as-key parser: block (e.g. parser: { phenoroam_xml: {} })"
+            )
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:
@@ -281,17 +300,9 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def lift_missing_inspire_mapper(self) -> Self:
-        """Default omitted ``mapper`` for inspire to ``inspire_general`` (deprecated)."""
-        if self.inspire is None or self.mapper is not None:
-            return self
-        logger.warning(_LEGACY_INSPIRE_MAPPER_MSG)
-        return self.model_copy(update={"mapper": MapperConfig(type=MapperType.inspire_general)})
-
-    @model_validator(mode="after")
     def lift_inspire_mapper_placeholders(self) -> Self:
         """Move deprecated ``mapper.placeholders`` on inspire to ``inspire.placeholders``."""
-        if self.inspire is None or self.mapper is None or "placeholders" not in self.mapper.model_fields_set:
+        if self.inspire is None or "placeholders" not in self.mapper.model_fields_set:
             return self
         logger.warning(_LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG)
         legacy = self.mapper.placeholders
@@ -308,8 +319,6 @@ class RepositoryConfig(BaseModel):
         """Validate ``mapper`` for inspire repositories (after optional default lift)."""
         if self.inspire is None:
             return self
-        if self.mapper is None:
-            raise ValueError("inspire repositories require a sibling mapper: block with type")
         try:
             mapper_cls = DataMapper.registry[self.mapper.type]
         except KeyError as exc:

@@ -30,10 +30,7 @@ def _make_repo(plugin_type: str = "inspire") -> MagicMock:
     # Avoid MagicMock auto-attrs making every plugin look like linked_data.
     repo.linked_data = MagicMock() if plugin_type == "linked_data" else None
     repo.inspire = MagicMock() if plugin_type == "inspire" else None
-    if plugin_type in {"linked_data", "inspire"}:
-        repo.mapper = MagicMock(type="inspire_general" if plugin_type == "inspire" else "schema_org_general")
-    else:
-        repo.mapper = None
+    repo.mapper = MagicMock(type="inspire_general" if plugin_type == "inspire" else "schema_org_general")
     return repo
 
 
