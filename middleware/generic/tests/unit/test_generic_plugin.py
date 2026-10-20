@@ -242,7 +242,7 @@ async def test_process_jsonld_http_identifier_sets_source_url() -> None:
     stub_mapper.accepts = PayloadKind.rdf_graph
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:dcat")]
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.ckanext_dcat), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"ckanext_dcat": {}}), _parser_config())
     plugin._parser_cls = _StubParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
 
@@ -279,7 +279,7 @@ async def test_process_jsonld_opaque_identifier_leaves_source_url_none() -> None
     stub_mapper.accepts = PayloadKind.rdf_graph
     stub_mapper.map.return_value = [HarvestedArc(arc_json="mapped:regal")]
 
-    plugin = GenericPlugin(_config(), MapperConfig(type=MapperType.regal_general), _parser_config())
+    plugin = GenericPlugin(_config(), MapperConfig.model_validate({"regal_general": {}}), _parser_config())
     plugin._parser_cls = _StubParser  # noqa: SLF001
     plugin._mapper = stub_mapper  # noqa: SLF001
 
