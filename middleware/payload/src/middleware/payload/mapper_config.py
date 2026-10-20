@@ -18,7 +18,8 @@ _LEGACY_MAPPER_TYPE_MSG = (
     "Support for mapper.type will be removed in a future release."
 )
 _LEGACY_CATALOG_FIELDS_MSG = (
-    "mapper.catalog_name / mapper.catalog_url are deprecated; catalog provenance is added by the "
+    "mapper.ckanext_dcat.catalog_name / mapper.ckanext_dcat.catalog_url are deprecated "
+    "(legacy flat mapper.catalog_* still lifts); catalog provenance is added by the "
     "middleware API from its known_rdis registry (RDI / RDI Description / RDI URL comments). "
     "Remove these keys from the repository config; support will be removed in a future release."
 )

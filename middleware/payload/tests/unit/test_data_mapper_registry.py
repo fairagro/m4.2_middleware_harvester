@@ -170,7 +170,10 @@ def test_mapper_config_catalog_fields_warn_deprecated(caplog: pytest.LogCaptureF
     with caplog.at_level(logging.WARNING):
         cfg = MapperConfig.model_validate({"ckanext_dcat": fields})
     assert cfg.catalog_name == fields.get("catalog_name")
-    assert any("mapper.catalog_name / mapper.catalog_url are deprecated" in r.message for r in caplog.records)
+    assert any(
+        "mapper.ckanext_dcat.catalog_name / mapper.ckanext_dcat.catalog_url are deprecated" in r.message
+        for r in caplog.records
+    )
 
 
 @pytest.mark.parametrize("fields", [{}, {"catalog_name": "  ", "catalog_url": ""}])
