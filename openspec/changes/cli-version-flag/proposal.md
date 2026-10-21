@@ -3,9 +3,8 @@
 ## Why
 
 Operators cannot tell which harvester build a pod or local binary runs without reading the image tag (#42). Release CI
-already computes a PEP 440 version and passes it to the image build as `APP_VERSION` →
-`SETUPTOOLS_SCM_PRETEND_VERSION`, but every workspace package pins a static `version = "0.1.0"`, so the value never
-reaches the installed metadata.
+already computes a PEP 440 version and passes it to the image build as `APP_VERSION` → `SETUPTOOLS_SCM_PRETEND_VERSION`,
+but every workspace package pins a static `version = "0.1.0"`, so the value never reaches the installed metadata.
 
 ## What Changes
 
