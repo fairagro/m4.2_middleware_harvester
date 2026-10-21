@@ -640,7 +640,6 @@ wheels = [
 
 [[package]]
 name = "harvester"
-version = "0.1.0"
 source = { editable = "middleware/harvester" }
 dependencies = [
     { name = "arctrl" },

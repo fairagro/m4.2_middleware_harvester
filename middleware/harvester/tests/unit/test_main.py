@@ -5,6 +5,7 @@ import json
 import logging
 from collections.abc import AsyncGenerator, AsyncIterable
 from datetime import UTC, datetime
+from importlib.metadata import version
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -584,3 +585,18 @@ def test_main_logs_traceback_at_debug(caplog: pytest.LogCaptureFixture, tmp_path
     assert "Harvester run failed: ConnectionError" in caplog.text
     assert "CSW endpoint unreachable" in caplog.text
     assert "Traceback" in caplog.text
+
+
+@pytest.mark.parametrize("flag", ["--version", "-v"])
+def test_version_flag_prints_package_version_and_exits(flag: str, capsys: pytest.CaptureFixture[str]) -> None:
+    """``--version`` / ``-v`` prints the installed ``harvester`` version without loading a config."""
+    with (
+        patch("sys.argv", ["harvester", flag]),
+        patch("middleware.harvester.main.Config.from_yaml_file") as load_config,
+        pytest.raises(SystemExit) as exc_info,
+    ):
+        main()
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out == f"harvester {version('harvester')}\n"
+    load_config.assert_not_called()
