@@ -246,22 +246,21 @@ remove the plugin key and shims after operators migrate.
 - **THEN** harvest yields remain observationally equivalent for successful records (same PayloadKind path into the
   shared DataMapper)
 
-### Requirement: Deprecate sitemap_type mycore_solr under linked_data
+### Requirement: Reject sitemap_type mycore_solr under linked_data
 
-The system SHALL deprecate `linked_data.sitemap_type: mycore_solr`. Config load for such a repository MUST emit a
-`logger.warning` directing operators to `generic.protocol.mycore_solr` with sibling `parser` and `mapper`. Other
-`sitemap_type` values are unaffected. Harvest behaviour for the deprecated path MUST remain unchanged aside from the
-warning.
+The system SHALL NOT accept `linked_data.sitemap_type: mycore_solr`. Config load for such a repository MUST fail
+validation. Other `sitemap_type` values (`xml`, `regal_find`) are unaffected. MyCoRe Solr discovery MUST use
+`generic.protocol.mycore_solr` with sibling `parser` and `mapper`.
 
-#### Scenario: mycore_solr linked_data path warns
+#### Scenario: mycore_solr linked_data path is rejected
 
 - **WHEN** a linked_data repository sets `sitemap_type: mycore_solr`
-- **THEN** a deprecation `logger.warning` is emitted and validation does not fail for that reason alone
+- **THEN** configuration validation fails
 
-#### Scenario: Other sitemap types do not warn for this reason
+#### Scenario: Other sitemap types remain valid
 
 - **WHEN** a linked_data repository sets `sitemap_type` to `xml` or `regal_find`
-- **THEN** the mycore_solr deprecation warning is not emitted for that repository
+- **THEN** validation does not fail for that reason alone
 
 ## Feature split
 
