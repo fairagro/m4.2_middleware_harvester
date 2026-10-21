@@ -43,17 +43,6 @@ repositories:
   #       allowed_context_url: "https://schema.org/"
   #   mapper:
   #     schema_org_general: {}
-  # Deprecated linked_data mycore_solr shim (warns; prefer nested generic above):
-  # - rdi: "openagrar-solr-legacy"
-  #   linked_data:
-  #     sitemap_url: "https://www.openagrar.de/servlets/solr/select"
-  #     sitemap_type: mycore_solr
-  #     dataset_type: html_jsonld
-  #     allowed_context_url: "https://schema.org/"
-  #     http:
-  #       respect_robots_txt: false
-  #   mapper:
-  #     schema_org_general: {}
 
   # Example: PUBLISSO FRL via Regal /find on generic (preferred over linked_data).
   # - rdi: "publisso"

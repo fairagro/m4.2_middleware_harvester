@@ -9,6 +9,16 @@ from middleware.payload import MapperType
 DEFAULT_MAX_REQUESTS_PER_SECOND = 2.0
 
 
+def test_sitemap_type_mycore_solr_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        Config.model_validate({
+            "sitemap_url": "https://example.org/servlets/solr/select",
+            "sitemap_type": "mycore_solr",
+            "dataset_type": DatasetType.html_jsonld,
+            "http": {},
+        })
+
+
 def test_payload_type_is_deprecated_optional_field() -> None:
     field = Config.model_fields.get("payload_type")
     assert field is not None

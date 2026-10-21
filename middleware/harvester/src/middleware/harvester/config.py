@@ -19,7 +19,7 @@ from middleware.generic.config import Config as GenericConfig
 from middleware.generic.protocol.protocol import Protocol
 from middleware.inspire.config import Config as InspireConfig
 from middleware.inspire.plugin import InspirePlugin
-from middleware.linked_data.config import Config as LinkedDataConfig, SitemapType
+from middleware.linked_data.config import Config as LinkedDataConfig
 from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.config import Config as OaiPmhConfig
 from middleware.parsing.parser.parser import PayloadParser
@@ -54,11 +54,6 @@ _LEGACY_PAYLOAD_TYPE_MSG = (
     "(e.g. mapper: { schema_org_general: {} }; legacy mapper: { type: … } still lifts). "
     "Support for payload_type will be removed in a future release."
 )
-_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG = (
-    "linked_data.sitemap_type: mycore_solr is deprecated; use generic.protocol.mycore_solr "
-    "(with sibling parser/mapper) instead. Support for the linked_data shim will be removed "
-    "in a future release."
-)
 _LEGACY_LINKED_DATA_PLUGIN_MSG = (
     "linked_data: plugin key is deprecated; use generic: with nested protocol: and sibling "
     "parser:/mapper: instead (see docs/linked_data_to_generic.md). Support for linked_data "
@@ -85,9 +80,9 @@ class RepositoryConfig(BaseModel):
     Omitted ``mapper`` is still accepted for two deprecated lifts
     (``inspire`` → ``inspire_general``; ``linked_data.payload_type`` → mapper) with a
     ``logger.warning``. Shared PayloadParsers use sibling ``parser:`` (required for
-    ``generic`` / ``oai_pmh``). Deprecated ``linked_data.sitemap_type: mycore_solr``
-    emits a ``logger.warning`` pointing at nested ``generic.protocol.mycore_solr``.
-    The ``linked_data`` plugin key itself is deprecated in favour of ``generic``.
+    ``generic`` / ``oai_pmh``). The ``linked_data`` plugin key itself is deprecated
+    in favour of ``generic``. MyCoRe Solr discovery is only via
+    ``generic.protocol.mycore_solr`` (not ``linked_data.sitemap_type``).
     """
 
     rdi: Annotated[
@@ -192,17 +187,6 @@ class RepositoryConfig(BaseModel):
         if self._plugin_attr("linked_data") is None:
             return self
         logger.warning(_LEGACY_LINKED_DATA_PLUGIN_MSG)
-        return self
-
-    @model_validator(mode="after")
-    def warn_deprecated_linked_data_mycore_solr(self) -> Self:
-        """Warn when operators still use linked_data ``sitemap_type: mycore_solr``."""
-        linked = cast(LinkedDataConfig | None, self._plugin_attr("linked_data"))
-        if linked is None:
-            return self
-        if linked.sitemap_type is not SitemapType.mycore_solr:
-            return self
-        logger.warning(_LEGACY_LINKED_DATA_MYCORE_SOLR_MSG)
         return self
 
     @model_validator(mode="after")
