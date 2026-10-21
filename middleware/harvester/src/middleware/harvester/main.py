@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import logging
 from collections.abc import Callable
+from importlib.metadata import version
 from pathlib import Path
 
 from middleware.harvester.config import Config
@@ -41,6 +42,12 @@ def _parse_args() -> argparse.Namespace:
         "--config",
         default="config.yaml",
         help="Path to the harvester YAML configuration file.",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"harvester {version('harvester')}",
     )
     return parser.parse_args()
 
