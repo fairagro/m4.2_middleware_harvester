@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      helm: ${{ steps.filter.outputs.helm }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -44,6 +45,10 @@ jobs:
               - '.pylintrc'
               - '.pre-commit-config.yaml'
               - '.bandit'
+              # Do NOT put chart paths only here — that forces Docker build/check
+              # without a separate Helm lint job.
+            helm:
+              - 'helm/**'
 
   code-quality:
     name: Code Quality
@@ -83,4 +88,13 @@ jobs:
       components: '["harvester"]'
       image_base_name: fairagro-advanced-middleware
       skip: ${{ needs.detect-changes.outputs.code != 'true' }}
+    secrets: inherit
+
+  helm-lint:
+    name: Helm Lint
+    needs: detect-changes
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
+    with:
+      chart_dir: helm/harvester
+      skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
     secrets: inherit
