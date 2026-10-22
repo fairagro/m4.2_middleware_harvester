@@ -206,8 +206,14 @@ class JsonLdContextLoader:
         if self._negative_cache_ttl_seconds <= 0:
             return
         expires_at = time.monotonic() + self._negative_cache_ttl_seconds
+        if url in self._failures:
+            self._failures.move_to_end(url)
         self._failures[url] = (expires_at, message)
-        self._failures.move_to_end(url)
+        max_entries = self._max_entries
+        if max_entries is None:
+            return
+        while len(self._failures) > max_entries:
+            self._failures.popitem(last=False)
 
     def _failure_message_if_fresh(self, url: str) -> str | None:
         entry = self._failures.get(url)

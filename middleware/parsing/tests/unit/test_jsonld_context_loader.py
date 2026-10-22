@@ -456,3 +456,33 @@ async def test_failed_context_fetch_is_negatively_cached() -> None:
             await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
 
     assert hits["n"] == first_hits
+
+
+@pytest.mark.asyncio
+async def test_failure_cache_evicts_when_over_cap() -> None:
+    configure_document_cache_max_entries(2)
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits.append(str(request.url))
+        return httpx.Response(503, text="unavailable")
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        for i in range(3):
+            url = f"https://ctx.example/{i}.json"
+            with pytest.raises(ParserError, match="Failed to fetch"):
+                await ensure_document_cached(url, client)
+        # Oldest failure entry was LRU-evicted when the third URL failed.
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/2.json", client)
+
+    assert hits.count("https://ctx.example/0.json") == 2
+    assert hits.count("https://ctx.example/1.json") == 1
+    assert hits.count("https://ctx.example/2.json") == 1
