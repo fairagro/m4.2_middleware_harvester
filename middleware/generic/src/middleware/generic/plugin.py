@@ -18,6 +18,7 @@ from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.generic.protocol import (
     dcat_ap as _register_dcat_ap_protocol,
+    mycore_rest as _register_mycore_rest_protocol,
     mycore_solr as _register_mycore_solr_protocol,
     pubplant_json_array as _register_pubplant_json_array_protocol,
     regal_find as _register_regal_find_protocol,
@@ -40,6 +41,7 @@ _ = (
     _register_builtin_parsers,
     _register_xml_protocol,
     _register_mycore_solr_protocol,
+    _register_mycore_rest_protocol,
     _register_dcat_ap_protocol,
     _register_pubplant_json_array_protocol,
     _register_regal_find_protocol,

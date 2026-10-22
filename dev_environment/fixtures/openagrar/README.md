@@ -1,7 +1,9 @@
 # OpenAgrar fixture RDI
 
-A static stand-in for OpenAgrar, served over HTTP so the real harvester binary can be run end-to-end against a
-`mycore_solr` + `html_jsonld` + `schema_org_general` source.
+A static stand-in for OpenAgrar, served over HTTP so the real harvester binary can be run end-to-end against either:
+
+- legacy `mycore_solr` + `html_jsonld` + `schema_org_general` (title-fallback cascade under `receive/`), or
+- preferred `mycore_rest` + `mods_xml` + `mods_general` (list + object XML under `api/v2/objects/`).
 
 ## Why this exists
 
@@ -66,9 +68,13 @@ terminates because the envelope sets `response.numFound` equal to `len(response.
 Record URLs are built by `MycoreSolrProtocol` as `{scheme}://{netloc}/receive/{id}`, which maps onto the
 `receive/<id>/index.html` layout.
 
+For the MODS stack, `api/v2/objects/list.xml` is the fixture list entry URL (query-free so `python -m http.server` can
+serve it). Object files live beside it as `api/v2/objects/<id>` (captured from the live REST API). The protocol derives
+object URLs as `{scheme}://{netloc}/api/v2/objects/{id}`.
+
 ```bash
 uv run python -m http.server 8080 --directory dev_environment/fixtures/openagrar
 ```
 
-`config.fixtures.yaml` sets `respect_robots_txt: false`, matching the real OpenAgrar config — the copied `robots.txt`
-disallows `/servlets/`, which is where the Solr API lives.
+`config.fixtures.yaml` sets `respect_robots_txt: false` for the Solr repository — the copied `robots.txt` disallows
+`/servlets/`. The MODS repository keeps `respect_robots_txt: true` (`/api/` is allowed).
