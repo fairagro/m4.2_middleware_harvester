@@ -10,8 +10,7 @@ via `mods_xml`) are mapped to the ISA (Investigation, Study, Assay) model used b
 
 **Related specs:**
 
-- Implementation contract: [`openspec/specs/mods-to-arc-mapping/`](../../openspec/specs/mods-to-arc-mapping/) (after
-  archive) / change delta until then
+- Implementation contract: [`openspec/specs/mods-to-arc-mapping/`](../../openspec/specs/mods-to-arc-mapping/)
 - Given-name policy: [`openspec/specs/person-contact-given-name/`](../../openspec/specs/person-contact-given-name/)
 
 > [!NOTE] The mapper consumes a typed `ModsRecord`, not RDF. Source field names below are intermediate model attributes
