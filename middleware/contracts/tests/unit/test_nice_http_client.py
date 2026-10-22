@@ -1,6 +1,8 @@
 """Unit tests for the shared NiceHttpClient wrapper."""
 
 import asyncio
+from collections.abc import Awaitable, Callable, MutableMapping
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -9,12 +11,14 @@ import pytest
 from middleware.contracts.nice_http_client import (
     NiceHttpClient,
     NiceHttpClientConfig,
+    ResponseBodyTooLargeError,
     RobotsTxtCache,
     RobotsTxtDisallowedError,
 )
 
 OK_STATUS = 200
 EXPECTED_CALL_COUNT = 2
+DEFAULT_MAX_RESPONSE_BODY_BYTES = 33_554_432
 
 
 @pytest.mark.asyncio
@@ -42,22 +46,24 @@ async def test_ensure_allowed_allows_when_respect_robots_is_disabled() -> None:
 
 @pytest.mark.asyncio
 async def test_retry_get_retries_transient_status_codes() -> None:
-    config = NiceHttpClientConfig(retry_attempts=1, max_retry_delay=0.1)
-    client = NiceHttpClient(config)
+    config = NiceHttpClientConfig(retry_attempts=1, max_retry_delay=0.1, respect_robots_txt=False)
+    call_count = 0
 
-    request = httpx.Request("GET", "https://example.com/test")
-    response_503 = httpx.Response(503, request=request, headers={"Retry-After": "0"})
-    response_200 = httpx.Response(200, request=request, content=b"ok")
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        del request
+        call_count += 1
+        if call_count == 1:
+            return httpx.Response(503, headers={"Retry-After": "0"})
+        return httpx.Response(200, content=b"ok")
 
-    async with client:
-        raw_client = client.client
-        get_mock = AsyncMock(side_effect=[response_503, response_200])
-        with patch.object(raw_client, "get", new=get_mock):
-            response = await client.retry_get_with_client(raw_client, config, "https://example.com/test")
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        response = await client.retry_get("https://example.com/test")
 
     assert response.status_code == OK_STATUS
     assert response.text == "ok"
-    assert get_mock.call_count == EXPECTED_CALL_COUNT
+    assert call_count == EXPECTED_CALL_COUNT
 
 
 @pytest.mark.asyncio
@@ -72,12 +78,11 @@ async def test_get_with_policy_applies_robots_and_rate_limit() -> None:
     )
 
     async with client:
-        raw_client = client.client
         retry_get_mock = AsyncMock(return_value=response_200)
         with (
             patch.object(NiceHttpClient, "ensure_allowed", AsyncMock()) as ensure_allowed_mock,
             patch.object(NiceHttpClient, "wait_for_host", AsyncMock()) as wait_for_host_mock,
-            patch.object(NiceHttpClient, "retry_get_with_client", retry_get_mock),
+            patch.object(NiceHttpClient, "retry_get", retry_get_mock),
         ):
             response = await client.get_with_policy("https://example.com/test")
 
@@ -85,7 +90,11 @@ async def test_get_with_policy_applies_robots_and_rate_limit() -> None:
     assert response.text == "ok"
     ensure_allowed_mock.assert_awaited_once_with("https://example.com/test")
     wait_for_host_mock.assert_awaited_once_with("https://example.com/test")
-    retry_get_mock.assert_awaited_once_with(raw_client, config, "https://example.com/test", True)
+    retry_get_mock.assert_awaited_once_with(
+        "https://example.com/test",
+        follow_redirects=True,
+        headers=None,
+    )
 
 
 def test_nice_http_client_uses_transport_and_headers() -> None:
@@ -136,3 +145,100 @@ def test_sleep_for_host_respects_rate_limit(monkeypatch: pytest.MonkeyPatch) -> 
 
     asyncio.run(robots.wait_for_host("example.org", 2.0))
     assert slept == [0.5]
+
+
+def test_max_response_body_bytes_default_and_validation() -> None:
+    assert NiceHttpClientConfig().max_response_body_bytes == DEFAULT_MAX_RESPONSE_BODY_BYTES
+    assert NiceHttpClientConfig(max_response_body_bytes=1).max_response_body_bytes == 1
+    with pytest.raises(ValueError):
+        NiceHttpClientConfig(max_response_body_bytes=0)
+
+
+@pytest.mark.asyncio
+async def test_retry_get_rejects_oversized_content_length() -> None:
+    config = NiceHttpClientConfig(max_response_body_bytes=10, retry_attempts=2, respect_robots_txt=False)
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        del request
+        call_count += 1
+        return httpx.Response(200, headers={"Content-Length": "100"}, content=b"x" * 100)
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        with pytest.raises(ResponseBodyTooLargeError, match="Content-Length 100") as exc_info:
+            await client.retry_get("https://example.com/big")
+
+    assert exc_info.value.limit == 10
+    assert exc_info.value.content_length == 100
+    assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_get_rejects_oversized_streamed_body() -> None:
+    config = NiceHttpClientConfig(max_response_body_bytes=10, retry_attempts=2, respect_robots_txt=False)
+    call_count = 0
+
+    async def app(
+        scope: MutableMapping[str, Any],
+        receive: Callable[[], Awaitable[MutableMapping[str, Any]]],
+        send: Callable[[MutableMapping[str, Any]], Awaitable[None]],
+    ) -> None:
+        nonlocal call_count
+        del receive
+        assert scope["type"] == "http"
+        call_count += 1
+        # No Content-Length header: enforcement must count streamed bytes.
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"abcdefghij", "more_body": True})
+        await send({"type": "http.response.body", "body": b"klmnopqrstuvwxyz", "more_body": False})
+
+    transport = httpx.ASGITransport(app=app)
+    async with NiceHttpClient(config, transport=transport) as client:
+        with pytest.raises(ResponseBodyTooLargeError, match="read .* bytes") as exc_info:
+            await client.retry_get("http://testserver/stream")
+
+    assert exc_info.value.limit == 10
+    assert exc_info.value.bytes_read is not None
+    assert exc_info.value.bytes_read > 10
+    assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_get_accepts_body_at_exact_limit() -> None:
+    limit = 16
+    body = b"a" * limit
+    config = NiceHttpClientConfig(max_response_body_bytes=limit, respect_robots_txt=False)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, content=body)
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        response = await client.retry_get("https://example.com/exact")
+
+    assert response.status_code == OK_STATUS
+    assert response.content == body
+
+
+@pytest.mark.asyncio
+async def test_response_body_too_large_is_not_retried() -> None:
+    """Body-too-large must not be treated as a transient retryable failure."""
+    config = NiceHttpClientConfig(max_response_body_bytes=5, retry_attempts=3, respect_robots_txt=False)
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        del request
+        call_count += 1
+        return httpx.Response(200, headers={"Content-Length": "999"}, content=b"x" * 999)
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        with pytest.raises(ResponseBodyTooLargeError):
+            await client.retry_get("https://example.com/once")
+
+    assert call_count == 1
+    assert issubclass(ResponseBodyTooLargeError, RuntimeError)

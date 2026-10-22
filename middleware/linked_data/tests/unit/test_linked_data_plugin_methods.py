@@ -10,7 +10,11 @@ from fakes import BadFakeDataset, FakeSitemap, GoodFakeDataset
 from rdflib import Graph
 
 from middleware.contracts.errors import RecordProcessingError, SkippedRecord
-from middleware.contracts.nice_http_client import NiceHttpClient, RobotsTxtDisallowedError
+from middleware.contracts.nice_http_client import (
+    NiceHttpClient,
+    ResponseBodyTooLargeError,
+    RobotsTxtDisallowedError,
+)
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.linked_data.config import Config, DatasetType, NiceHttpClientConfig, SitemapType
 from middleware.linked_data.plugin import LinkedDataPlugin
@@ -168,6 +172,62 @@ async def test_linked_data_plugin_run_plugin_returns_record_processing_error_for
 
     assert len(results) == 1
     assert isinstance(results[0], RecordProcessingError)
+
+
+@pytest.mark.asyncio
+async def test_linked_data_plugin_maps_response_body_too_large_to_record_processing_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Oversized HTTP bodies (ResponseBodyTooLargeError) must not crash the harvest loop."""
+    config = Config(
+        sitemap_url="https://example.org/sitemap.xml",
+        sitemap_type=SitemapType.xml,
+        dataset_type=DatasetType.html_jsonld,
+        http=NiceHttpClientConfig(),
+    )
+
+    class OversizedBodyDataset:
+        identifier = "https://example.org/dataset/huge"
+
+        @classmethod
+        def from_discovery_result(cls, discovery_result: object, **kwargs: object) -> "OversizedBodyDataset":
+            del discovery_result, kwargs
+            return cls()
+
+        async def to_graph(self) -> Graph:  # noqa: PLR6301
+            raise ResponseBodyTooLargeError(
+                "https://example.org/dataset/huge",
+                33_554_432,
+                content_length=50_000_000,
+            )
+
+        def title_hint_from_cache(self) -> str | None:  # noqa: PLR6301
+            return None
+
+    def fake_create_sitemap(_config: Config, client: NiceHttpClient | None = None) -> FakeSitemap:
+        del client
+        return FakeSitemap(["https://example.org/dataset/huge"])
+
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_sitemap",
+        staticmethod(fake_create_sitemap),
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.Dataset.registry",
+        {DatasetType.html_jsonld: OversizedBodyDataset},
+    )
+    monkeypatch.setattr(
+        "middleware.linked_data.plugin.LinkedDataPlugin.create_mapper",
+        staticmethod(lambda _config, _mapper_config=None: MagicMock()),
+    )
+
+    results = [
+        item async for item in LinkedDataPlugin(config, MapperConfig.model_validate({"schema_org_general": {}})).run()
+    ]
+
+    assert len(results) == 1
+    assert isinstance(results[0], RecordProcessingError)
+    assert isinstance(results[0].original_error, ResponseBodyTooLargeError)
 
 
 @pytest.mark.asyncio

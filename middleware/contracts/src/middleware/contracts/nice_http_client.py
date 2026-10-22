@@ -4,6 +4,7 @@ import asyncio
 import logging
 import random
 import time
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Annotated, Any
@@ -81,10 +82,46 @@ class NiceHttpClientConfig(BaseModel):
         bool,
         Field(description="Respect robots.txt directives when fetching URLs."),
     ] = True
+    max_response_body_bytes: Annotated[
+        int,
+        Field(
+            description=(
+                "Maximum HTTP response body size in bytes. Responses with a larger "
+                "Content-Length are rejected before reading; streamed bodies that "
+                "exceed this limit fail with ResponseBodyTooLargeError."
+            ),
+            ge=1,
+        ),
+    ] = 33_554_432  # 32 MiB
+
+
+class ResponseBodyTooLargeError(RuntimeError):
+    """Raised when an HTTP response body exceeds ``max_response_body_bytes``."""
+
+    def __init__(
+        self,
+        url: str,
+        limit: int,
+        *,
+        content_length: int | None = None,
+        bytes_read: int | None = None,
+    ) -> None:
+        """Record the URL, configured limit, and how the limit was detected."""
+        self.url = url
+        self.limit = limit
+        self.content_length = content_length
+        self.bytes_read = bytes_read
+        if content_length is not None:
+            detail = f"Content-Length {content_length}"
+        elif bytes_read is not None:
+            detail = f"read {bytes_read} bytes"
+        else:
+            detail = "body too large"
+        super().__init__(f"HTTP response body for {url} exceeds limit of {limit} bytes ({detail})")
 
 
 class RobotsTxtCache:
-    """Cache robots.txt state and enforce per-host polite delays."""
+    """Per-host robots.txt parse results, crawl delays, and rate-limit timing (no HTTP)."""
 
     def __init__(self) -> None:
         """Initialize the robots.txt cache and per-host scheduling state."""
@@ -94,15 +131,36 @@ class RobotsTxtCache:
         self.host_locks: dict[str, asyncio.Lock] = {}
 
     @staticmethod
-    def _host_from_url(url: str) -> tuple[str, str]:
+    def host_from_url(url: str) -> tuple[str, str]:
+        """Extract and return the normalized scheme and host from a URL."""
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError(f"Invalid URL: {url}")
         return parsed.scheme, parsed.netloc
 
-    def host_from_url(self, url: str) -> tuple[str, str]:
-        """Extract and return the normalized scheme and host from a URL."""
-        return self._host_from_url(url)
+    def has_parser(self, host: str) -> bool:
+        """Whether robots.txt has already been resolved for this host (including allow-all)."""
+        return host in self.robots_cache
+
+    def get_parser(self, host: str) -> RobotFileParser | None:
+        """Return the cached parser, or ``None`` when the host is treated as allow-all."""
+        return self.robots_cache[host]
+
+    def store_parser(self, host: str, parser: RobotFileParser | None, *, user_agent: str) -> None:
+        """Cache a robots.txt parser (or allow-all) and record Crawl-delay when present."""
+        self.robots_cache[host] = parser
+        if parser is None:
+            return
+        crawl_delay = parser.crawl_delay(user_agent)
+        if crawl_delay is not None:
+            self.host_crawl_delay[host] = float(crawl_delay)
+
+    def can_fetch(self, host: str, user_agent: str, url: str) -> bool:
+        """Whether ``user_agent`` may fetch ``url`` according to the cached robots.txt."""
+        parser = self.robots_cache.get(host)
+        if parser is None:
+            return True
+        return parser.can_fetch(user_agent, url)
 
     async def wait_for_host(self, host: str, max_requests_per_second: float | None) -> None:
         """Respect the host crawl delay and optional rate limit before the next request."""
@@ -123,57 +181,6 @@ class RobotsTxtCache:
             if wait > 0:
                 await asyncio.sleep(wait)
             self.host_last_request[host] = time.monotonic()
-
-    async def _fetch_robots_txt(
-        self,
-        scheme: str,
-        host: str,
-        http_client: httpx.AsyncClient,
-        config: NiceHttpClientConfig,
-    ) -> RobotFileParser | None:
-        if host in self.robots_cache:
-            return self.robots_cache[host]
-
-        if not config.respect_robots_txt:
-            self.robots_cache[host] = None
-            return None
-
-        parser = RobotFileParser()
-        robots_url = urlunparse((scheme, host, "/robots.txt", "", "", ""))
-
-        await self.wait_for_host(host, config.max_requests_per_second)
-        try:
-            response = await http_client.get(robots_url, follow_redirects=True)
-            if response.is_error:
-                raise ValueError(f"HTTP {response.status_code}")
-            parser.parse(response.text.splitlines())
-            parser.set_url(robots_url)
-            self.robots_cache[host] = parser
-            crawl_delay = parser.crawl_delay(config.user_agent)
-            if crawl_delay is not None:
-                self.host_crawl_delay[host] = float(crawl_delay)
-            return parser
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "Failed to fetch robots.txt for host %s: %s; assuming allow all.",
-                host,
-                exc,
-            )
-            self.robots_cache[host] = None
-            return None
-
-    async def is_allowed(
-        self,
-        url: str,
-        http_client: httpx.AsyncClient,
-        config: NiceHttpClientConfig,
-    ) -> bool:
-        """Determine whether the given URL is allowed by robots.txt."""
-        scheme, host = self._host_from_url(url)
-        parser = await self._fetch_robots_txt(scheme, host, http_client, config)
-        if parser is None:
-            return True
-        return parser.can_fetch(config.user_agent, url)
 
 
 class RobotsTxtDisallowedError(RuntimeError):
@@ -222,11 +229,96 @@ class NiceHttpClient:
         assert self._client is not None, "NiceHttpClient must be used as an async context manager"
         return self._client
 
+    @staticmethod
+    def _parse_content_length(headers: httpx.Headers) -> int | None:
+        raw = headers.get("Content-Length")
+        if raw is None:
+            return None
+        try:
+            value = int(raw.strip())
+        except ValueError:
+            return None
+        return value if value >= 0 else None
+
+    async def _get_with_body_limit(
+        self,
+        url: str,
+        *,
+        follow_redirects: bool = True,
+        headers: Mapping[str, str] | None = None,
+    ) -> httpx.Response:
+        """Stream a GET via ``self.client`` and fail if the body exceeds ``max_response_body_bytes``."""
+        limit = self._config.max_response_body_bytes
+        async with self.client.stream(
+            "GET",
+            url,
+            follow_redirects=follow_redirects,
+            headers=headers,
+        ) as response:
+            content_length = self._parse_content_length(response.headers)
+            if content_length is not None and content_length > limit:
+                raise ResponseBodyTooLargeError(url, limit, content_length=content_length)
+
+            if response.status_code in {429, 503} or response.status_code >= _HTTP_STATUS_SERVER_ERROR_MIN:
+                # Do not buffer a potentially huge error body; headers suffice for retry.
+                return httpx.Response(
+                    status_code=response.status_code,
+                    headers=response.headers,
+                    content=b"",
+                    request=response.request,
+                    extensions=response.extensions,
+                    history=list(response.history),
+                )
+
+            chunks: list[bytes] = []
+            total = 0
+            async for chunk in response.aiter_bytes():
+                total += len(chunk)
+                if total > limit:
+                    raise ResponseBodyTooLargeError(url, limit, bytes_read=total)
+                chunks.append(chunk)
+
+            return httpx.Response(
+                status_code=response.status_code,
+                headers=response.headers,
+                content=b"".join(chunks),
+                request=response.request,
+                extensions=response.extensions,
+                history=list(response.history),
+            )
+
+    async def _load_robots_parser(self, scheme: str, host: str) -> RobotFileParser | None:
+        """Fetch and cache robots.txt for ``host`` (no robots check on this request)."""
+        if self._robots.has_parser(host):
+            return self._robots.get_parser(host)
+
+        robots_url = urlunparse((scheme, host, "/robots.txt", "", "", ""))
+        await self._robots.wait_for_host(host, self._config.max_requests_per_second)
+        try:
+            response = await self._get_with_body_limit(robots_url, follow_redirects=True)
+            if response.is_error:
+                raise ValueError(f"HTTP {response.status_code}")
+            parser = RobotFileParser()
+            parser.parse(response.text.splitlines())
+            parser.set_url(robots_url)
+            self._robots.store_parser(host, parser, user_agent=self._config.user_agent)
+            return parser
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Failed to fetch robots.txt for host %s: %s; assuming allow all.",
+                host,
+                exc,
+            )
+            self._robots.store_parser(host, None, user_agent=self._config.user_agent)
+            return None
+
     async def is_allowed(self, url: str) -> bool:
         """Whether the URL is allowed by robots.txt for this client configuration."""
         if not self._config.respect_robots_txt:
             return True
-        return await self._robots.is_allowed(url, self.client, self._config)
+        scheme, host = self._robots.host_from_url(url)
+        await self._load_robots_parser(scheme, host)
+        return self._robots.can_fetch(host, self._config.user_agent, url)
 
     async def ensure_allowed(self, url: str) -> None:
         """Raise if the URL is disallowed by robots.txt."""
@@ -240,10 +332,9 @@ class NiceHttpClient:
             )
             raise RobotsTxtDisallowedError(f"Dataset URL disallowed by robots.txt: {url}")
 
-    @staticmethod
-    def _calculate_retry_delay(config: NiceHttpClientConfig, attempt: int) -> float:
-        delay = config.retry_backoff_base * (config.retry_backoff_factor ** (attempt - 1))
-        return min(delay * random.uniform(0.9, 1.1), config.max_retry_delay)
+    def _calculate_retry_delay(self, attempt: int) -> float:
+        delay = self._config.retry_backoff_base * (self._config.retry_backoff_factor ** (attempt - 1))
+        return min(delay * random.uniform(0.9, 1.1), self._config.max_retry_delay)
 
     @staticmethod
     def _parse_retry_after(value: str | None) -> float | None:
@@ -265,22 +356,27 @@ class NiceHttpClient:
         seconds = (retry_date - datetime.now(UTC)).total_seconds()
         return seconds if seconds > 0 else 0.0
 
-    @staticmethod
-    async def retry_get_with_client(
-        client: httpx.AsyncClient,
-        config: NiceHttpClientConfig,
+    async def retry_get(
+        self,
         url: str,
+        *,
         follow_redirects: bool = True,
-        **kwargs: Any,
+        headers: Mapping[str, str] | None = None,
     ) -> httpx.Response:
-        """Perform a GET request with retry/backoff semantics using an existing AsyncClient."""
-        total_attempts = 1 + config.retry_attempts
+        """Perform a GET request with retry/backoff and response body size limiting."""
+        total_attempts = 1 + self._config.retry_attempts
         last_error: Exception | None = None
         response: httpx.Response | None = None
 
         for attempt in range(1, total_attempts + 1):
             try:
-                response = await client.get(url, follow_redirects=follow_redirects, **kwargs)
+                response = await self._get_with_body_limit(
+                    url,
+                    follow_redirects=follow_redirects,
+                    headers=headers,
+                )
+            except ResponseBodyTooLargeError:
+                raise
             except httpx.RequestError as exc:
                 last_error = exc
             else:
@@ -304,21 +400,27 @@ class NiceHttpClient:
                 assert last_error is not None
                 raise last_error
 
-            delay = NiceHttpClient._calculate_retry_delay(config, attempt)
+            delay = self._calculate_retry_delay(attempt)
             if response is not None and response.status_code in {429, 503}:
-                retry_after = NiceHttpClient._parse_retry_after(response.headers.get("Retry-After"))
+                retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
                 if retry_after is not None:
-                    delay = min(max(delay, retry_after), config.max_retry_delay)
+                    delay = min(max(delay, retry_after), self._config.max_retry_delay)
 
             await asyncio.sleep(delay)
 
         raise RuntimeError("retry_get terminated unexpectedly")
 
-    async def get_with_policy(self, url: str, follow_redirects: bool = True, **kwargs: Any) -> httpx.Response:
+    async def get_with_policy(
+        self,
+        url: str,
+        *,
+        follow_redirects: bool = True,
+        headers: Mapping[str, str] | None = None,
+    ) -> httpx.Response:
         """Fetch the URL through robots.txt, host rate limiting, and retry/backoff policy."""
         await self.ensure_allowed(url)
         await self.wait_for_host(url)
-        return await self.retry_get_with_client(self.client, self._config, url, follow_redirects, **kwargs)
+        return await self.retry_get(url, follow_redirects=follow_redirects, headers=headers)
 
     async def wait_for_host(self, url: str) -> None:
         """Wait for the configured per-host delay before the next request."""
