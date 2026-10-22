@@ -60,10 +60,10 @@ fixture cannot tell them apart.
 ## How it is served
 
 `python -m http.server` strips the query string in `translate_path`, so the static file at `servlets/solr/select`
-answers the paginated Solr requests the `mycore_solr` sitemap issues (`?q=*:*&fl=id&rows=…&wt=json&start=…`). Pagination
+answers the paginated Solr requests `MycoreSolrProtocol` issues (`?q=*:*&fl=id&rows=…&wt=json&start=…`). Pagination
 terminates because the envelope sets `response.numFound` equal to `len(response.docs)`.
 
-Record URLs are built by `MycoreSolrSitemap` as `{scheme}://{netloc}/receive/{id}`, which maps onto the
+Record URLs are built by `MycoreSolrProtocol` as `{scheme}://{netloc}/receive/{id}`, which maps onto the
 `receive/<id>/index.html` layout.
 
 ```bash

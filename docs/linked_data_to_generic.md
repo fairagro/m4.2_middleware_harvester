@@ -2,7 +2,8 @@
 
 Operator YAML and Helm values should prefer the `generic:` plugin when an equivalent Protocol + PayloadParser pair
 exists. The `linked_data:` plugin key is **deprecated** (config load emits a `logger.warning`); it remains a temporary
-shim until a later hard cut. Nested legacy fields (e.g. `sitemap_type: mycore_solr`) may emit additional warnings.
+shim until a later hard cut. MyCoRe Solr discovery is **generic-only** (`generic.protocol.mycore_solr`);
+`linked_data.sitemap_type: mycore_solr` is rejected.
 
 Mapper and parser selection use **type-as-key** (same idiom as `generic.protocol`). Deprecated flat
 `mapper: { type: … }` / `parser: { type: … }` still lift with a warning until the hard-cut follow-up. This guide does

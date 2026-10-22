@@ -3,12 +3,11 @@
 ## Architecture Overview
 
 `MycoreSolrProtocol` is the SoT implementation under `middleware.generic`, registered as `ProtocolType.mycore_solr`.
-`MycoreSolrSitemap` in `linked_data` is a thin shim that delegates to that Protocol (same pattern as `XmlSitemap` →
-`XmlProtocol`) until YAML migrates to `generic:` + nested `protocol.mycore_solr`.
+MyCoRe Solr discovery is configured only via nested `generic.protocol.mycore_solr` (with sibling `parser` / `mapper`).
+There is no linked_data `SitemapType.mycore_solr` path.
 
 The Protocol takes type-specific config (`entry_url`, `page_size`) plus an injected polite HTTP client and implements
-`_discover()` as an async generator yielding `UrlDiscoveryResult` objects. The linked_data shim adapts flat
-`sitemap_url` / `page_size` into `MycoreSolrProtocolConfig` before constructing the Protocol.
+`_discover()` as an async generator yielding `UrlDiscoveryResult` objects.
 
 Internally the Protocol delegates to a private `_fetch_page(client, url, start)` coroutine that issues a single
 paginated Solr request and returns `(numFound, docs)`. The outer loop in `_discover()` advances `start` by `len(docs)`
@@ -50,10 +49,8 @@ _discover(client)
    installations. The name reflects the underlying platform, not a single institution, making it reusable for any
    MyCoRe-based data portal.
 
-4. **Protocol SoT + linked_data Sitemap shim** — Discovery logic lives on `MycoreSolrProtocol` so `generic:`
-   repositories use nested `protocol.mycore_solr`. The linked_data `SitemapType.mycore_solr` entry remains as a
-   temporary shim that reuses the same Protocol instance (preserving the first-page cache across `get_expected_count`
-   and `discover`).
+4. **Protocol SoT only (no linked_data shim)** — Discovery logic lives on `MycoreSolrProtocol`. Operators configure
+   nested `protocol.mycore_solr`; `linked_data.sitemap_type: mycore_solr` is rejected at config load.
 
 5. **Pagination via `start` query parameter, not cursor** — Solr supports both offset (`start`) and cursor-based
    pagination. Offset pagination is simpler to implement and sufficient here because the result set is bounded (`rows`

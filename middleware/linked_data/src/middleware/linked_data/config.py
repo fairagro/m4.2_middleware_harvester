@@ -15,7 +15,6 @@ class SitemapType(StrEnum):
     """Supported sitemap kinds for Linked Data harvesting."""
 
     xml = "xml"
-    mycore_solr = "mycore_solr"
     regal_find = "regal_find"
 
 
@@ -41,13 +40,13 @@ class Config(BaseModel):
         str,
         Field(
             description=(
-                "Sitemap entry point URL. For `regal_find` and `mycore_solr`, a "
-                "query-free endpoint is fine; missing overridable parameters are "
-                "filled automatically and operator-supplied query parameters "
-                "override those defaults. Software always owns response format "
-                "and pagination offsets (`format`/`from` for Regal; `wt`/`start` "
-                "for Solr). Page size uses config `page_size` unless URL "
-                "`until` (Regal) or `rows` (Solr) is set."
+                "Sitemap entry point URL. For `regal_find`, a query-free endpoint "
+                "is fine; missing overridable parameters are filled automatically "
+                "and operator-supplied query parameters override those defaults. "
+                "Software always owns response format and pagination offsets "
+                "(`format`/`from` for Regal). Page size uses config `page_size` "
+                "unless URL `until` is set. For MyCoRe Solr use "
+                "`generic.protocol.mycore_solr` instead of linked_data."
             ),
         ),
     ]
@@ -55,8 +54,8 @@ class Config(BaseModel):
         SitemapType,
         Field(
             description=(
-                "Type of sitemap to parse. `mycore_solr` is deprecated under linked_data; "
-                "use nested `generic.protocol.mycore_solr` with sibling parser/mapper instead."
+                "Type of sitemap to parse (`xml` or `regal_find`). "
+                "MyCoRe Solr discovery uses nested `generic.protocol.mycore_solr`."
             ),
         ),
     ]
@@ -102,10 +101,9 @@ class Config(BaseModel):
         Field(
             description=(
                 "Default page size for paginated discovery. Used as Regal `/find` "
-                "`until` and MyCoRe Solr `rows` when the URL has no page-size "
-                "parameter. URL `until` (Regal) or `rows` (Solr) overrides this "
-                "value. Regal `format`/`from` and Solr `wt`/`start` on "
-                "`sitemap_url` are always ignored (software-owned)."
+                "`until` when the URL has no page-size parameter. URL `until` "
+                "overrides this value. Regal `format`/`from` on `sitemap_url` "
+                "are always ignored (software-owned)."
             ),
             ge=1,
         ),

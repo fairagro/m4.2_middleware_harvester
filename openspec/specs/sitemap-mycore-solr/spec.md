@@ -7,46 +7,21 @@ Discover dataset URLs from a MyCoRe repository by querying its embedded Apache S
 
 ## Requirements
 
-### Requirement: Support SitemapType.mycore_solr in plugin configuration
+### Requirement: Support mycore_solr via generic protocol only
 
-The system SHALL support `SitemapType.mycore_solr` in linked_data plugin configuration as a **deprecated** shim over the
-generic `mycore_solr` Protocol (adapting flat linked_data `sitemap_url` / `page_size` into Protocol type settings).
-Canonical configuration SHALL be `generic.protocol.mycore_solr` (`entry_url`, `page_size`) with sibling `parser` /
-`mapper`.
-
-#### Scenario: Satisfies — Support SitemapType.mycore_solr in plugin configuration
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Support `SitemapType.mycore_solr` in plugin configuration (deprecated linked_data path)
-
-#### Scenario: Generic protocol mycore_solr is the preferred entry
-
-- **WHEN** an operator configures MyCoRe Solr discovery
-- **THEN** the preferred form is nested `generic.protocol.mycore_solr`, not `linked_data.sitemap_type: mycore_solr`
+The system SHALL support MyCoRe Solr discovery only through nested `generic.protocol.mycore_solr` (`entry_url`,
+`page_size`) with sibling `parser` / `mapper`. The system MUST NOT accept `linked_data.sitemap_type: mycore_solr` or
+provide a linked_data `MycoreSolrSitemap` shim.
 
 #### Scenario: Generic protocol_type mycore_solr resolves
 
 - **WHEN** a `generic` repository sets `protocol.mycore_solr.entry_url`
 - **THEN** the generic plugin constructs `MycoreSolrProtocol`
 
-### Requirement: Deprecate linked_data SitemapType.mycore_solr with operator warning
-
-The system SHALL treat `linked_data` configuration with `sitemap_type: mycore_solr` as deprecated. When such a
-repository config is loaded, the system MUST emit a `logger.warning` that directs operators to nested
-`generic.protocol.mycore_solr` (with sibling `parser` and `mapper`). The linked_data shim MUST continue to harvest
-successfully until a separate hard-cut change removes it. The system MUST NOT fail validation solely because
-`sitemap_type` is `mycore_solr`.
-
-#### Scenario: Warning on linked_data mycore_solr config load
+#### Scenario: linked_data mycore_solr is rejected
 
 - **WHEN** a repository entry sets `linked_data.sitemap_type` to `mycore_solr`
-- **THEN** config validation succeeds and a `logger.warning` is emitted mentioning `generic.protocol.mycore_solr`
-
-#### Scenario: Shim still harvests
-
-- **WHEN** a repository uses deprecated `linked_data` + `sitemap_type: mycore_solr` with an otherwise valid mapper and
-  HTTP settings
-- **THEN** discovery still runs via the MyCoRe Solr shim and does not fail solely due to deprecation
+- **THEN** configuration validation fails (the value is not a supported `SitemapType`)
 
 ### Requirement: Accept a MyCoRe Solr select endpoint in entry_url; query parameters…
 
@@ -156,8 +131,7 @@ The system SHALL extract the `id` field from each document in `response.docs`.
 ### Requirement: Construct the dataset HTML page URL as {scheme}://{host}/receive/{id} where scheme…
 
 The system SHALL construct the dataset HTML page URL as `{scheme}://{host}/receive/{id}` where scheme and host are
-derived from `entry_url` (linked_data shim may supply the same URL via linked_data `sitemap_url` into Protocol
-settings).
+derived from mycore_solr `entry_url`.
 
 #### Scenario: Satisfies — Construct the dataset HTML page URL as {scheme}://{host}/receive/{id} where scheme…
 
