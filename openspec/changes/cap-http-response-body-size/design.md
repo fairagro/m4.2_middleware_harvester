@@ -2,15 +2,15 @@
 
 ## Context
 
-See proposal.md — Why. `NiceHttpClient.retry_get_with_client` uses `client.get()` and returns a fully buffered
-`httpx.Response`. Robots.txt fetch uses the same client without the harvest GET helper. CSW goes through OWSLib.
+See proposal.md — Why. `NiceHttpClient.retry_get` used `client.get()` and returned a fully buffered `httpx.Response`.
+Robots.txt fetch uses the same client without the harvest GET helper. CSW goes through OWSLib.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
 - One config knob on `NiceHttpClientConfig`, default 32 MiB (`33554432`), `ge=1`
-- Enforce on harvest GETs (`get_with_policy` / `retry_get_with_client`)
+- Enforce on harvest GETs (`get_with_policy` / `retry_get`)
 - Clear typed or message-stable error for callers
 
 **Non-Goals:**
@@ -24,11 +24,10 @@ See proposal.md — Why. `NiceHttpClient.retry_get_with_client` uses `client.get
 1. **Default 32 MiB** — Large enough for atypical ISO/JSON-LD pages; small enough to bound memory. Operators raise via
    config. Alternative: 10 MiB — tighter but may false-fail real catalogues; reject for default.
 
-2. **Stream in `retry_get_with_client`** — Use `client.stream("GET", …)` (or `client.get` with streaming), check
-   `Content-Length` when present, then `aiter_bytes` until done or over limit; build a Response with the collected bytes
-   (or raise before allocating the full body). Prefer raising a dedicated `ResponseBodyTooLargeError(RuntimeError)` (or
-   subclass of an existing contracts error) with URL + limit + observed size so plugins map it like other transport
-   failures.
+2. **Stream in `retry_get`** — Use `client.stream("GET", …)` (or `client.get` with streaming), check `Content-Length`
+   when present, then `aiter_bytes` until done or over limit; build a Response with the collected bytes (or raise before
+   allocating the full body). Prefer raising a dedicated `ResponseBodyTooLargeError(RuntimeError)` (or subclass of an
+   existing contracts error) with URL + limit + observed size so plugins map it like other transport failures.
 
 3. **Apply to robots.txt fetch too** — Same config, same helper or shared `_read_limited` — avoid a second unbounded
    path on the same client.

@@ -31,7 +31,7 @@ operator-configured and treated as untrusted input (`openspec/principles.md` —
 
 ## Impact
 
-- `middleware/contracts` (`NiceHttpClientConfig`, `NiceHttpClient` / `retry_get_with_client`)
+- `middleware/contracts` (`NiceHttpClientConfig`, `NiceHttpClient` / `retry_get`)
 - Unit tests under `middleware/contracts`
 - Call sites that already catch `httpx` / client errors continue to map failures into the harvest report
 - OpenSpec: `nice-http-client`, `csw-harvesting`
