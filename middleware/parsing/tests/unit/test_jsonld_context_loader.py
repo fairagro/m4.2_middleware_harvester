@@ -486,3 +486,38 @@ async def test_failure_cache_evicts_when_over_cap() -> None:
     assert hits.count("https://ctx.example/0.json") == 2
     assert hits.count("https://ctx.example/1.json") == 1
     assert hits.count("https://ctx.example/2.json") == 1
+
+
+@pytest.mark.asyncio
+async def test_failure_cache_hit_refreshes_lru() -> None:
+    """A fresh negative-cache hit moves the entry to MRU so hot failures survive eviction."""
+    configure_document_cache_max_entries(2)
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits.append(str(request.url))
+        return httpx.Response(503, text="unavailable")
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        for i in (0, 1):
+            url = f"https://ctx.example/{i}.json"
+            with pytest.raises(ParserError, match="Failed to fetch"):
+                await ensure_document_cached(url, client)
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/2.json", client)
+        # URL 0 was hit after insert → MRU; URL 1 was evicted when 2 was remembered.
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/1.json", client)
+
+    assert hits.count("https://ctx.example/0.json") == 1
+    assert hits.count("https://ctx.example/1.json") == 2
+    assert hits.count("https://ctx.example/2.json") == 1

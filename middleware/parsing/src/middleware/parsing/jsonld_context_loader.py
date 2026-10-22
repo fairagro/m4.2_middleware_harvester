@@ -223,6 +223,7 @@ class JsonLdContextLoader:
         if time.monotonic() >= expires_at:
             self._failures.pop(url, None)
             return None
+        self._failures.move_to_end(url)
         return message
 
     async def _fetch_and_store(self, url: str, client: NiceHttpClient) -> JsonValue:
