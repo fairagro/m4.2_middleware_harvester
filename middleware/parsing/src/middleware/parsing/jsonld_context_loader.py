@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections import OrderedDict
 from typing import cast
 from urllib.parse import urljoin, urlparse
@@ -15,6 +16,9 @@ from middleware.parsing.errors import ParserError
 from middleware.shared.json_types import JsonObject, JsonValue
 
 _JSON_DOCUMENT_TYPES = frozenset({"application/ld+json", "application/json"})
+# Short-lived latch after a failed fetch so outages do not re-run full HTTP retry
+# backoff for every harvested record that shares the same context URL.
+_NEGATIVE_CACHE_TTL_SECONDS = 60.0
 
 
 def _is_absolute_http_url(value: str) -> bool:
@@ -158,12 +162,16 @@ async def _fetch_document(url: str, client: NiceHttpClient) -> JsonValue:
 class JsonLdContextLoader:
     """Fetch and inline remote JSON-LD contexts with a bounded process cache."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, negative_cache_ttl_seconds: float = _NEGATIVE_CACHE_TTL_SECONDS) -> None:
         """Create an empty loader with an uncapped document cache."""
+        if negative_cache_ttl_seconds < 0:
+            raise ValueError("negative_cache_ttl_seconds must be >= 0")
         self._max_entries: int | None = None
         self._documents: OrderedDict[str, JsonValue] = OrderedDict()
+        self._failures: OrderedDict[str, tuple[float, str]] = OrderedDict()
         self._inflight: dict[str, asyncio.Task[JsonValue]] = {}
         self._lock = asyncio.Lock()
+        self._negative_cache_ttl_seconds = negative_cache_ttl_seconds
 
     @property
     def max_entries(self) -> int | None:
@@ -177,12 +185,14 @@ class JsonLdContextLoader:
         self._max_entries = max_entries
 
     def clear(self) -> None:
-        """Clear cached documents, in-flight tasks, and the size cap (for tests)."""
+        """Clear cached documents, failures, in-flight tasks, and the size cap (for tests)."""
         self._documents.clear()
+        self._failures.clear()
         self._inflight.clear()
         self._max_entries = None
 
     def _put(self, url: str, document: JsonValue) -> None:
+        self._failures.pop(url, None)
         if url in self._documents:
             self._documents.move_to_end(url)
         self._documents[url] = document
@@ -192,8 +202,30 @@ class JsonLdContextLoader:
         while len(self._documents) > max_entries:
             self._documents.popitem(last=False)
 
+    def _remember_failure(self, url: str, message: str) -> None:
+        if self._negative_cache_ttl_seconds <= 0:
+            return
+        expires_at = time.monotonic() + self._negative_cache_ttl_seconds
+        self._failures[url] = (expires_at, message)
+        self._failures.move_to_end(url)
+
+    def _failure_message_if_fresh(self, url: str) -> str | None:
+        entry = self._failures.get(url)
+        if entry is None:
+            return None
+        expires_at, message = entry
+        if time.monotonic() >= expires_at:
+            self._failures.pop(url, None)
+            return None
+        return message
+
     async def _fetch_and_store(self, url: str, client: NiceHttpClient) -> JsonValue:
-        document = await _fetch_document(url, client)
+        try:
+            document = await _fetch_document(url, client)
+        except ParserError as exc:
+            async with self._lock:
+                self._remember_failure(url, str(exc))
+            raise
         async with self._lock:
             self._put(url, document)
         return document
@@ -203,12 +235,17 @@ class JsonLdContextLoader:
 
         Concurrent callers share a single in-flight fetch task per URL. Awaiters use
         ``asyncio.shield`` so cancelling one waiter does not cancel the shared fetch.
+        A failed fetch is remembered for ``negative_cache_ttl_seconds`` so later callers
+        fail fast without repeating HTTP retry/backoff for the same URL.
         """
         async with self._lock:
             cached = self._documents.get(url)
             if cached is not None:
                 self._documents.move_to_end(url)
                 return cached
+            failure = self._failure_message_if_fresh(url)
+            if failure is not None:
+                raise ParserError(f"JSON-LD context {url} recently failed to fetch: {failure}")
             task = self._inflight.get(url)
             if task is None:
                 task = asyncio.create_task(self._fetch_and_store(url, client))
@@ -220,26 +257,45 @@ class JsonLdContextLoader:
                 if self._inflight.get(url) is task:
                     self._inflight.pop(url, None)
 
-    async def _inline_remote_string(self, url: str, client: NiceHttpClient, stack: set[str]) -> JsonValue:
+    async def _inline_remote_string(
+        self,
+        url: str,
+        client: NiceHttpClient,
+        stack: set[str],
+        allowed: list[str] | None,
+    ) -> JsonValue:
         if not _is_absolute_http_url(url):
             raise ParserError(f"Relative or non-http(s) JSON-LD context reference is not supported: {url!r}")
+        if not context_url_is_allowed(url, allowed):
+            raise ParserError(f"Remote JSON-LD @context is not supported: {url!r}")
         if url in stack:
             raise ParserError(f"Recursive JSON-LD context inclusion: {url}")
         stack.add(url)
         try:
             # Module facade (patchable in tests) → process-lifetime singleton.
             document = await ensure_document_cached(url, client)
-            return await self._inline_context_value(_unwrap_context_document(document), client, stack)
+            return await self._inline_context_value(
+                _unwrap_context_document(document),
+                client,
+                stack,
+                allowed,
+            )
         finally:
             stack.discard(url)
 
-    async def _apply_import(self, context_obj: JsonObject, client: NiceHttpClient, stack: set[str]) -> JsonObject:
+    async def _apply_import(
+        self,
+        context_obj: JsonObject,
+        client: NiceHttpClient,
+        stack: set[str],
+        allowed: list[str] | None,
+    ) -> JsonObject:
         import_url = context_obj.get("@import")
         if import_url is None:
             return context_obj
         if not isinstance(import_url, str):
             raise ParserError("JSON-LD @import must be a string URL")
-        imported = await self._inline_remote_string(import_url, client, stack)
+        imported = await self._inline_remote_string(import_url, client, stack, allowed)
         if not isinstance(imported, dict):
             raise ParserError(f"JSON-LD @import target must resolve to an object context: {import_url}")
         merged: JsonObject = dict(imported)
@@ -248,34 +304,46 @@ class JsonLdContextLoader:
                 merged[key] = item
         return merged
 
-    async def _inline_context_value(self, value: JsonValue, client: NiceHttpClient, stack: set[str]) -> JsonValue:
+    async def _inline_context_value(
+        self,
+        value: JsonValue,
+        client: NiceHttpClient,
+        stack: set[str],
+        allowed: list[str] | None,
+    ) -> JsonValue:
         """Return ``value`` with remote string / ``@import`` references fully inlined."""
         if isinstance(value, str):
-            return await self._inline_remote_string(value, client, stack)
+            return await self._inline_remote_string(value, client, stack, allowed)
         if isinstance(value, list):
-            return [await self._inline_context_value(item, client, stack) for item in value]
+            return [await self._inline_context_value(item, client, stack, allowed) for item in value]
         if isinstance(value, dict):
-            working = await self._apply_import(value, client, stack)
+            working = await self._apply_import(value, client, stack, allowed)
             out: JsonObject = {}
             for key, item in working.items():
                 # Only ``@context`` nests further remote docs; ``@vocab`` / term IRIs stay literal.
-                out[key] = await self._inline_context_value(item, client, stack) if key == "@context" else item
+                out[key] = await self._inline_context_value(item, client, stack, allowed) if key == "@context" else item
             return out
         return value
 
-    async def _inline_document_remotes(self, node: JsonValue, client: NiceHttpClient, stack: set[str]) -> JsonValue:
+    async def _inline_document_remotes(
+        self,
+        node: JsonValue,
+        client: NiceHttpClient,
+        stack: set[str],
+        allowed: list[str] | None,
+    ) -> JsonValue:
         """Inline every remote ``@context`` / ``@import`` reachable in ``node``."""
         if isinstance(node, list):
-            return [await self._inline_document_remotes(item, client, stack) for item in node]
+            return [await self._inline_document_remotes(item, client, stack, allowed) for item in node]
         if not isinstance(node, dict):
             return node
-        working = await self._apply_import(node, client, stack) if "@import" in node else node
+        working = await self._apply_import(node, client, stack, allowed) if "@import" in node else node
         out: JsonObject = {}
         for key, item in working.items():
             if key == "@context":
-                out[key] = await self._inline_context_value(item, client, stack)
+                out[key] = await self._inline_context_value(item, client, stack, allowed)
             else:
-                out[key] = await self._inline_document_remotes(item, client, stack)
+                out[key] = await self._inline_document_remotes(item, client, stack, allowed)
         return out
 
     async def materialize_payload_contexts(
@@ -291,19 +359,21 @@ class JsonLdContextLoader:
         deep-walked copy with every remote ``@context`` / ``@import`` inlined through this
         loader's cache (not only a top-level ``@context``).
 
-        When ``allowed_context_url`` is set (one IRI or a list), every remote IRI must match
-        an entry after trailing-slash normalisation (``http`` entries also match ``https``).
-        When unset, absolute http(s) remotes are still fetched (``ParserConfig`` warns at
-        load). ``client`` is required whenever a remote context must be resolved.
+        When ``allowed_context_url`` is set (one IRI or a list), every remote IRI on the
+        payload **and** every nested remote discovered while inlining fetched documents
+        must match an entry after trailing-slash normalisation (``http`` entries also match
+        ``https``). When unset, absolute http(s) remotes are still fetched (``ParserConfig``
+        warns at load). ``client`` is required whenever a remote context must be resolved.
         """
-        assert_payload_remote_contexts_allowed(payload, allowed_context_url)
+        allowed = validate_allowed_context_url_value(allowed_context_url)
+        assert_payload_remote_contexts_allowed(payload, allowed)
         remote_urls = remote_context_urls_in_value(payload)
         if not remote_urls:
             return payload
         if client is None:
             raise ParserError("HTTP client is required to resolve remote JSON-LD @context")
 
-        inlined = await self._inline_document_remotes(payload, client, set())
+        inlined = await self._inline_document_remotes(payload, client, set(), allowed)
         if not isinstance(inlined, dict):
             raise ParserError("JSON-LD payload must be a JSON object after context materialization")
         return inlined

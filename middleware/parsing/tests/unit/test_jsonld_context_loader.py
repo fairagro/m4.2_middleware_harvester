@@ -112,8 +112,8 @@ async def test_materialize_inlines_root_and_import_and_caches_both() -> None:
     async with NiceHttpClient(
         NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
     ) as client:
-        first = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
-        second = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+        first = await materialize_payload_contexts(payload, allowed_context_url=[root, imported], client=client)
+        second = await materialize_payload_contexts(payload, allowed_context_url=[root, imported], client=client)
 
     assert first["@context"] == {"@vocab": "http://example.org/vocab/", "title": "http://purl.org/dc/terms/title"}
     assert second["@context"] == first["@context"]
@@ -401,3 +401,58 @@ async def test_materialize_inlines_nested_context_without_top_level() -> None:
     assert isinstance(node, dict)
     assert node["@context"] == {"@vocab": "http://schema.org/"}
     assert hits["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_materialize_rejects_nested_remote_not_on_allowlist() -> None:
+    root = "https://ctx.example/root.json"
+    nested = "https://evil.example/nested.json"
+    documents = {
+        root: {"@context": {"@import": nested, "title": "http://purl.org/dc/terms/title"}},
+        nested: {"@context": {"@vocab": "http://evil.example/"}},
+    }
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        url = str(request.url)
+        hits.append(url)
+        return httpx.Response(200, json=documents[url])
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    assert hits.count(root) == 1
+    assert hits.count(nested) == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_context_fetch_is_negatively_cached() -> None:
+    root = "https://ctx.example/down.json"
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(503, text="unavailable")
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+        first_hits = hits["n"]
+        assert first_hits >= 1
+        with pytest.raises(ParserError, match="recently failed"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    assert hits["n"] == first_hits
