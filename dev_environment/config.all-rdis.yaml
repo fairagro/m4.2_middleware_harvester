@@ -111,19 +111,19 @@ repositories:
     mapper:
       schema_org_general: {}
 
-  # The real OpenAgrar cannot be harvested: record pages, servlets/solr/select
-  # and sitemap_google.xml all 302 to /pow-challenge. Tracked in #271.
+  # Preferred OpenAgrar path via MyCoRe REST + MODS (#503). Live /api/ is not PoW-gated;
+  # HTML /receive and Solr remain gated (#271).
   # - rdi: "openagrar"
   #   generic:
   #     protocol:
   #       http:
-  #         respect_robots_txt: false
-  #       mycore_solr:
-  #         entry_url: "https://www.openagrar.de/servlets/solr/select"
+  #         respect_robots_txt: true
+  #       mycore_rest:
+  #         entry_url: "https://www.openagrar.de/api/v2/objects?category=state:published&type=mods"
   #   parser:
-  #     html_jsonld: {}
+  #     mods_xml: {}
   #   mapper:
-  #     schema_org_general: {}
+  #     mods_general: {}
 
   - rdi: "phenoroam"
     oai_pmh:

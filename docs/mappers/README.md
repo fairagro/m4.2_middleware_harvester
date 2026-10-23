@@ -13,6 +13,7 @@ docs/mappers/
   regal.md                  # base: rdf_graph / Regal
   inspire.md                # base: inspire_record
   phenoroam.md              # base: phenoroam_record
+  mods.md                   # base: mods_record
   ckanext-dcat.md           # base: rdf_graph / CKAN ckanext-dcat DCAT-AP
   rdi/
     <rdi>_<base>.md         # optional RDI overlay (deltas only)
@@ -24,7 +25,7 @@ Base documents:
 
 ```yaml
 ---
-payload_kind: rdf_graph # or inspire_record | phenoroam_record
+payload_kind: rdf_graph # or inspire_record | phenoroam_record | mods_record
 mapper_id: schema_org_general # optional; registry key when useful
 ---
 ```

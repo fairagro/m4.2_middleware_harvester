@@ -17,6 +17,7 @@ from middleware.payload.linked_data_mapper.general_schema_org_mapper import Gene
 from middleware.payload.linked_data_mapper.regal_mapper import RegalMapper
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
+from middleware.payload.mods.mapper import ModsMapper
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.phenoroam.mapper import PhenoroamMapper
 
@@ -24,6 +25,7 @@ from middleware.payload.phenoroam.mapper import PhenoroamMapper
 def test_payload_kind_rdf_graph_available() -> None:
     assert PayloadKind.rdf_graph == "rdf_graph"
     assert PayloadKind.phenoroam_record == "phenoroam_record"
+    assert PayloadKind.mods_record == "mods_record"
 
 
 def test_payload_kind_inspire_record_available() -> None:
@@ -52,6 +54,8 @@ def test_registered_class_for_context_accepts_mapping_context_mappers() -> None:
         DataMapper.registered_class_for_context(MapperType.schema_org_general, MappingContext) is GeneralSchemaOrgMapper
     )
     assert DataMapper.registered_class_for_context(MapperType.phenoroam_general, MappingContext) is PhenoroamMapper
+    assert DataMapper.registered_class_for_context(MapperType.mods_general, MappingContext) is ModsMapper
+    assert ModsMapper.accepts == PayloadKind.mods_record
 
 
 def test_registered_class_for_context_rejects_incompatible_context() -> None:
