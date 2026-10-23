@@ -1,21 +1,19 @@
 """Keep ARC comment names unique so the ARC can be written to disk.
 
-ARCtrl's ``ARC.Write`` (Python, 3.2.x) fails with ``TypeError: Object is not iterable`` when an
-Investigation, Study, Assay or Person has two Comments with the same name. The API reads every
+The ARC specification allows each comment key only once per section, so ``ARC.Write`` fails when
+an Investigation, Study, Assay or Person has two Comments with the same name (since arctrl 3.2.3
+with a clear error, before that as ``TypeError: Object is not iterable``). The API reads every
 harvested RO-Crate and writes it with ``ARC.Write``, so a repeated name (several Regal
 ``associatedDataset`` values, several organisational creators) loses the whole ARC there.
-Same-name Comments are therefore merged into one, with their distinct values joined by ``; ``.
+Same-name Comments are therefore merged into one, with their distinct values joined by ``; ``
+(``unique_comment_names``). This is required by the spec, not a workaround; see
+https://github.com/nfdi4plants/ARCtrl/issues/641.
 
-ARCtrl also duplicates the ``dateModified`` Comment on every read: it keeps the Comment node
-and adds one more from the root ``dateModified``. The RO-Crate is written with the root
-property only, so a read gives exactly one Comment.
-
-Both are ARCtrl bugs, reported upstream; remove each workaround once the API's arctrl has the fix:
-
-- duplicate names: https://github.com/nfdi4plants/ARCtrl/issues/641 (``unique_comment_names``)
-- duplicated ``dateModified``: https://github.com/nfdi4plants/ARCtrl/issues/642
-  (``drop_date_modified_comment_node``); a first-class ``DateModified`` is requested in
-  https://github.com/nfdi4plants/ARCtrl/issues/643.
+ARCtrl before 3.2.3 also duplicates the ``dateModified`` Comment on every read: it keeps the
+Comment node and adds one more from the root ``dateModified``. The RO-Crate is written with the
+root property only, so a read gives exactly one Comment. Remove ``drop_date_modified_comment_node``
+once the API's arctrl is 3.2.3 or later (https://github.com/nfdi4plants/ARCtrl/issues/642). A
+first-class ``DateModified`` is requested in https://github.com/nfdi4plants/ARC-specification/issues/185.
 """
 
 from __future__ import annotations
