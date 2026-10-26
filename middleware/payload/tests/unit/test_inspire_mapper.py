@@ -302,3 +302,35 @@ def test_from_config_passes_individual_name_is_organisation() -> None:
     inv = InspireMapper.from_config(config).map_investigation(record)
 
     assert not list(inv.Contacts)
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def _bonares_style_record() -> InspireRecord:
+    return _minimal_record(
+        temporal_extent=("2000-01-01", "2020-12-31"),
+        dates=[
+            {"date": "2019-03-01", "datetype": "creation"},
+            {"date": "2021-05-19", "datetype": "publication"},
+        ],
+        lineage="Field trial data were aggregated per plot.",
+    )
+
+
+def test_study_protocols_do_not_invent_data_files_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=_bonares_style_record(), identifier="uuid-map-1"),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    invented = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Processed Data"))
+    ]
+    assert invented == []
