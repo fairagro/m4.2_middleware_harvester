@@ -531,39 +531,28 @@ class InspireMapper(DataMapper[MappingContext]):
         Represents: Actual data collection/sensing process.
         Input: Selected Location(s). No Output: INSPIRE records carry metadata only, so no data file is invented (#353).
         """
-        if not (record.temporal_extent or record.dates):
-            return None
+        parameters: list[tuple[str, str]] = []
 
-        table = ArcTable.init("Data Acquisition")
-        headers = []
-        cells = []
-
-        # Temporal Extent
         if record.temporal_extent:
             start, end = record.temporal_extent
-            time_str = f"{start or 'unknown'} to {end or 'unknown'}"
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Temporal Extent")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=time_str)))
+            parameters.append(("Temporal Extent", f"{start or 'unknown'} to {end or 'unknown'}"))
 
-        # Acquisition/Creation Dates
         creation_dates = [d.date for d in record.dates if d.datetype == "creation"]
         if creation_dates:
-            dates_str = ", ".join(creation_dates)
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Acquisition Date")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
+            parameters.append(("Acquisition Date", ", ".join(creation_dates)))
 
         # NOTE: acquisition is complex nested - not implemented in extraction phase
 
-        if headers:
-            # Add Input Column
-            table.AddColumn(
-                CompositeHeader.input(IOType.sample()),
-                [CompositeCell.free_text("Selected Location")],
-            )
-            for i, header in enumerate(headers):
-                table.AddColumn(header, [cells[i]])
-            return table
-        return None
+        if not parameters:
+            return None
+
+        table = ArcTable.init("Data Acquisition")
+        table.AddColumn(
+            CompositeHeader.input(IOType.sample()),
+            [CompositeCell.free_text("Selected Location")],
+        )
+        InspireMapper._add_parameter_columns(table, parameters)
+        return table
 
     def _create_data_processing_protocol(self, record: InspireRecord) -> ArcTable | None:
         """Create Data Processing protocol (always created if lineage or quality info available).
@@ -572,51 +561,44 @@ class InspireMapper(DataMapper[MappingContext]):
         Parameters only: no Input/Output data columns, because the record has no data files (#353).
         Returns None when the record has no processing metadata.
         """
-        headers, cells = self._build_processing_protocol_columns(record)
+        parameters = [
+            *self._lineage_parameters(record),
+            *self._conformance_parameters(record),
+            *self._format_parameters(record),
+            *self._date_parameters(record),
+        ]
+        if not parameters:
+            return None
 
-        if headers:
-            return self._assemble_processing_table_with_headers(headers, cells)
-
-        return None
-
-    def _build_processing_protocol_columns(
-        self, record: InspireRecord
-    ) -> tuple[list[CompositeHeader], list[CompositeCell]]:
-        """Build headers and cells for data processing protocol."""
-        headers: list[CompositeHeader] = []
-        cells: list[CompositeCell] = []
-
-        self._add_lineage_columns(record, headers, cells)
-        self._add_conformance_columns(record, headers, cells)
-        self._add_format_columns(record, headers, cells)
-        self._add_date_columns(record, headers, cells)
-
-        return headers, cells
+        table = ArcTable.init("Data Processing")
+        self._add_parameter_columns(table, parameters)
+        return table
 
     @staticmethod
-    def _add_lineage_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
-        """Add lineage-related columns to processing protocol."""
+    def _add_parameter_columns(table: ArcTable, parameters: list[tuple[str, str]]) -> None:
+        """Append one Parameter column per ``(name, value)`` pair."""
+        for name, value in parameters:
+            table.AddColumn(
+                CompositeHeader.parameter(OntologyAnnotation(name=name)),
+                [CompositeCell.term(OntologyAnnotation(name=value))],
+            )
+
+    @staticmethod
+    def _lineage_parameters(record: InspireRecord) -> list[tuple[str, str]]:
+        """Return the lineage parameters of the processing protocol."""
+        parameters: list[tuple[str, str]] = []
         if record.lineage:
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage[:500])))
-
+            parameters.append(("Processing Description", record.lineage[:500]))
         if record.lineage_url:
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Lineage Documentation URL")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=record.lineage_url)))
+            parameters.append(("Lineage Documentation URL", record.lineage_url))
+        return parameters
 
-    def _add_conformance_columns(
-        self, record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]
-    ) -> None:
-        """Add conformance result columns to processing protocol."""
-        if not record.conformance_results:
-            return
-
-        for conf in record.conformance_results:
-            spec_name = conf.specification_title
-            pass_str = self._format_conformance_status(conf.degree)
-            conf_str = f"{spec_name}: {pass_str}"
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Conformance")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=conf_str)))
+    def _conformance_parameters(self, record: InspireRecord) -> list[tuple[str, str]]:
+        """Return the conformance parameters of the processing protocol."""
+        return [
+            ("Conformance", f"{conf.specification_title}: {self._format_conformance_status(conf.degree)}")
+            for conf in record.conformance_results
+        ]
 
     @staticmethod
     def _format_conformance_status(degree: str | None) -> str:
@@ -628,34 +610,18 @@ class InspireMapper(DataMapper[MappingContext]):
         return "Unknown"
 
     @staticmethod
-    def _add_format_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
-        """Add data format columns to processing protocol."""
-        if not record.distribution_formats:
-            return
-
-        for fmt in record.distribution_formats:
-            fmt_str = f"{fmt.name}" + (f" v{fmt.version}" if fmt.version else "")
-            headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Output Format")))
-            cells.append(CompositeCell.term(OntologyAnnotation(name=fmt_str)))
+    def _format_parameters(record: InspireRecord) -> list[tuple[str, str]]:
+        """Return the data format parameters of the processing protocol."""
+        return [
+            ("Output Format", f"{fmt.name}" + (f" v{fmt.version}" if fmt.version else ""))
+            for fmt in record.distribution_formats
+        ]
 
     @staticmethod
-    def _add_date_columns(record: InspireRecord, headers: list[CompositeHeader], cells: list[CompositeCell]) -> None:
-        """Add processing date columns to processing protocol."""
+    def _date_parameters(record: InspireRecord) -> list[tuple[str, str]]:
+        """Return the processing date parameter of the processing protocol."""
         pub_dates = [d.date for d in record.dates if d.datetype in {"publication", "revision"}]
-        if not pub_dates:
-            return
-
-        dates_str = ", ".join(pub_dates)
-        headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Processing Date")))
-        cells.append(CompositeCell.term(OntologyAnnotation(name=dates_str)))
-
-    @staticmethod
-    def _assemble_processing_table_with_headers(headers: list[CompositeHeader], cells: list[CompositeCell]) -> ArcTable:
-        """Assemble processing table with input, parameter, and output columns."""
-        table = ArcTable.init("Data Processing")
-        for i, header in enumerate(headers):
-            table.AddColumn(header, [cells[i]])
-        return table
+        return [("Processing Date", ", ".join(pub_dates))] if pub_dates else []
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:
         """Map to ArcAssay with enhanced technology platform and annotation table."""

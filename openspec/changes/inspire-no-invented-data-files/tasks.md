@@ -7,7 +7,7 @@
 - [x] 1.3 T3: a record with only a creation date gets no Data Processing protocol
 - [x] 1.4 T4: the Assay `Output [URI]` is unchanged
 - [x] 1.5 Update `docs/mappers/inspire.md` if it describes Study protocol I/O
-- [ ] 1.6 Diff ARC payloads from a source run and a container run on a real BonaRes record
+- [x] 1.6 Diff ARC payloads from a source run and a container run on a real BonaRes record
 
 ## 2. Close
 
