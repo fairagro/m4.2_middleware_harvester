@@ -368,3 +368,19 @@ def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     study = InspireMapper().map_study(record)
 
     assert "Data Processing" not in [table.Name for table in study.Tables]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({"dataset_uri": "https://data.example.com/api"}, "https://data.example.com/api"),
+        ({"online_resources": [{"url": "https://data.example.com/download"}]}, "https://data.example.com/download"),
+        ({}, "mapped_dataset_dataset"),
+    ],
+)
+def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: str) -> None:
+    """The Study protocol cleanup (#353) must leave the Assay ``Output [URI]`` cell alone."""
+    assay = InspireMapper().map_assay(_minimal_record(**overrides))
+
+    output = next(col for col in assay.Tables[0].Columns if col.header.is_output)
+    assert output.cells[0].AsFreeText == expected
