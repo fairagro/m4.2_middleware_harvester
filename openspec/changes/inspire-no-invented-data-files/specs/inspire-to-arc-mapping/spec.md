@@ -12,8 +12,8 @@ Processing table MUST NOT be emitted when it would carry no value from the recor
 #### Scenario: No fabricated File entities
 
 - **WHEN** a BonaRes-style record with temporal extent, creation dates and lineage is mapped to an ARC
-- **THEN** the RO-Crate `@graph` contains no `studies/*/resources/Raw Data` or `studies/*/resources/Processed Data`
-  File entities
+- **THEN** the RO-Crate `@graph` contains no `studies/*/resources/Raw Data` or `studies/*/resources/Processed Data` File
+  entities
 
 #### Scenario: Protocol parameters are kept
 

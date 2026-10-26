@@ -3,9 +3,9 @@
 ## Why
 
 #353: the INSPIRE mapper's Study protocols (Data Acquisition, Data Processing) add `Input/Output [Data]` columns with
-hardcoded `"Raw Data"` / `"Processed Data"` cells. INSPIRE CSW records carry metadata only, so these files do not exist in
-the source. arctrl serialises them as `@type: File` nodes under `studies/<id>/resources/`, and the API catalog finalize
-logs a WARNING for each one on every BonaRes ARC.
+hardcoded `"Raw Data"` / `"Processed Data"` cells. INSPIRE CSW records carry metadata only, so these files do not exist
+in the source. arctrl serialises them as `@type: File` nodes under `studies/<id>/resources/`, and the API catalog
+finalize logs a WARNING for each one on every BonaRes ARC.
 
 ## What Changes
 
