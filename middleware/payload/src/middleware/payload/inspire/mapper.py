@@ -578,9 +578,6 @@ class InspireMapper(DataMapper[MappingContext]):
         if headers:
             return self._assemble_processing_table_with_headers(headers, cells)
 
-        if record.lineage or record.dates:
-            return self._create_minimal_processing_table()
-
         return None
 
     def _build_processing_protocol_columns(
@@ -659,24 +656,6 @@ class InspireMapper(DataMapper[MappingContext]):
         table = ArcTable.init("Data Processing")
         for i, header in enumerate(headers):
             table.AddColumn(header, [cells[i]])
-        return table
-
-    @staticmethod
-    def _create_minimal_processing_table() -> ArcTable:
-        """Create minimal processing table with just a note."""
-        table = ArcTable.init("Data Processing")
-        table.AddColumn(
-            CompositeHeader.input(IOType.data()),
-            [CompositeCell.create_data_from_string("Raw Data")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Note")),
-            [CompositeCell.term(OntologyAnnotation(name="Data processing details from INSPIRE metadata"))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.data()),
-            [CompositeCell.create_data_from_string("Processed Data")],
-        )
         return table
 
     def map_assay(self, record: InspireRecord) -> ArcAssay:

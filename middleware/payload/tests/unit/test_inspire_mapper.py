@@ -360,3 +360,11 @@ def test_study_protocols_keep_their_parameters() -> None:
             ("Processing Date", "2021-05-19"),
         ],
     }
+
+
+def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
+    record = _minimal_record(dates=[{"date": "2019-03-01", "datetype": "creation"}])
+
+    study = InspireMapper().map_study(record)
+
+    assert "Data Processing" not in [table.Name for table in study.Tables]
