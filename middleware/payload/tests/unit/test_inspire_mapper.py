@@ -302,3 +302,85 @@ def test_from_config_passes_individual_name_is_organisation() -> None:
     inv = InspireMapper.from_config(config).map_investigation(record)
 
     assert not list(inv.Contacts)
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def _bonares_style_record() -> InspireRecord:
+    return _minimal_record(
+        temporal_extent=("2000-01-01", "2020-12-31"),
+        dates=[
+            {"date": "2019-03-01", "datetype": "creation"},
+            {"date": "2021-05-19", "datetype": "publication"},
+        ],
+        lineage="Field trial data were aggregated per plot.",
+        conformance_results=[{"specification_title": "INSPIRE", "degree": "true"}],
+        distribution_formats=[{"name": "GeoJSON", "version": "1.0"}],
+    )
+
+
+def test_study_protocols_do_not_invent_data_files_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=_bonares_style_record(), identifier="uuid-map-1"),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    invented = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Processed Data"))
+    ]
+    assert invented == []
+
+
+def test_study_protocols_keep_their_parameters() -> None:
+    study = InspireMapper().map_study(_bonares_style_record())
+
+    parameters = {
+        table.Name: [
+            (col.header.ToTerm().Name, col.cells[0].AsTerm.Name) for col in table.Columns if col.header.is_parameter
+        ]
+        for table in study.Tables
+        if table.Name in {"Data Acquisition", "Data Processing"}
+    }
+    assert parameters == {
+        "Data Acquisition": [
+            ("Temporal Extent", "2000-01-01 to 2020-12-31"),
+            ("Acquisition Date", "2019-03-01"),
+        ],
+        "Data Processing": [
+            ("Processing Description", "Field trial data were aggregated per plot."),
+            ("Conformance", "INSPIRE: PASS"),
+            ("Output Format", "GeoJSON v1.0"),
+            ("Processing Date", "2021-05-19"),
+        ],
+    }
+
+
+def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
+    record = _minimal_record(dates=[{"date": "2019-03-01", "datetype": "creation"}])
+
+    study = InspireMapper().map_study(record)
+
+    assert "Data Processing" not in [table.Name for table in study.Tables]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({"dataset_uri": "https://data.example.com/api"}, "https://data.example.com/api"),
+        ({"online_resources": [{"url": "https://data.example.com/download"}]}, "https://data.example.com/download"),
+        ({}, "mapped_dataset_dataset"),
+    ],
+)
+def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: str) -> None:
+    """The Study protocol cleanup (#353) must leave the Assay ``Output [URI]`` cell alone."""
+    assay = InspireMapper().map_assay(_minimal_record(**overrides))
+
+    output = next(col for col in assay.Tables[0].Columns if col.header.is_output)
+    assert output.cells[0].AsFreeText == expected

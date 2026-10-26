@@ -259,17 +259,17 @@ One INSPIRE record = One Study representing the data creation workflow.
 #### Protocol 2: "Data Acquisition"
 
 - **Input**: Selected Location(s)
-- **Output**: Raw Sensor Data / Observations
+- **Output**: none (INSPIRE records carry metadata only, so no data file is invented)
 - **Parameters**:
   - Platform/Sensor (from acquisition metadata)
   - Temporal Extent
 
 #### Protocol 3: "Data Processing"
 
-- **Input**: Raw Sensor Data
-- **Output**: Processed/Published Dataset
+- **Input / Output**: none (no data file is invented)
 - **Parameters**:
-  - Lineage, Conformance, Output Format
+  - Lineage, Conformance, Output Format, Processing Date
+- Emitted only when the record has at least one of these values; a creation date alone does not create it.
 
 ### Assay (Measurement / Data Output)
 
