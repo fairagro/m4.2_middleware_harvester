@@ -58,6 +58,7 @@ def main() -> int:
     config_path = Path(args.config)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logger.info("Harvester version %s", version("harvester"))
 
     shutdown_tracing = None
     report = None
