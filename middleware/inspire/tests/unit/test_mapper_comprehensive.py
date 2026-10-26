@@ -430,8 +430,13 @@ def test_create_data_processing_complex(mapper: InspireMapper, sample_record: In
 
     assert table is not None
     assert table.Name == "Data Processing"
-    # Input, Lineage, Conformance, Format, Processing Date, Output
-    assert table.ColumnCount == 6
+    # Parameters only: the record has no data files, so no Input/Output [Data] columns (#353)
+    assert [col.header.ToTerm().Name for col in table.Columns] == [
+        "Processing Description",
+        "Conformance",
+        "Output Format",
+        "Processing Date",
+    ]
 
 
 def test_add_person_comments_branches(mapper: InspireMapper) -> None:

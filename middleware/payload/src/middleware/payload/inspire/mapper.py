@@ -563,11 +563,6 @@ class InspireMapper(DataMapper[MappingContext]):
             )
             for i, header in enumerate(headers):
                 table.AddColumn(header, [cells[i]])
-            # Add Output Column
-            table.AddColumn(
-                CompositeHeader.output(IOType.data()),
-                [CompositeCell.create_data_from_string("Raw Data")],
-            )
             return table
         return None
 
@@ -662,16 +657,8 @@ class InspireMapper(DataMapper[MappingContext]):
     def _assemble_processing_table_with_headers(headers: list[CompositeHeader], cells: list[CompositeCell]) -> ArcTable:
         """Assemble processing table with input, parameter, and output columns."""
         table = ArcTable.init("Data Processing")
-        table.AddColumn(
-            CompositeHeader.input(IOType.data()),
-            [CompositeCell.create_data_from_string("Raw Data")],
-        )
         for i, header in enumerate(headers):
             table.AddColumn(header, [cells[i]])
-        table.AddColumn(
-            CompositeHeader.output(IOType.data()),
-            [CompositeCell.create_data_from_string("Processed Data")],
-        )
         return table
 
     @staticmethod
