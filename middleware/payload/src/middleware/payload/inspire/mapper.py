@@ -529,8 +529,7 @@ class InspireMapper(DataMapper[MappingContext]):
         """Create Data Acquisition protocol if temporal/acquisition metadata available.
 
         Represents: Actual data collection/sensing process.
-        Input: Selected Location(s) + Temporal Period
-        Output: Raw Sensor Data / Observations
+        Input: Selected Location(s). No Output: INSPIRE records carry metadata only, so no data file is invented (#353).
         """
         if not (record.temporal_extent or record.dates):
             return None
@@ -570,8 +569,8 @@ class InspireMapper(DataMapper[MappingContext]):
         """Create Data Processing protocol (always created if lineage or quality info available).
 
         Represents: Processing from raw data to final published dataset.
-        Input: Raw Sensor Data
-        Output: Processed/Published Dataset
+        Parameters only: no Input/Output data columns, because the record has no data files (#353).
+        Returns None when the record has no processing metadata.
         """
         headers, cells = self._build_processing_protocol_columns(record)
 
