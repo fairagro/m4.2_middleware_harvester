@@ -315,6 +315,8 @@ def _bonares_style_record() -> InspireRecord:
             {"date": "2021-05-19", "datetype": "publication"},
         ],
         lineage="Field trial data were aggregated per plot.",
+        conformance_results=[{"specification_title": "INSPIRE", "degree": "true"}],
+        distribution_formats=[{"name": "GeoJSON", "version": "1.0"}],
     )
 
 
@@ -334,3 +336,27 @@ def test_study_protocols_do_not_invent_data_files_in_ro_crate() -> None:
         if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Processed Data"))
     ]
     assert invented == []
+
+
+def test_study_protocols_keep_their_parameters() -> None:
+    study = InspireMapper().map_study(_bonares_style_record())
+
+    parameters = {
+        table.Name: [
+            (col.header.ToTerm().Name, col.cells[0].AsTerm.Name) for col in table.Columns if col.header.is_parameter
+        ]
+        for table in study.Tables
+        if table.Name in {"Data Acquisition", "Data Processing"}
+    }
+    assert parameters == {
+        "Data Acquisition": [
+            ("Temporal Extent", "2000-01-01 to 2020-12-31"),
+            ("Acquisition Date", "2019-03-01"),
+        ],
+        "Data Processing": [
+            ("Processing Description", "Field trial data were aggregated per plot."),
+            ("Conformance", "INSPIRE: PASS"),
+            ("Output Format", "GeoJSON v1.0"),
+            ("Processing Date", "2021-05-19"),
+        ],
+    }
