@@ -422,7 +422,6 @@ def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     [
         ({"dataset_uri": "https://data.example.com/api"}, "https://data.example.com/api"),
         ({"online_resources": [{"url": "https://data.example.com/download"}]}, "https://data.example.com/download"),
-        ({}, "mapped_dataset_dataset"),
     ],
 )
 def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: str) -> None:
@@ -431,6 +430,12 @@ def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: s
 
     output = next(col for col in assay.Tables[0].Columns if col.header.is_output)
     assert output.cells[0].AsFreeText == expected
+
+
+def test_assay_has_no_output_uri_column_without_any_uri() -> None:
+    assay = InspireMapper().map_assay(_minimal_record())
+
+    assert not any(col.header.is_output for col in assay.Tables[0].Columns)
 
 
 def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
