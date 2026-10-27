@@ -422,7 +422,6 @@ def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     [
         ({"dataset_uri": "https://data.example.com/api"}, "https://data.example.com/api"),
         ({"online_resources": [{"url": "https://data.example.com/download"}]}, "https://data.example.com/download"),
-        ({}, "mapped_dataset_dataset"),
     ],
 )
 def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: str) -> None:
@@ -431,3 +430,39 @@ def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: s
 
     output = next(col for col in assay.Tables[0].Columns if col.header.is_output)
     assert output.cells[0].AsFreeText == expected
+
+
+def test_assay_has_no_output_uri_column_without_any_uri() -> None:
+    assay = InspireMapper().map_assay(_minimal_record())
+
+    assert not any(col.header.is_output for col in assay.Tables[0].Columns)
+
+
+def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=_minimal_record(), identifier="uuid-map-1"),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    invented = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if item.get("@type") == "URI" and str(item.get("@id", "")).endswith("_dataset")
+    ]
+    assert invented == []
+
+
+def test_assay_without_uri_keeps_one_row_with_input_and_graphic_overview() -> None:
+    record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
+
+    (table,) = InspireMapper().map_assay(record).Tables
+
+    assert table.RowCount == 1
+    input_column = next(col for col in table.Columns if col.header.is_input)
+    assert input_column.cells[0].AsFreeText == "Dataset Source"
+    comment_column = next(col for col in table.Columns if "Graphic Overview" in str(col.header))
+    assert comment_column.cells[0].AsFreeText == "https://example.org/overview.png"
