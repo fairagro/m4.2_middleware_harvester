@@ -315,10 +315,6 @@ class _RegalRun:
     def _create_data_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
         table.AddColumn(
-            CompositeHeader.input(IOType.data()),
-            [CompositeCell.create_data_from_string("Raw Data")],
-        )
-        table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
             [CompositeCell.term(OntologyAnnotation(name="Published research data metadata from a Regal repository"))],
         )
@@ -347,10 +343,6 @@ class _RegalRun:
                 [CompositeCell.term(OntologyAnnotation(name=license_value))],
             )
 
-        table.AddColumn(
-            CompositeHeader.output(IOType.data()),
-            [CompositeCell.create_data_from_string("Published Dataset")],
-        )
         return table
 
     def _create_assay_table(

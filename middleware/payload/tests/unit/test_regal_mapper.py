@@ -783,3 +783,17 @@ def test_regal_mapper_language_dedupes_codes_and_falls_back_to_label() -> None:
     graph.add((unknown, SKOS.prefLabel, Literal("Plattdeutsch")))
 
     assert _language_texts(_mapped_arc_json(graph)) == ["eng; Plattdeutsch"]
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_regal_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
+    graph_items = json.loads(_mapped_arc_json(_base_graph()))["@graph"]
+
+    invented = [
+        item["@id"]
+        for item in graph_items
+        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
+    ]
+    assert invented == []
