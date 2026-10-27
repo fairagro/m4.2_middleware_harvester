@@ -201,6 +201,7 @@ One Regal ResearchData record = one Study.
 - Always present for ResearchData
 - **Parameters**: Processing Description (fixed note that metadata comes from Regal/PUBLISSO-style repository); Funder;
   Funding Program; Project ID; License URI when not only on Assay
+- **Input / Output**: none (no data file is invented)
 
 ### Assay (Data Output)
 
