@@ -372,3 +372,31 @@ def pangaea_doi_graph(doi: str = "10.1594/PANGAEA.957630") -> Graph:
         }}
         """
     )
+
+
+def processing_parameters(arc_json: str, table_name: str) -> dict[str, str]:
+    """Return ``{parameter name: first cell text}`` of the named protocol table, read back from the ARC."""
+    arc = ARC.from_rocrate_json_string(arc_json)
+    tables = [table for study in arc.Studies for table in study.Tables] + [
+        table for assay in arc.Assays for table in assay.Tables
+    ]
+    (table,) = [table for table in tables if table.Name == table_name]
+    return {col.header.ToTerm().Name: col.cells[0].AsTerm.Name for col in table.Columns if col.header.is_parameter}
+
+
+def assay_output_uri(arc_json: str) -> str:
+    """Return the ``Output [URI]`` cell of the assay's Measurement table, read back from the ARC."""
+    arc = ARC.from_rocrate_json_string(arc_json)
+    (table,) = [table for assay in arc.Assays for table in assay.Tables if table.Name == "Measurement"]
+    (cell,) = [col.cells[0].AsFreeText for col in table.Columns if col.header.is_output]
+    return str(cell)
+
+
+def invented_data_entities(arc_json: str) -> list[str]:
+    """Return the ids of RO-Crate entities named "Raw Data" / "Published Dataset" (invented, see #353)."""
+    invented_names = {"Raw Data", "Published Dataset"}
+    return [
+        item["@id"]
+        for item in json.loads(arc_json)["@graph"]
+        if str(item.get("@id", "")).endswith(tuple(invented_names)) or item.get("name") in invented_names
+    ]

@@ -13,14 +13,19 @@ from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # t
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    OPENAGRAR_PROPERTYVALUE_DOI,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
     contact_name_pairs,
     distribution_comment_texts,
     first_harvest,
+    invented_data_entities,
     investigation_description,
     keywords_comment_text,
     keywords_derived_ids,
+    parse_jsonld,
+    processing_parameters,
     publication_author_node_id,
     publisher_comment_text,
     root_identifier,
@@ -913,3 +918,46 @@ def test_structured_address_keeps_locality_and_gives_no_affiliation() -> None:
 
     assert address == "Corrensstraße 3, 06466, Seeland OT Gatersleben, Germany"
     assert affiliation is None
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
+    harvested = first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+    )
+
+    assert invented_data_entities(harvested.arc_json) == []
+
+
+def test_data_processing_keeps_its_parameters() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("10.1234/abc")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    publisher = URIRef("https://example.org/publisher")
+    graph.add((publisher, RDF.type, schema.Organization))
+    graph.add((publisher, schema.name, Literal("Publisher Co")))
+    graph.add((dataset, schema.publisher, publisher))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert processing_parameters(harvested.arc_json, "Data Processing") == {
+        "Processing Description": (
+            "Data processing and publication according to Schema.org metadata standard | Publisher: Publisher Co"
+        )
+    }
+
+
+def test_assay_output_uri_is_unchanged() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert assay_output_uri(harvested.arc_json) == "https://example.org/dataset/1"

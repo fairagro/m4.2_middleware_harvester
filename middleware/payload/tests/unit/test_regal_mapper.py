@@ -13,8 +13,11 @@ import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
+    invented_data_entities,
     keywords_comment_text,
+    processing_parameters,
     root_dates,
     root_identifier,
     root_title,
@@ -783,3 +786,34 @@ def test_regal_mapper_language_dedupes_codes_and_falls_back_to_label() -> None:
     graph.add((unknown, SKOS.prefLabel, Literal("Plattdeutsch")))
 
     assert _language_texts(_mapped_arc_json(graph)) == ["eng; Plattdeutsch"]
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_regal_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
+    assert invented_data_entities(_mapped_arc_json(_base_graph())) == []
+
+
+def test_regal_data_processing_keeps_its_parameters() -> None:
+    graph = _base_graph()
+    joined = URIRef("https://example.org/funding/1")
+    funder = URIRef("http://dx.doi.org/10.13039/501100001659")
+    graph.add((SUBJECT, URIRef("info:regal/regal/joinedFunding"), joined))
+    graph.add((joined, REGAL.fundingProgramJoined, Literal("NFDI4Health Consortium")))
+    graph.add((joined, REGAL.projectIdJoined, Literal("442326535")))
+    graph.add((joined, REGAL.fundingJoined, funder))
+    graph.add((funder, SKOS.prefLabel, Literal("Deutsche Forschungsgemeinschaft")))
+    graph.add((SUBJECT, REGAL.license, URIRef("https://creativecommons.org/licenses/by/4.0/")))
+
+    assert processing_parameters(_mapped_arc_json(graph), "Data Processing") == {
+        "Processing Description": "Published research data metadata from a Regal repository",
+        "Funder": "Deutsche Forschungsgemeinschaft",
+        "Funding Program": "NFDI4Health Consortium",
+        "Project ID": "442326535",
+        "License": "https://creativecommons.org/licenses/by/4.0/",
+    }
+
+
+def test_regal_assay_output_uri_is_unchanged() -> None:
+    assert assay_output_uri(_mapped_arc_json(_base_graph())) == "https://doi.org/10.4126/FRL01-0000123"

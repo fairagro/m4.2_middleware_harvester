@@ -7,7 +7,10 @@ import json
 import pytest
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
+    invented_data_entities,
+    processing_parameters,
     rocrate_prop,
     root_dates,
     root_identifier,
@@ -207,3 +210,32 @@ def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
     assert huge_wkt not in arc_json
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_dataset_processing_does_not_invent_data_files_or_sources_in_ro_crate() -> None:
+    assert invented_data_entities(_mapped_arc_json(_base_graph())) == []
+
+
+def test_dataset_processing_keeps_its_parameters() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.keyword, Literal("soil")))
+    graph.add((SUBJECT, DCAT.keyword, Literal("subsoil")))
+    graph.add((SUBJECT, DCTERMS.language, Literal("en")))
+
+    parameters = processing_parameters(_mapped_arc_json(graph), "Dataset Processing")
+
+    assert parameters["Processing Description"] == "Published dataset metadata harvested via DCAT-AP."
+    assert set(parameters["Keywords"].split(", ")) == {"soil", "subsoil"}
+    assert parameters["Language"] == "en"
+
+
+def test_assay_output_uri_is_unchanged() -> None:
+    graph = _base_graph()
+    distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
+    graph.add((SUBJECT, DCAT.distribution, distribution))
+    graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
+
+    assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"

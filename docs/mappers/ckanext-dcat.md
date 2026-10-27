@@ -56,11 +56,11 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Study
 
-| Source field            | Description  | ARC Mapping                                                                                                                                                                                                                                          |
-| ----------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Title / description     | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                                                                                 |
-| **`dcterms:issued`**    | Issue date   | `Study.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                                                                                                  |
-| (fixed + keywords/lang) | Processing   | Table `Dataset Processing`: Input Raw Data → Parameter `Processing Description` = “Published dataset metadata harvested via DCAT-AP.” → Output Data “Published Dataset”; optional `Keywords` (`", "`-joined) / `Language` (`"; "`-joined) parameters |
+| Source field            | Description  | ARC Mapping                                                                                                                                                                                                                                     |
+| ----------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title / description     | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                                                                            |
+| **`dcterms:issued`**    | Issue date   | `Study.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                                                                                             |
+| (fixed + keywords/lang) | Processing   | Table `Dataset Processing`: Parameter `Processing Description` = “Published dataset metadata harvested via DCAT-AP.” (no Input / Output: no data file is invented); optional `Keywords` (`", "`-joined) / `Language` (`"; "`-joined) parameters |
 
 ## Assay
 
