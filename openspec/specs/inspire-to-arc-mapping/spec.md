@@ -254,9 +254,11 @@ citation `CI_Date` of type `revision`. `gmd:dateStamp` MUST NOT be used; without
 ### Requirement: Study protocols MUST NOT invent Data entities
 
 The INSPIRE Study protocol tables (Data Acquisition, Data Processing) MUST NOT contain `Input [Data]` or `Output [Data]`
-columns whose values are not present in the `InspireRecord`. Their parameter columns MUST still be emitted. A Data
-Processing table MUST NOT be emitted when it would carry no value from the record. The Assay annotation table's
-`Output [URI]` column is not affected by this requirement.
+columns whose values are not present in the `InspireRecord`. The Data Acquisition table MUST have its `Input [Sample]`
+"Selected Location" column only when the Spatial Sampling protocol is emitted for the record, because that protocol
+produces the sample. Their parameter columns MUST still be emitted. A Data Processing table MUST NOT be emitted when it
+would carry no value from the record. The Assay annotation table's `Output [URI]` column is not affected by this
+requirement.
 
 #### Scenario: No fabricated File entities
 
@@ -269,6 +271,21 @@ Processing table MUST NOT be emitted when it would carry no value from the recor
 - **WHEN** the same record is mapped
 - **THEN** the Data Acquisition and Data Processing protocols still carry Temporal Extent, Acquisition Date, Processing
   Description, Conformance, Output Format and Processing Date parameters where the record has them
+
+#### Scenario: No dangling Selected Location for non-geographic records
+
+- **WHEN** a `nonGeographicDataset` record with a temporal extent is mapped
+- **THEN** the Data Acquisition table has no Input column and the RO-Crate `@graph` has no "Selected Location" Sample
+
+#### Scenario: No dangling Selected Location without spatial info
+
+- **WHEN** a geographic record without bounding box, CRS or resolution is mapped
+- **THEN** no Spatial Sampling protocol is emitted and the Data Acquisition table has no Input column
+
+#### Scenario: Selected Location kept when Spatial Sampling exists
+
+- **WHEN** a geographic record with a bounding box is mapped
+- **THEN** Spatial Sampling outputs "Selected Location" and the Data Acquisition table takes it as Input
 
 #### Scenario: No processing protocol without processing metadata
 
