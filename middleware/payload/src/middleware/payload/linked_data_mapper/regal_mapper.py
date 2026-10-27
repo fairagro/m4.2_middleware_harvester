@@ -203,6 +203,8 @@ class _RegalRun:
         require_nonempty_person_given_names(inv)
         self._add_publications(inv, subject, title=title, doi=doi)
         self._add_investigation_comments(inv, subject, institutions=institutions)
+        if regal_id:
+            inv.Comments.append(Comment.create("Landing Page", self._resource_url(regal_id)))
         self._add_ontology_sources(inv)
         return inv
 
