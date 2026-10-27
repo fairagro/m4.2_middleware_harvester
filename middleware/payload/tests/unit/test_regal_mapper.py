@@ -15,6 +15,7 @@ from mapper_test_helpers import (
     NO_DISCOVERY,
     assay_output_uri,
     assert_harvest_has_no_bnode_labels,
+    comment_text,
     invented_data_entities,
     keywords_comment_text,
     processing_parameters,
@@ -817,3 +818,9 @@ def test_regal_data_processing_keeps_its_parameters() -> None:
 
 def test_regal_assay_output_uri_is_unchanged() -> None:
     assert assay_output_uri(_mapped_arc_json(_base_graph())) == "https://doi.org/10.4126/FRL01-0000123"
+
+
+def test_regal_record_id_becomes_landing_page_comment() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+
+    assert comment_text(arc_json, "Landing Page") == "https://example.org/resource/frl:123"

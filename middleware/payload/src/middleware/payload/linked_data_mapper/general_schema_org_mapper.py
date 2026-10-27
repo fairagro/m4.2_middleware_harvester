@@ -532,6 +532,7 @@ class _SchemaOrgRun:
             ("Language", "inLanguage"),
             ("Version", "version"),
             ("URL", "url"),
+            ("Landing Page", "url"),
         ]:
             value = self.view(subject).schema_text(term)
             if value and not self.mapper.placeholders.matches(value):
