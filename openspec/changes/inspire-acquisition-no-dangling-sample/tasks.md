@@ -7,7 +7,7 @@
 - [x] 1.3 T3: a geographic record with a bbox keeps Spatial Sampling output and Data Acquisition input
 - [x] 1.4 T4: Data Acquisition parameters (Temporal Extent, Acquisition Date) are unchanged
 - [x] 1.5 Update the Protocol 2 Input line in `docs/mappers/inspire.md`
-- [ ] 1.6 Diff ARC payloads from a source run and a container run on real records
+- [x] 1.6 Diff ARC payloads from a source run and a container run on real records
 
 ## 2. Close
 
