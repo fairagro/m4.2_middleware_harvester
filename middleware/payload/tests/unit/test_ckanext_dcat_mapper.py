@@ -207,3 +207,18 @@ def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
     assert huge_wkt not in arc_json
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_dataset_processing_does_not_invent_data_files_or_sources_in_ro_crate() -> None:
+    graph_items = json.loads(_mapped_arc_json(_base_graph()))["@graph"]
+
+    invented = [
+        item["@id"]
+        for item in graph_items
+        if str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
+        or item.get("name") in {"Raw Data", "Published Dataset"}
+    ]
+    assert invented == []

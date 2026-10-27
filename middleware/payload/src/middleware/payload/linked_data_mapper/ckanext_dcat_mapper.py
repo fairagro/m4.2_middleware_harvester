@@ -172,10 +172,6 @@ class _CkanextDcatRun:
     def _create_dataset_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Dataset Processing")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Raw Data")],
-        )
-        table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
             [CompositeCell.term(OntologyAnnotation(name="Published dataset metadata harvested via DCAT-AP."))],
         )
@@ -191,10 +187,6 @@ class _CkanextDcatRun:
                 CompositeHeader.parameter(OntologyAnnotation(name="Language")),
                 [CompositeCell.term(OntologyAnnotation(name="; ".join(languages)))],
             )
-        table.AddColumn(
-            CompositeHeader.output(IOType.data()),
-            [CompositeCell.create_data_from_string("Published Dataset")],
-        )
         return table
 
     def _create_distribution_table(self, subject: Node) -> ArcTable:
