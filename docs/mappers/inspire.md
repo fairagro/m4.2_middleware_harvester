@@ -281,7 +281,8 @@ One INSPIRE record = One Study representing the data creation workflow.
 - **TechnologyPlatform**: hardcoded `"Satellite/Sensor Acquisition"` (acquisition metadata not extracted)
 - **Annotation Table** (always exactly one row):
   - **Input [Source Name]**: `"Dataset Source"`
-  - **Output [URI]**: `dataSetURI` (preferred) → `online_resources[0].url` (fallback) → `"<slug>_dataset"` (last resort)
+  - **Output [URI]**: `dataSetURI` (preferred) → `online_resources[0].url` (fallback); the column is omitted when the
+    record has neither
   - **Comment [Online Resource]**: semicolon-joined online-resource URLs (present only if any exist; first URL omitted
     when used as `Output [URI]` fallback)
   - **Comment [Online Resource Name]**: semicolon-joined resource names (omitted if all empty)
@@ -381,7 +382,8 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 ### 2. Dataset URI and Lineage URL
 
 **dataSetURI**: Mapped to `Output [URI]` column in the Assay Annotation Table (single row). If absent, the first
-`online_resources` URL is used as fallback; if that is also absent, a slug fallback (`<id>_dataset`) is used.
+`online_resources` URL is used as fallback; if that is also absent, the column is omitted (no placeholder URI is
+invented).
 
 **lineage_url**: Added as parameter "Lineage Documentation URL" to Data Processing protocol.
 

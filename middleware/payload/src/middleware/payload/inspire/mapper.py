@@ -654,8 +654,8 @@ class InspireMapper(DataMapper[MappingContext]):
 
         Columns:
         - Input [Source Name]                : "Dataset Source" (always present)
-        - Output [URI]                       : dataSetURI (preferred) → first online-resource URL
-                                               → fallback slug "<id>_dataset"
+        - Output [URI]                       : dataSetURI (preferred) → first online-resource URL;
+                                               omitted when the record has neither
         - Comment [Online Resource]          : semicolon-joined online-resource URLs, if any
                                                (first URL omitted when used as Output[URI] fallback)
         - Comment [Online Resource Name]     : semicolon-joined resource names, if any
