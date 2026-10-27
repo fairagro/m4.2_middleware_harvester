@@ -667,22 +667,22 @@ class InspireMapper(DataMapper[MappingContext]):
         Columns whose values are all empty are omitted.  Output[URI] uses
         IOType.of_string("URI") (FreeType tag 4), which is side-effect-free.
         """
-        # Determine primary Output URI: dataSetURI > first online resource > slug
+        # Determine primary Output URI: dataSetURI > first online resource (none otherwise)
         fallback_used = False
+        output_uri: str | None = None
         if record.dataset_uri:
-            output_uri: str = record.dataset_uri
+            output_uri = record.dataset_uri
         elif record.online_resources:
             output_uri = record.online_resources[0].url
             fallback_used = True
-        else:
-            output_uri = f"{InspireMapper._record_slug(record)}_dataset"
 
         table = ArcTable.init("Measurement")
         table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(output_uri)],
-        )
+        if output_uri:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(output_uri)],
+            )
 
         # Online-resource URLs (skip index 0 when it was used as the Output fallback)
         online_urls = [res.url for i, res in enumerate(record.online_resources) if not (fallback_used and i == 0)]

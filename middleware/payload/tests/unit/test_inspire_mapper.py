@@ -431,3 +431,21 @@ def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: s
 
     output = next(col for col in assay.Tables[0].Columns if col.header.is_output)
     assert output.cells[0].AsFreeText == expected
+
+
+def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=_minimal_record(), identifier="uuid-map-1"),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    invented = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if item.get("@type") == "URI" and str(item.get("@id", "")).endswith("_dataset")
+    ]
+    assert invented == []
