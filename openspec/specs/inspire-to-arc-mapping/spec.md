@@ -257,8 +257,8 @@ The INSPIRE Study protocol tables (Data Acquisition, Data Processing) MUST NOT c
 columns whose values are not present in the `InspireRecord`. The Data Acquisition table MUST have its `Input [Sample]`
 "Selected Location" column only when the Spatial Sampling protocol is emitted for the record, because that protocol
 produces the sample. Their parameter columns MUST still be emitted. A Data Processing table MUST NOT be emitted when it
-would carry no value from the record. The Assay annotation table's `Output [URI]` column is not affected by this
-requirement.
+would carry no value from the record. The Assay annotation table's `Output [URI]` column is governed by the requirement
+"Assay output URI MUST NOT be invented".
 
 #### Scenario: No fabricated File entities
 
@@ -294,5 +294,33 @@ requirement.
 
 #### Scenario: Assay output unchanged
 
-- **WHEN** any record is mapped
+- **WHEN** a record with a `dataSetURI` or online resources is mapped
 - **THEN** the Assay annotation table's `Output [URI]` column has the same value as before this change
+
+### Requirement: Assay output URI MUST NOT be invented
+
+The INSPIRE Assay annotation table MUST have an `Output [URI]` column only when the `InspireRecord` has a `dataSetURI`
+or at least one online resource. The value is the `dataSetURI` when present, otherwise the first online resource URL. A
+record with neither MUST produce an Assay table without an `Output [URI]` column and MUST NOT produce any placeholder
+URI. The table keeps its single row with `Input [Source Name]` and the Graphic Overview comment where present.
+
+#### Scenario: No URI available
+
+- **WHEN** a record with no `dataSetURI` and no online resources is mapped
+- **THEN** the Assay table has no `Output [URI]` column and the RO-Crate `@graph` has no `@type: URI` entity whose `@id`
+  ends in `_dataset`
+
+#### Scenario: dataSetURI present
+
+- **WHEN** a record with a `dataSetURI` is mapped
+- **THEN** `Output [URI]` is the `dataSetURI`
+
+#### Scenario: Only online resources
+
+- **WHEN** a record with online resources and no `dataSetURI` is mapped
+- **THEN** `Output [URI]` is the first online resource URL and the Online Resource comments skip it
+
+#### Scenario: Row kept without URI
+
+- **WHEN** a record with no URI but a graphic overview is mapped
+- **THEN** the Assay table has one row with `Input [Source Name]` and the Graphic Overview comment
