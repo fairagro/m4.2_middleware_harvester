@@ -978,3 +978,16 @@ def test_schema_url_becomes_landing_page_comment() -> None:
     harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
 
     assert comment_text(harvested.arc_json, "Landing Page") == "https://repo.example.org/dataset/abc"
+
+
+def test_url_comment_is_kept_alongside_landing_page() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    graph.add((dataset, schema.url, Literal("https://repo.example.org/dataset/abc")))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert comment_text(harvested.arc_json, "URL") == "https://repo.example.org/dataset/abc"
