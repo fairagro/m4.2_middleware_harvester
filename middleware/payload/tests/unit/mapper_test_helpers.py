@@ -245,6 +245,17 @@ def keywords_comment_text(arc_json: str) -> str | None:
     return None
 
 
+def comment_text(arc_json: str, name: str) -> str | None:
+    """Return the text of the first RO-Crate Comment node called ``name``."""
+    assert_harvest_has_no_bnode_labels(arc_json)
+    for item in json.loads(arc_json).get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" in type_list and rocrate_prop(item, "name") == name:
+            return rocrate_prop(item, "text")
+    return None
+
+
 def keywords_derived_ids(arc_json: str) -> list[str]:
     """Return sorted @ids of Keywords Comment / ParameterValue nodes (hash-relevant)."""
     assert_harvest_has_no_bnode_labels(arc_json)

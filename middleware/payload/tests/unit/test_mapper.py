@@ -17,6 +17,7 @@ from mapper_test_helpers import (
     assay_output_uri,
     assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
+    comment_text,
     contact_name_pairs,
     distribution_comment_texts,
     first_harvest,
@@ -961,3 +962,19 @@ def test_assay_output_uri_is_unchanged() -> None:
     harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
 
     assert assay_output_uri(harvested.arc_json) == "https://example.org/dataset/1"
+
+
+# --- landing page comment (#534) --------------------------------------------
+
+
+def test_schema_url_becomes_landing_page_comment() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    graph.add((dataset, schema.url, Literal("https://repo.example.org/dataset/abc")))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert comment_text(harvested.arc_json, "Landing Page") == "https://repo.example.org/dataset/abc"
