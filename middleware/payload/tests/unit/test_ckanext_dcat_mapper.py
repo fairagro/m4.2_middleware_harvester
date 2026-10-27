@@ -8,6 +8,7 @@ import pytest
 from mapper_test_helpers import (
     NO_DISCOVERY,
     assert_harvest_has_no_bnode_labels,
+    processing_parameters,
     rocrate_prop,
     root_dates,
     root_identifier,
@@ -222,3 +223,16 @@ def test_dataset_processing_does_not_invent_data_files_or_sources_in_ro_crate() 
         or item.get("name") in {"Raw Data", "Published Dataset"}
     ]
     assert invented == []
+
+
+def test_dataset_processing_keeps_its_parameters() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.keyword, Literal("soil")))
+    graph.add((SUBJECT, DCAT.keyword, Literal("subsoil")))
+    graph.add((SUBJECT, DCTERMS.language, Literal("en")))
+
+    parameters = processing_parameters(_mapped_arc_json(graph), "Dataset Processing")
+
+    assert parameters["Processing Description"] == "Published dataset metadata harvested via DCAT-AP."
+    assert set(parameters["Keywords"].split(", ")) == {"soil", "subsoil"}
+    assert parameters["Language"] == "en"

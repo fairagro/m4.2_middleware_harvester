@@ -372,3 +372,13 @@ def pangaea_doi_graph(doi: str = "10.1594/PANGAEA.957630") -> Graph:
         }}
         """
     )
+
+
+def processing_parameters(arc_json: str, table_name: str) -> dict[str, str]:
+    """Return ``{parameter name: first cell text}`` of the named protocol table, read back from the ARC."""
+    arc = ARC.from_rocrate_json_string(arc_json)
+    tables = [table for study in arc.Studies for table in study.Tables] + [
+        table for assay in arc.Assays for table in assay.Tables
+    ]
+    (table,) = [table for table in tables if table.Name == table_name]
+    return {col.header.ToTerm().Name: col.cells[0].AsTerm.Name for col in table.Columns if col.header.is_parameter}

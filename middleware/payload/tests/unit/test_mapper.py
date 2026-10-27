@@ -23,6 +23,7 @@ from mapper_test_helpers import (
     keywords_comment_text,
     keywords_derived_ids,
     parse_jsonld,
+    processing_parameters,
     publication_author_node_id,
     publisher_comment_text,
     root_identifier,
@@ -931,3 +932,23 @@ def test_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
         if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
     ]
     assert invented == []
+
+
+def test_data_processing_keeps_its_parameters() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("10.1234/abc")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    publisher = URIRef("https://example.org/publisher")
+    graph.add((publisher, RDF.type, schema.Organization))
+    graph.add((publisher, schema.name, Literal("Publisher Co")))
+    graph.add((dataset, schema.publisher, publisher))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert processing_parameters(harvested.arc_json, "Data Processing") == {
+        "Processing Description": (
+            "Data processing and publication according to Schema.org metadata standard | Publisher: Publisher Co"
+        )
+    }
