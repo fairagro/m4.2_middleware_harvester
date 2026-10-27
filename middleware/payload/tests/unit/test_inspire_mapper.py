@@ -382,6 +382,17 @@ def test_non_geographic_record_has_no_dangling_selected_location() -> None:
     assert selected == []
 
 
+def test_geographic_record_without_spatial_info_has_no_dangling_selected_location() -> None:
+    record = _minimal_record(hierarchy="dataset", temporal_extent=("2000-01-01", "2020-12-31"))
+
+    study = InspireMapper().map_study(record)
+
+    names = [table.Name for table in study.Tables]
+    assert "Spatial Sampling" not in names
+    acquisition = next(table for table in study.Tables if table.Name == "Data Acquisition")
+    assert not any(col.header.is_input for col in acquisition.Columns)
+
+
 def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     record = _minimal_record(dates=[{"date": "2019-03-01", "datetype": "creation"}])
 
