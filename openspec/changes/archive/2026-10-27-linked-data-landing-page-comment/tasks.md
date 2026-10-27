@@ -13,4 +13,4 @@
 ## 2. Close
 
 - [ ] 2.1 Comment on #534 with the PR and that the SRADI question was decided under #531
-- [ ] 2.2 Archive after merge
+- [x] 2.2 Archive after merge
