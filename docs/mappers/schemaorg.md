@@ -100,17 +100,17 @@ contributors get the roles author and contributor.
 
 ### 4. Investigation Comments
 
-| Schema.org Field          | Description                         | ARC Mapping                                                                                                                              |
-| ------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | `Investigation.Comment("Keywords")`                                                                                                      |
-| **`schema:license`**      | License identifier or URL           | `ARC.License` (see below) and `Investigation.Comment("License")`                                                                         |
-| **`schema:inLanguage`**   | Language code                       | `Investigation.Comment("Language")`                                                                                                      |
-| **`schema:version`**      | Dataset version                     | `Investigation.Comment("Version")`                                                                                                       |
-| **`schema:url`**          | Landing page URL                    | `Investigation.Comment("URL")`                                                                                                           |
-| **`schema:publisher`**    | Publisher (Person or Organization)  | `Investigation.Comment("Publisher")`                                                                                                     |
-| **`schema:conformsTo`**   | Specification or standard           | `Investigation.Comment("Conforms To")`                                                                                                   |
-| **(title fallback used)** | Which fallback supplied the title   | `Investigation.Comment("Title Source")` — only when `schema:name` did not win; see [Title Resolution Cascade](#title-resolution-cascade) |
-| **`schema:distribution`** | `schema:DataDownload` resources     | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`; several entries semicolon-joined in one Comment)          |
+| Schema.org Field          | Description                         | ARC Mapping                                                                                                                                                                  |
+| ------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | `Investigation.Comment("Keywords")`                                                                                                                                          |
+| **`schema:license`**      | License identifier or URL           | `ARC.License` (see below) and `Investigation.Comment("License")`                                                                                                             |
+| **`schema:inLanguage`**   | Language code                       | `Investigation.Comment("Language")`                                                                                                                                          |
+| **`schema:version`**      | Dataset version                     | `Investigation.Comment("Version")`                                                                                                                                           |
+| **`schema:url`**          | Landing page URL                    | `Investigation.Comment("URL")` and `Investigation.Comment("Landing Page")` (same value; `URL` is kept until API #617 is live; none when the value is empty or a placeholder) |
+| **`schema:publisher`**    | Publisher (Person or Organization)  | `Investigation.Comment("Publisher")`                                                                                                                                         |
+| **`schema:conformsTo`**   | Specification or standard           | `Investigation.Comment("Conforms To")`                                                                                                                                       |
+| **(title fallback used)** | Which fallback supplied the title   | `Investigation.Comment("Title Source")` — only when `schema:name` did not win; see [Title Resolution Cascade](#title-resolution-cascade)                                     |
+| **`schema:distribution`** | `schema:DataDownload` resources     | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`; several entries semicolon-joined in one Comment)                                              |
 
 **ARC licence (`ARC.License`).** `schema:license` also sets the ARC licence (`middleware.payload.arc_license`): a
 CreativeWork with `url` gives `name (url)`, otherwise the URL or text is used. The licence keeps ARCtrl's `LICENSE` path

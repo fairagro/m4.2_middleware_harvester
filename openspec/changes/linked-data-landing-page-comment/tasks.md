@@ -7,7 +7,7 @@
 - [x] 1.3 T3: no `schema:url`, or a placeholder value, gives no `Landing Page`
 - [x] 1.4 T4: a Regal record gets `Landing Page` = `{resource_base_url}{@id}`
 - [x] 1.5 T5: the Regal Assay `Output [URI]` is unchanged
-- [ ] 1.6 Update `docs/mappers/schemaorg.md` and `docs/mappers/regal.md`
+- [x] 1.6 Update `docs/mappers/schemaorg.md` and `docs/mappers/regal.md`
 - [ ] 1.7 Diff ARC payloads from a source run and a container run: one e!DAL or OpenAgrar record and frl:6420709
 
 ## 2. Close
