@@ -633,11 +633,6 @@ class _SchemaOrgRun:
 
     def _create_data_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
-        table.AddColumn(
-            CompositeHeader.input(IOType.data()),
-            [CompositeCell.create_data_from_string("Raw Data")],
-        )
-
         note = "Data processing and publication according to Schema.org metadata standard"
         publisher_name = self._resolve_publisher_label(subject)
         if publisher_name:
@@ -646,10 +641,6 @@ class _SchemaOrgRun:
         table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
             [CompositeCell.term(OntologyAnnotation(name=note))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.data()),
-            [CompositeCell.create_data_from_string("Published Dataset")],
         )
         return table
 

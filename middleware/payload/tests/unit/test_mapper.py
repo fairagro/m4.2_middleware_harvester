@@ -13,6 +13,7 @@ from arctrl.py.ContractIO.contract_io import full_fill_contract_batch_async  # t
 from fable_library.async_ import run_synchronously  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    OPENAGRAR_PROPERTYVALUE_DOI,
     assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
     contact_name_pairs,
@@ -21,6 +22,7 @@ from mapper_test_helpers import (
     investigation_description,
     keywords_comment_text,
     keywords_derived_ids,
+    parse_jsonld,
     publication_author_node_id,
     publisher_comment_text,
     root_identifier,
@@ -913,3 +915,19 @@ def test_structured_address_keeps_locality_and_gives_no_affiliation() -> None:
 
     assert address == "Corrensstraße 3, 06466, Seeland OT Gatersleben, Germany"
     assert affiliation is None
+
+
+# --- no invented data files (#353) ------------------------------------------
+
+
+def test_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
+    harvested = first_harvest(
+        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
+    )
+
+    invented = [
+        item["@id"]
+        for item in json.loads(harvested.arc_json)["@graph"]
+        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
+    ]
+    assert invented == []
