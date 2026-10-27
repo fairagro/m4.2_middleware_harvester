@@ -991,3 +991,19 @@ def test_url_comment_is_kept_alongside_landing_page() -> None:
     harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
 
     assert comment_text(harvested.arc_json, "URL") == "https://repo.example.org/dataset/abc"
+
+
+@pytest.mark.parametrize("url", [None, "n/a"])
+def test_no_landing_page_comment_without_usable_schema_url(url: str | None) -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+    if url is not None:
+        graph.add((dataset, schema.url, Literal(url)))
+
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig(values=frozenset({"n/a"})))
+    harvested = first_harvest(mapper.map_graph(graph, NO_DISCOVERY))
+
+    assert comment_text(harvested.arc_json, "Landing Page") is None
