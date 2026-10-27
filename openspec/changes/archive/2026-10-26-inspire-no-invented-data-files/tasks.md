@@ -1,6 +1,6 @@
 # Tasks
 
-## 1. Tests and fix (US-002)
+## 1. Tests and fix
 
 - [x] 1.1 T1: a BonaRes-style record maps to an RO-Crate with no "Raw Data" / "Processed Data" File entities
 - [x] 1.2 T2: Data Acquisition and Data Processing protocol parameters are still present

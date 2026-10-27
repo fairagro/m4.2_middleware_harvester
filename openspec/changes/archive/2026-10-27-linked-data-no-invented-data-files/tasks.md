@@ -1,6 +1,6 @@
 # Tasks
 
-## 1. Tests and fix (US-003)
+## 1. Tests and fix
 
 - [x] 1.1 T1: a schema.org Dataset maps to an RO-Crate with no "Raw Data" / "Published Dataset" File entities
 - [x] 1.2 T2: a Regal record maps to an RO-Crate with no "Raw Data" / "Published Dataset" File entities
@@ -13,4 +13,4 @@
 ## 2. Close
 
 - [ ] 2.1 Comment on #353 with the PR
-- [ ] 2.2 Archive after merge
+- [x] 2.2 Archive after merge
