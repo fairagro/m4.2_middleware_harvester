@@ -362,6 +362,53 @@ def test_study_protocols_keep_their_parameters() -> None:
     }
 
 
+def test_non_geographic_record_has_no_dangling_selected_location() -> None:
+    record = _minimal_record(hierarchy="nonGeographicDataset", temporal_extent=("2000-01-01", "2020-12-31"))
+    mapper = InspireMapper()
+
+    study = mapper.map_study(record)
+
+    acquisition = next(table for table in study.Tables if table.Name == "Data Acquisition")
+    assert not any(col.header.is_input for col in acquisition.Columns)
+    harvested = next(
+        iter(
+            mapper.map(
+                ParsedPayload(kind=PayloadKind.inspire_record, value=record, identifier="uuid-map-1"),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+    selected = [item["@id"] for item in json.loads(harvested.arc_json)["@graph"] if "Selected Location" in str(item)]
+    assert selected == []
+
+
+def test_geographic_record_without_spatial_info_has_no_dangling_selected_location() -> None:
+    record = _minimal_record(hierarchy="dataset", temporal_extent=("2000-01-01", "2020-12-31"))
+
+    study = InspireMapper().map_study(record)
+
+    names = [table.Name for table in study.Tables]
+    assert "Spatial Sampling" not in names
+    acquisition = next(table for table in study.Tables if table.Name == "Data Acquisition")
+    assert not any(col.header.is_input for col in acquisition.Columns)
+
+
+def test_geographic_record_with_bbox_keeps_spatial_sampling_to_acquisition_link() -> None:
+    record = _minimal_record(
+        hierarchy="dataset",
+        spatial_extent=[10.0, 48.0, 11.0, 49.0],
+        temporal_extent=("2000-01-01", "2020-12-31"),
+    )
+
+    study = InspireMapper().map_study(record)
+
+    tables = {table.Name: table for table in study.Tables}
+    sampling_outputs = [col.cells[0].AsFreeText for col in tables["Spatial Sampling"].Columns if col.header.is_output]
+    acquisition_inputs = [col.cells[0].AsFreeText for col in tables["Data Acquisition"].Columns if col.header.is_input]
+    assert sampling_outputs == ["Selected Location"]
+    assert acquisition_inputs == ["Selected Location"]
+
+
 def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     record = _minimal_record(dates=[{"date": "2019-03-01", "datetype": "creation"}])
 

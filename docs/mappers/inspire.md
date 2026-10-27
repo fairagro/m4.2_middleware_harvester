@@ -258,7 +258,8 @@ One INSPIRE record = One Study representing the data creation workflow.
 
 #### Protocol 2: "Data Acquisition"
 
-- **Input**: Selected Location(s)
+- **Input**: Selected Location(s), only when Protocol 1 is emitted; otherwise none (no sample without a producing
+  protocol)
 - **Output**: none (INSPIRE records carry metadata only, so no data file is invented)
 - **Parameters**:
   - Platform/Sensor (from acquisition metadata)

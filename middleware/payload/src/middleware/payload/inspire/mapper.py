@@ -529,7 +529,8 @@ class InspireMapper(DataMapper[MappingContext]):
         """Create Data Acquisition protocol if temporal/acquisition metadata available.
 
         Represents: Actual data collection/sensing process.
-        Input: Selected Location(s). No Output: INSPIRE records carry metadata only, so no data file is invented (#353).
+        Input: Selected Location(s), only when Spatial Sampling produces it (#353). No Output: INSPIRE records carry
+        metadata only, so no data file is invented (#353).
         """
         parameters: list[tuple[str, str]] = []
 
@@ -547,10 +548,11 @@ class InspireMapper(DataMapper[MappingContext]):
             return None
 
         table = ArcTable.init("Data Acquisition")
-        table.AddColumn(
-            CompositeHeader.input(IOType.sample()),
-            [CompositeCell.free_text("Selected Location")],
-        )
+        if InspireMapper._create_spatial_sampling_protocol(record) is not None:
+            table.AddColumn(
+                CompositeHeader.input(IOType.sample()),
+                [CompositeCell.free_text("Selected Location")],
+            )
         InspireMapper._add_parameter_columns(table, parameters)
         return table
 
