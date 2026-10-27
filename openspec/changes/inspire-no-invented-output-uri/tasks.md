@@ -11,5 +11,5 @@
 
 ## 2. Close
 
-- [ ] 2.1 Comment on #353 with the PR (leave it open)
+- [x] 2.1 Comment on #353 with the PR (leave it open)
 - [ ] 2.2 Archive after merge
