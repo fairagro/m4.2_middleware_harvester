@@ -382,3 +382,11 @@ def processing_parameters(arc_json: str, table_name: str) -> dict[str, str]:
     ]
     (table,) = [table for table in tables if table.Name == table_name]
     return {col.header.ToTerm().Name: col.cells[0].AsTerm.Name for col in table.Columns if col.header.is_parameter}
+
+
+def assay_output_uri(arc_json: str) -> str:
+    """Return the ``Output [URI]`` cell of the assay's Measurement table, read back from the ARC."""
+    arc = ARC.from_rocrate_json_string(arc_json)
+    (table,) = [table for assay in arc.Assays for table in assay.Tables if table.Name == "Measurement"]
+    (cell,) = [col.cells[0].AsFreeText for col in table.Columns if col.header.is_output]
+    return str(cell)

@@ -13,6 +13,7 @@ import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
     keywords_comment_text,
     processing_parameters,
@@ -818,3 +819,7 @@ def test_regal_data_processing_keeps_its_parameters() -> None:
         "Project ID": "442326535",
         "License": "https://creativecommons.org/licenses/by/4.0/",
     }
+
+
+def test_regal_assay_output_uri_is_unchanged() -> None:
+    assert assay_output_uri(_mapped_arc_json(_base_graph())) == "https://doi.org/10.4126/FRL01-0000123"

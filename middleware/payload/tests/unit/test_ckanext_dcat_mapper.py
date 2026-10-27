@@ -7,6 +7,7 @@ import json
 import pytest
 from mapper_test_helpers import (
     NO_DISCOVERY,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
     processing_parameters,
     rocrate_prop,
@@ -236,3 +237,12 @@ def test_dataset_processing_keeps_its_parameters() -> None:
     assert parameters["Processing Description"] == "Published dataset metadata harvested via DCAT-AP."
     assert set(parameters["Keywords"].split(", ")) == {"soil", "subsoil"}
     assert parameters["Language"] == "en"
+
+
+def test_assay_output_uri_is_unchanged() -> None:
+    graph = _base_graph()
+    distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
+    graph.add((SUBJECT, DCAT.distribution, distribution))
+    graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
+
+    assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"

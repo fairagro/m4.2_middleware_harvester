@@ -14,6 +14,7 @@ from fable_library.async_ import run_synchronously  # type: ignore[import-untype
 from mapper_test_helpers import (
     NO_DISCOVERY,
     OPENAGRAR_PROPERTYVALUE_DOI,
+    assay_output_uri,
     assert_harvest_has_no_bnode_labels,
     assert_stable_author_node_id,
     contact_name_pairs,
@@ -952,3 +953,15 @@ def test_data_processing_keeps_its_parameters() -> None:
             "Data processing and publication according to Schema.org metadata standard | Publisher: Publisher Co"
         )
     }
+
+
+def test_assay_output_uri_is_unchanged() -> None:
+    graph = Graph()
+    schema = Namespace("https://schema.org/")
+    dataset = URIRef("https://example.org/dataset/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Example Dataset")))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert assay_output_uri(harvested.arc_json) == "https://example.org/dataset/1"
