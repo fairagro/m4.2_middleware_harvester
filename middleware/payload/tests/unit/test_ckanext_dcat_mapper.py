@@ -9,6 +9,7 @@ from mapper_test_helpers import (
     NO_DISCOVERY,
     assay_output_uri,
     assert_harvest_has_no_bnode_labels,
+    invented_data_entities,
     processing_parameters,
     rocrate_prop,
     root_dates,
@@ -215,15 +216,7 @@ def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry
 
 
 def test_dataset_processing_does_not_invent_data_files_or_sources_in_ro_crate() -> None:
-    graph_items = json.loads(_mapped_arc_json(_base_graph()))["@graph"]
-
-    invented = [
-        item["@id"]
-        for item in graph_items
-        if str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
-        or item.get("name") in {"Raw Data", "Published Dataset"}
-    ]
-    assert invented == []
+    assert invented_data_entities(_mapped_arc_json(_base_graph())) == []
 
 
 def test_dataset_processing_keeps_its_parameters() -> None:

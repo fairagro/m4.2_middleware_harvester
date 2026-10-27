@@ -390,3 +390,13 @@ def assay_output_uri(arc_json: str) -> str:
     (table,) = [table for assay in arc.Assays for table in assay.Tables if table.Name == "Measurement"]
     (cell,) = [col.cells[0].AsFreeText for col in table.Columns if col.header.is_output]
     return str(cell)
+
+
+def invented_data_entities(arc_json: str) -> list[str]:
+    """Return the ids of RO-Crate entities named "Raw Data" / "Published Dataset" (invented, see #353)."""
+    invented_names = {"Raw Data", "Published Dataset"}
+    return [
+        item["@id"]
+        for item in json.loads(arc_json)["@graph"]
+        if str(item.get("@id", "")).endswith(tuple(invented_names)) or item.get("name") in invented_names
+    ]

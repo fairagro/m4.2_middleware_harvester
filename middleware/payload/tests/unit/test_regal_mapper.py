@@ -15,6 +15,7 @@ from mapper_test_helpers import (
     NO_DISCOVERY,
     assay_output_uri,
     assert_harvest_has_no_bnode_labels,
+    invented_data_entities,
     keywords_comment_text,
     processing_parameters,
     root_dates,
@@ -791,14 +792,7 @@ def test_regal_mapper_language_dedupes_codes_and_falls_back_to_label() -> None:
 
 
 def test_regal_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
-    graph_items = json.loads(_mapped_arc_json(_base_graph()))["@graph"]
-
-    invented = [
-        item["@id"]
-        for item in graph_items
-        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
-    ]
-    assert invented == []
+    assert invented_data_entities(_mapped_arc_json(_base_graph())) == []
 
 
 def test_regal_data_processing_keeps_its_parameters() -> None:

@@ -20,6 +20,7 @@ from mapper_test_helpers import (
     contact_name_pairs,
     distribution_comment_texts,
     first_harvest,
+    invented_data_entities,
     investigation_description,
     keywords_comment_text,
     keywords_derived_ids,
@@ -927,12 +928,7 @@ def test_data_processing_does_not_invent_data_files_in_ro_crate() -> None:
         GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(OPENAGRAR_PROPERTYVALUE_DOI), NO_DISCOVERY)
     )
 
-    invented = [
-        item["@id"]
-        for item in json.loads(harvested.arc_json)["@graph"]
-        if item.get("@type") == "File" and str(item.get("@id", "")).endswith(("Raw Data", "Published Dataset"))
-    ]
-    assert invented == []
+    assert invented_data_entities(harvested.arc_json) == []
 
 
 def test_data_processing_keeps_its_parameters() -> None:
