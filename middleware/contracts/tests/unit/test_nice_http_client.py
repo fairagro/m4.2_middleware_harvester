@@ -278,3 +278,19 @@ async def test_retry_get_decodes_deflate_response_once() -> None:
 
     assert response.status_code == OK_STATUS
     assert response.content == body
+
+
+@pytest.mark.asyncio
+async def test_retry_get_drops_encoding_and_length_headers_from_decoded_response() -> None:
+    config = NiceHttpClientConfig(respect_robots_txt=False)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=gzip.compress(b"<urlset/>"))
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        response = await client.retry_get("https://example.com/sitemap.xml")
+
+    assert "content-encoding" not in response.headers
+    assert "content-length" not in response.headers
