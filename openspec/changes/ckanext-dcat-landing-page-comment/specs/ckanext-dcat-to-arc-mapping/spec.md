@@ -30,7 +30,8 @@ add a `URL` comment.
 
 #### Scenario: No usable landing page
 
-- **GIVEN** a `dcat:Dataset` whose IRI is not http(s) (for example `urn:uuid:…`) and that has no http(s) `dcat:landingPage`
+- **GIVEN** a `dcat:Dataset` whose IRI is not http(s) (for example `urn:uuid:…`) and that has no http(s)
+  `dcat:landingPage`
 - **WHEN** it is mapped
 - **THEN** the Investigation has no `Landing Page` comment and mapping succeeds
 
