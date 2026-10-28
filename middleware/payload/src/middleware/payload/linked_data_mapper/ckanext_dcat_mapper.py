@@ -231,6 +231,8 @@ class _CkanextDcatRun:
         if source_identifier:
             inv.Comments.append(Comment.create("Source Identifier", source_identifier))
 
+        inv.Comments.append(Comment.create("Landing Page", str(subject)))
+
         modified = view.text(DCTERMS.modified)
         if modified:
             inv.Comments.append(Comment.create("Modified", modified))

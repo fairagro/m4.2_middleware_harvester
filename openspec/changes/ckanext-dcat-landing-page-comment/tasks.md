@@ -2,7 +2,7 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a SRADI-style dataset (http(s) IRI, no `dcat:landingPage`) maps without a `Landing Page` comment (repro;
+- [x] 1.1 T1: a SRADI-style dataset (http(s) IRI, no `dcat:landingPage`) maps without a `Landing Page` comment (repro;
       fails on `main` once asserting the comment)
 - [ ] 1.2 T2: the same dataset gets `Landing Page` = the dataset IRI
 - [ ] 1.3 T3: an explicit `dcat:landingPage` wins over the IRI
