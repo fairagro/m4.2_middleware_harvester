@@ -239,3 +239,63 @@ def test_assay_output_uri_is_unchanged() -> None:
     graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
 
     assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"
+
+
+def test_ckanext_dcat_mapper_dataset_without_landing_page_still_gets_landing_page_comment() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+    assert _comment_text(arc_json, "Landing Page") is not None
+
+
+def test_ckanext_dcat_mapper_landing_page_defaults_to_the_dataset_iri() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+    assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
+
+
+def test_ckanext_dcat_mapper_explicit_landing_page_wins_over_the_dataset_iri() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.landingPage, URIRef("https://example.org/landing/soil3")))
+    arc_json = _mapped_arc_json(graph)
+    assert _comment_text(arc_json, "Landing Page") == "https://example.org/landing/soil3"
+
+
+def test_ckanext_dcat_mapper_several_landing_pages_give_one_deterministic_comment() -> None:
+    first = URIRef("https://example.org/landing/a")
+    second = URIRef("https://example.org/landing/b")
+    values = []
+    for order in ((first, second), (second, first)):
+        graph = _base_graph()
+        for landing_page in order:
+            graph.add((SUBJECT, DCAT.landingPage, landing_page))
+        arc_json = _mapped_arc_json(graph)
+        assert json.loads(arc_json)["@graph"]
+        assert arc_json.count('"Landing Page"') == 1
+        values.append(_comment_text(arc_json, "Landing Page"))
+    assert values == [str(first), str(first)]
+
+
+def test_ckanext_dcat_mapper_non_http_dataset_iri_without_landing_page_has_no_landing_page_comment() -> None:
+    subject = URIRef("urn:uuid:0555406d-1f5c-4b0e-9a57-3f1c2d4b6a10")
+    graph = Graph()
+    graph.add((subject, RDF.type, DCAT.Dataset))
+    graph.add((subject, DCTERMS.title, Literal("Anonymous dataset")))
+    distribution = URIRef("https://example.org/anonymous/download")
+    graph.add((subject, DCAT.distribution, distribution))
+    graph.add((distribution, DCAT.accessURL, distribution))
+    arc_json = _mapped_arc_json(graph)
+    assert root_title(arc_json) == "Anonymous dataset"
+    assert _comment_text(arc_json, "Landing Page") is None
+
+
+def test_ckanext_dcat_mapper_adds_no_url_comment() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.landingPage, URIRef("https://example.org/landing/soil3")))
+    arc_json = _mapped_arc_json(graph)
+    assert _comment_text(arc_json, "Landing Page") == "https://example.org/landing/soil3"
+    assert _comment_text(arc_json, "URL") is None
+
+
+def test_ckanext_dcat_mapper_non_http_landing_page_falls_back_to_the_dataset_iri() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.landingPage, URIRef("mailto:data@example.org")))
+    arc_json = _mapped_arc_json(graph)
+    assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
