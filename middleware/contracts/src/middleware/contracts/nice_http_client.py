@@ -278,10 +278,10 @@ class NiceHttpClient:
                     raise ResponseBodyTooLargeError(url, limit, bytes_read=total)
                 chunks.append(chunk)
 
-            # aiter_bytes() already decoded the body; drop the header so callers do not decode again.
+            # aiter_bytes() already decoded the body; drop the encoding so callers do not decode again.
             headers = httpx.Headers(response.headers)
             headers.pop("content-encoding", None)
-            return httpx.Response(
+            decoded = httpx.Response(
                 status_code=response.status_code,
                 headers=headers,
                 content=b"".join(chunks),
@@ -289,6 +289,9 @@ class NiceHttpClient:
                 extensions=response.extensions,
                 history=list(response.history),
             )
+            # httpx derives Content-Length from the decoded content; the criterion wants none.
+            decoded.headers.pop("content-length", None)
+            return decoded
 
     async def _load_robots_parser(self, scheme: str, host: str) -> RobotFileParser | None:
         """Fetch and cache robots.txt for ``host`` (no robots check on this request)."""
