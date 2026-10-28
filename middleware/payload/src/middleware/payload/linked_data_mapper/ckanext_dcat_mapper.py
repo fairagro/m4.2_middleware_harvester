@@ -49,6 +49,11 @@ _ORG_NAME_KEYS = ("maintainer_name", "author_name", "name")
 _ORG_EMAIL_KEYS = ("maintainer_email", "author_email", "email")
 
 
+def _http_iri(iri: str | None) -> str | None:
+    """Return ``iri`` only when it is an http(s) URL."""
+    return iri if iri and iri.lower().startswith(("http://", "https://")) else None
+
+
 def _present(values: Iterable[str | None]) -> list[str]:
     """Drop ``None``/empty entries from an optional-string iterable."""
     return [v for v in values if v]
@@ -231,7 +236,9 @@ class _CkanextDcatRun:
         if source_identifier:
             inv.Comments.append(Comment.create("Source Identifier", source_identifier))
 
-        inv.Comments.append(Comment.create("Landing Page", view.text(DCAT.landingPage) or str(subject)))
+        landing_page = view.text(DCAT.landingPage) or _http_iri(view.iri)
+        if landing_page:
+            inv.Comments.append(Comment.create("Landing Page", landing_page))
 
         modified = view.text(DCTERMS.modified)
         if modified:
