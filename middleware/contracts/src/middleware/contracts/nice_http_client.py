@@ -278,9 +278,12 @@ class NiceHttpClient:
                     raise ResponseBodyTooLargeError(url, limit, bytes_read=total)
                 chunks.append(chunk)
 
+            # aiter_bytes() already decoded the body; drop the header so callers do not decode again.
+            headers = httpx.Headers(response.headers)
+            headers.pop("content-encoding", None)
             return httpx.Response(
                 status_code=response.status_code,
-                headers=response.headers,
+                headers=headers,
                 content=b"".join(chunks),
                 request=response.request,
                 extensions=response.extensions,

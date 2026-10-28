@@ -2,7 +2,7 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a gzip `MockTransport` response decodes (fails on `main` with `DecodingError`)
+- [x] 1.1 T1: a gzip `MockTransport` response decodes (fails on `main` with `DecodingError`)
 - [ ] 1.2 T2: a deflate response decodes
 - [ ] 1.3 T3: the returned response has no `Content-Encoding` / `Content-Length`
 - [ ] 1.4 T4: a gzip body small compressed but over the limit decoded raises body-too-large
