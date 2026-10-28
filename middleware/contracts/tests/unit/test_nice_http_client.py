@@ -2,6 +2,7 @@
 
 import asyncio
 import gzip
+import zlib
 from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -253,6 +254,23 @@ async def test_retry_get_decodes_gzip_response_once() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         del request
         return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=gzip.compress(body))
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        response = await client.retry_get("https://example.com/sitemap.xml")
+
+    assert response.status_code == OK_STATUS
+    assert response.content == body
+
+
+@pytest.mark.asyncio
+async def test_retry_get_decodes_deflate_response_once() -> None:
+    body = b"<urlset>plabipd</urlset>"
+    config = NiceHttpClientConfig(respect_robots_txt=False)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, headers={"Content-Encoding": "deflate"}, content=zlib.compress(body))
 
     transport = httpx.MockTransport(handler)
     async with NiceHttpClient(config, transport=transport) as client:
