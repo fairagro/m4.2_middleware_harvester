@@ -6,7 +6,7 @@
 `aiter_bytes()`, which is already decoded, and wraps it in a new `httpx.Response` that still carries
 `Content-Encoding: gzip`. httpx decodes it a second time and raises `httpx.DecodingError` ("Error -3 while
 decompressing data: incorrect header check"). raw.githubusercontent.com always gzips, so PlabiPD discovery fails and
-0 of its 2291 genomes are harvested on `main`. Any other gzip- or deflate-serving source is affected the same way.
+none of its genomes are harvested on `main`. Any other gzip- or deflate-serving source is affected the same way.
 
 ## What Changes
 
