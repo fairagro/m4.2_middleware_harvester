@@ -240,6 +240,13 @@ class NiceHttpClient:
             return None
         return value if value >= 0 else None
 
+    @staticmethod
+    def _without_body_headers(headers: httpx.Headers) -> httpx.Headers:
+        """Copy ``headers`` without ``Content-Encoding``: the body is already decoded."""
+        copy = httpx.Headers(headers)
+        copy.pop("content-encoding", None)
+        return copy
+
     async def _get_with_body_limit(
         self,
         url: str,
@@ -261,14 +268,16 @@ class NiceHttpClient:
 
             if response.status_code in {429, 503} or response.status_code >= _HTTP_STATUS_SERVER_ERROR_MIN:
                 # Do not buffer a potentially huge error body; headers suffice for retry.
-                return httpx.Response(
+                empty = httpx.Response(
                     status_code=response.status_code,
-                    headers=response.headers,
+                    headers=self._without_body_headers(response.headers),
                     content=b"",
                     request=response.request,
                     extensions=response.extensions,
                     history=list(response.history),
                 )
+                empty.headers.pop("content-length", None)
+                return empty
 
             chunks: list[bytes] = []
             total = 0
@@ -279,11 +288,9 @@ class NiceHttpClient:
                 chunks.append(chunk)
 
             # aiter_bytes() already decoded the body; drop the encoding so callers do not decode again.
-            headers = httpx.Headers(response.headers)
-            headers.pop("content-encoding", None)
             decoded = httpx.Response(
                 status_code=response.status_code,
-                headers=headers,
+                headers=self._without_body_headers(response.headers),
                 content=b"".join(chunks),
                 request=response.request,
                 extensions=response.extensions,
