@@ -284,3 +284,11 @@ def test_ckanext_dcat_mapper_non_http_dataset_iri_without_landing_page_has_no_la
     arc_json = _mapped_arc_json(graph)
     assert root_title(arc_json) == "Anonymous dataset"
     assert _comment_text(arc_json, "Landing Page") is None
+
+
+def test_ckanext_dcat_mapper_adds_no_url_comment() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.landingPage, URIRef("https://example.org/landing/soil3")))
+    arc_json = _mapped_arc_json(graph)
+    assert _comment_text(arc_json, "Landing Page") == "https://example.org/landing/soil3"
+    assert _comment_text(arc_json, "URL") is None
