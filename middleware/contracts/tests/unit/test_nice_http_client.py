@@ -20,6 +20,7 @@ from middleware.contracts.nice_http_client import (
 
 OK_STATUS = 200
 EXPECTED_CALL_COUNT = 2
+SERVICE_UNAVAILABLE_STATUS = 503
 DEFAULT_MAX_RESPONSE_BODY_BYTES = 33_554_432
 
 
@@ -294,3 +295,20 @@ async def test_retry_get_drops_encoding_and_length_headers_from_decoded_response
 
     assert "content-encoding" not in response.headers
     assert "content-length" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_retry_get_rejects_gzip_body_over_limit_once_decoded() -> None:
+    limit = 1_024
+    compressed = gzip.compress(b"a" * (limit * 100))
+    assert len(compressed) < limit
+    config = NiceHttpClientConfig(max_response_body_bytes=limit, respect_robots_txt=False)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=compressed)
+
+    transport = httpx.MockTransport(handler)
+    async with NiceHttpClient(config, transport=transport) as client:
+        with pytest.raises(ResponseBodyTooLargeError):
+            await client.retry_get("https://example.com/bomb")
