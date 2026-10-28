@@ -244,3 +244,8 @@ def test_assay_output_uri_is_unchanged() -> None:
 def test_ckanext_dcat_mapper_dataset_without_landing_page_still_gets_landing_page_comment() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _comment_text(arc_json, "Landing Page") is not None
+
+
+def test_ckanext_dcat_mapper_landing_page_defaults_to_the_dataset_iri() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+    assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
