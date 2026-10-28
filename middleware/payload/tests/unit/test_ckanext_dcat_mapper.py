@@ -249,3 +249,10 @@ def test_ckanext_dcat_mapper_dataset_without_landing_page_still_gets_landing_pag
 def test_ckanext_dcat_mapper_landing_page_defaults_to_the_dataset_iri() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
+
+
+def test_ckanext_dcat_mapper_explicit_landing_page_wins_over_the_dataset_iri() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCAT.landingPage, URIRef("https://example.org/landing/soil3")))
+    arc_json = _mapped_arc_json(graph)
+    assert _comment_text(arc_json, "Landing Page") == "https://example.org/landing/soil3"
