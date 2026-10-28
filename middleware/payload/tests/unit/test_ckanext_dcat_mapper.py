@@ -239,3 +239,8 @@ def test_assay_output_uri_is_unchanged() -> None:
     graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
 
     assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"
+
+
+def test_ckanext_dcat_mapper_dataset_without_landing_page_still_gets_landing_page_comment() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+    assert _comment_text(arc_json, "Landing Page") is not None
