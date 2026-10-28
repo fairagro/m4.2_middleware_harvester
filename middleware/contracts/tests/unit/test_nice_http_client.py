@@ -312,3 +312,44 @@ async def test_retry_get_rejects_gzip_body_over_limit_once_decoded() -> None:
     async with NiceHttpClient(config, transport=transport) as client:
         with pytest.raises(ResponseBodyTooLargeError):
             await client.retry_get("https://example.com/bomb")
+
+
+def _gzip_503(request: httpx.Request) -> httpx.Response:
+    del request
+    return httpx.Response(
+        SERVICE_UNAVAILABLE_STATUS,
+        headers={"Content-Encoding": "gzip", "Retry-After": "0"},
+        content=gzip.compress(b"unavailable"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_gzip_503_returns_empty_body_without_encoding_headers() -> None:
+    config = NiceHttpClientConfig(respect_robots_txt=False)
+
+    async with NiceHttpClient(config, transport=httpx.MockTransport(_gzip_503)) as client:
+        response = await client._get_with_body_limit("https://example.com/flaky")  # noqa: SLF001
+
+    assert response.status_code == SERVICE_UNAVAILABLE_STATUS
+    assert response.content == b""
+    assert "content-encoding" not in response.headers
+    assert "content-length" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_retry_get_retries_gzip_503() -> None:
+    config = NiceHttpClientConfig(retry_attempts=1, max_retry_delay=0.1, respect_robots_txt=False)
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return _gzip_503(request)
+        return httpx.Response(200, content=b"ok")
+
+    async with NiceHttpClient(config, transport=httpx.MockTransport(handler)) as client:
+        response = await client.retry_get("https://example.com/flaky")
+
+    assert response.text == "ok"
+    assert call_count == EXPECTED_CALL_COUNT
