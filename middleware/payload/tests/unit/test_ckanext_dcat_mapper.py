@@ -256,3 +256,18 @@ def test_ckanext_dcat_mapper_explicit_landing_page_wins_over_the_dataset_iri() -
     graph.add((SUBJECT, DCAT.landingPage, URIRef("https://example.org/landing/soil3")))
     arc_json = _mapped_arc_json(graph)
     assert _comment_text(arc_json, "Landing Page") == "https://example.org/landing/soil3"
+
+
+def test_ckanext_dcat_mapper_several_landing_pages_give_one_deterministic_comment() -> None:
+    first = URIRef("https://example.org/landing/a")
+    second = URIRef("https://example.org/landing/b")
+    values = []
+    for order in ((first, second), (second, first)):
+        graph = _base_graph()
+        for landing_page in order:
+            graph.add((SUBJECT, DCAT.landingPage, landing_page))
+        arc_json = _mapped_arc_json(graph)
+        assert json.loads(arc_json)["@graph"]
+        assert arc_json.count('"Landing Page"') == 1
+        values.append(_comment_text(arc_json, "Landing Page"))
+    assert values == [str(first), str(first)]
