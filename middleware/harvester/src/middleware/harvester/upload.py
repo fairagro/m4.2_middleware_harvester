@@ -9,7 +9,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from middleware.api_client import ApiClient
-from middleware.contracts.errors import HarvesterError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.config import RepositoryConfig
 from middleware.harvester.errors import (
@@ -29,13 +29,26 @@ from middleware.shared.report import RepositoryScope
 logger = logging.getLogger(__name__)
 
 
+class RepositoryErrorRecorded(Exception):  # noqa: N818
+    """Raised at the end of the ARC stream so ``harvest_arcs`` fails the harvest.
+
+    The plugin's repository-level error is already on the scope; this is not an
+    upload abort.
+    """
+
+
 async def arc_stream(
     gen: AsyncGenerator[HarvestedArc | HarvesterError | SkippedRecord, None],
     rdi: str,
     scope: RepositoryScope,
     state: ArcStreamState,
 ) -> AsyncGenerator[str, None]:
-    """Filter the plugin stream and track submitted ARC composition for reporting."""
+    """Filter the plugin stream and track submitted ARC composition for reporting.
+
+    Raises:
+        RepositoryErrorRecorded: After the plugin stream ends, when it yielded a
+            repository-level ``HarvesterError``.
+    """
     async for item in gen:
         if isinstance(item, SkippedRecord):
             scope.record_skipped()
@@ -43,6 +56,8 @@ async def arc_stream(
             continue
         if isinstance(item, HarvesterError):
             record_plugin_error(item, rdi, scope)
+            if not isinstance(item, RecordProcessingError):
+                state.repository_error = str(item)
             continue
         if item.source_url is not None and item.identifier:
             counts = state.arc_id_to_url_counts.setdefault(item.identifier, {})
@@ -51,6 +66,8 @@ async def arc_stream(
         state.studies += item.studies
         state.assays += item.assays
         yield item.arc_json
+    if state.repository_error is not None:
+        raise RepositoryErrorRecorded(state.repository_error)
 
 
 async def execute_harvest_upload(
@@ -110,6 +127,8 @@ async def execute_harvest_upload(
                     if harvest_id is not None:
                         scope.set_harvest_id(harvest_id)
                         upload_span.set_attribute("harvester.harvest_id", harvest_id)
+                    if isinstance(e, RepositoryErrorRecorded):
+                        raise
                     logger.error(
                         "Error uploading arcs for repository %s (%s): %s",
                         repo.rdi,
@@ -138,6 +157,19 @@ async def execute_harvest_upload(
             if harvest_id is not None:
                 scope.set_harvest_id(harvest_id)
                 plugin_span.set_attribute("harvester.harvest_id", harvest_id)
+            if isinstance(e, RepositoryErrorRecorded):
+                # harvest_arcs returns no per-item errors when it raises, so
+                # every submitted ARC counts as harvested.
+                record_upload_outcomes([], state, scope)
+                plugin_span.set_attribute("harvester.arcs_uploaded", scope.snapshot().harvested_datasets)
+                logger.error(
+                    "Harvest %s for repository '%s' (%s) failed after a repository-level error: %s",
+                    harvest_id or "(id unknown)",
+                    repo.rdi,
+                    repo.plugin_type,
+                    e,
+                )
+                return
             plugin_span.set_attribute(
                 "harvester.arcs_uploaded",
                 scope.snapshot().harvested_datasets,

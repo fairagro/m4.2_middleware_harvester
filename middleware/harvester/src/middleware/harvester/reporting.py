@@ -19,6 +19,7 @@ class ArcStreamState:
     submitted: int = 0
     studies: int = 0
     assays: int = 0
+    repository_error: str | None = None
 
 
 def all_repositories_failed(report: HarvestReport) -> bool:
