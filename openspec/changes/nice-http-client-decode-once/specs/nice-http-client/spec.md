@@ -4,10 +4,10 @@
 
 ### Requirement: Compressed responses MUST be decoded exactly once
 
-When a response is served with `Content-Encoding: gzip` or `deflate`, the system MUST return the decoded body to
-callers without decoding it a second time. The returned response MUST NOT carry `Content-Encoding` or
-`Content-Length` headers, because its content is already decoded. `max_response_body_bytes` applies to the decoded
-body size; the early `Content-Length` rejection is unchanged.
+When a response is served with `Content-Encoding: gzip` or `deflate`, the system MUST return the decoded body to callers
+without decoding it a second time. The returned response MUST NOT carry `Content-Encoding` or `Content-Length` headers,
+because its content is already decoded. `max_response_body_bytes` applies to the decoded body size; the early
+`Content-Length` rejection is unchanged.
 
 #### Scenario: Gzip response decodes
 

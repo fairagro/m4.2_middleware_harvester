@@ -4,9 +4,9 @@
 
 #545: since #521 (65a224e, response body cap), `NiceHttpClient._get_with_body_limit` collects the body with
 `aiter_bytes()`, which is already decoded, and wraps it in a new `httpx.Response` that still carries
-`Content-Encoding: gzip`. httpx decodes it a second time and raises `httpx.DecodingError` ("Error -3 while
-decompressing data: incorrect header check"). raw.githubusercontent.com always gzips, so PlabiPD discovery fails and
-none of its genomes are harvested on `main`. Any other gzip- or deflate-serving source is affected the same way.
+`Content-Encoding: gzip`. httpx decodes it a second time and raises `httpx.DecodingError` ("Error -3 while decompressing
+data: incorrect header check"). raw.githubusercontent.com always gzips, so PlabiPD discovery fails and none of its
+genomes are harvested on `main`. Any other gzip- or deflate-serving source is affected the same way.
 
 ## What Changes
 
