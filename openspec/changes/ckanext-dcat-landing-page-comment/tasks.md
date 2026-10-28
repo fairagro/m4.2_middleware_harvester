@@ -14,7 +14,7 @@
 
 ## 2. Verify and close
 
-- [ ] 2.1 T7: dev stack (dmz-web-140): SRADI harvest from source and container, 57/57 ARCs with a `Landing Page` that
+- [x] 2.1 T7: dev stack (dmz-web-140): SRADI harvest from source and container, 57/57 ARCs with a `Landing Page` that
       opens the Agrihub page, payloads identical apart from timestamps
 - [ ] 2.2 Comment on #531 with the PR and the dev-stack result
 - [ ] 2.3 Archive after merge
