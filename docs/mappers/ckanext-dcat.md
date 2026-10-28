@@ -36,20 +36,21 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Investigation
 
-| Source field              | Description            | ARC Mapping                                                              |
-| ------------------------- | ---------------------- | ------------------------------------------------------------------------ |
-| **`dcterms:title`**       | Title                  | `Investigation.Title`                                                    |
-| **`dcterms:description`** | Description            | `Investigation.Description` (empty string when absent)                   |
-| **`dcterms:issued`**      | Issue date             | `Investigation.PublicReleaseDate` (else `dcterms:modified`)              |
-| **`dcterms:identifier`**  | Source identifier      | `Investigation.Comment("Source Identifier")`                             |
-| **`dcterms:modified`**    | Modified date          | `Investigation.Comment("Modified")`                                      |
-| **`dcat:keyword`**        | Keywords               | `Investigation.Comment("Keywords")` (semicolon-joined)                   |
-| **`dcterms:language`**    | Languages              | `Investigation.Comment("Language")` (semicolon-joined)                   |
-| **`dcterms:publisher`**   | Publisher org          | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)    |
-| **`dcat:contactPoint`**   | Contact                | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels) |
-| **`dcterms:spatial`**     | Spatial extent present | `Investigation.Comment("Spatial Extent")` fixed text pointing at the RDI |
-| **(config) Data Catalog** | Catalog name/URL       | `Investigation.Comment("Data Catalog")`                                  |
-| **(fixed)**               | Ontology source        | `OntologySourceReferences` entry for DCAT                                |
+| Source field              | Description            | ARC Mapping                                                                                                |
+| ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **`dcterms:title`**       | Title                  | `Investigation.Title`                                                                                      |
+| **`dcterms:description`** | Description            | `Investigation.Description` (empty string when absent)                                                     |
+| **`dcterms:issued`**      | Issue date             | `Investigation.PublicReleaseDate` (else `dcterms:modified`)                                                |
+| **`dcterms:identifier`**  | Source identifier      | `Investigation.Comment("Source Identifier")`                                                               |
+| **`dcat:landingPage`**    | Landing page           | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise |
+| **`dcterms:modified`**    | Modified date          | `Investigation.Comment("Modified")`                                                                        |
+| **`dcat:keyword`**        | Keywords               | `Investigation.Comment("Keywords")` (semicolon-joined)                                                     |
+| **`dcterms:language`**    | Languages              | `Investigation.Comment("Language")` (semicolon-joined)                                                     |
+| **`dcterms:publisher`**   | Publisher org          | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                      |
+| **`dcat:contactPoint`**   | Contact                | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                   |
+| **`dcterms:spatial`**     | Spatial extent present | `Investigation.Comment("Spatial Extent")` fixed text pointing at the RDI                                   |
+| **(config) Data Catalog** | Catalog name/URL       | `Investigation.Comment("Data Catalog")`                                                                    |
+| **(fixed)**               | Ontology source        | `OntologySourceReferences` entry for DCAT                                                                  |
 
 **Contacts.** `Investigation.Contacts` stays empty today (ckanext-dcat exposes org-level publisher/contactPoint only).
 `require_nonempty_person_given_names` still runs for parity / future Person creators.
