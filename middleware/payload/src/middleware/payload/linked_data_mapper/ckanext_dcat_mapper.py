@@ -236,7 +236,7 @@ class _CkanextDcatRun:
         if source_identifier:
             inv.Comments.append(Comment.create("Source Identifier", source_identifier))
 
-        landing_page = view.text(DCAT.landingPage) or _http_iri(view.iri)
+        landing_page = next(filter(_http_iri, view.texts(DCAT.landingPage)), None) or _http_iri(view.iri)
         if landing_page:
             inv.Comments.append(Comment.create("Landing Page", landing_page))
 
