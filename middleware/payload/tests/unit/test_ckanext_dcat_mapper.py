@@ -16,7 +16,7 @@ from mapper_test_helpers import (
     root_identifier,
     root_title,
 )
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
@@ -271,3 +271,13 @@ def test_ckanext_dcat_mapper_several_landing_pages_give_one_deterministic_commen
         assert arc_json.count('"Landing Page"') == 1
         values.append(_comment_text(arc_json, "Landing Page"))
     assert values == [str(first), str(first)]
+
+
+def test_ckanext_dcat_mapper_blank_node_dataset_without_landing_page_has_no_landing_page_comment() -> None:
+    subject = BNode()
+    graph = Graph()
+    graph.add((subject, RDF.type, DCAT.Dataset))
+    graph.add((subject, DCTERMS.title, Literal("Anonymous dataset")))
+    arc_json = _mapped_arc_json(graph)
+    assert root_title(arc_json) == "Anonymous dataset"
+    assert _comment_text(arc_json, "Landing Page") is None
