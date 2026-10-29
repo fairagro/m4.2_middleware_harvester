@@ -2,9 +2,9 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a minimal INSPIRE record with a `dataSetURI` has no `#Source_Dataset_Source` entity in the RO-Crate
+- [x] 1.1 T1: a minimal INSPIRE record with a `dataSetURI` has no `#Source_Dataset_Source` entity in the RO-Crate
       (repro; fails on `main`)
-- [ ] 1.2 T2: the same for a DCAT-AP dataset with an `accessURL`
+- [x] 1.2 T2: the same for a DCAT-AP dataset with an `accessURL`
 - [ ] 1.3 T3: an INSPIRE record with no URI and no comments has an Assay without an annotation table
 - [ ] 1.4 T4: a DCAT-AP dataset with no distributions has an Assay without an annotation table and keeps its
       `Landing Page` comment

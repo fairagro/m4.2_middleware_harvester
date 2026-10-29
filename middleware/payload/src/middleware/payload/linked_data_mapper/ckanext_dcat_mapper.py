@@ -199,10 +199,6 @@ class _CkanextDcatRun:
         urls = _present(d.text(DCAT.accessURL) or d.text(DCAT.downloadURL) for d in distributions)
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
         if urls:
             table.AddColumn(
                 CompositeHeader.output(IOType.of_string("URI")),

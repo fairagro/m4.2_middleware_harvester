@@ -272,7 +272,6 @@ def test_dataset_without_url_keeps_a_one_row_assay_table_and_its_landing_page() 
     headers = {str(column.header): str(column.cells[0]) for column in table.Columns}
     assert table.RowCount == 1
     assert not any(column.header.is_output for column in table.Columns)
-    assert headers["Input [Source Name]"] == "Dataset Source"
     assert headers["Comment [Distribution Title]"] == "Soil³ data package"
     assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
 
