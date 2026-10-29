@@ -268,6 +268,19 @@ def test_dataset_without_distribution_has_no_assay_table_and_keeps_its_landing_p
     assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
 
 
+def test_comment_only_assay_table_has_no_input_column() -> None:
+    graph = _base_graph()
+    distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
+    graph.add((SUBJECT, DCAT.distribution, distribution))
+    graph.add((distribution, DCTERMS.title, Literal("Soil³ data package")))
+
+    arc = ARC.from_rocrate_json_string(_mapped_arc_json(graph))
+
+    (table,) = [table for assay in arc.Assays for table in assay.Tables]
+    assert table.RowCount == 1
+    assert not any(column.header.is_input for column in table.Columns)
+
+
 def test_dataset_without_url_keeps_a_one_row_assay_table_and_its_landing_page() -> None:
     graph = _base_graph()
     distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")

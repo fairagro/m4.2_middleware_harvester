@@ -480,6 +480,15 @@ def test_record_with_dataset_uri_has_no_invented_source_sample_in_ro_crate() -> 
     assert "#Source_Dataset_Source" not in ids
 
 
+def test_comment_only_assay_table_has_no_input_column() -> None:
+    record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
+
+    (table,) = InspireMapper().map_assay(record).Tables
+
+    assert table.RowCount == 1
+    assert not any(col.header.is_input for col in table.Columns)
+
+
 def test_assay_without_uri_keeps_one_row_with_graphic_overview() -> None:
     record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
 
