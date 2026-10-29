@@ -279,8 +279,8 @@ One INSPIRE record = One Study representing the data creation workflow.
   [NCIT:C19026])
 - **TechnologyType**: "Data Collection"
 - **TechnologyPlatform**: hardcoded `"Satellite/Sensor Acquisition"` (acquisition metadata not extracted)
-- **Annotation Table** (always exactly one row):
-  - **Input [Source Name]**: `"Dataset Source"`
+- **Annotation Table** (one row; omitted when the record has no URI, online resource or graphic overview; no
+  `Input [Source Name]` column, since the dataset is not a sample):
   - **Output [URI]**: `dataSetURI` (preferred) → `online_resources[0].url` (fallback); the column is omitted when the
     record has neither
   - **Comment [Online Resource]**: semicolon-joined online-resource URLs (present only if any exist; first URL omitted

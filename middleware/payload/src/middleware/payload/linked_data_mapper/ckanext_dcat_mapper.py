@@ -171,7 +171,9 @@ class _CkanextDcatRun:
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="DCAT-AP Catalog")
-        assay.AddTable(self._create_distribution_table(subject))
+        table = self._create_distribution_table(subject)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
     def _create_dataset_processing_table(self, subject: Node) -> ArcTable:
@@ -199,10 +201,6 @@ class _CkanextDcatRun:
         urls = _present(d.text(DCAT.accessURL) or d.text(DCAT.downloadURL) for d in distributions)
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
         if urls:
             table.AddColumn(
                 CompositeHeader.output(IOType.of_string("URI")),

@@ -643,17 +643,18 @@ class InspireMapper(DataMapper[MappingContext]):
         # Set Technology Platform (user suggested acquisitionInformation)
         assay.TechnologyPlatform = OntologyAnnotation(name="Satellite/Sensor Acquisition")
 
-        # Add the annotation table.
-        assay.AddTable(self._create_assay_table(record))
+        # Add the annotation table, unless the record has nothing to put in it.
+        table = self._create_assay_table(record)
+        if table.ColumnCount:
+            assay.AddTable(table)
 
         return assay
 
     @staticmethod
     def _create_assay_table(record: InspireRecord) -> ArcTable:
-        """Create the assay annotation table (always exactly one row).
+        """Create the assay annotation table (one row; no columns when the record has no data).
 
         Columns:
-        - Input [Source Name]                : "Dataset Source" (always present)
         - Output [URI]                       : dataSetURI (preferred) → first online-resource URL;
                                                omitted when the record has neither
         - Comment [Online Resource]          : semicolon-joined online-resource URLs, if any
@@ -677,7 +678,6 @@ class InspireMapper(DataMapper[MappingContext]):
             fallback_used = True
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])
         if output_uri:
             table.AddColumn(
                 CompositeHeader.output(IOType.of_string("URI")),

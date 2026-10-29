@@ -435,7 +435,13 @@ def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: s
 def test_assay_has_no_output_uri_column_without_any_uri() -> None:
     assay = InspireMapper().map_assay(_minimal_record())
 
-    assert not any(col.header.is_output for col in assay.Tables[0].Columns)
+    assert not any(col.header.is_output for table in assay.Tables for col in table.Columns)
+
+
+def test_assay_without_uri_or_comments_has_no_annotation_table() -> None:
+    assay = InspireMapper().map_assay(_minimal_record())
+
+    assert list(assay.Tables) == []
 
 
 def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
@@ -456,13 +462,38 @@ def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
     assert invented == []
 
 
-def test_assay_without_uri_keeps_one_row_with_input_and_graphic_overview() -> None:
+def test_record_with_dataset_uri_has_no_invented_source_sample_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(
+                    kind=PayloadKind.inspire_record,
+                    value=_minimal_record(dataset_uri="https://data.example.com/api"),
+                    identifier="uuid-map-1",
+                ),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    ids = [item.get("@id") for item in json.loads(harvested.arc_json)["@graph"]]
+    assert "#Source_Dataset_Source" not in ids
+
+
+def test_comment_only_assay_table_has_no_input_column() -> None:
     record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
 
     (table,) = InspireMapper().map_assay(record).Tables
 
     assert table.RowCount == 1
-    input_column = next(col for col in table.Columns if col.header.is_input)
-    assert input_column.cells[0].AsFreeText == "Dataset Source"
+    assert not any(col.header.is_input for col in table.Columns)
+
+
+def test_assay_without_uri_keeps_one_row_with_graphic_overview() -> None:
+    record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
+
+    (table,) = InspireMapper().map_assay(record).Tables
+
+    assert table.RowCount == 1
     comment_column = next(col for col in table.Columns if "Graphic Overview" in str(col.header))
     assert comment_column.cells[0].AsFreeText == "https://example.org/overview.png"

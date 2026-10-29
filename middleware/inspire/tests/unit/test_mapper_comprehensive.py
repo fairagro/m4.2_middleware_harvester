@@ -386,13 +386,13 @@ def test_map_assay_with_table(mapper: InspireMapper, sample_record: InspireRecor
     assert len(assay.Tables) == 1
     table = assay.Tables[0]
     assert table.Name == "Measurement"
-    # Columns: Input, Output[URI], Comment[Online Resource], Comment[Online Resource Name],
+    # Columns: Output[URI], Comment[Online Resource], Comment[Online Resource Name],
     # Comment[Graphic Overview] — protocol/description/function omitted (all empty)
-    assert table.ColumnCount == 5
+    assert table.ColumnCount == 4
     assert table.RowCount == 1
 
     # Output[URI] = dataSetURI (preferred over online resource)
-    output_col = table.Columns[1]
+    output_col = table.Columns[0]
     assert output_col.cells[0].AsFreeText == "https://data.example.com/api"
 
     # Comment[Online Resource] = URL
@@ -583,10 +583,10 @@ def test_dataset_uri_and_lineage_url_mapping(mapper: InspireMapper, sample_recor
 
     assert len(assay.Tables) == 1
     assay_table = assay.Tables[0]
-    # Only Input + Output[URI] — no online resources or overviews in this record
-    assert assay_table.ColumnCount == 2
+    # Only Output[URI] — no online resources or overviews in this record
+    assert assay_table.ColumnCount == 1
 
-    output_col = assay_table.Columns[1]  # Output [URI]
+    output_col = assay_table.Columns[0]  # Output [URI]
     assert output_col.cells[0].AsFreeText == "https://example.com/dataset"
 
     # Test lineage URL in data processing protocol
