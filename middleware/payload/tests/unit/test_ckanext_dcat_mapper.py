@@ -242,6 +242,17 @@ def test_assay_output_uri_is_unchanged() -> None:
     assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"
 
 
+def test_dataset_with_access_url_has_no_invented_source_sample_in_ro_crate() -> None:
+    graph = _base_graph()
+    distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
+    graph.add((SUBJECT, DCAT.distribution, distribution))
+    graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
+
+    ids = [item.get("@id") for item in json.loads(_mapped_arc_json(graph))["@graph"]]
+
+    assert "#Source_Dataset_Source" not in ids
+
+
 def test_dataset_without_distribution_has_no_uri_entity_for_the_dataset_iri() -> None:
     arc_json = _mapped_arc_json(_base_graph())
 
