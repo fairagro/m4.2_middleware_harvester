@@ -12,6 +12,6 @@
 
 ## 2. Verify and close
 
-- [ ] 2.1 Manual: SRADI harvest from the branch vs `main`; expect 25 ARCs to change, only in the Assay output; source vs
+- [x] 2.1 Manual: SRADI harvest from the branch vs `main`; expect 25 ARCs to change, only in the Assay output; source vs
       container identical for one ARC
 - [ ] 2.2 Archive after merge
