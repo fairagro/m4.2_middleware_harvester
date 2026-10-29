@@ -65,15 +65,15 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Assay
 
-| Source field                       | Description      | ARC Mapping                                                                                           |
-| ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| Title                              | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                  |
-| (fixed)                            | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                   |
-| **`dcat:distribution`**            | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`, else dataset IRI  |
-| Distribution **`dcterms:title`**   | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                    |
-| Distribution **`dcterms:format`**  | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                                |
-| Distribution access/download URLs  | URLs             | `Comment("Access URL")`: per distribution `dcat:accessURL`, else `dcat:downloadURL`; semicolon-joined |
-| Distribution **`dcterms:license`** | Licenses         | `Comment("License")` (unique, sorted, semicolon-joined)                                               |
+| Source field                       | Description      | ARC Mapping                                                                                                |
+| ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| Title                              | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                       |
+| (fixed)                            | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                        |
+| **`dcat:distribution`**            | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`; column omitted if none |
+| Distribution **`dcterms:title`**   | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                         |
+| Distribution **`dcterms:format`**  | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                                     |
+| Distribution access/download URLs  | URLs             | `Comment("Access URL")`: per distribution `dcat:accessURL`, else `dcat:downloadURL`; semicolon-joined      |
+| Distribution **`dcterms:license`** | Licenses         | `Comment("License")` (unique, sorted, semicolon-joined)                                                    |
 
 ## Org labels (publisher / contact)
 
@@ -91,7 +91,8 @@ with keys `maintainer_name` / `author_name` / `name` and `maintainer_email` / `a
 
 1. **Title:** `dcterms:title` only — mapping fails closed if missing (never `"Untitled"`).
 2. **Identifier:** sanitized dataset IRI → title slug; fail closed if both empty (never `untitled`).
-3. **Assay Output URI:** first distribution access/download URL → dataset IRI string.
+3. **Assay Output URI:** first distribution access/download URL; no URL → no `Output [URI]` column (the dataset IRI is
+   never used).
 4. **Catalog comment:** `name (url)` → name only → url only → omit.
 
 ## Refusal / skip rules

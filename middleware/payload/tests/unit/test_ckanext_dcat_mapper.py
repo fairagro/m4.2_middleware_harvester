@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import (
     NO_DISCOVERY,
     assay_output_uri,
@@ -239,6 +240,30 @@ def test_assay_output_uri_is_unchanged() -> None:
     graph.add((distribution, DCAT.accessURL, URIRef("https://example.org/soil3")))
 
     assert assay_output_uri(_mapped_arc_json(graph)) == "https://example.org/soil3"
+
+
+def test_dataset_without_distribution_has_no_uri_entity_for_the_dataset_iri() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+
+    uri_entities = [item for item in json.loads(arc_json)["@graph"] if item.get("@type") == "URI"]
+    assert uri_entities == []
+
+
+def test_dataset_without_url_keeps_a_one_row_assay_table_and_its_landing_page() -> None:
+    graph = _base_graph()
+    distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
+    graph.add((SUBJECT, DCAT.distribution, distribution))
+    graph.add((distribution, DCTERMS.title, Literal("Soil³ data package")))
+    arc_json = _mapped_arc_json(graph)
+
+    arc = ARC.from_rocrate_json_string(arc_json)
+    (table,) = [table for assay in arc.Assays for table in assay.Tables if table.Name == "Measurement"]
+    headers = {str(column.header): str(column.cells[0]) for column in table.Columns}
+    assert table.RowCount == 1
+    assert not any(column.header.is_output for column in table.Columns)
+    assert headers["Input [Source Name]"] == "Dataset Source"
+    assert headers["Comment [Distribution Title]"] == "Soil³ data package"
+    assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
 
 
 def test_ckanext_dcat_mapper_dataset_without_landing_page_still_gets_landing_page_comment() -> None:
