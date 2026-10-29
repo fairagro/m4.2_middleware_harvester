@@ -438,6 +438,12 @@ def test_assay_has_no_output_uri_column_without_any_uri() -> None:
     assert not any(col.header.is_output for col in assay.Tables[0].Columns)
 
 
+def test_assay_without_uri_or_comments_has_no_annotation_table() -> None:
+    assay = InspireMapper().map_assay(_minimal_record())
+
+    assert list(assay.Tables) == []
+
+
 def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
     harvested = next(
         iter(
