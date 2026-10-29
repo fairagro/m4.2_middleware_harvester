@@ -653,7 +653,6 @@ class InspireMapper(DataMapper[MappingContext]):
         """Create the assay annotation table (always exactly one row).
 
         Columns:
-        - Input [Source Name]                : "Dataset Source" (always present)
         - Output [URI]                       : dataSetURI (preferred) → first online-resource URL;
                                                omitted when the record has neither
         - Comment [Online Resource]          : semicolon-joined online-resource URLs, if any
@@ -677,7 +676,6 @@ class InspireMapper(DataMapper[MappingContext]):
             fallback_used = True
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(CompositeHeader.input(IOType.source()), [CompositeCell.free_text("Dataset Source")])
         if output_uri:
             table.AddColumn(
                 CompositeHeader.output(IOType.of_string("URI")),
