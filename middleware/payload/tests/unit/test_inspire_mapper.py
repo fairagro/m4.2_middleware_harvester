@@ -435,7 +435,7 @@ def test_assay_output_uri_is_unchanged(overrides: dict[str, object], expected: s
 def test_assay_has_no_output_uri_column_without_any_uri() -> None:
     assay = InspireMapper().map_assay(_minimal_record())
 
-    assert not any(col.header.is_output for col in assay.Tables[0].Columns)
+    assert not any(col.header.is_output for table in assay.Tables for col in table.Columns)
 
 
 def test_assay_without_uri_or_comments_has_no_annotation_table() -> None:
