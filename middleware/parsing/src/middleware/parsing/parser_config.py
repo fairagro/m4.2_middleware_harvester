@@ -92,6 +92,10 @@ class PhenoroamXmlParserConfig(ParserTypeConfig):
     """Type settings for ``phenoroam_xml`` (none today)."""
 
 
+class ModsXmlParserConfig(ParserTypeConfig):
+    """Type settings for ``mods_xml`` (none today)."""
+
+
 class ParserConfig(BaseModel):
     """Parser selection beside the plugin key (type-as-key).
 
@@ -121,6 +125,10 @@ class ParserConfig(BaseModel):
     phenoroam_xml: Annotated[
         PhenoroamXmlParserConfig | None,
         Field(description="phenoroam_xml parser settings."),
+    ] = None
+    mods_xml: Annotated[
+        ModsXmlParserConfig | None,
+        Field(description="mods_xml parser settings."),
     ] = None
 
     @model_validator(mode="before")

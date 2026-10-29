@@ -78,6 +78,21 @@ The system SHALL register a PayloadParser implementation under registry key `phe
   and nested `mapper.phenoroam_general` (or deprecated `mapper: { type: phenoroam_general }`)
 - **THEN** startup kind alignment succeeds
 
+### Requirement: Register mods_xml parser type
+
+The system SHALL register a PayloadParser implementation under registry key `mods_xml` selectable via repository
+`parser` type-as-key (`parser.mods_xml`) or deprecated `parser.type: mods_xml`, with `produces` kind `mods_record`.
+
+#### Scenario: mods_xml produces mods_record
+
+- **WHEN** the active parser type is `mods_xml`
+- **THEN** the parser’s `produces` kind is `mods_record`
+
+#### Scenario: generic can compose mods_xml with mods_general mapper
+
+- **WHEN** a `generic` repository sets nested `parser.mods_xml` and nested `mapper.mods_general`
+- **THEN** startup kind alignment succeeds
+
 ### Requirement: ParserConfig carries optional allowed_context_url
 
 The system SHALL expose optional `allowed_context_url` on JSON-LD parser type children under the repository sibling

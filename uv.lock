@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -549,6 +549,7 @@ dependencies = [
     { name = "contracts" },
     { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
+    { name = "lxml" },
     { name = "parsing" },
     { name = "payload" },
     { name = "pydantic" },
@@ -560,6 +561,7 @@ requires-dist = [
     { name = "contracts", editable = "middleware/contracts" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "lxml", specifier = ">=5.0.0" },
     { name = "parsing", editable = "middleware/parsing" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -1471,6 +1473,7 @@ dependencies = [
     { name = "contracts" },
     { name = "defusedxml" },
     { name = "fairagro-middleware-shared" },
+    { name = "lxml" },
     { name = "payload" },
     { name = "pydantic" },
     { name = "rdflib" },
@@ -1481,6 +1484,7 @@ requires-dist = [
     { name = "contracts", editable = "middleware/contracts" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "lxml", specifier = ">=5.0.0" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },

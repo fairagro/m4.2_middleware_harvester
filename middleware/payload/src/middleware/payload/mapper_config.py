@@ -33,6 +33,7 @@ class MapperType(StrEnum):
     inspire_general = "inspire_general"
     phenoroam_general = "phenoroam_general"
     ckanext_dcat = "ckanext_dcat"
+    mods_general = "mods_general"
 
 
 _MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
@@ -93,6 +94,10 @@ class InspireGeneralMapperConfig(MapperTypeConfig):
 
 class PhenoroamGeneralMapperConfig(MapperTypeConfig):
     """Type settings for ``phenoroam_general`` (none today)."""
+
+
+class ModsGeneralMapperConfig(MapperTypeConfig):
+    """Type settings for ``mods_general`` (none today)."""
 
 
 class CkanextDcatMapperConfig(MapperTypeConfig):
@@ -181,6 +186,10 @@ class MapperConfig(BaseModel):
     phenoroam_general: Annotated[
         PhenoroamGeneralMapperConfig | None,
         Field(description="phenoroam_general mapper settings."),
+    ] = None
+    mods_general: Annotated[
+        ModsGeneralMapperConfig | None,
+        Field(description="mods_general mapper settings."),
     ] = None
     ckanext_dcat: Annotated[
         CkanextDcatMapperConfig | None,

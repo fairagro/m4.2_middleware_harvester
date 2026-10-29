@@ -11,9 +11,9 @@ standard AsyncGenerator harvest contract.
 
 The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel` referenced by the main harvester
 repository schema under the `generic` plugin key. Canonical protocol selection SHALL use a nested `protocol` block with
-shared `http` and exactly one type-named child (`xml`, `mycore_solr`, …). The config SHALL NOT infer protocol from URLs
-or payloads. Shared parser selection SHALL use the repository-level `parser:` block (not a field on the generic plugin
-config). Flat `protocol_type` / `sitemap_url` / `http` / `page_size` fields MUST NOT be accepted.
+shared `http` and exactly one type-named child (`xml`, `mycore_solr`, `mycore_rest`, …). The config SHALL NOT infer
+protocol from URLs or payloads. Shared parser selection SHALL use the repository-level `parser:` block (not a field on
+the generic plugin config). Flat `protocol_type` / `sitemap_url` / `http` / `page_size` fields MUST NOT be accepted.
 
 #### Scenario: Explicit protocol and parser types required
 
@@ -36,6 +36,12 @@ config). Flat `protocol_type` / `sitemap_url` / `http` / `page_size` fields MUST
 - **WHEN** a `generic` repository sets `protocol: { http: …, xml: { entry_url: … } }` and
   `parser: { type: html_jsonld }`
 - **THEN** configuration validation succeeds and the XML Protocol is selected
+
+#### Scenario: mycore_rest nested protocol accepted
+
+- **WHEN** a `generic` repository sets `protocol: { http: …, mycore_rest: { entry_url: … } }` and
+  `parser: { mods_xml: {} }` with `mapper: { mods_general: {} }`
+- **THEN** configuration validation succeeds and the MyCoRe REST Protocol is selected
 
 #### Scenario: Flat protocol fields rejected
 
