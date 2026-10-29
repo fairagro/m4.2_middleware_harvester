@@ -260,6 +260,14 @@ def test_dataset_without_distribution_has_no_uri_entity_for_the_dataset_iri() ->
     assert uri_entities == []
 
 
+def test_dataset_without_distribution_has_no_assay_table_and_keeps_its_landing_page() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+
+    arc = ARC.from_rocrate_json_string(arc_json)
+    assert [table.Name for assay in arc.Assays for table in assay.Tables] == []
+    assert _comment_text(arc_json, "Landing Page") == str(SUBJECT)
+
+
 def test_dataset_without_url_keeps_a_one_row_assay_table_and_its_landing_page() -> None:
     graph = _base_graph()
     distribution = URIRef("https://agrihub.example.org/dataset/0555406d/resource/1")
