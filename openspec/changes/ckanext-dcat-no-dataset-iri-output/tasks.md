@@ -7,7 +7,7 @@
 - [x] 1.2 T2: a dataset with an `accessURL` keeps `Output [URI]` = that URL
 - [x] 1.3 T3: a dataset with no URL but a titled distribution keeps a one-row table with Input, a title comment and its
       `Landing Page` comment
-- [ ] 1.4 Update the distribution row and the "Assay Output URI" rule in `docs/mappers/ckanext-dcat.md`; markdown hooks
+- [x] 1.4 Update the distribution row and the "Assay Output URI" rule in `docs/mappers/ckanext-dcat.md`; markdown hooks
       pass
 
 ## 2. Verify and close
