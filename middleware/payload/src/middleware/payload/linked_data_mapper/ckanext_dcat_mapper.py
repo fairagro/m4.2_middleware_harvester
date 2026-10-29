@@ -197,17 +197,17 @@ class _CkanextDcatRun:
     def _create_distribution_table(self, subject: Node) -> ArcTable:
         distributions = self.view(subject).resources(DCAT.distribution)
         urls = _present(d.text(DCAT.accessURL) or d.text(DCAT.downloadURL) for d in distributions)
-        output_uri = urls[0] if urls else str(subject)
 
         table = ArcTable.init("Measurement")
         table.AddColumn(
             CompositeHeader.input(IOType.source()),
             [CompositeCell.free_text("Dataset Source")],
         )
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(output_uri)],
-        )
+        if urls:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(urls[0])],
+            )
 
         titles = _present(d.text(DCTERMS.title) for d in distributions)
         if titles:
