@@ -10,7 +10,7 @@
       `Landing Page` comment
 - [x] 1.5 T5: comment-only records (INSPIRE graphic overview, DCAT-AP titled distribution) keep a one-row table without
       an Input column
-- [ ] 1.6 Update `docs/mappers/inspire.md`, `docs/mappers/ckanext-dcat.md` and the `_create_assay_table` docstring
+- [x] 1.6 Update `docs/mappers/inspire.md`, `docs/mappers/ckanext-dcat.md` and the `_create_assay_table` docstring
 
 ## 2. Verify and close
 

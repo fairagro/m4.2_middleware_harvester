@@ -94,6 +94,8 @@ with keys `maintainer_name` / `author_name` / `name` and `maintainer_email` / `a
 3. **Assay Output URI:** first distribution access/download URL; no URL → no `Output [URI]` column (the dataset IRI is
    never used).
 4. **Catalog comment:** `name (url)` → name only → url only → omit.
+5. **Assay table:** no `Input [Source Name]` column (the dataset is not a sample); a dataset whose distributions give no
+   URL, title, format or licence gets no `Measurement` table at all.
 
 ## Refusal / skip rules
 
