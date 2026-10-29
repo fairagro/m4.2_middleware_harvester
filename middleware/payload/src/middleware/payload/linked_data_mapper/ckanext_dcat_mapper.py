@@ -171,7 +171,9 @@ class _CkanextDcatRun:
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="DCAT-AP Catalog")
-        assay.AddTable(self._create_distribution_table(subject))
+        table = self._create_distribution_table(subject)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
     def _create_dataset_processing_table(self, subject: Node) -> ArcTable:
