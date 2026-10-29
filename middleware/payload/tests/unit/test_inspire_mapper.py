@@ -456,6 +456,24 @@ def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:
     assert invented == []
 
 
+def test_record_with_dataset_uri_has_no_invented_source_sample_in_ro_crate() -> None:
+    harvested = next(
+        iter(
+            InspireMapper().map(
+                ParsedPayload(
+                    kind=PayloadKind.inspire_record,
+                    value=_minimal_record(dataset_uri="https://data.example.com/api"),
+                    identifier="uuid-map-1",
+                ),
+                MappingContext(source_url="https://csw.example.org/record/uuid-map-1"),
+            )
+        )
+    )
+
+    ids = [item.get("@id") for item in json.loads(harvested.arc_json)["@graph"]]
+    assert "#Source_Dataset_Source" not in ids
+
+
 def test_assay_without_uri_keeps_one_row_with_input_and_graphic_overview() -> None:
     record = _minimal_record(graphic_overviews=["https://example.org/overview.png"])
 
