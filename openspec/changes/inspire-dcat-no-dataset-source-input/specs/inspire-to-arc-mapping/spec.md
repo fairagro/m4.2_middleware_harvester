@@ -5,8 +5,8 @@
 ### Requirement: Create one ArcAssay per record for Measurement output
 
 The system SHALL create one `ArcAssay` per record for the Measurement annotation table (dataset URI / online resources).
-The Assay MUST have no annotation table when that table would have no columns (see "Assay table MUST NOT invent an
-input source"). The Data Processing protocol table MUST live on the Study, not on the Assay.
+The Assay MUST have no annotation table when that table would have no columns (see "Assay table MUST NOT invent an input
+source"). The Data Processing protocol table MUST live on the Study, not on the Assay.
 
 #### Scenario: Assay is Measurement-only; Data Processing is on the Study
 

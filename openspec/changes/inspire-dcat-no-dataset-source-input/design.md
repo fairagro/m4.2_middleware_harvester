@@ -16,8 +16,8 @@ Study sample to the Assay.
 
 - **Drop the column, don't replace it.** No source value names the material the measurement started from. A record
   identifier would only repeat the Investigation identifier as a fake sample.
-- **Omit an empty table.** Without the Input column a record with no URI and no comments would give a zero-column
-  table. An Assay without an annotation table says the same thing without an empty `LabProcess`.
+- **Omit an empty table.** Without the Input column a record with no URI and no comments would give a zero-column table.
+  An Assay without an annotation table says the same thing without an empty `LabProcess`.
 
 ## Risks / Trade-offs
 
