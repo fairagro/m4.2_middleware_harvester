@@ -36,21 +36,29 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Investigation
 
-| Source field              | Description            | ARC Mapping                                                                                                |
-| ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **`dcterms:title`**       | Title                  | `Investigation.Title`                                                                                      |
-| **`dcterms:description`** | Description            | `Investigation.Description` (empty string when absent)                                                     |
-| **`dcterms:issued`**      | Issue date             | `Investigation.PublicReleaseDate` (else `dcterms:modified`)                                                |
-| **`dcterms:identifier`**  | Source identifier      | `Investigation.Comment("Source Identifier")`                                                               |
-| **`dcat:landingPage`**    | Landing page           | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise |
-| **`dcterms:modified`**    | Modified date          | `Investigation.Comment("Modified")`                                                                        |
-| **`dcat:keyword`**        | Keywords               | `Investigation.Comment("Keywords")` (semicolon-joined)                                                     |
-| **`dcterms:language`**    | Languages              | `Investigation.Comment("Language")` (semicolon-joined)                                                     |
-| **`dcterms:publisher`**   | Publisher org          | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                      |
-| **`dcat:contactPoint`**   | Contact                | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                   |
-| **`dcterms:spatial`**     | Spatial extent present | `Investigation.Comment("Spatial Extent")` fixed text pointing at the RDI                                   |
-| **(config) Data Catalog** | Catalog name/URL       | `Investigation.Comment("Data Catalog")`                                                                    |
-| **(fixed)**               | Ontology source        | `OntologySourceReferences` entry for DCAT                                                                  |
+| Source field                                       | Description                     | ARC Mapping                                                                                                              |
+| -------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **`dcterms:title`**                                | Title                           | `Investigation.Title`                                                                                                    |
+| **`dcterms:description`**                          | Description                     | `Investigation.Description` (empty string when absent)                                                                   |
+| **`dcterms:issued`**                               | Issue date                      | `Investigation.PublicReleaseDate` (else `dcterms:modified`)                                                              |
+| **`dcterms:identifier`**                           | Source identifier               | `Investigation.Comment("Source Identifier")`                                                                             |
+| **`dcat:landingPage`**                             | Landing page                    | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise               |
+| **`dcterms:modified`**                             | Modified date                   | `Investigation.Comment("Modified")`                                                                                      |
+| **`dcat:keyword`**                                 | Keywords                        | `Investigation.Comment("Keywords")` (semicolon-joined)                                                                   |
+| **`dcterms:language`**                             | Languages                       | `Investigation.Comment("Language")` (semicolon-joined)                                                                   |
+| **`dcterms:publisher`**                            | Publisher org                   | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                                    |
+| **`dcat:contactPoint`**                            | Contact                         | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                                 |
+| **`dcterms:spatial`**                              | Spatial extent                  | `Investigation.Comment("Spatial Extent")`: WKT of the location (see Spatial Extent), else fixed text pointing at the RDI |
+| **(config) Data Catalog**                          | Catalog name/URL                | `Investigation.Comment("Data Catalog")`                                                                                  |
+| **`mapper.ckanext_dcat.spatial_extent_max_chars`** | WKT length cap (default 10,000) | A longer WKT keeps the fixed text and logs a WARNING (see Spatial Extent)                                                |
+| **(fixed)**                                        | Ontology source                 | `OntologySourceReferences` entry for DCAT                                                                                |
+
+**Spatial Extent.** The text is the `locn:geometry` literals typed `gsp:wktLiteral` of the `dcterms:spatial` location,
+copied verbatim. Several distinct literals are sorted and joined with `"; "`. GeoJSON literals are ignored. When the
+location has no WKT literal, or the (joined) WKT is longer than `mapper.ckanext_dcat.spatial_extent_max_chars` (default
+10,000 characters), the comment keeps the fixed text "Geographic extent provided by the source RDI (see the RDI
+record)." and, for the over-cap case, a WARNING names the dataset and the length. A dataset without `dcterms:spatial`
+has no comment.
 
 **Contacts.** `Investigation.Contacts` stays empty today (ckanext-dcat exposes org-level publisher/contactPoint only).
 `require_nonempty_person_given_names` still runs for parity / future Person creators.
