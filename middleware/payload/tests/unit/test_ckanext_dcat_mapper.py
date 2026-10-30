@@ -198,6 +198,15 @@ def test_ckanext_dcat_mapper_omits_catalog_comment_when_unconfigured() -> None:
     assert _comment_text(arc_json, "Data Catalog") is None
 
 
+def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    graph.add((location, _LOCN.geometry, Literal("POINT (11.69 48.40)")))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
+
+
 def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry() -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
