@@ -235,6 +235,16 @@ def test_ckanext_dcat_mapper_spatial_extent_keeps_placeholder_for_geojson_only_l
     )
 
 
+def test_ckanext_dcat_mapper_spatial_extent_joins_several_wkt_literals_sorted() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    graph.add((location, _LOCN.geometry, Literal("POINT (2 2)", datatype=_GSP.wktLiteral)))
+    graph.add((location, _LOCN.geometry, Literal("POINT (1 1)", datatype=_GSP.wktLiteral)))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (1 1); POINT (2 2)"
+
+
 def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
