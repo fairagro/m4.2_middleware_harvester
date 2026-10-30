@@ -245,6 +245,10 @@ def test_ckanext_dcat_mapper_spatial_extent_joins_several_wkt_literals_sorted() 
     assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (1 1); POINT (2 2)"
 
 
+def test_ckanext_dcat_mapper_omits_spatial_extent_without_dct_spatial() -> None:
+    assert _comment_text(_mapped_arc_json(_base_graph()), "Spatial Extent") is None
+
+
 def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
