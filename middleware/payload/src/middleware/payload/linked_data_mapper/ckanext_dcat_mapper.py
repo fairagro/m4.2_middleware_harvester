@@ -281,14 +281,12 @@ class _CkanextDcatRun:
 
     def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView) -> str:
         """WKT of the dataset location, or the placeholder when it is missing or over the configured cap."""
-        wkt = next(
-            (
-                str(geometry).strip()
-                for geometry in self.stable.graph.objects(spatial.node, LOCN.geometry)
-                if isinstance(geometry, Literal) and geometry.datatype == GSP.wktLiteral
-            ),
-            None,
-        )
+        wkts = {
+            str(geometry).strip()
+            for geometry in self.stable.graph.objects(spatial.node, LOCN.geometry)
+            if isinstance(geometry, Literal) and geometry.datatype == GSP.wktLiteral
+        }
+        wkt = "; ".join(sorted(wkts))
         if not wkt:
             return _SPATIAL_EXTENT_PLACEHOLDER
         if len(wkt) > self.spatial_extent_max_chars:
