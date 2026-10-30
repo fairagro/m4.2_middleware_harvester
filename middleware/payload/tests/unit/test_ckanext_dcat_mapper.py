@@ -26,6 +26,7 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
 _LOCN = Namespace("http://www.w3.org/ns/locn#")
+_GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 
 
 def _mapper(catalog_name: str | None = None, catalog_url: str | None = None) -> CkanextDcatMapper:
@@ -203,7 +204,7 @@ def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))
-    graph.add((location, _LOCN.geometry, Literal("POINT (11.69 48.40)")))
+    graph.add((location, _LOCN.geometry, Literal("POINT (11.69 48.40)", datatype=_GSP.wktLiteral)))
 
     assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
 
@@ -216,7 +217,7 @@ def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     graph.add((SUBJECT, DCTERMS.spatial, location))
     huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 700 + "(0 0, 1 1, 2 2))"
     assert len(huge_wkt) > 10_000
-    graph.add((location, _LOCN.geometry, Literal(huge_wkt)))
+    graph.add((location, _LOCN.geometry, Literal(huge_wkt, datatype=_GSP.wktLiteral)))
 
     with caplog.at_level(logging.WARNING):
         arc_json = _mapped_arc_json(graph)
