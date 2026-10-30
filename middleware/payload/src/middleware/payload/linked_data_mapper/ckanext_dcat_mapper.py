@@ -27,7 +27,7 @@ from arctrl import (  # type: ignore[import-untyped]
     OntologyAnnotation,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
-from rdflib import Graph, Namespace, URIRef
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS
 from rdflib.term import Node
 
@@ -40,6 +40,7 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 DCAT = Namespace("http://www.w3.org/ns/dcat#")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
+GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 LOCN = Namespace("http://www.w3.org/ns/locn#")
 VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
 
@@ -280,7 +281,14 @@ class _CkanextDcatRun:
 
     def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView) -> str:
         """WKT of the dataset location, or the placeholder when it is missing or over the configured cap."""
-        wkt = spatial.text(LOCN.geometry)
+        wkt = next(
+            (
+                str(geometry).strip()
+                for geometry in self.stable.graph.objects(spatial.node, LOCN.geometry)
+                if isinstance(geometry, Literal) and geometry.datatype == GSP.wktLiteral
+            ),
+            None,
+        )
         if not wkt:
             return _SPATIAL_EXTENT_PLACEHOLDER
         if len(wkt) > self.spatial_extent_max_chars:
