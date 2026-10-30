@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
@@ -207,19 +208,26 @@ def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
     assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
 
 
-def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry() -> None:
+def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))
-    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 500 + "(0 0, 1 1, 2 2))"
+    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 700 + "(0 0, 1 1, 2 2))"
+    assert len(huge_wkt) > 10_000
     graph.add((location, _LOCN.geometry, Literal(huge_wkt)))
 
-    arc_json = _mapped_arc_json(graph)
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+
     assert (
         _comment_text(arc_json, "Spatial Extent")
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
     assert huge_wkt not in arc_json
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert any(str(SUBJECT) in m and str(len(huge_wkt)) in m for m in warnings)
 
 
 # --- no invented data files (#353) ------------------------------------------
