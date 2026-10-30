@@ -209,6 +209,32 @@ def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
     assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
 
 
+def test_ckanext_dcat_mapper_spatial_extent_holds_multipolygon_wkt_verbatim() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = (
+        "MULTIPOLYGON (((11.6 48.3, 11.7 48.3, 11.7 48.4, 11.6 48.3)), ((12.0 49.0, 12.1 49.0, 12.1 49.1, 12.0 49.0)))"
+    )
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == wkt
+
+
+def test_ckanext_dcat_mapper_spatial_extent_keeps_placeholder_for_geojson_only_location() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    geojson = '{"type": "Point", "coordinates": [11.69, 48.4]}'
+    graph.add((location, _LOCN.geometry, Literal(geojson, datatype=_GSP.geoJSONLiteral)))
+
+    arc_json = _mapped_arc_json(graph)
+    assert (
+        _comment_text(arc_json, "Spatial Extent")
+        == "Geographic extent provided by the source RDI (see the RDI record)."
+    )
+
+
 def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
