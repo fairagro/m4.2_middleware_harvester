@@ -9,6 +9,7 @@ same mapper serves any DCAT-AP RDI, not just SRADI.
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import override
@@ -33,13 +34,18 @@ from rdflib.term import Node
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper, MappingContext
 from middleware.payload.linked_data_mapper.stable_graph import ResourceView, StableGraph
-from middleware.payload.mapper_config import MapperConfig, MapperType
+from middleware.payload.mapper_config import DEFAULT_SPATIAL_EXTENT_MAX_CHARS, MapperConfig, MapperType
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 from middleware.payload.placeholders import PlaceholderConfig
 
 DCAT = Namespace("http://www.w3.org/ns/dcat#")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
+LOCN = Namespace("http://www.w3.org/ns/locn#")
 VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
+
+logger = logging.getLogger(__name__)
+
+_SPATIAL_EXTENT_PLACEHOLDER = "Geographic extent provided by the source RDI (see the RDI record)."
 
 # ckanext-dcat carries some CKAN fields (e.g. "maintainer") through unparsed:
 # the RDF literal value is CKAN's own raw JSON string, not a plain display
@@ -72,11 +78,13 @@ class CkanextDcatMapper(LinkedDataMapper):
         placeholders: PlaceholderConfig,
         catalog_name: str | None = None,
         catalog_url: str | None = None,
+        spatial_extent_max_chars: int = DEFAULT_SPATIAL_EXTENT_MAX_CHARS,
     ) -> None:
         """Create a mapper with the RDI's placeholders and optional repository-configured catalog provenance."""
         super().__init__(placeholders)
         self._catalog_name = catalog_name
         self._catalog_url = catalog_url
+        self._spatial_extent_max_chars = spatial_extent_max_chars
 
     @classmethod
     @override
@@ -87,6 +95,7 @@ class CkanextDcatMapper(LinkedDataMapper):
             config.placeholders,
             catalog_name=config.catalog_name,
             catalog_url=str(config.catalog_url) if config.catalog_url else None,
+            spatial_extent_max_chars=config.spatial_extent_max_chars,
         )
 
     @override
@@ -103,7 +112,7 @@ class CkanextDcatMapper(LinkedDataMapper):
         if not subjects:
             raise ValueError("Graph does not contain a dcat:Dataset entity")
 
-        run = _CkanextDcatRun(self, stable, self._catalog_name, self._catalog_url)
+        run = _CkanextDcatRun(self, stable, self._catalog_name, self._catalog_url, self._spatial_extent_max_chars)
         return [HarvestedArc.from_arctrl(run.map_arc(subject.node)) for subject in subjects]
 
 
@@ -115,6 +124,7 @@ class _CkanextDcatRun:
     stable: StableGraph
     catalog_name: str | None
     catalog_url: str | None
+    spatial_extent_max_chars: int
 
     def view(self, subject: Node) -> ResourceView:
         """ResourceView for ``subject`` on this call's StableGraph."""
@@ -260,14 +270,28 @@ class _CkanextDcatRun:
         if contact_label:
             inv.Comments.append(Comment.create("Contact Point", contact_label))
 
-        if view.resource(DCTERMS.spatial) is not None:
-            inv.Comments.append(
-                Comment.create("Spatial Extent", "Geographic extent provided by the source RDI (see the RDI record).")
-            )
+        spatial = view.resource(DCTERMS.spatial)
+        if spatial is not None:
+            inv.Comments.append(Comment.create("Spatial Extent", self._spatial_extent_text(view, spatial)))
 
         catalog_value = self._catalog_comment_value()
         if catalog_value:
             inv.Comments.append(Comment.create("Data Catalog", catalog_value))
+
+    def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView) -> str:
+        """WKT of the dataset location, or the placeholder when it is missing or over the configured cap."""
+        wkt = spatial.text(LOCN.geometry)
+        if not wkt:
+            return _SPATIAL_EXTENT_PLACEHOLDER
+        if len(wkt) > self.spatial_extent_max_chars:
+            logger.warning(
+                "Spatial Extent of %s: WKT of %d characters exceeds spatial_extent_max_chars=%d; keeping placeholder",
+                view.iri,
+                len(wkt),
+                self.spatial_extent_max_chars,
+            )
+            return _SPATIAL_EXTENT_PLACEHOLDER
+        return wkt
 
     @staticmethod
     def _add_ontology_sources(inv: ArcInvestigation) -> None:

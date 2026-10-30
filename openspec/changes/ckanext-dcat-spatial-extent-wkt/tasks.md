@@ -2,9 +2,9 @@
 
 ## 1. Tests and change
 
-- [ ] 1.1 T1: a POINT WKT literal becomes the `Spatial Extent` text (fails on `main`)
+- [x] 1.1 T1: a POINT WKT literal becomes the `Spatial Extent` text (fails on `main`)
 - [ ] 1.2 T2: a MULTIPOLYGON WKT literal is copied verbatim
-- [ ] 1.3 T3: a WKT literal over the cap keeps the placeholder, is absent from the ARC, and logs a WARNING (rewrites
+- [x] 1.3 T3: a WKT literal over the cap keeps the placeholder, is absent from the ARC, and logs a WARNING (rewrites
       `test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry`)
 - [ ] 1.4 T4: a GeoJSON-only location keeps the placeholder
 - [ ] 1.5 T5: two WKT literals are sorted and joined with `"; "`
