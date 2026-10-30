@@ -22,6 +22,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
+from middleware.payload.mapper_config import MapperConfig
 from middleware.payload.placeholders import PlaceholderConfig
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
@@ -247,6 +248,24 @@ def test_ckanext_dcat_mapper_spatial_extent_joins_several_wkt_literals_sorted() 
 
 def test_ckanext_dcat_mapper_omits_spatial_extent_without_dct_spatial() -> None:
     assert _comment_text(_mapped_arc_json(_base_graph()), "Spatial Extent") is None
+
+
+def test_ckanext_dcat_mapper_from_config_applies_spatial_extent_max_chars() -> None:
+    config = MapperConfig(ckanext_dcat={"spatial_extent_max_chars": 50})
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = "POINT (" + "1" * 92 + ")"
+    assert len(wkt) == 100
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    arc_json = _mapped_arc_json(graph, mapper=CkanextDcatMapper.from_config(config))
+
+    assert (
+        _comment_text(arc_json, "Spatial Extent")
+        == "Geographic extent provided by the source RDI (see the RDI record)."
+    )
+    assert wkt not in arc_json
 
 
 def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
