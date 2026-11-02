@@ -54,6 +54,23 @@ def _patch_nice_http(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     return mock_client
 
 
+def test_create_mapper_accepts_mods_general() -> None:
+    """Generic must resolve MappingContext DataMappers (not only LinkedDataMapper)."""
+    mapper = GenericPlugin.create_mapper(
+        _config(),
+        MapperConfig.model_validate({"mods_general": {}}),
+    )
+    assert mapper.accepts == PayloadKind.mods_record
+
+
+def test_create_mapper_still_accepts_schema_org_general() -> None:
+    mapper = GenericPlugin.create_mapper(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+    )
+    assert mapper.accepts == PayloadKind.rdf_graph
+
+
 @pytest.mark.asyncio
 async def test_get_expected_datasets_soft_none_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     class _BoomProtocol(Protocol):

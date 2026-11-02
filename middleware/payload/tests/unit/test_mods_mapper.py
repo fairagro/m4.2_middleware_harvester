@@ -39,8 +39,9 @@ def test_mods_mapper_maps_doi_licence_title_creators() -> None:
                 orcid="0009-0004-2610-6724",
                 gnd="1256061514",
                 affiliation="JKI",
+                role_codes=["aut"],
             ),
-            ModsName(given="Elias", family="Böckmann", orcid="0000-0002-4782-0714"),
+            ModsName(given="Elias", family="Böckmann", orcid="0000-0002-4782-0714", role_codes=["aut"]),
         ],
         datafile_names=["Raw_data.xlsx"],
     )
@@ -56,6 +57,8 @@ def test_mods_mapper_maps_doi_licence_title_creators() -> None:
     assert len(list(arc.Contacts)) == 2
     assert arc.Contacts[0].FirstName == "Jana"
     assert arc.Contacts[0].ORCID == "0009-0004-2610-6724"
+    assert any((r.Name or "").casefold() == "author" for r in arc.Contacts[0].Roles)
+    assert arc.Publications[0].Authors == "J. Furtwengler; E. Böckmann"
     assert arc.License is not None
     assert "creativecommons.org/licenses/by/4.0" in arc.License.Content
 

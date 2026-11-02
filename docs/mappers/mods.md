@@ -74,7 +74,8 @@ with element text.
 
 ## Contacts
 
-Contacts come from `mods:name` (typically `type="personal"`).
+Contacts come from `mods:name` (typically `type="personal"`). Roles use marcrelator codes so `publication_authors` can
+fill `Publications[].authors`.
 
 | Source field                       | ARC Mapping                                                         |
 | ---------------------------------- | ------------------------------------------------------------------- |
@@ -83,6 +84,7 @@ Contacts come from `mods:name` (typically `type="personal"`).
 | **`affiliation`**                  | `Person.affiliation`                                                |
 | **`nameIdentifier[@type=orcid]`**  | `Person.orcid`                                                      |
 | **`nameIdentifier[@type=gnd]`**    | `Person.Comment("GND")`                                             |
+| **`role/roleTerm`**                | `author` for `aut`/`cre`/empty; `contributor` for `ctb`             |
 
 **Refusal.** A mapped person without a non-empty given name fails closed (person-contact-given-name policy).
 

@@ -31,9 +31,12 @@ from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.mods.models import ModsName, ModsRecord
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.person_contacts import publication_authors, require_nonempty_person_given_names
+from middleware.payload.person_contacts import add_contact, publication_authors, require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 from middleware.payload.placeholders import PlaceholderConfig
+
+_AUTHOR_ROLE_CODES = frozenset({"aut", "author", "cre", "creator"})
+_CONTRIBUTOR_ROLE_CODES = frozenset({"ctb", "contributor"})
 
 # MyCoRe MIR licence classification anchors → Creative Commons deed URLs.
 _MIR_LICENSE_URLS: dict[str, str] = {
@@ -175,7 +178,17 @@ class ModsMapper(DataMapper[MappingContext]):
         for name in record.names:
             mapped = self._map_person(name)
             if mapped is not None:
-                inv.Contacts.append(mapped)
+                add_contact(inv, mapped, self._contact_role(name), match_name=True)
+
+    @staticmethod
+    def _contact_role(contact: ModsName) -> str:
+        """Map MODS marcrelator codes to ARC contact roles for ``publication_authors``."""
+        codes = {code.casefold() for code in contact.role_codes}
+        if codes & _AUTHOR_ROLE_CODES or not codes:
+            return "author"
+        if codes & _CONTRIBUTOR_ROLE_CODES:
+            return "contributor"
+        return "author"
 
     @staticmethod
     def _map_person(contact: ModsName) -> Person | None:
