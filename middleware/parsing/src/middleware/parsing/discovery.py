@@ -22,16 +22,27 @@ class DiscoveryResult:
 class UrlDiscoveryResult(DiscoveryResult):
     """Discovery result representing a dataset URL.
 
-    The ``identifier`` is the dataset URL. When the protocol knows a native
-    catalog id for the harvested record (e.g. MyCoRe Solr ``id``), it MAY
-    supply ``harvest_source_id`` for stable Schema.org mapping.
+    The ``identifier`` is the dataset landing URL (identity / ``source_url``).
+    When the protocol knows a native catalog id for the harvested record
+    (e.g. MyCoRe ``id``), it MAY supply ``harvest_source_id``. When the
+    machine-readable payload lives at a different URL (e.g. MyCoRe REST
+    object XML), it MAY supply ``fetch_url``; fetching parsers use
+    ``request_url`` (``fetch_url`` when set, else ``url``).
     """
 
     harvest_source_id: str | None = None
+    fetch_url: str | None = None
 
     @property
     def url(self) -> str:
-        """The discovered dataset URL (alias for ``identifier``)."""
+        """The discovered dataset landing URL (alias for ``identifier``)."""
+        return self.identifier
+
+    @property
+    def request_url(self) -> str:
+        """URL to fetch for the payload (``fetch_url`` when set, else ``url``)."""
+        if self.fetch_url is not None and self.fetch_url.strip():
+            return self.fetch_url.strip()
         return self.identifier
 
 

@@ -6,6 +6,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from dataclasses import replace
+from typing import cast
 
 import httpx
 
@@ -18,6 +19,7 @@ from middleware.generic.errors import GenericError, GenericProtocolError
 from middleware.generic.pipeline import PipelineResult, ResultsQueueHook, run_bounded_pipeline
 from middleware.generic.protocol import (
     dcat_ap as _register_dcat_ap_protocol,
+    mycore_rest as _register_mycore_rest_protocol,
     mycore_solr as _register_mycore_solr_protocol,
     pubplant_json_array as _register_pubplant_json_array_protocol,
     regal_find as _register_regal_find_protocol,
@@ -29,10 +31,8 @@ from middleware.parsing.errors import ParserError
 from middleware.parsing.parser.parser import PayloadParser
 from middleware.parsing.parser_config import ParserConfig
 from middleware.payload import register_builtin_mappers as _register_builtin_mappers
-from middleware.payload.linked_data_mapper import (
-    LinkedDataMapper,
-    MappingContext,
-)
+from middleware.payload.data_mapper import DataMapper
+from middleware.payload.linked_data_mapper import MappingContext
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import as_source_url
 
@@ -40,6 +40,7 @@ _ = (
     _register_builtin_parsers,
     _register_xml_protocol,
     _register_mycore_solr_protocol,
+    _register_mycore_rest_protocol,
     _register_dcat_ap_protocol,
     _register_pubplant_json_array_protocol,
     _register_regal_find_protocol,
@@ -56,7 +57,7 @@ class GenericPlugin:
         """Initialize with plugin + repository mapper/parser configuration."""
         self._config = config
         self._parser_config = parser_config
-        self._mapper: LinkedDataMapper = self.create_mapper(config, mapper_config)
+        self._mapper: DataMapper[MappingContext] = self.create_mapper(config, mapper_config)
         self._parser_cls: type[PayloadParser] = self.create_parser_class(parser_config)
         if self._parser_cls.produces != self._mapper.accepts:
             raise ValueError(
@@ -83,15 +84,20 @@ class GenericPlugin:
             raise ValueError(f"Unsupported parser type: {parser_config.type}") from exc
 
     @staticmethod
-    def create_mapper(config: Config, mapper_config: MapperConfig) -> LinkedDataMapper:
-        """Create the mapper from repository ``mapper`` config (shared registry)."""
+    def create_mapper(config: Config, mapper_config: MapperConfig) -> DataMapper[MappingContext]:
+        """Create the mapper from repository ``mapper`` config (shared registry).
+
+        Uses ``registered_class_for_context`` so non-RDF mappers that accept
+        ``MappingContext`` (e.g. ``mods_general``) resolve like OAI-PMH / INSPIRE,
+        not only ``LinkedDataMapper`` subclasses.
+        """
         try:
-            mapper_cls = LinkedDataMapper.registered_class(mapper_config.type)
+            mapper_cls = DataMapper.registered_class_for_context(mapper_config.type, MappingContext)
         except KeyError as exc:
             raise ValueError(f"Unsupported mapper type: {mapper_config.type}") from exc
 
         fallback = config.effective_resource_base_url if mapper_config.type == MapperType.regal_general else None
-        return mapper_cls.from_config(mapper_config, resource_base_url=fallback)
+        return cast(DataMapper[MappingContext], mapper_cls.from_config(mapper_config, resource_base_url=fallback))
 
     async def get_expected_datasets(self) -> int | None:
         """Return the expected dataset count from the Protocol when available."""

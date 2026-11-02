@@ -10,3 +10,4 @@ class ParserType(StrEnum):
     rdf_xml = "rdf_xml"
     phenoroam_xml = "phenoroam_xml"
     jsonld = "jsonld"
+    mods_xml = "mods_xml"

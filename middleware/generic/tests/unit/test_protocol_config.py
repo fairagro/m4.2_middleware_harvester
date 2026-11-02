@@ -39,6 +39,20 @@ def test_nested_mycore_solr_protocol_config() -> None:
     assert cfg.effective_protocol.mycore_solr.page_size == 50
 
 
+def test_nested_mycore_rest_protocol_config() -> None:
+    cfg = Config.model_validate({
+        "protocol": {
+            "mycore_rest": {
+                "entry_url": "https://example.org/api/v2/objects?type=mods",
+                "page_size": 50,
+            }
+        }
+    })
+    assert cfg.active_protocol_type is ProtocolType.mycore_rest
+    assert cfg.effective_protocol.mycore_rest is not None
+    assert cfg.effective_protocol.mycore_rest.page_size == 50
+
+
 def test_protocol_rejects_zero_or_two_type_keys() -> None:
     with pytest.raises(ValidationError, match="exactly one"):
         Config.model_validate({"protocol": {"http": {}}})

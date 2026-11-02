@@ -12,3 +12,4 @@ class PayloadKind(StrEnum):
     rdf_graph = "rdf_graph"
     phenoroam_record = "phenoroam_record"
     inspire_record = "inspire_record"
+    mods_record = "mods_record"

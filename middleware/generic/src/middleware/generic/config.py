@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from middleware.contracts.nice_http_client import NiceHttpClientConfig
 from middleware.generic.protocol.dcat_ap import DcatApProtocolConfig
+from middleware.generic.protocol.mycore_rest import MycoreRestProtocolConfig
 from middleware.generic.protocol.mycore_solr import MycoreSolrProtocolConfig
 from middleware.generic.protocol.protocol import ProtocolType, ProtocolTypeConfig
 from middleware.generic.protocol.pubplant_json_array import PubPlantJsonArrayProtocolConfig
@@ -26,6 +27,7 @@ _LEGACY_THRESHOLD_MSG = (
 _PROTOCOL_TYPE_FIELDS = frozenset({
     "xml",
     "mycore_solr",
+    "mycore_rest",
     "dcat_ap",
     "pubplant_json_array",
     "regal_find",
@@ -51,6 +53,10 @@ class ProtocolConfig(BaseModel):
     mycore_solr: Annotated[
         MycoreSolrProtocolConfig | None,
         Field(description="MyCoRe Solr Protocol config."),
+    ] = None
+    mycore_rest: Annotated[
+        MycoreRestProtocolConfig | None,
+        Field(description="MyCoRe REST Protocol config."),
     ] = None
     dcat_ap: Annotated[
         DcatApProtocolConfig | None,
