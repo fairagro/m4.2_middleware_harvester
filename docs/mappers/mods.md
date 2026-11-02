@@ -26,26 +26,29 @@ Primary production path: `generic` → `mycore_rest` → `mods_xml` → `mods_ge
 
 ## Identity
 
-| Source field / context                   | Description      | ARC Mapping                                                                                              |
-| ---------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------- |
-| **`doi`** (`mods:identifier[@type=doi]`) | Dataset DOI      | `Investigation.Identifier` (normalized + sanitized) when present                                         |
-| **`object_id`** / `harvest_source_id`    | MyCoRe object id | Identifier fallback when DOI absent                                                                      |
-| **`source_url`** (context, http(s) only) | REST object URL  | Identifier fallback when DOI and object id absent; also `HarvestedArc.source_url` and Source URL comment |
+| Source field / context                    | Description      | ARC Mapping                                                                                            |
+| ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| **`harvest_source_id`** / **`object_id`** | MyCoRe object id | `Investigation.Identifier` (sanitized) — preferred so existing OpenAgrar ARCs update in place          |
+| **`doi`** (`mods:identifier[@type=doi]`)  | Dataset DOI      | Identifier fallback when object id absent; always also `Publications[]` when present                   |
+| **`source_url`** (context, http(s) only)  | Landing page URL | Identifier fallback when object id and DOI absent; also `HarvestedArc.source_url` / Source URL comment |
 
-**Refusal.** Mapping fails if there is no title, or none of DOI / object id / http(s) source URL can form an
+Discovery for MyCoRe REST yields `/receive/{id}` as the landing `source_url` and sets `fetch_url` to
+`/api/v2/objects/{id}` for the parser fetch only.
+
+**Refusal.** Mapping fails if there is no title, or none of object id / DOI / http(s) source URL can form an
 Investigation identifier.
 
 ## Investigation
 
-| Source field                                               | Description               | ARC Mapping                                   |
-| ---------------------------------------------------------- | ------------------------- | --------------------------------------------- |
-| **`title`** (`mods:titleInfo/mods:title` with text)        | Dataset title             | `Investigation.Title`                         |
-| **`abstract`** (`mods:abstract` with text)                 | Description               | `Investigation.Description`                   |
-| **`date_issued`** (`mods:originInfo/mods:dateIssued`)      | Publication / issued date | `SubmissionDate` and `PublicReleaseDate`      |
-| **`doi`**                                                  | DOI                       | `Publications[]` with bare DOI                |
-| **`language`**                                             | Language code             | `Comment("Language")`                         |
-| **`license_uri`** (`accessCondition` use and reproduction) | Licence URI               | `Comment("License")` + `ARC.License` when set |
-| **`source_url`**                                           | REST object URL           | `Comment("Source URL")`                       |
+| Source field                                               | Description               | ARC Mapping                                                                               |
+| ---------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| **`title`** (`mods:titleInfo/mods:title` with text)        | Dataset title             | `Investigation.Title`                                                                     |
+| **`abstract`** (`mods:abstract` with text)                 | Description               | `Investigation.Description`                                                               |
+| **`date_issued`** (`mods:originInfo/mods:dateIssued`)      | Publication / issued date | `SubmissionDate` and `PublicReleaseDate`                                                  |
+| **`doi`**                                                  | DOI                       | `Publications[]` with bare DOI                                                            |
+| **`language`**                                             | Language code             | `Comment("Language")`                                                                     |
+| **`license_uri`** (`accessCondition` use and reproduction) | Licence URI               | `Comment("License")` (raw); `ARC.License` uses CC deed URL when `mir_licenses#…` is known |
+| **`source_url`**                                           | Landing page URL          | `Comment("Source URL")`                                                                   |
 
 Empty `titleInfo` / `abstract` nodes that only carry `altFormat` base64 companions are ignored in favour of siblings
 with element text.
@@ -65,7 +68,7 @@ with element text.
 | ---------------------- | ------------------------ | ------------------------------------------------------------------------------------------ |
 | **`title`**            | Assay title              | `Assay.Title`; identifier slug of title or `mods_assay`                                    |
 | (fixed)                | Measurement / technology | `measurement_type` = Data Collection; `technology_type` = Data Repository; platform = MODS |
-| **`source_url`**       | REST object URL          | Assay table `Measurement` `Output [URI]`                                                   |
+| **`source_url`**       | Landing page URL         | Assay table `Measurement` `Output [URI]`                                                   |
 | **`license_uri`**      | Licence URI              | Assay table `Comment("License")`                                                           |
 | **`datafile_names`**   | Derivate `maindoc` names | Assay table `Comment("Datafile Name")` joined with `;` — **not** Outputs                   |
 
@@ -88,7 +91,7 @@ Contacts come from `mods:name` (typically `type="personal"`).
 - Title: first `mods:titleInfo` that has a non-empty `mods:title` text node.
 - Abstract: first `mods:abstract` with non-empty text (skip altFormat-only companions).
 - Licence: `mods:accessCondition[@type="use and reproduction"]/@xlink:href`, else element text.
-- Identifier: DOI → object id → source URL (see Identity).
+- Identifier: harvest_source_id / object id → DOI → source URL (see Identity).
 
 ## Refusal / skip rules
 

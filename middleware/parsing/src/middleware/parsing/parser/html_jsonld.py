@@ -71,7 +71,7 @@ class HtmlJsonLdParser(PayloadParser):
         threshold = int(getattr(config, "jsonld_parse_threshold_bytes", 65536))
         allowed = getattr(config, "allowed_context_url", None)
         allowed_url: list[str] | None = allowed if isinstance(allowed, list) else None
-        graph = await self._url_to_graph(discovery_result.url, client, threshold, allowed_url)
+        graph = await self._url_to_graph(discovery_result.request_url, client, threshold, allowed_url)
         return ParsedPayload(kind=PayloadKind.rdf_graph, value=graph, identifier=discovery_result.identifier)
 
     async def _url_to_graph(

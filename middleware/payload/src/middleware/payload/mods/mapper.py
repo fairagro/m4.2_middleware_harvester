@@ -35,6 +35,18 @@ from middleware.payload.person_contacts import publication_authors, require_none
 from middleware.payload.person_names import split_display_name
 from middleware.payload.placeholders import PlaceholderConfig
 
+# MyCoRe MIR licence classification anchors → Creative Commons deed URLs.
+_MIR_LICENSE_URLS: dict[str, str] = {
+    "cc_by_4.0": "https://creativecommons.org/licenses/by/4.0/",
+    "cc_by_sa_4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "cc_by_nc_4.0": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "cc_by_nc_sa_4.0": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "cc_by_nd_4.0": "https://creativecommons.org/licenses/by-nd/4.0/",
+    "cc_by_nc_nd_4.0": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+    "cc_zero": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "cc0": "https://creativecommons.org/publicdomain/zero/1.0/",
+}
+
 
 @DataMapper.register(MapperType.mods_general)
 class ModsMapper(DataMapper[MappingContext]):
@@ -122,17 +134,23 @@ class ModsMapper(DataMapper[MappingContext]):
         raise ValueError("MODS record has no title")
 
     def resolve_identifier(self, record: ModsRecord, context: MappingContext) -> str:
-        """Prefer DOI, then MyCoRe object id / harvest source id, then source URL."""
+        """Prefer MyCoRe object id, then DOI, then source URL.
+
+        Order matches #507 D3 / today's ``schema_org_general`` OpenAgrar path so existing
+        ARC ids are updated in place instead of reminting from the DOI.
+        """
+        object_id = (context.harvest_source_id or "").strip() or (record.object_id or "").strip()
+        if object_id:
+            return self.sanitize_identifier(object_id)
         doi = normalize_doi(record.doi)
         if doi:
             return self.sanitize_identifier(doi)
-        object_id = (record.object_id or "").strip() or (context.harvest_source_id or "").strip()
-        if object_id:
-            return self.sanitize_identifier(object_id)
         source = self._http_source_url(context.source_url)
         if source:
             return self.sanitize_identifier(source)
-        raise ValueError("MODS record has neither DOI, object id, nor source URL for Investigation.Identifier")
+        raise ValueError(
+            "MODS record has neither harvest_source_id/object id, DOI, nor source URL for Investigation.Identifier"
+        )
 
     @classmethod
     def sanitize_identifier(cls, raw: str) -> str:
@@ -215,10 +233,22 @@ class ModsMapper(DataMapper[MappingContext]):
 
     def _license(self, record: ModsRecord) -> License | None:
         return license_from_value(
-            record.license_uri,
+            self._resolved_license_uri(record.license_uri),
             placeholders=self._placeholders,
             name=record.license_label,
         )
+
+    @staticmethod
+    def _resolved_license_uri(raw: str | None) -> str | None:
+        """Map MyCoRe ``mir_licenses#…`` anchors to Creative Commons deed URLs when known."""
+        if raw is None:
+            return None
+        text = raw.strip()
+        if not text:
+            return None
+        fragment = text.rsplit("#", 1)[-1].strip().lower().replace("-", "_")
+        mapped = _MIR_LICENSE_URLS.get(fragment)
+        return mapped or text
 
     @staticmethod
     def _create_keywords_table(record: ModsRecord) -> ArcTable | None:

@@ -40,11 +40,10 @@ class ModsXmlParser(PayloadParser):
         if client is None:
             raise ValueError("ModsXmlParser requires an HTTP client; client must not be None.")
 
-        response = await client.get_with_policy(discovery_result.url)
+        request_url = discovery_result.request_url
+        response = await client.get_with_policy(request_url)
         if response.is_error:
-            raise ParserError(
-                f"Failed to fetch MyCoRe object XML HTTP {response.status_code} for {discovery_result.url}"
-            )
+            raise ParserError(f"Failed to fetch MyCoRe object XML HTTP {response.status_code} for {request_url}")
 
         record = self.parse_object_xml(
             response.content,
@@ -53,7 +52,7 @@ class ModsXmlParser(PayloadParser):
         )
         identifier = (record.object_id or "").strip() or discovery_result.identifier.strip()
         if not identifier.strip():
-            raise ParserError(f"MODS record has no stable identifier for {discovery_result.url}")
+            raise ParserError(f"MODS record has no stable identifier for {discovery_result.identifier}")
         return ParsedPayload(kind=PayloadKind.mods_record, value=record, identifier=identifier)
 
     def parse_object_xml(
@@ -126,7 +125,8 @@ class ModsXmlParser(PayloadParser):
 
     @classmethod
     def _first_title(cls, mods: lxml.etree._Element) -> str | None:
-        for title_info in mods.iter(f"{{{_MODS_NS}}}titleInfo"):
+        # Direct children only — ``iter`` would also walk ``mods:relatedItem``.
+        for title_info in mods.findall(f"{{{_MODS_NS}}}titleInfo"):
             title_el = title_info.find(f"{{{_MODS_NS}}}title")
             text = cls._text(title_el)
             if text:
@@ -135,7 +135,7 @@ class ModsXmlParser(PayloadParser):
 
     @classmethod
     def _first_abstract(cls, mods: lxml.etree._Element) -> str | None:
-        for abstract in mods.iter(f"{{{_MODS_NS}}}abstract"):
+        for abstract in mods.findall(f"{{{_MODS_NS}}}abstract"):
             text = cls._text(abstract)
             if text:
                 return text
@@ -143,7 +143,7 @@ class ModsXmlParser(PayloadParser):
 
     @classmethod
     def _doi(cls, mods: lxml.etree._Element) -> str | None:
-        for ident in mods.iter(f"{{{_MODS_NS}}}identifier"):
+        for ident in mods.findall(f"{{{_MODS_NS}}}identifier"):
             if (ident.get("type") or "").lower() != "doi":
                 continue
             text = cls._text(ident)
@@ -153,15 +153,16 @@ class ModsXmlParser(PayloadParser):
 
     @classmethod
     def _date_issued(cls, mods: lxml.etree._Element) -> str | None:
-        for date in mods.iter(f"{{{_MODS_NS}}}dateIssued"):
-            text = cls._text(date)
-            if text:
-                return text
+        for origin in mods.findall(f"{{{_MODS_NS}}}originInfo"):
+            for date in origin.findall(f"{{{_MODS_NS}}}dateIssued"):
+                text = cls._text(date)
+                if text:
+                    return text
         return None
 
     @classmethod
     def _license_uri(cls, mods: lxml.etree._Element) -> str | None:
-        for access in mods.iter(f"{{{_MODS_NS}}}accessCondition"):
+        for access in mods.findall(f"{{{_MODS_NS}}}accessCondition"):
             access_type = (access.get("type") or "").lower()
             if "use and reproduction" not in access_type and "license" not in access_type:
                 continue
@@ -175,19 +176,20 @@ class ModsXmlParser(PayloadParser):
 
     @classmethod
     def _language(cls, mods: lxml.etree._Element) -> str | None:
-        for term in mods.iter(f"{{{_MODS_NS}}}languageTerm"):
-            text = cls._text(term)
-            if text:
-                return text
+        for language in mods.findall(f"{{{_MODS_NS}}}language"):
+            for term in language.findall(f"{{{_MODS_NS}}}languageTerm"):
+                text = cls._text(term)
+                if text:
+                    return text
         return None
 
     @classmethod
     def _names(cls, mods: lxml.etree._Element) -> list[ModsName]:
         names: list[ModsName] = []
-        for name_el in mods.iter(f"{{{_MODS_NS}}}name"):
+        for name_el in mods.findall(f"{{{_MODS_NS}}}name"):
             role_codes = [
                 code
-                for role_term in name_el.iter(f"{{{_MODS_NS}}}roleTerm")
+                for role_term in name_el.findall(f".//{{{_MODS_NS}}}roleTerm")
                 if (role_term.get("type") or "").lower() == "code"
                 for code in [(cls._text(role_term) or "").strip()]
                 if code
@@ -231,10 +233,11 @@ class ModsXmlParser(PayloadParser):
     @classmethod
     def _keywords(cls, mods: lxml.etree._Element) -> list[str]:
         keywords: list[str] = []
-        for topic in mods.iter(f"{{{_MODS_NS}}}topic"):
-            text = cls._text(topic)
-            if text:
-                keywords.append(text)
+        for subject in mods.findall(f"{{{_MODS_NS}}}subject"):
+            for topic in subject.findall(f"{{{_MODS_NS}}}topic"):
+                text = cls._text(topic)
+                if text:
+                    keywords.append(text)
         return keywords
 
     @classmethod

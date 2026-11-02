@@ -53,13 +53,18 @@ def test_mycore_rest_protocol_paginates_with_after_id() -> None:
             return [item async for item in protocol.discover()]
 
     results = asyncio.run(run())
-    urls = [item.url for item in results if isinstance(item, UrlDiscoveryResult)]
-    assert urls == [
+    discovered = [item for item in results if isinstance(item, UrlDiscoveryResult)]
+    assert [item.url for item in discovered] == [
+        "https://www.openagrar.de/receive/openagrar_mods_0001",
+        "https://www.openagrar.de/receive/openagrar_mods_0002",
+        "https://www.openagrar.de/receive/openagrar_mods_0003",
+    ]
+    assert [item.fetch_url for item in discovered] == [
         "https://www.openagrar.de/api/v2/objects/openagrar_mods_0001",
         "https://www.openagrar.de/api/v2/objects/openagrar_mods_0002",
         "https://www.openagrar.de/api/v2/objects/openagrar_mods_0003",
     ]
-    assert all(isinstance(item, UrlDiscoveryResult) and item.harvest_source_id for item in results)
+    assert all(item.harvest_source_id for item in discovered)
 
 
 def test_mycore_rest_protocol_get_expected_count() -> None:
@@ -87,12 +92,17 @@ def test_mycore_rest_protocol_fixture_list_path_derives_objects_base() -> None:
 
     transport = httpx.MockTransport(handler)
 
-    async def run() -> list[str]:
+    async def run() -> list[UrlDiscoveryResult]:
         async with NiceHttpClient(_TEST_HTTP, transport=transport) as client:
             protocol = MycoreRestProtocol(config, client)
-            return [item.url async for item in protocol.discover() if isinstance(item, UrlDiscoveryResult)]
+            return [item async for item in protocol.discover() if isinstance(item, UrlDiscoveryResult)]
 
-    assert asyncio.run(run()) == [
+    discovered = asyncio.run(run())
+    assert [item.url for item in discovered] == [
+        "http://localhost:8080/receive/openagrar_mods_0001",
+        "http://localhost:8080/receive/openagrar_mods_0002",
+    ]
+    assert [item.fetch_url for item in discovered] == [
         "http://localhost:8080/api/v2/objects/openagrar_mods_0001",
         "http://localhost:8080/api/v2/objects/openagrar_mods_0002",
     ]

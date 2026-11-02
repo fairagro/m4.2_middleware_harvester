@@ -98,6 +98,34 @@ def test_mods_xml_parser_openagrar_fixture() -> None:
     assert "pith diameter" in (record.abstract or "").lower()
 
 
+def test_mods_xml_parser_skips_related_item_names() -> None:
+    """Direct-child extraction must not duplicate authors nested under relatedItem."""
+    xml = b"""<?xml version="1.0"?>
+<mycoreobject ID="dup">
+  <metadata>
+    <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+      <mods:titleInfo><mods:title>Main Title</mods:title></mods:titleInfo>
+      <mods:name type="personal">
+        <mods:namePart type="family">Alpha</mods:namePart>
+        <mods:namePart type="given">Ann</mods:namePart>
+      </mods:name>
+      <mods:relatedItem type="host">
+        <mods:titleInfo><mods:title>Host Title</mods:title></mods:titleInfo>
+        <mods:name type="personal">
+          <mods:namePart type="family">Alpha</mods:namePart>
+          <mods:namePart type="given">Ann</mods:namePart>
+        </mods:name>
+      </mods:relatedItem>
+    </mods:mods>
+  </metadata>
+</mycoreobject>
+"""
+    record = ModsXmlParser().parse_object_xml(xml, discovery_identifier="dup")
+    assert record.title == "Main Title"
+    assert len(record.names) == 1
+    assert record.names[0].family == "Alpha"
+
+
 def test_mods_xml_parser_requires_client_for_url() -> None:
     parser = ModsXmlParser()
 

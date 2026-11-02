@@ -41,7 +41,7 @@ class MycoreRestProtocolConfig(ProtocolTypeConfig):
             description="Page size written as the ``limit`` query parameter.",
             ge=1,
         ),
-    ] = 200
+    ] = 1000
 
 
 @Protocol.register(ProtocolType.mycore_rest)
@@ -71,6 +71,7 @@ class MycoreRestProtocol(Protocol):
 
     async def _discover(self, client: NiceHttpClient) -> AsyncGenerator[DiscoveryResult | RecordProcessingError, None]:
         objects_base = self._objects_collection_url(self._entry_url)
+        receive_base = self._receive_base_url(self._entry_url)
         after_id: str | None = None
 
         while True:
@@ -91,9 +92,11 @@ class MycoreRestProtocol(Protocol):
                     )
                     continue
                 stripped = object_id.strip()
+                # Landing page stays identity/source_url; REST object URL is fetch-only (#507 D2).
                 yield UrlDiscoveryResult(
-                    f"{objects_base}/{stripped}",
+                    f"{receive_base}/{stripped}",
                     harvest_source_id=stripped,
+                    fetch_url=f"{objects_base}/{stripped}",
                 )
 
             if len(ids) < self._page_size or last_id is None:
@@ -138,10 +141,6 @@ class MycoreRestProtocol(Protocol):
 
     @staticmethod
     def _object_ids_from_list(root: lxml.etree._Element) -> list[str]:
-        local = lxml.etree.QName(root).localname if root.tag is not None else ""
-        if local not in {"mycoreobjects", "mycoreobject"}:
-            # Tolerate a document element that still contains mycoreobject children.
-            pass
         ids: list[str] = []
         for node in root.iter():
             if lxml.etree.QName(node).localname != "mycoreobject":
@@ -178,3 +177,11 @@ class MycoreRestProtocol(Protocol):
         marker = "/objects"
         collection_path = path[: path.index(marker) + len(marker)] if marker in path else path
         return urlunparse((parsed_url.scheme, parsed_url.netloc, collection_path, "", "", ""))
+
+    @staticmethod
+    def _receive_base_url(entry_url: str) -> str:
+        """Return ``{scheme}://{netloc}/receive`` for landing-page identity URLs."""
+        parsed_url = urlparse(entry_url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise ValueError(f"Invalid entry URL: {entry_url}")
+        return urlunparse((parsed_url.scheme, parsed_url.netloc, "/receive", "", "", ""))

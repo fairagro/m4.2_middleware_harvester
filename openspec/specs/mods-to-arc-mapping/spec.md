@@ -30,11 +30,18 @@ For OpenAgrar-class MODS research-data records, `mods_general` SHALL map at leas
 (with optional GND/ORCID identifiers and affiliation when present), DOI identifier, licence / use-and- reproduction URI,
 and publication / issued date — sufficient to meet or exceed the ARC coverage previously obtained via
 `schema_org_general` on OpenAgrar HTML JSON-LD for the same objects, plus DOI and licence when present in MODS.
+`Investigation.Identifier` SHALL prefer the MyCoRe object id (`harvest_source_id` / record object id) over the DOI so
+existing OpenAgrar ARCs are updated in place.
 
 #### Scenario: DOI and licence surface when present in MODS
 
 - **WHEN** MODS contains a DOI identifier and an accessCondition / licence URI
-- **THEN** the harvested ARC includes corresponding identifier and licence information per `docs/mappers/mods.md`
+- **THEN** the harvested ARC includes corresponding publication DOI and licence information per `docs/mappers/mods.md`
+
+#### Scenario: Object id wins over DOI for Investigation.Identifier
+
+- **WHEN** both a MyCoRe object id and a DOI are available
+- **THEN** `Investigation.Identifier` is derived from the object id (not the DOI)
 
 ### Requirement: Authoritative mapping doc
 

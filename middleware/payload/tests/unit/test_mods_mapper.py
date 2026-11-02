@@ -45,19 +45,19 @@ def test_mods_mapper_maps_doi_licence_title_creators() -> None:
         datafile_names=["Raw_data.xlsx"],
     )
     context = MappingContext(
-        source_url="https://www.openagrar.de/api/v2/objects/fixture_mods_1",
+        source_url="https://www.openagrar.de/receive/fixture_mods_1",
         harvest_source_id="fixture_mods_1",
     )
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
     assert "Trap nest" in (arc.Title or "")
     assert arc.Description == "Dataset abstract"
-    assert "10_5073" in arc.Identifier
+    assert arc.Identifier == "fixture_mods_1"
     assert arc.Publications and arc.Publications[0].DOI == "10.5073/20250926-163035-0"
     assert len(list(arc.Contacts)) == 2
     assert arc.Contacts[0].FirstName == "Jana"
     assert arc.Contacts[0].ORCID == "0009-0004-2610-6724"
     assert arc.License is not None
-    assert "cc_by_4.0" in arc.License.Content
+    assert "creativecommons.org/licenses/by/4.0" in arc.License.Content
 
 
 def test_mods_mapper_openagrar_fixture_parity_fields() -> None:
@@ -68,13 +68,15 @@ def test_mods_mapper_openagrar_fixture_parity_fields() -> None:
         discovery_identifier="openagrar_mods_00110150",
     )
     context = MappingContext(
-        source_url="https://www.openagrar.de/api/v2/objects/openagrar_mods_00110150",
+        source_url="https://www.openagrar.de/receive/openagrar_mods_00110150",
         harvest_source_id="openagrar_mods_00110150",
     )
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
     assert arc.Title and "Pemphredon lethifer" in arc.Title
+    assert arc.Identifier == "openagrar_mods_00110150"
     assert arc.Publications and arc.Publications[0].DOI == "10.5073/20250926-163035-0"
     assert arc.License is not None
+    assert "creativecommons.org/licenses/by/4.0" in arc.License.Content
     assert any(c.FirstName == "Jana" for c in arc.Contacts)
     assert arc.PublicReleaseDate == "2026-08-03"
 
