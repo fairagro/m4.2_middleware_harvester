@@ -7,6 +7,17 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Base version bump (auto = Conventional Commits via git-cliff; RC suffix still applied on build/*)'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+        - auto
+        - major
+        - minor
+        - patch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +37,7 @@ jobs:
     name: Build
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-build.yml@main
     with:
-      version_bump: 'patch'
+      version_bump: ${{ inputs.version_bump }}
       components: '["harvester"]'
       image_base_name: fairagro-advanced-middleware
     secrets: inherit
