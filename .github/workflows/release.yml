@@ -9,11 +9,12 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: 'Version bump type (only allowed on main branch)'
+        description: 'Version bump (auto = Conventional Commits via git-cliff; only on main)'
         required: true
-        default: 'patch'
+        default: 'auto'
         type: choice
         options:
+        - auto
         - major
         - minor
         - patch
