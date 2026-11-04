@@ -22,7 +22,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
-from middleware.payload.mapper_config import MapperConfig
+from middleware.payload.mapper_config import CkanextDcatMapperConfig, MapperConfig
 from middleware.payload.placeholders import PlaceholderConfig
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
@@ -251,7 +251,7 @@ def test_ckanext_dcat_mapper_omits_spatial_extent_without_dct_spatial() -> None:
 
 
 def test_ckanext_dcat_mapper_from_config_applies_spatial_extent_max_chars() -> None:
-    config = MapperConfig(ckanext_dcat={"spatial_extent_max_chars": 50})
+    config = MapperConfig(ckanext_dcat=CkanextDcatMapperConfig(spatial_extent_max_chars=50))
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))
