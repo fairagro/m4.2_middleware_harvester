@@ -14,10 +14,9 @@ are mapped to the ISA (Investigation, Study, Assay) model used by ARC.
   [`openspec/specs/ckanext-dcat-to-arc-mapping/`](../../openspec/specs/ckanext-dcat-to-arc-mapping/)
 - Protocol: [`openspec/specs/dcat-ap-protocol/`](../../openspec/specs/dcat-ap-protocol/)
 
-> [!NOTE] Nothing RDI-specific is hardcoded. Catalog provenance is added by the middleware API from its `known_rdis`
-> registry (`RDI` / `RDI Description` / `RDI URL` comments); the repository `mapper.catalog_name` / `mapper.catalog_url`
-> fields are **deprecated** (#461, removal in #471) and log a warning at config load. Field access uses StableGraph /
-> ResourceView; this document speaks DCAT-AP / DCTERMS / FOAF / vCard predicates, not StableGraph APIs.
+> [!NOTE] Nothing RDI-specific is hardcoded. Catalog / RDI provenance is added by the middleware API from its
+> `known_rdis` registry (`RDI` / `RDI Description` / `RDI URL` comments). Field access uses StableGraph / ResourceView;
+> this document speaks DCAT-AP / DCTERMS / FOAF / vCard predicates, not StableGraph APIs.
 
 ## Concept
 
@@ -28,11 +27,10 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Identity
 
-| Source field / config             | Description                   | ARC Mapping                                                                                   |
-| --------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------- |
-| **Dataset subject IRI**           | `dcat:Dataset` node           | `Investigation.Identifier` (sanitized IRI); fallback slug of title; fail closed if both empty |
-| **`dcterms:title`**               | Dataset title                 | `Investigation.Title` / Study / Assay title; required — fail closed if missing                |
-| **`mapper.catalog_name` / `url`** | Deprecated catalog provenance | `Investigation.Comment("Data Catalog")` — `Name (URL)`, or either alone when only one is set  |
+| Source field / config   | Description         | ARC Mapping                                                                                   |
+| ----------------------- | ------------------- | --------------------------------------------------------------------------------------------- |
+| **Dataset subject IRI** | `dcat:Dataset` node | `Investigation.Identifier` (sanitized IRI); fallback slug of title; fail closed if both empty |
+| **`dcterms:title`**     | Dataset title       | `Investigation.Title` / Study / Assay title; required — fail closed if missing                |
 
 ## Investigation
 
@@ -49,7 +47,6 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 | **`dcterms:publisher`**   | Publisher org          | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                      |
 | **`dcat:contactPoint`**   | Contact                | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                   |
 | **`dcterms:spatial`**     | Spatial extent present | `Investigation.Comment("Spatial Extent")` fixed text pointing at the RDI                                   |
-| **(config) Data Catalog** | Catalog name/URL       | `Investigation.Comment("Data Catalog")`                                                                    |
 | **(fixed)**               | Ontology source        | `OntologySourceReferences` entry for DCAT                                                                  |
 
 **Contacts.** `Investigation.Contacts` stays empty today (ckanext-dcat exposes org-level publisher/contactPoint only).
@@ -93,15 +90,14 @@ with keys `maintainer_name` / `author_name` / `name` and `maintainer_email` / `a
 2. **Identifier:** sanitized dataset IRI → title slug; fail closed if both empty (never `untitled`).
 3. **Assay Output URI:** first distribution access/download URL; no URL → no `Output [URI]` column (the dataset IRI is
    never used).
-4. **Catalog comment:** `name (url)` → name only → url only → omit.
-5. **Assay table:** no `Input [Source Name]` column (the dataset is not a sample); a dataset whose distributions give no
+4. **Assay table:** no `Input [Source Name]` column (the dataset is not a sample); a dataset whose distributions give no
    URL, title, format or licence gets no `Measurement` table at all.
 
 ## Refusal / skip rules
 
-| Condition                                      | Behaviour                      |
-| ---------------------------------------------- | ------------------------------ |
-| No `dcat:Dataset` in the graph                 | `ValueError`                   |
-| Missing `dcterms:title`                        | `ValueError` (no `"Untitled"`) |
-| Missing optional DCAT fields                   | Omitted comments / columns     |
-| Blank `catalog_name` / `catalog_url` in config | Treated as unset               |
+| Condition                       | Behaviour                                  |
+| ------------------------------- | ------------------------------------------ |
+| No `dcat:Dataset` in the graph  | `ValueError`                               |
+| Missing `dcterms:title`         | `ValueError` (no `"Untitled"`)             |
+| Missing optional DCAT fields    | Omitted comments / columns                 |
+| `mapper.ckanext_dcat.catalog_*` | Config validation fails (`extra="forbid"`) |

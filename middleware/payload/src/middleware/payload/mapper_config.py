@@ -17,12 +17,6 @@ _LEGACY_MAPPER_TYPE_MSG = (
     "(e.g. mapper: { regal_general: { resource_base_url: … } }). "
     "Support for mapper.type will be removed in a future release."
 )
-_LEGACY_CATALOG_FIELDS_MSG = (
-    "mapper.ckanext_dcat.catalog_name / mapper.ckanext_dcat.catalog_url are deprecated "
-    "(legacy flat mapper.catalog_* still lifts); catalog provenance is added by the "
-    "middleware API from its known_rdis registry (RDI / RDI Description / RDI URL comments). "
-    "Remove these keys from the repository config; support will be removed in a future release."
-)
 
 
 class MapperType(StrEnum):
@@ -40,7 +34,6 @@ _MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
 
 _MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
     "regal_general": frozenset({"resource_base_url"}),
-    "ckanext_dcat": frozenset({"catalog_name", "catalog_url"}),
     "inspire_general": frozenset({"individual_name_is_organisation"}),
 }
 
@@ -101,50 +94,7 @@ class ModsGeneralMapperConfig(MapperTypeConfig):
 
 
 class CkanextDcatMapperConfig(MapperTypeConfig):
-    """Type settings for ``ckanext_dcat``."""
-
-    catalog_name: Annotated[
-        str | None,
-        Field(
-            description=(
-                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
-                "Optional display name of the source RDI's data catalog. Used by DCAT-AP "
-                "mappers to record catalog provenance."
-            ),
-            deprecated=True,
-        ),
-    ] = None
-    catalog_url: Annotated[
-        HttpUrl | None,
-        Field(
-            description=(
-                "Deprecated: catalog provenance comes from the middleware API's known_rdis. "
-                "Optional http(s) URL of the source RDI's data catalog. Used by DCAT-AP mappers."
-            ),
-            deprecated=True,
-        ),
-    ] = None
-
-    @field_validator("catalog_url", mode="before")
-    @classmethod
-    def _blank_url_as_none(cls, value: object) -> object:
-        if isinstance(value, str) and not value.strip():
-            return None
-        return value
-
-    @field_validator("catalog_name", mode="before")
-    @classmethod
-    def _blank_catalog_name_as_none(cls, value: object) -> object:
-        if isinstance(value, str) and not value.strip():
-            return None
-        return value
-
-    @model_validator(mode="after")
-    def _warn_deprecated_catalog_fields(self) -> Self:
-        """Warn when deprecated catalog provenance fields are still set (behaviour unchanged)."""
-        if self.__dict__.get("catalog_name") is not None or self.__dict__.get("catalog_url") is not None:
-            logger.warning(_LEGACY_CATALOG_FIELDS_MSG)
-        return self
+    """Type settings for ``ckanext_dcat`` (none today; catalog provenance is API ``known_rdis``)."""
 
 
 class MapperConfig(BaseModel):
@@ -254,20 +204,6 @@ class MapperConfig(BaseModel):
         if self.regal_general is None:
             return None
         return self.regal_general.resource_base_url
-
-    @property
-    def catalog_name(self) -> str | None:
-        """Catalog display name when active type is ``ckanext_dcat``."""
-        if self.ckanext_dcat is None:
-            return None
-        return self.ckanext_dcat.__dict__.get("catalog_name")
-
-    @property
-    def catalog_url(self) -> HttpUrl | None:
-        """Catalog URL when active type is ``ckanext_dcat``."""
-        if self.ckanext_dcat is None:
-            return None
-        return self.ckanext_dcat.__dict__.get("catalog_url")
 
     @property
     def individual_name_is_organisation(self) -> bool:
