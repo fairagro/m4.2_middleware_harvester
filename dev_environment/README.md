@@ -79,8 +79,8 @@ key for one of the recipients in [`.sops.yaml`](../.sops.yaml). Without those, u
 `config.all-rdis.yaml` lists every RDI that can currently be harvested — bonares (INSPIRE/CSW), e!DAL, publisso, SRADI,
 PlabiPD, and PhenoRoam — plus the OpenAgrar fixture. It points at the mock API, so it can be run from source against all
 of them without credentials. Note it uses `repository-e.dataservice.zalf.de` for bonares: the `repository-staging...`
-host in `config.yaml` no longer resolves. Sitemap / Solr / Regal / DCAT / PubPlant sources use `generic:` (see
-[`docs/linked_data_to_generic.md`](../docs/linked_data_to_generic.md)).
+host in `config.yaml` no longer resolves. Sitemap / Solr / Regal / DCAT / PubPlant sources use `generic:` (migration
+from the removed `linked_data:` key: [`docs/linked_data_to_generic.md`](../docs/linked_data_to_generic.md)).
 
 Real OpenAgrar is commented out there. Every path the harvester uses — record pages, `servlets/solr/select`, and the
 `sitemap_google.xml` in `robots.txt` — redirects to a proof-of-work challenge, so it cannot be harvested. Tracked in
@@ -110,16 +110,16 @@ performed.
 
 ## Configuration
 
-| File                                                                  | Purpose                                                              |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `config.fixtures.yaml`                                                | Fixture RDI only, addressed via `localhost`                          |
-| `config.fixtures.container.yaml`                                      | Same, addressed via compose service names                            |
-| `config.all-rdis.yaml`                                                | Every harvestable RDI plus the fixture, against the mock API         |
-| `config.demo.yaml`                                                    | Public GeoNode CSW, five records                                     |
-| `config.yaml`                                                         | Real RDIs against `middleware-test`, used by `compose.yaml`          |
-| `config.local.yaml`                                                   | Older local variant; not referenced by any compose file              |
-| `config_example.yaml`                                                 | Reference config with commented examples for every source type       |
-| [`docs/linked_data_to_generic.md`](../docs/linked_data_to_generic.md) | Operator mapping from deprecated `linked_data:` to nested `generic:` |
+| File                                                                  | Purpose                                                           |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `config.fixtures.yaml`                                                | Fixture RDI only, addressed via `localhost`                       |
+| `config.fixtures.container.yaml`                                      | Same, addressed via compose service names                         |
+| `config.all-rdis.yaml`                                                | Every harvestable RDI plus the fixture, against the mock API      |
+| `config.demo.yaml`                                                    | Public GeoNode CSW, five records                                  |
+| `config.yaml`                                                         | Real RDIs against `middleware-test`, used by `compose.yaml`       |
+| `config.local.yaml`                                                   | Older local variant; not referenced by any compose file           |
+| `config_example.yaml`                                                 | Reference config with commented examples for every source type    |
+| [`docs/linked_data_to_generic.md`](../docs/linked_data_to_generic.md) | Operator mapping from removed `linked_data:` to nested `generic:` |
 
 Any YAML leaf can be overridden by an environment variable, joining nested keys with `_` — for example
 `API_CLIENT_API_URL=http://localhost:8000`. Values can also be supplied as files under `/run/secrets/<lowercase_key>`.

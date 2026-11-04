@@ -98,10 +98,6 @@ class RepositoryConfig(BaseModel):
         Field(description="Shared PayloadParser selection (required for generic and oai_pmh)."),
     ] = None
 
-    def _plugin_attr(self, name: str) -> object | None:
-        """Read a plugin field via ``__dict__``."""
-        return self.__dict__.get(name)
-
     @model_validator(mode="before")
     @classmethod
     def lift_omitted_mapper(cls, data: object) -> object:
@@ -119,9 +115,8 @@ class RepositoryConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
         """Ensure exactly one plugin key is set (``mapper`` / ``parser`` are not plugins)."""
-        all_field_names: list[str] = list(self.__class__.model_fields)
-        plugin_fields = [name for name in all_field_names if name not in _NON_PLUGIN_FIELDS]
-        set_fields = [f for f in plugin_fields if self._plugin_attr(f) is not None]
+        plugin_fields = [name for name in self.__class__.model_fields if name not in _NON_PLUGIN_FIELDS]
+        set_fields = [name for name in plugin_fields if getattr(self, name) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
         return self
@@ -225,13 +220,16 @@ class RepositoryConfig(BaseModel):
     @property
     def plugin_type(self) -> str:
         """The active plugin type name (derived dynamically from model_fields)."""
-        all_field_names: list[str] = list(self.__class__.model_fields)
-        return next(f for f in all_field_names if f not in _NON_PLUGIN_FIELDS and self._plugin_attr(f) is not None)
+        return next(
+            name
+            for name in self.__class__.model_fields
+            if name not in _NON_PLUGIN_FIELDS and getattr(self, name) is not None
+        )
 
     @property
     def plugin_config(self) -> PluginConfig:
         """The active plugin configuration object."""
-        return cast(PluginConfig, self._plugin_attr(self.plugin_type))
+        return cast(PluginConfig, getattr(self, self.plugin_type))
 
     @property
     def source_url(self) -> str | None:
