@@ -26,11 +26,10 @@ harvest paths already run via `generic` + Protocol/Parser/Mapper. Infra Publisso
    `middleware/linked_data` imports it. Drop the package from the uv workspace, harvester dependency, quality path
    lists, and tests. Alternative: keep the package unregistered — rejected; dead code and import-linter noise.
 
-2. **Remove the Pydantic field (fail closed on unknown key / explicit reject)** — Prefer removing
-   `RepositoryConfig.linked_data` so a leftover YAML key fails model validation. Add a focused `model_validator` or
-   pre-parse check **only if** the default extra-forbid message is too opaque; message MUST name `generic:` +
-   `docs/linked_data_to_generic.md`. Alternative: keep the field and always raise — rejected; invites reintroducing the
-   type.
+2. **Remove the Pydantic field; forbid extras** — Drop `RepositoryConfig.linked_data` entirely. Set `extra="forbid"` so
+   leftover YAML keys (including former `linked_data:`) fail as unknown fields — no linked_data-specific validator or
+   migration-only error string in code. Operator migration stays in `docs/linked_data_to_generic.md`. Alternative:
+   custom reject validator naming `generic:` — rejected; that is still a special-case for a removed key.
 
 3. **Delete deprecation / lift paths with the field** — Remove `warn_deprecated_linked_data_plugin`,
    `linked_data.payload_type` lift, `validate_mapper_for_linked_data`, and resource_base_url conflict checks that only

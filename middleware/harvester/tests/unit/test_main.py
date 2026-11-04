@@ -28,9 +28,9 @@ def _make_repo(plugin_type: str = "inspire") -> MagicMock:
     repo.plugin_config = MagicMock()
     repo.rdi = f"{plugin_type}-rdi"
     repo.source_url = f"https://example.test/{plugin_type}"
-    # Avoid MagicMock auto-attrs making every plugin look like linked_data.
-    repo.linked_data = MagicMock() if plugin_type == "linked_data" else None
     repo.inspire = MagicMock() if plugin_type == "inspire" else None
+    repo.generic = MagicMock() if plugin_type == "generic" else None
+    repo.parser = MagicMock() if plugin_type in {"generic", "oai_pmh"} else None
     repo.mapper = MagicMock(type="inspire_general" if plugin_type == "inspire" else "schema_org_general")
     return repo
 
@@ -65,7 +65,7 @@ class SuccessPlugin:
 class FailingPlugin:
     """A plugin that fails during iteration."""
 
-    def __init__(self, config: object, _mapper_config: object | None = None) -> None:
+    def __init__(self, config: object, *_args: object) -> None:
         """Initialize the failing plugin with its configuration."""
         self._config = config
 
@@ -87,7 +87,7 @@ async def _run_orchestrator_with_test_plugins(
     with (
         patch(
             "middleware.harvester.orchestrator.PLUGIN_FACTORIES",
-            {"inspire": SuccessPlugin, "linked_data": FailingPlugin},
+            {"inspire": SuccessPlugin, "generic": FailingPlugin},
         ),
         patch("middleware.harvester.orchestrator.ApiClient", return_value=mock_client),
         patch.object(SuccessPlugin, "get_expected_datasets", AsyncMock(return_value=expected_datasets)),
@@ -312,7 +312,7 @@ async def test_skipped_record_items_are_counted_and_not_uploaded() -> None:
 
 @pytest.mark.asyncio
 async def test_run_orchestrator_gathers_repositories_and_uses_expected_datasets() -> None:
-    repos = [_make_repo("inspire"), _make_repo("linked_data")]
+    repos = [_make_repo("inspire"), _make_repo("generic")]
     mock_config = MagicMock()
     mock_config.repositories = repos
     mock_config.api_client = MagicMock()

@@ -103,28 +103,18 @@ def test_nice_http_client_config_defaults_to_respect_robots_txt() -> None:
 # Connection limits are now configured per-plugin where supported.
 
 
-def _minimal_linked_data() -> dict[str, object]:
-    return {
-        "sitemap_url": "https://example.org/sitemap.xml",
-        "sitemap_type": "xml",
-        "dataset_type": "html_jsonld",
-    }
-
-
-def test_linked_data_repository_requires_mapper() -> None:
-    with pytest.raises(ValidationError, match="mapper"):
-        RepositoryConfig.model_validate({"rdi": "ld", "linked_data": _minimal_linked_data()})
-
-
-def test_linked_data_repository_accepts_schema_org_mapper() -> None:
-    repo = RepositoryConfig.model_validate({
-        "rdi": "ld",
-        "linked_data": _minimal_linked_data(),
-        "mapper": {"type": "schema_org_general"},
-    })
-    assert repo.plugin_type == "linked_data"
-    assert repo.mapper is not None
-    assert repo.mapper.type == "schema_org_general"
+def test_unknown_repository_plugin_key_is_forbidden() -> None:
+    """Former plugin keys (e.g. linked_data) are unknown fields — no special-case validator."""
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        RepositoryConfig.model_validate({
+            "rdi": "ld",
+            "linked_data": {
+                "sitemap_url": "https://example.org/sitemap.xml",
+                "sitemap_type": "xml",
+                "dataset_type": "html_jsonld",
+            },
+            "mapper": {"type": "schema_org_general"},
+        })
 
 
 def test_repository_accepts_nested_mapper_and_parser_type_as_key() -> None:
@@ -142,15 +132,6 @@ def test_repository_accepts_nested_mapper_and_parser_type_as_key() -> None:
     assert repo.mapper.type == "schema_org_general"
     assert repo.parser is not None
     assert repo.parser.type == "html_jsonld"
-
-
-def test_linked_data_repository_rejects_unknown_mapper_type() -> None:
-    with pytest.raises(ValidationError):
-        RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": _minimal_linked_data(),
-            "mapper": {"type": "not_a_real_mapper"},
-        })
 
 
 def test_inspire_repository_omitted_mapper_defaults_to_inspire_general(caplog: pytest.LogCaptureFixture) -> None:
@@ -236,128 +217,6 @@ def test_generic_mapper_placeholders_do_not_warn(caplog: pytest.LogCaptureFixtur
     assert not any(_INSPIRE_PLACEHOLDERS_MSG in record.message for record in caplog.records)
 
 
-def test_legacy_payload_type_lifts_to_mapper(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING):
-        repo = RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
-        })
-    assert repo.mapper is not None
-    assert repo.mapper.type == "schema_org_general"
-    assert repo.linked_data is not None
-    assert repo.linked_data.__dict__.get("payload_type") == "schema_org_general"
-    assert any("payload_type is deprecated" in record.message for record in caplog.records)
-
-
-def test_legacy_payload_type_matching_mapper_still_warns(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING):
-        repo = RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
-            "mapper": {"type": "schema_org_general"},
-        })
-    assert repo.mapper is not None
-    assert repo.mapper.type == "schema_org_general"
-    assert any("payload_type is deprecated" in record.message for record in caplog.records)
-
-
-def test_legacy_payload_type_conflicts_with_mapper() -> None:
-    with pytest.raises(ValidationError, match=r"conflicts with mapper\."):
-        RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": {**_minimal_linked_data(), "payload_type": "schema_org_general"},
-            "mapper": {"type": "regal_general"},
-        })
-
-
-def test_linked_data_plugin_key_emits_deprecation_warning(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING):
-        repo = RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": _minimal_linked_data(),
-            "mapper": {"type": "schema_org_general"},
-        })
-    assert repo.linked_data is not None
-    assert any("linked_data: plugin key is deprecated" in record.message for record in caplog.records)
-    assert any("generic:" in record.message for record in caplog.records)
-
-
-def test_generic_repository_skips_linked_data_plugin_key_warning(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level(logging.WARNING):
-        RepositoryConfig.model_validate({
-            "rdi": "gen",
-            "generic": {
-                "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
-            },
-            "parser": {"type": "html_jsonld"},
-            "mapper": {"type": "schema_org_general"},
-        })
-    assert not any("linked_data: plugin key is deprecated" in record.message for record in caplog.records)
-
-
-def test_linked_data_mycore_solr_is_rejected() -> None:
-    with pytest.raises(ValidationError):
-        RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": {
-                **_minimal_linked_data(),
-                "sitemap_url": "https://example.org/servlets/solr/select",
-                "sitemap_type": "mycore_solr",
-            },
-            "mapper": {"type": "schema_org_general"},
-        })
-
-
-def test_linked_data_xml_and_regal_find_still_load() -> None:
-    xml_repo = RepositoryConfig.model_validate({
-        "rdi": "ld-xml",
-        "linked_data": _minimal_linked_data(),
-        "mapper": {"type": "schema_org_general"},
-    })
-    regal_repo = RepositoryConfig.model_validate({
-        "rdi": "ld-regal",
-        "linked_data": {
-            **_minimal_linked_data(),
-            "sitemap_type": "regal_find",
-            "dataset_type": "regal_jsonld",
-        },
-        "mapper": {"type": "regal_general"},
-    })
-    assert xml_repo.linked_data is not None
-    assert xml_repo.linked_data.sitemap_type.value == "xml"
-    assert regal_repo.linked_data is not None
-    assert regal_repo.linked_data.sitemap_type.value == "regal_find"
-
-
-def test_resource_base_url_conflict_between_linked_data_and_mapper() -> None:
-    with pytest.raises(ValidationError, match="resource_base_url .* conflicts"):
-        RepositoryConfig.model_validate({
-            "rdi": "ld",
-            "linked_data": {
-                **_minimal_linked_data(),
-                "sitemap_type": "regal_find",
-                "dataset_type": "regal_jsonld",
-                "resource_base_url": "https://a.example/resource/",
-            },
-            "mapper": {"type": "regal_general", "resource_base_url": "https://b.example/resource/"},
-        })
-
-
-def test_resource_base_url_matching_linked_data_and_mapper_ok() -> None:
-    repo = RepositoryConfig.model_validate({
-        "rdi": "ld",
-        "linked_data": {
-            **_minimal_linked_data(),
-            "sitemap_type": "regal_find",
-            "dataset_type": "regal_jsonld",
-            "resource_base_url": "https://example.org/resource",
-        },
-        "mapper": {"type": "regal_general", "resource_base_url": "https://example.org/resource/"},
-    })
-    assert repo.mapper is not None
-    assert repo.mapper.normalize_resource_base_url() == "https://example.org/resource/"
-
-
 def _minimal_generic() -> dict[str, object]:
     return {
         "protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}},
@@ -397,14 +256,27 @@ def test_generic_repository_accepts_schema_org_mapper() -> None:
     assert repo.source_url == "https://example.org/sitemap.xml"
 
 
-def test_generic_and_linked_data_mutual_exclusion() -> None:
+def test_generic_and_inspire_mutual_exclusion() -> None:
     with pytest.raises(ValidationError, match="exactly one plugin key"):
         RepositoryConfig.model_validate({
             "rdi": "both",
             "generic": _minimal_generic(),
-            "linked_data": _minimal_linked_data(),
+            "inspire": {"csw_url": "https://csw.example.com"},
             "parser": {"type": "html_jsonld"},
             "mapper": {"type": "schema_org_general"},
+        })
+
+
+def test_resource_base_url_conflict_between_generic_and_mapper() -> None:
+    with pytest.raises(ValidationError, match="resource_base_url .* conflicts"):
+        RepositoryConfig.model_validate({
+            "rdi": "g",
+            "generic": {
+                "protocol": {"regal_find": {"entry_url": "https://example.org/resources/find"}},
+                "resource_base_url": "https://a.example/resource/",
+            },
+            "parser": {"type": "jsonld"},
+            "mapper": {"type": "regal_general", "resource_base_url": "https://b.example/resource/"},
         })
 
 

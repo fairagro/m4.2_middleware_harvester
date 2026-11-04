@@ -7,7 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "inspire",
     "harvester",
-    "linked_data",
     "generic",
     "oai_pmh",
     "parsing",
@@ -34,7 +33,6 @@ dev = [
 [tool.uv.sources]
 inspire = { workspace = true }
 harvester = { workspace = true }
-linked_data = { workspace = true }
 generic = { workspace = true }
 oai_pmh = { workspace = true }
 parsing = { workspace = true }
@@ -45,7 +43,6 @@ contracts = { workspace = true }
 members = [
     "middleware/inspire",
     "middleware/harvester",
-    "middleware/linked_data",
     "middleware/generic",
     "middleware/oai_pmh",
     "middleware/parsing",
@@ -62,7 +59,6 @@ members = [
 testpaths = [
     "middleware/inspire/tests",
     "middleware/harvester/tests",
-    "middleware/linked_data/tests",
     "middleware/generic/tests",
     "middleware/oai_pmh/tests",
     "middleware/parsing/tests",
@@ -72,13 +68,11 @@ testpaths = [
 pythonpath = [
     "middleware/inspire/src",
     "middleware/harvester/src",
-    "middleware/linked_data/src",
     "middleware/generic/src",
     "middleware/oai_pmh/src",
     "middleware/parsing/src",
     "middleware/payload/src",
     "middleware/contracts/src",
-    "middleware/linked_data/tests/unit",
     "middleware/inspire/tests/unit",
     "middleware/oai_pmh/tests/unit",
     "middleware/parsing/tests/unit",
@@ -121,7 +115,6 @@ filterwarnings = [
 source = [
     "middleware/inspire/src/middleware/inspire",
     "middleware/harvester/src/middleware/harvester",
-    "middleware/linked_data/src/middleware/linked_data",
     "middleware/generic/src/middleware/generic",
     "middleware/oai_pmh/src/middleware/oai_pmh",
     "middleware/parsing/src/middleware/parsing",

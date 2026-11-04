@@ -26,7 +26,7 @@ ProcessFn = Callable[
 DiscoveryErrorFn = Callable[[BaseException], HarvesterError]
 DiscoveryStream = AsyncIterable[DiscoveryResult | RecordProcessingError | SkippedRecord]
 
-# Catch plugin-specific HarvesterError subclasses (GenericError, LinkedDataError, …)
+# Catch plugin-specific HarvesterError subclasses (GenericError, …)
 # so both plugins can share this pipeline without forking the exception tuple.
 _DISCOVERY_EXCEPTIONS: tuple[type[BaseException], ...] = (
     HarvesterError,

@@ -9,7 +9,6 @@ dependencies = [
     "fairagro-middleware-api-client>=11.1.1.dev34",
     "fairagro-middleware-shared>=11.1.1.dev34",
     "inspire",
-    "linked_data",
     "generic",
     "oai_pmh",
     "parsing",

@@ -3,15 +3,14 @@
 ### Requirement: Reject the linked_data plugin key
 
 The system SHALL NOT accept the repository plugin key `linked_data`. Configuration that still sets `linked_data` MUST
-fail validation at startup. The error MUST direct operators to `generic` with nested `protocol` and sibling `parser` /
-`mapper` (migration documented in `docs/linked_data_to_generic.md`). Supported plugin keys remain `inspire`, `generic`,
-and `oai_pmh`.
+fail validation at startup as an unknown repository field (no dedicated `linked_data` field or migration-only
+validator). Supported plugin keys remain `inspire`, `generic`, and `oai_pmh`. Migration guidance for operators remains
+in `docs/linked_data_to_generic.md`.
 
 #### Scenario: linked_data repository is rejected
 
 - **WHEN** a repository entry sets `linked_data`
 - **THEN** configuration validation fails before harvest
-- **AND** the failure message names `generic` (or the migration doc) as the replacement path
 
 #### Scenario: generic repository still validates
 
