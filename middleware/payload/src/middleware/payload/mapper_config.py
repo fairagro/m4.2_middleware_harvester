@@ -12,7 +12,7 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SPATIAL_EXTENT_MAX_CHARS = 10_000
+DEFAULT_SPATIAL_EXTENT_MAX_CHARS = 15_000
 
 _LEGACY_MAPPER_TYPE_MSG = (
     "mapper.type is deprecated; use type-as-key under mapper: "

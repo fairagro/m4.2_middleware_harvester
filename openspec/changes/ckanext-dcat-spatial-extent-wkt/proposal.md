@@ -13,7 +13,7 @@ characters).
 
 - `Spatial Extent` carries the `locn:geometry` WKT literal(s) of the dataset's `dct:spatial` location verbatim; several
   distinct literals are sorted and joined with `"; "`.
-- A new `mapper.ckanext_dcat.spatial_extent_max_chars` setting (default 10,000) caps the comment. Above the cap, and
+- A new `mapper.ckanext_dcat.spatial_extent_max_chars` setting (default 15,000) caps the comment. Above the cap, and
   when the location has no WKT literal, the mapper keeps the placeholder; above the cap it logs a WARNING.
 - **Non-goals:** GeoJSON output, a separate geometry-type comment, `dcat:bbox` / `dcat:centroid`, schema.org `Place` /
   `GeoShape` modelling across RDIs, and SRADI's 4-decimal WKT rounding (provider side).

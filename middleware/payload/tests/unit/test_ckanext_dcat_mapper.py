@@ -268,14 +268,27 @@ def test_ckanext_dcat_mapper_from_config_applies_spatial_extent_max_chars() -> N
     assert wkt not in arc_json
 
 
+def test_ckanext_dcat_mapper_default_cap_keeps_a_12000_char_wkt() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 740 + "(0 0, 1 1, 2 2))"
+    assert 11_500 < len(wkt) < 15_000
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert _comment_text(arc_json, "Spatial Extent") == wkt
+
+
 def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))
-    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 700 + "(0 0, 1 1, 2 2))"
-    assert len(huge_wkt) > 10_000
+    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 1000 + "(0 0, 1 1, 2 2))"
+    assert len(huge_wkt) > 15_000
     graph.add((location, _LOCN.geometry, Literal(huge_wkt, datatype=_GSP.wktLiteral)))
 
     with caplog.at_level(logging.WARNING):

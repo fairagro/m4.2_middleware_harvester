@@ -50,13 +50,13 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 | **`dcat:contactPoint`**                            | Contact                         | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                                 |
 | **`dcterms:spatial`**                              | Spatial extent                  | `Investigation.Comment("Spatial Extent")`: WKT of the location (see Spatial Extent), else fixed text pointing at the RDI |
 | **(config) Data Catalog**                          | Catalog name/URL                | `Investigation.Comment("Data Catalog")`                                                                                  |
-| **`mapper.ckanext_dcat.spatial_extent_max_chars`** | WKT length cap (default 10,000) | A longer WKT keeps the fixed text and logs a WARNING (see Spatial Extent)                                                |
+| **`mapper.ckanext_dcat.spatial_extent_max_chars`** | WKT length cap (default 15,000) | A longer WKT keeps the fixed text and logs a WARNING (see Spatial Extent)                                                |
 | **(fixed)**                                        | Ontology source                 | `OntologySourceReferences` entry for DCAT                                                                                |
 
 **Spatial Extent.** The text is the `locn:geometry` literals typed `gsp:wktLiteral` of the `dcterms:spatial` location,
 copied verbatim. Several distinct literals are sorted and joined with `"; "`. GeoJSON literals are ignored. When the
 location has no WKT literal, or the (joined) WKT is longer than `mapper.ckanext_dcat.spatial_extent_max_chars` (default
-10,000 characters), the comment keeps the fixed text "Geographic extent provided by the source RDI (see the RDI
+15,000 characters), the comment keeps the fixed text "Geographic extent provided by the source RDI (see the RDI
 record)." and, for the over-cap case, a WARNING names the dataset and the length. A dataset without `dcterms:spatial`
 has no comment.
 

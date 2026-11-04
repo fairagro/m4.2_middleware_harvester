@@ -7,7 +7,7 @@
 When a `dcat:Dataset` has `dct:spatial`, the ckanext-dcat mapper MUST add the Investigation comment `Spatial Extent`.
 Its text MUST be the distinct `locn:geometry` literals typed `gsp:wktLiteral` of the `dct:spatial` location(s),
 verbatim, sorted and joined with `"; "`. When there is no such literal, or the joined text is longer than
-`mapper.ckanext_dcat.spatial_extent_max_chars` (default 10,000), the text MUST be the placeholder
+`mapper.ckanext_dcat.spatial_extent_max_chars` (default 15,000), the text MUST be the placeholder
 `Geographic extent provided by the source RDI (see the RDI record).`; over the cap the mapper MUST log a WARNING naming
 the dataset and the length. A dataset without `dct:spatial` MUST NOT get the comment.
 
