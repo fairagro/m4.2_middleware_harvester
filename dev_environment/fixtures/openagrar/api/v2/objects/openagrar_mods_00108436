@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mycoreobject xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="datamodel-mods.xsd" ID="openagrar_mods_00108436" version="2022.06.3-SNAPSHOT" label="openagrar_mods_00108436">
+  <structure>
+    <derobjects class="MCRMetaEnrichedLinkID">
+      <derobject inherited="0" xlink:type="locator" xlink:href="openagrar_derivate_00066774">
+        <order>1</order>
+        <maindoc>Metadaten_openagrar_mods_00108436_v1.pdf</maindoc>
+        <title xml:lang="de" inherited="0" form="plain">Metadaten</title>
+        <title xml:lang="en" inherited="0" form="plain">Metadata</title>
+        <classification classid="derivate_types" categid="data_documentation" />
+        <classification classid="mir_access" categid="unlimited" />
+      </derobject>
+    </derobjects>
+  </structure>
+  <metadata>
+    <def.modsContainer class="MCRMetaXML" heritable="false" notinherit="true">
+      <modsContainer inherited="0">
+        <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+          <mods:titleInfo xml:lang="en" xlink:type="simple">
+            <mods:title>(R)USLE C Factor Datasets for Germany</mods:title>
+          </mods:titleInfo>
+          <mods:titleInfo xml:lang="en" type="alternative" xlink:type="simple">
+            <mods:title>Mean C factors for municipalities based on agricultural statistic data (1999, 2003, 2007, 2010, 2016, 2020)</mods:title>
+          </mods:titleInfo>
+          <mods:titleInfo xml:lang="en" type="alternative" xlink:type="simple">
+            <mods:title>C factors for German cropland based on five-year crop sequences derived from crop type maps  (2017 - 2021; 2018 - 2022; 2019 - 2023)</mods:title>
+          </mods:titleInfo>
+          <mods:name type="personal" xlink:type="simple">
+            <mods:displayForm>Steinhoff-Knopp, Bastian</mods:displayForm>
+            <mods:namePart type="family">Steinhoff-Knopp</mods:namePart>
+            <mods:namePart type="given">Bastian</mods:namePart>
+            <mods:role>
+              <mods:roleTerm type="code" authority="marcrelator">aut</mods:roleTerm>
+            </mods:role>
+            <mods:affiliation>Thünen-Institute | Coordination Unit Climate, Soil, Biodiversity</mods:affiliation>
+            <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1112297235</mods:nameIdentifier>
+            <mods:nameIdentifier type="viaf" typeURI="https://viaf.org/viaf/">1084147270634235700008</mods:nameIdentifier>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-9926-8028</mods:nameIdentifier>
+          </mods:name>
+          <mods:classification generator="mir_genres2marcgt-mycore" authority="marcgt">database</mods:classification>
+          <mods:classification generator="mir_genres2diniPublType-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType" valueURI="http://www.mycore.org/classifications/diniPublType#ResearchData" />
+          <mods:classification generator="mir_genres2diniPublType2022-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType2022" valueURI="http://www.mycore.org/classifications/diniPublType2022#ResearchData" />
+          <mods:classification generator="mir_genres2schemaOrg-mycore" authorityURI="http://schema.org/" valueURI="http://schema.org/Dataset" />
+          <mods:classification generator="typeOfResource2dataciteResType-mycore" authorityURI="http://www.mycore.org/classifications/dataciteResType" valueURI="http://www.mycore.org/classifications/dataciteResType#dataset" />
+          <mods:classification generator="mir_licenses2dcat_license-mycore" authorityURI="https://www.openagrar.de/classifications/dcat_license" valueURI="https://www.openagrar.de/classifications/dcat_license#cc-by/4.0" />
+          <mods:name type="personal" xlink:type="simple">
+            <mods:displayForm>Neuenfeldt, Sebastian</mods:displayForm>
+            <mods:namePart type="family">Neuenfeldt</mods:namePart>
+            <mods:namePart type="given">Sebastian</mods:namePart>
+            <mods:role>
+              <mods:roleTerm type="code" authority="marcrelator">aut</mods:roleTerm>
+            </mods:role>
+            <mods:affiliation>Thünen-Institute of Farm Economics</mods:affiliation>
+            <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1018969896</mods:nameIdentifier>
+            <mods:nameIdentifier type="viaf" typeURI="https://viaf.org/viaf/">226099613</mods:nameIdentifier>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-7536-6635</mods:nameIdentifier>
+          </mods:name>
+          <mods:name type="personal" xlink:type="simple">
+            <mods:displayForm>Erasmi, Stefan</mods:displayForm>
+            <mods:namePart type="family">Erasmi</mods:namePart>
+            <mods:namePart type="given">Stefan</mods:namePart>
+            <mods:role>
+              <mods:roleTerm type="code" authority="marcrelator">aut</mods:roleTerm>
+            </mods:role>
+            <mods:affiliation>Thünen-Institute of Farm Economics</mods:affiliation>
+            <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">124078672</mods:nameIdentifier>
+            <mods:nameIdentifier type="viaf" typeURI="https://viaf.org/viaf/">52613647</mods:nameIdentifier>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-6393-6071</mods:nameIdentifier>
+          </mods:name>
+          <mods:name type="personal" xlink:type="simple">
+            <mods:displayForm>Saggau, Philipp</mods:displayForm>
+            <mods:namePart type="family">Saggau</mods:namePart>
+            <mods:namePart type="given">Philipp</mods:namePart>
+            <mods:role>
+              <mods:roleTerm type="code" authority="marcrelator">aut</mods:roleTerm>
+            </mods:role>
+            <mods:affiliation>Roma Tre University</mods:affiliation>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-4648-1650</mods:nameIdentifier>
+          </mods:name>
+          <mods:originInfo eventType="publication">
+            <mods:publisher>Zenodo</mods:publisher>
+            <mods:dateIssued encoding="w3cdtf">2025</mods:dateIssued>
+            <mods:place>
+              <mods:placeTerm type="text">Genève</mods:placeTerm>
+            </mods:place>
+          </mods:originInfo>
+          <mods:identifier type="doi">10.5281/zenodo.13951344</mods:identifier>
+          <mods:genre type="intern" authorityURI="https://www.openagrar.de/classifications/genres" valueURI="https://www.openagrar.de/classifications/genres#research_data" />
+          <mods:typeOfResource>dataset</mods:typeOfResource>
+          <mods:accessCondition type="use and reproduction" xlink:href="http://www.mycore.org/classifications/mir_licenses#cc_by_4.0" xlink:type="simple" />
+          <mods:language>
+            <mods:languageTerm authority="rfc5646" type="code">en</mods:languageTerm>
+          </mods:language>
+          <mods:classification displayLabel="sdnb" authority="sdnb">910</mods:classification>
+          <mods:abstract altRepGroup="4a-824a-d07cf8aa944c" xml:lang="en" contentType="text/xml" altFormat="data:text/xml;charset=UTF-8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48YWJzdHJhY3QgYWx0UmVwR3JvdXA9IjRhLTgyNGEtZDA3Y2Y4YWE5NDRjIiB4bWw6bGFuZz0iZW4iPiZsdDtwJmd0O1RoaXMgZGF0YXNldCBjb250YWlucyBtYXBzICh2ZWN0b3IgYW5kIHJhc3RlciBkYXRhKSBvZiB0aGUgY3JvcCBjb3ZlciBhbmQgbWFuYWdlbWVudCBmYWN0b3IgKEMgZmFjdG9yKSBvZiB0aGUgKFJldmlzZWQpIFVuaXZlcnNhbCBTb2lsIExvc3MgRXF1YXRpb24gKFIpVVNMRSBmb3IgR2VybWFuIGNyb3BsYW5kIGFuZCBkaWZmZXJlbnQgdGltZS1pbnRlcnZhbGxzLiZhbXA7I3hhMDsmbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O29sJmd0OyYjeEQ7CgkmbHQ7bGkmZ3Q7Jmx0O3N0cm9uZyZndDtNZWFuIEMgZmFjdG9ycyBmb3IgR2VybWFuIG11bmljaXBhbGl0aWVzIGJhc2VkIG9uIGFncmljdWx0dXJhbCBzdGF0aXN0aWMgZGF0YSAodmVjdG9yIGRhdGEpJmx0Oy9zdHJvbmcmZ3Q7JiN4RDsKJiN4RDsKCSZsdDt1bCZndDsmI3hEOwoJCSZsdDtsaSZndDtWZWN0b3IgZGF0YSBmb3IgR2VybWFuIG11bmljaXBhbGl0aWVzIHdpdGggZml4ZWQgZXh0ZW5kIG9mIHRoZSB5ZWFyIDIwMTAgYmFzZWQgb24gZGF0YSBmcm9tIHRoZSBUaMO8bmVuIEFncmFyYXRsYXMgKGh0dHBzOi8vemVub2RvLm9yZy9yZWNvcmRzLzE0MTk3NDQxKSZsdDsvbGkmZ3Q7JiN4RDsKCQkmbHQ7bGkmZ3Q7QXZhaWxhYmxlIHllYXJzOiAxOTk5LCAyMDAzLCAyMDA3LCAyMDEwLCAyMDE2LCAyMDIwJmx0Oy9saSZndDsmI3hEOwoJCSZsdDtsaSZndDtGaWxlOiBjMTAwMF9tdW5pY2lwYWxpdGllc19nZXJtYW55Lmdwa2cmbHQ7L2xpJmd0OyYjeEQ7CgkJJmx0O2xpJmd0O0ZpZWxkczomI3hEOwoJCSZsdDt1bCZndDsmI3hEOwoJCQkmbHQ7bGkmZ3Q7QUdTXzIwMTA6IE9mZmljaWFsIG11bmljaXBhbGl0eSBjb2RlIChBbXRpbGljaGVyIEdlbWVpbmRlc2NobMO8c3NlbDogQUdTKSBmb3IgR2VybWFuIG11bmljaXBhbGl0aWVzIG9mIHRoZSB5ZWFyIDIwMTAgKEluZm9ybWF0aW9uIG9uIERlc3RhdGlzIChGZWRlcmFsIFN0YXRpc3RpY2FsIE9mZmljZSBvZiBHZXJtYW55KSBvbiBBR1MpJmFtcDsjeGEwOyZsdDsvbGkmZ3Q7JiN4RDsKCQkJJmx0O2xpJmd0O01VTl9OQU1FOiBOYW1lIG9mIHRoZSBtdW5pY2lwYWxpdHkmbHQ7L2xpJmd0OyYjeEQ7CgkJCSZsdDtsaSZndDtjMTAwMF8xOTk5OiBNZWFuIGMxMDAwIChDIGZhY3RvciAqIDEwMDApIGZvciBjcm9wbGFuZCBpbiBHZXJtYW4gbXVuaWNpcGFsaXRpZXMgaW4gdGhlIHllYXIgMTk5OSZsdDsvbGkmZ3Q7JiN4RDsKCQkJJmx0O2xpJmd0O2MxMDAwXzIwMDM6IE1lYW4gYzEwMDAgKEMgZmFjdG9yICogMTAwMCkgZm9yIGNyb3BsYW5kIGluIEdlcm1hbiBtdW5pY2lwYWxpdGllcyBpbiB0aGUgeWVhciAxOTk5Jmx0Oy9saSZndDsmI3hEOwoJCQkmbHQ7bGkmZ3Q7YzEwMDBfMjAwNzogTWVhbiBjMTAwMCAoQyBmYWN0b3IgKiAxMDAwKSBmb3IgY3JvcGxhbmQgaW4gR2VybWFuIG11bmljaXBhbGl0aWVzIGluIHRoZSB5ZWFyIDE5OTkmbHQ7L2xpJmd0OyYjeEQ7CgkJCSZsdDtsaSZndDtjMTAwMF8yMDEwOiBNZWFuIGMxMDAwIChDIGZhY3RvciAqIDEwMDApIGZvciBjcm9wbGFuZCBpbiBHZXJtYW4gbXVuaWNpcGFsaXRpZXMgaW4gdGhlIHllYXIgMTk5OSZsdDsvbGkmZ3Q7JiN4RDsKCQkJJmx0O2xpJmd0O2MxMDAwXzIwMTY6IE1lYW4gYzEwMDAgKEMgZmFjdG9yICogMTAwMCkgZm9yIGNyb3BsYW5kIGluIEdlcm1hbiBtdW5pY2lwYWxpdGllcyBpbiB0aGUgeWVhciAxOTk5Jmx0Oy9saSZndDsmI3hEOwoJCQkmbHQ7bGkmZ3Q7YzEwMDBfMjAyMDogTWVhbiBjMTAwMCAoQyBmYWN0b3IgKiAxMDAwKSBmb3IgY3JvcGxhbmQgaW4gR2VybWFuIG11bmljaXBhbGl0aWVzIGluIHRoZSB5ZWFyIDE5OTkmbHQ7L2xpJmd0OyYjeEQ7CgkJJmx0Oy91bCZndDsmI3hEOwoJCSZsdDsvbGkmZ3Q7JiN4RDsKCQkmbHQ7bGkmZ3Q7VW5pdHM6IE1lYW4gYzEwMDAgKEMgZmFjdG9yICogMTAwMCkgZm9yIGNyb3BsYW5kIGluIEdlcm1hbiBtdW5pY2lwYWxpdGllcy4gTm9EYXRhIGZvciBtdW5pY2lwYWxpdGllcyB3aXRoIGNyb3BsYW5kICZhbXA7bHQ7NTAgaGEuJmx0Oy9saSZndDsmI3hEOwoJCSZsdDtsaSZndDtUaGUgdmVjdG9yIGRhdGFzZXRzIGFyZSBhdmFpbGFibGUgYXMgeHh4Jmx0Oy9saSZndDsmI3hEOwoJJmx0Oy91bCZndDsmI3hEOwoJJmx0Oy9saSZndDsmI3hEOwoJJmx0O2xpJmd0OyZsdDtzdHJvbmcmZ3Q7QyBmYWN0b3JzIGZvciBHZXJtYW4gQ3JvcGxhbmQgYmFzZWQgb24gZml2ZS15ZWFyIGNyb3Agc2VxdWVuY2VzIGRlcml2ZWQgZnJvbSBjcm9wIHR5cGUgbWFwcyAocmFzdGVyIGRhdGEpJmx0Oy9zdHJvbmcmZ3Q7JiN4RDsKCSZsdDt1bCZndDsmI3hEOwoJCSZsdDtsaSZndDtSYXN0ZXIgZGF0YSBpbiAxMCB4IDEwIG0gcmVzb2x1dGlvbiBmb3IgR2VybWFuIGNyb3BsYW5kJmx0Oy9saSZndDsmI3hEOwoJCSZsdDtsaSZndDtEZXJpdmVkIGZyb20gTmF0aW9uYWwtc2NhbGUgY3JvcCB0eXBlIG1hcHMgZm9yIEdlcm1hbnkmYW1wOyN4YTA7KGh0dHBzOi8vemVub2RvLm9yZy9yZWNvcmRzLzEwNjQwNTI4LCBodHRwczovL3plbm9kby5vcmcvcmVjb3Jkcy8xMDY0NTQyNywmYW1wOyN4YTA7aHR0cHM6Ly96ZW5vZG8ub3JnL3JlY29yZHMvMTUzMDk0NzkpJmx0Oy9saSZndDsmI3hEOwoJCSZsdDtsaSZndDtBdmFpbGFibGUgdGltZSBpbnRlcnZhbHM6IDIwMTcgLSAyMDIxOyAyMDE4IC0gMjAyMjsgMjAxOSAtIDIwMjMmbHQ7L2xpJmd0OyYjeEQ7CgkJJmx0O2xpJmd0O0ZpbGVzOiYjeEQ7CgkJJmx0O3VsJmd0OyYjeEQ7CgkJCSZsdDtsaSZndDtjMTAwMF8yMDE3XzIwMjEudGlmJmx0Oy9saSZndDsmI3hEOwoJCQkmbHQ7bGkmZ3Q7YzEwMDBfMjAxOF8yMDIyLnRpZiZsdDsvbGkmZ3Q7JiN4RDsKCQkJJmx0O2xpJmd0O2MxMDAwXzIwMTlfMjAyMy50aWYmbHQ7L2xpJmd0OyYjeEQ7CgkJJmx0Oy91bCZndDsmI3hEOwoJCSZsdDsvbGkmZ3Q7JiN4RDsKCQkmbHQ7bGkmZ3Q7VW5pdHM6IGMxMDAwIChDIGZhY3RvciAqIDEwMDApIGZvciB0aGUgY3JvcCBzZXF1ZW5jZW4gb2YgYWxsIGNyb3BsYW5kIHJhc3RlciBjZWxscyB3aXRoaW4gdGhlIGdpdmVuIHRpbWUgaW50ZXJ2YWxzJmFtcDsjeGEwOyZsdDsvbGkmZ3Q7JiN4RDsKCQkmbHQ7bGkmZ3Q7VGhlIHJhc3RlciBkYXRhc2V0cyBhcmUgYXZhaWxhYmxlIGFzIGNsb3VkIG9wdGltaXplZCBHZW9UaWZmcyAoQ09HKS4gVGhlIHJhc3RlcnMgY2FuIGJlIGRpcmVjdGx5IGJlIGFjY2Vzc2VkIGluIFFHSVMsIFIsIFB5dGhvbiBvciBhbnkgc3VwcG9ydGVkIHNvZnR3YXJlIG9mIHlvdXIgY2hvaWNlIHVzaW5nIHRoZSBVUkxzJmFtcDsjeGEwOyAocmlnaHQgY2xpY2sgb24gdGhlIGZpbGUgLSZhbXA7Z3Q7IOKAnGNvcHkgbGluayBhZGRyZXNz4oCdKS4mbHQ7L2xpJmd0OyYjeEQ7CgkmbHQ7L3VsJmd0OyYjeEQ7CgkmbHQ7L2xpJmd0OyYjeEQ7CiZsdDsvb2wmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7VGhlIG1ldGhvZCBmb3IgY3JlYXRpbmcgdGhlIEMgZmFjdG9yIGRhdGFzZXRzIGlzIGRlc2NyaWJlZCBpbiBkZXRhaWwgaW4mYW1wOyN4YTA7aHR0cHM6Ly9kb2kub3JnLzEwLjEwMTYvai5pc3djci4yMDI1LjA2LjAwMiZsdDsvcCZndDs8L2Fic3RyYWN0Pg" xlink:type="simple" />
+          <mods:abstract altRepGroup="4a-824a-d07cf8aa944c" xml:lang="en" xlink:type="simple">This dataset contains maps (vector and raster data) of the crop cover and management factor (C factor) of the (Revised) Universal Soil Loss Equation (R)USLE for German cropland and different time-intervalls. Mean C factors for German municipalities based on agricultural statistic data (vector data) Vector data for German municipalities with fixed extend of the year 2010 based on data from the Thünen Agraratlas (https://zenodo.org/records/14197441) Available years: 1999, 2003, 2007, 2010, 2016, 2020 File: c1000_municipalities_germany.gpkg Fields: AGS_2010: Official municipality code (Amtilicher Gemeindeschlüssel: AGS) for German municipalities of the year 2010 (Information on Destatis (Federal Statistical Office of Germany) on AGS) MUN_NAME: Name of the municipality c1000_1999: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2003: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2007: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2010: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2016: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2020: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 Units: Mean c1000 (C factor * 1000) for cropland in German municipalities. NoData for municipalities with cropland &lt;50 ha. The vector datasets are available as xxx C factors for German Cropland based on five-year crop sequences derived from crop type maps (raster data) Raster data in 10 x 10 m resolution for German cropland Derived from National-scale crop type maps for Germany (https://zenodo.org/records/10640528, https://zenodo.org/records/10645427, https://zenodo.org/records/15309479) Available time intervals: 2017 - 2021; 2018 - 2022; 2019 - 2023 Files: c1000_2017_2021.tif c1000_2018_2022.tif c1000_2019_2023.tif Units: c1000 (C factor * 1000) for the crop sequencen of all cropland raster cells within the given time intervals The raster datasets are available as cloud optimized GeoTiffs (COG). The rasters can be directly be accessed in QGIS, R, Python or any supported software of your choice using the URLs (right click on the file -&gt; “copy link address”). The method for creating the C factor datasets is described in detail in https://doi.org/10.1016/j.iswcr.2025.06.002</mods:abstract>
+          <mods:physicalDescription>
+            <mods:extent>1 Zip-Archiv</mods:extent>
+          </mods:physicalDescription>
+          <mods:subject xlink:type="simple">
+            <mods:geographic authorityURI="http://d-nb.info/gnd/" valueURI="http://d-nb.info/gnd/4011882-4" authority="gnd">Deutschland</mods:geographic>
+          </mods:subject>
+          <mods:subject xlink:type="simple">
+            <mods:topic>soil erosion modelling</mods:topic>
+            <mods:topic>C factor</mods:topic>
+            <mods:topic>crop rotation</mods:topic>
+            <mods:topic>remote sensing</mods:topic>
+          </mods:subject>
+          <mods:relatedItem type="references" xlink:href="openagrar_mods_00108565" xlink:type="simple">
+            <mods:titleInfo xml:lang="en" xlink:type="simple">
+              <mods:title>Spatiotemporal detailed crop cover and management factor maps as agri-environmental indicators for soil erosion in Germany</mods:title>
+            </mods:titleInfo>
+            <mods:name type="personal" xlink:type="simple">
+              <mods:displayForm>Steinhoff-Knopp, Bastian</mods:displayForm>
+              <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-9926-8028</mods:nameIdentifier>
+              <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1112297235</mods:nameIdentifier>
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+                <mods:roleTerm authorityURI="https://www.mycore.de/classifications/author_roles" valueURI="https://www.mycore.de/classifications/author_roles#corresponding_author" />
+              </mods:role>
+              <mods:namePart type="family">Steinhoff-Knopp</mods:namePart>
+              <mods:namePart type="given">Bastian</mods:namePart>
+            </mods:name>
+            <mods:name type="personal" xlink:type="simple">
+              <mods:displayForm>Neuenfeldt, Sebastian</mods:displayForm>
+              <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-7536-6635</mods:nameIdentifier>
+              <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1018969896</mods:nameIdentifier>
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+              </mods:role>
+              <mods:namePart type="family">Neuenfeldt</mods:namePart>
+              <mods:namePart type="given">Sebastian</mods:namePart>
+            </mods:name>
+            <mods:classification generator="mir_licenses2dcat_license-mycore" authorityURI="http://esxhid-52.gbv.de:9021/classifications/dcat_license" valueURI="http://esxhid-52.gbv.de:9021/classifications/dcat_license#cc-by/4.0" />
+            <mods:classification generator="mir_genres2marcgt-mycore" authority="marcgt">article</mods:classification>
+            <mods:classification generator="mir_genres2diniPublType-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType" valueURI="http://www.mycore.org/classifications/diniPublType#article" />
+            <mods:classification generator="mir_genres2diniPublType2022-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType2022" valueURI="http://www.mycore.org/classifications/diniPublType2022#Article" />
+            <mods:classification generator="mir_genres2schemaOrg-mycore" authorityURI="http://schema.org/" valueURI="http://schema.org/ScholarlyArticle" />
+            <mods:classification generator="typeOfResource2dataciteResType-mycore" authorityURI="http://www.mycore.org/classifications/dataciteResType" valueURI="http://www.mycore.org/classifications/dataciteResType#text" />
+            <mods:name type="personal" xlink:type="simple">
+              <mods:displayForm>Erasmi, Stefan</mods:displayForm>
+              <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-6393-6071</mods:nameIdentifier>
+              <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">124078672</mods:nameIdentifier>
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+              </mods:role>
+              <mods:namePart type="family">Erasmi</mods:namePart>
+              <mods:namePart type="given">Stefan</mods:namePart>
+            </mods:name>
+            <mods:name type="personal" xlink:type="simple">
+              <mods:displayForm>Saggau, Philipp</mods:displayForm>
+              <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-4648-1650</mods:nameIdentifier>
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+              </mods:role>
+              <mods:namePart type="family">Saggau</mods:namePart>
+              <mods:namePart type="given">Philipp</mods:namePart>
+            </mods:name>
+            <mods:originInfo>
+              <mods:publisher>Elsevier BV</mods:publisher>
+            </mods:originInfo>
+            <mods:relatedItem type="host" xlink:href="openagrar_mods_00108566" xlink:type="simple" />
+            <mods:accessCondition type="use and reproduction" xlink:href="http://www.mycore.org/classifications/mir_licenses#cc_by_4.0" xlink:type="simple" />
+            <mods:identifier type="doi">10.1016/j.iswcr.2025.06.002</mods:identifier>
+            <mods:genre type="intern" authorityURI="https://www.openagrar.de/classifications/genres" valueURI="https://www.openagrar.de/classifications/genres#article" />
+            <mods:typeOfResource>text</mods:typeOfResource>
+            <mods:language>
+              <mods:languageTerm authority="rfc5646" type="code">en</mods:languageTerm>
+            </mods:language>
+            <mods:classification displayLabel="sdnb" authority="sdnb">630</mods:classification>
+            <mods:subject xlink:type="simple">
+              <mods:topic>soil erosion modelling</mods:topic>
+              <mods:topic>RUSLE</mods:topic>
+              <mods:topic>C factor</mods:topic>
+              <mods:topic>crop rotation</mods:topic>
+              <mods:topic>remote sensing</mods:topic>
+            </mods:subject>
+            <mods:accessCondition type="restriction on access" xlink:href="http://www.mycore.org/classifications/mir_access#unlimited" xlink:type="simple" />
+            <mods:originInfo eventType="publication">
+              <mods:dateIssued encoding="w3cdtf">2025</mods:dateIssued>
+            </mods:originInfo>
+            <mods:originInfo eventType="publication_online">
+              <mods:dateIssued encoding="w3cdtf">2025-06-07</mods:dateIssued>
+            </mods:originInfo>
+            <mods:abstract altRepGroup="e7-8558-d25aa487d839" xml:lang="en" contentType="text/xml" altFormat="data:text/xml;charset=UTF-8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48YWJzdHJhY3QgYWx0UmVwR3JvdXA9ImU3LTg1NTgtZDI1YWE0ODdkODM5IiB4bWw6bGFuZz0iZW4iPiZsdDtwJmd0O1RoZSBjcm9wIGNvdmVyIGFuZCBtYW5hZ2VtZW50IGZhY3RvciAoQyBmYWN0b3IpIGlzIGNydWNpYWwgdG8gYXNzZXNzIHRoZSBpbXBhY3Qgb2YgbWFuYWdlbWVudCBvbiBzb2lsIGVyb3Npb24gYnkgd2F0ZXIgd2l0aGluIHRoZSAoUilVU0xFIChSZXZpc2VkIFVuaXZlcnNhbCBTb2lsIExvc3MgRXF1YXRpb24pIG1vZGVsbGluZyBmcmFtZXdvcmsuIEl0cyBkZXJpdmF0aW9uIGlzIGNoYWxsZW5naW5nIGR1ZSB0byB0aGUgbmVlZCBmb3Igc3BhdGlvdGVtcG9yYWwgZGF0YSBvbiBjcm9wIHNlcXVlbmNlcy4gVGhlcmVmb3JlLCB0aGUgYWltIG9mIHRoaXMgc3R1ZHkgaXMgdGhlIGdlbmVyYXRpb24gb2Ygc3BhdGlvdGVtcG9yYWwgZGV0YWlsZWQgQyBmYWN0b3IgZGF0YXNldHMgZm9yIEdlcm1hbnkgYnkgaW50ZWdyYXRpbmcgKGEpIGNyb3AgY29tcG9zaXRpb24gZGF0YSBmcm9tIGFncmljdWx0dXJhbCBzdGF0aXN0aWNzIG9uIHRoZSBtdW5pY2lwYWxpdHkgbGV2ZWwgZm9yIHNpeCBpbmRpdmlkdWFsIHllYXJzIGZyb20gMTk5OSB0byAyMDIwIGFuZCAoYikgaGlnaC1yZXNvbHV0aW9uICgxMHgxMCBtKSBjcm9wIHNlcXVlbmNlIGluZm9ybWF0aW9uIGZvciAyMDE3IHRvIDIwMjMgZGVyaXZlZCBmcm9tIGVhcnRoIG9ic2VydmF0aW9uIGRhdGEgaW4gdGhlIEMgZmFjdG9yIGVzdGltYXRpb24uIFRoZSByZXN1bHRzIHJldmVhbCBhbiBvdmVyYWxsIGluY3JlYXNlIG9mIDguNyAlIGluIHRoZSBtZWFuIEMgZmFjdG9yIGZvciBHZXJtYW4gbXVuaWNpcGFsaXRpZXMgZnJvbSAxOTk5IHRvIDIwMjAsIHdoaWNoIGNhbiBiZSBhdHRyaWJ1dGVkIHRvIHBvbGljeS1kcml2ZW4gY2hhbmdlcyBpbiBjcm9wIGNvbXBvc2l0aW9uLiBUaGUgY29tcGFyaXNvbiBvZiB0aGUgdHdvIEMgZmFjdG9yIGRhdGFzZXRzIGVtcGhhc2lzZXMgdGhlIGltcG9ydGFuY2Ugb2YgbXVsdGktYW5udWFsIGluZm9ybWF0aW9uIG9uIGNyb3BzIGluIChSKVVTTEUtYmFzZWQgZXJvc2lvbiBtb2RlbGxpbmcgYXMgKGkpIGhpZ2gtcmVzb2x1dGlvbiBDIGZhY3RvcnMgYmFzZWQgb24gc2luZ2xlIHllYXJzIHNob3cgYSB3ZWFrIGFncmVlbWVudCB3aXRoIGNyb3Agc2VxdWVuY2UtZGVyaXZlZCBDIGZhY3RvcnMgKFJNU0Ugb2YgMC4wNjIpIGFuZCAoaWkpIEMgZmFjdG9ycyBiYXNlZCBvbiBjcm9wIGNvbXBvc2l0aW9uIGRhdGEgZnJvbSBhZ3JpY3VsdHVyYWwgc3RhdGlzdGljcyBhcmUgNS43ICUgbG93ZXIgY29tcGFyZWQgdG8gaGlnaC1yZXNvbHV0aW9uIGNyb3Agc2VxdWVuY2UtZGVyaXZlZCBDIGZhY3RvcnMuIEFzIGhpZ2gtcmVzb2x1dGlvbiBjcm9wIHR5cGUgZGF0YSBmcm9tIGVhcnRoIG9ic2VydmF0aW9uIGlzIHVwZGF0ZWQgeWVhcmx5LCB0aGUgQyBmYWN0b3IgbWFwcyBwcmVzZW50ZWQgaGVyZSBjYW4gYmUgaW5jb3Jwb3JhdGVkIGludG8gR2VybWFuIG1vbml0b3Jpbmcgc3lzdGVtcyBhcyBhZ3JpLWVudmlyb25tZW50YWwgaW5kaWNhdG9ycy4gRnVydGhlciByZXNlYXJjaCBpcyBuZWVkZWQgdG8gb2J0YWluIG1vcmUgZGV0YWlsZWQgaW5mb3JtYXRpb24gb24gY292ZXIgY3JvcHMgYW5kIHRpbGxhZ2UgcHJhY3RpY2VzIHRvIGltcHJvdmUgQyBmYWN0b3IgZGVyaXZhdGlvbi4gVGhlc2UgZmluZGluZ3MgYW5kIHRoZSB2aXNpYmxlIGhldGVyb2dlbmlvdXMgcGF0dGVybnMgaW4gdGhlIHBpeGVsLWJhc2VkIG11bHRpLWFubnVhbCBDIGZhY3RvciBkYXRhIGhpZ2hsaWdodCB0aGF0IHNwYXRpb3RlbXBvcmFsIGhpZ2gtcmVzb2x1dGlvbiBpbnB1dCBkYXRhIGlzIGtleSBpbiBDIGZhY3RvciBlc3RpbWF0aW9uLiZsdDsvcCZndDs8L2Fic3RyYWN0Pg" xlink:type="simple" />
+            <mods:abstract altRepGroup="e7-8558-d25aa487d839" xml:lang="en" xlink:type="simple">The crop cover and management factor (C factor) is crucial to assess the impact of management on soil erosion by water within the (R)USLE (Revised Universal Soil Loss Equation) modelling framework. Its derivation is challenging due to the need for spatiotemporal data on crop sequences. Therefore, the aim of this study is the generation of spatiotemporal detailed C factor datasets for Germany by integrating (a) crop composition data from agricultural statistics on the municipality level for six individual years from 1999 to 2020 and (b) high-resolution (10x10 m) crop sequence information for 2017 to 2023 derived from earth observation data in the C factor estimation. The results reveal an overall increase of 8.7 % in the mean C factor for German municipalities from 1999 to 2020, which can be attributed to policy-driven changes in crop composition. The comparison of the two C factor datasets emphasises the importance of multi-annual information on crops in (R)USLE-based erosion modelling as (i) high-resolution C factors based on single years show a weak agreement with crop sequence-derived C factors (RMSE of 0.062) and (ii) C factors based on crop composition data from agricultural statistics are 5.7 % lower compared to high-resolution crop sequence-derived C factors. As high-resolution crop type data from earth observation is updated yearly, the C factor maps presented here can be incorporated into German monitoring systems as agri-environmental indicators. Further research is needed to obtain more detailed information on cover crops and tillage practices to improve C factor derivation. These findings and the visible heterogenious patterns in the pixel-based multi-annual C factor data highlight that spatiotemporal high-resolution input data is key in C factor estimation.</mods:abstract>
+            <mods:extension type="characteristics">
+              <chars refereed="yes" />
+            </mods:extension>
+            <mods:name ID="N10208-38496" type="corporate" authorityURI="https://www.openagrar.de/classifications/institutes" valueURI="https://www.openagrar.de/classifications/institutes#ti_skbb" xlink:type="simple">
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">his</mods:roleTerm>
+              </mods:role>
+            </mods:name>
+            <mods:classification IDREF="N10208-38496" displayLabel="annual_review" authorityURI="https://www.openagrar.de/classifications/annual_review" valueURI="https://www.openagrar.de/classifications/annual_review#Z1" edition="2025" />
+            <mods:name ID="N1021F-26937" type="corporate" authorityURI="https://www.openagrar.de/classifications/institutes" valueURI="https://www.openagrar.de/classifications/institutes#ti_bw" xlink:type="simple">
+              <mods:role>
+                <mods:roleTerm authority="marcrelator" type="code">his</mods:roleTerm>
+              </mods:role>
+            </mods:name>
+            <mods:classification IDREF="N1021F-26937" displayLabel="annual_review" authorityURI="https://www.openagrar.de/classifications/annual_review" valueURI="https://www.openagrar.de/classifications/annual_review#Z1" edition="2025" />
+          </mods:relatedItem>
+          <mods:name ID="N100E9-95481" type="corporate" authorityURI="https://www.openagrar.de/classifications/institutes" valueURI="https://www.openagrar.de/classifications/institutes#ti_skbb" xlink:type="simple">
+            <mods:role>
+              <mods:roleTerm authority="marcrelator" type="code">his</mods:roleTerm>
+            </mods:role>
+          </mods:name>
+          <mods:classification IDREF="N100E9-95481" displayLabel="annual_review" authorityURI="https://www.openagrar.de/classifications/annual_review" valueURI="https://www.openagrar.de/classifications/annual_review#FD" edition="2025" />
+          <mods:note xlink:href="#N100E9-95481" type="admin" xlink:type="simple">LZS FDM-BTi 30-06-2025&#xD;
+DCAT</mods:note>
+        </mods:mods>
+      </modsContainer>
+    </def.modsContainer>
+  </metadata>
+  <service>
+    <servdates class="MCRMetaISO8601Date">
+      <servdate type="createdate" inherited="0">2025-06-25T13:14:33.924Z</servdate>
+      <servdate type="modifydate" inherited="0">2026-10-14T07:38:32.525Z</servdate>
+    </servdates>
+    <servflags class="MCRMetaLangText">
+      <servflag type="createdby" inherited="0" form="plain">btimmermann</servflag>
+      <servflag type="modifiedby" inherited="0" form="plain">administrator</servflag>
+    </servflags>
+    <servstates class="MCRMetaClassification">
+      <servstate inherited="0" classid="state" categid="published" />
+    </servstates>
+  </service>
+</mycoreobject>

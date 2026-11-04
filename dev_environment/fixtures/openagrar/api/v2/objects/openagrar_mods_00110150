@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mycoreobject xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="datamodel-mods.xsd" ID="openagrar_mods_00110150" version="2022.06.3-SNAPSHOT" label="openagrar_mods_00110150">
+  <structure>
+    <derobjects class="MCRMetaEnrichedLinkID">
+      <derobject inherited="0" xlink:type="locator" xlink:href="openagrar_derivate_00067866">
+        <order>1</order>
+        <maindoc>Raw_data_diameter_preference_Pemphredon_lethifer_laboratory.xlsx</maindoc>
+        <title xml:lang="en" inherited="0" form="plain">Data Files</title>
+        <classification classid="derivate_types" categid="content" />
+        <classification classid="mir_access" categid="unlimited" />
+      </derobject>
+    </derobjects>
+  </structure>
+  <metadata>
+    <def.modsContainer class="MCRMetaXML" heritable="false" notinherit="true">
+      <modsContainer inherited="0">
+        <mods:mods xmlns:mods="http://www.loc.gov/mods/v3">
+          <mods:classification generator="mir_genres2marcgt-mycore" authority="marcgt">database</mods:classification>
+          <mods:classification generator="mir_genres2diniPublType-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType" valueURI="http://www.mycore.org/classifications/diniPublType#ResearchData" />
+          <mods:classification generator="mir_genres2diniPublType2022-mycore" authorityURI="http://www.mycore.org/classifications/diniPublType2022" valueURI="http://www.mycore.org/classifications/diniPublType2022#ResearchData" />
+          <mods:classification generator="mir_genres2schemaOrg-mycore" authorityURI="http://schema.org/" valueURI="http://schema.org/Dataset" />
+          <mods:classification generator="typeOfResource2dataciteResType-mycore" authorityURI="http://www.mycore.org/classifications/dataciteResType" valueURI="http://www.mycore.org/classifications/dataciteResType#dataset" />
+          <mods:classification generator="mir_licenses2dcat_license-mycore" authorityURI="http://esxhid-52.gbv.de:9021/classifications/dcat_license" valueURI="http://esxhid-52.gbv.de:9021/classifications/dcat_license#cc-by/4.0" />
+          <mods:genre type="intern" authorityURI="https://www.openagrar.de/classifications/genres" valueURI="https://www.openagrar.de/classifications/genres#research_data" />
+          <mods:identifier type="doi">10.5073/20250926-163035-0</mods:identifier>
+          <mods:typeOfResource>dataset</mods:typeOfResource>
+          <mods:accessCondition type="restriction on access" xlink:href="http://www.mycore.org/classifications/mir_access#unlimited" xlink:type="simple" />
+          <mods:accessCondition type="use and reproduction" xlink:href="http://www.mycore.org/classifications/mir_licenses#cc_by_4.0" xlink:type="simple" />
+          <mods:titleInfo altRepGroup="85-9a84-3b1286e839de" xml:lang="en" contentType="text/xml" altFormat="data:text/xml;charset=UTF-8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48dGl0bGVJbmZvIGFsdFJlcEdyb3VwPSI4NS05YTg0LTNiMTI4NmU4MzlkZSIgeG1sOmxhbmc9ImVuIj4KICAgICAgICAgICAgPHRpdGxlPlRyYXAgbmVzdCBhbmQgbGFib3JhdG9yeSBleHBlcmltZW50IGRhdGEgdXNlZCB0byBpbnZlc3RpZ2F0ZSBwaXRoIGRpYW1ldGVyIHByZWZlcmVuY2VzIG9mIHRoZSBkaWdnZXIgd2FzcCAmbHQ7aSZndDtQZW1waHJlZG9uIGxldGhpZmVyICZsdDsvaSZndDs8L3RpdGxlPgogICAgICAgICAgPC90aXRsZUluZm8+" xlink:type="simple" />
+          <mods:titleInfo altRepGroup="85-9a84-3b1286e839de" xml:lang="en" xlink:type="simple">
+            <mods:title>Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer</mods:title>
+          </mods:titleInfo>
+          <mods:name type="personal" xlink:type="simple">
+            <mods:role>
+              <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+              <mods:roleTerm authorityURI="https://www.mycore.de/classifications/author_roles" valueURI="https://www.mycore.de/classifications/author_roles#main_author" />
+              <mods:roleTerm authorityURI="https://www.mycore.de/classifications/author_roles" valueURI="https://www.mycore.de/classifications/author_roles#corresponding_author" />
+            </mods:role>
+            <mods:displayForm>Furtwengler, Jana</mods:displayForm>
+            <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1256061514</mods:nameIdentifier>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0009-0004-2610-6724</mods:nameIdentifier>
+            <mods:affiliation>Julius Kühn Institute (JKI), Institute for Plant Protection in Horticulture and Urban Green, Germany.</mods:affiliation>
+            <mods:namePart type="family">Furtwengler</mods:namePart>
+            <mods:namePart type="given">Jana</mods:namePart>
+          </mods:name>
+          <mods:name type="personal" xlink:type="simple">
+            <mods:displayForm>Böckmann, Elias</mods:displayForm>
+            <mods:role>
+              <mods:roleTerm authority="marcrelator" type="code">aut</mods:roleTerm>
+              <mods:roleTerm authorityURI="https://www.mycore.de/classifications/author_roles" valueURI="https://www.mycore.de/classifications/author_roles#co_author" />
+            </mods:role>
+            <mods:nameIdentifier type="gnd" typeURI="https://d-nb.info/gnd/">1181976936</mods:nameIdentifier>
+            <mods:nameIdentifier type="orcid" typeURI="https://orcid.org/">0000-0002-4782-0714</mods:nameIdentifier>
+            <mods:affiliation>Julius Kühn Institute (JKI), Institute for Plant Protection in Horticulture and Urban Green, Germany</mods:affiliation>
+            <mods:namePart type="family">Böckman</mods:namePart>
+            <mods:namePart type="given">Elias</mods:namePart>
+          </mods:name>
+          <mods:language>
+            <mods:languageTerm authority="rfc5646" type="code">en</mods:languageTerm>
+          </mods:language>
+          <mods:classification displayLabel="sdnb" authority="sdnb">630</mods:classification>
+          <mods:abstract altRepGroup="9d-ad65-f217b61d26af" xml:lang="en" contentType="text/xml" altFormat="data:text/xml;charset=UTF-8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48YWJzdHJhY3QgYWx0UmVwR3JvdXA9IjlkLWFkNjUtZjIxN2I2MWQyNmFmIiB4bWw6bGFuZz0iZW4iPiZsdDtwJmd0O1RoaXMgZGF0YXNldCBjb250YWlucyB0aGUgZGF0YSBmcm9tIHRocmVlIHN0dWRpZXMgb24gdGhlIHBpdGggZGlhbWV0ZXIgcHJlZmVyZW5jZSBvZiB0aGUgZGlnZ2VyIHdhc3AgJmx0O2VtJmd0O1BlbXBocmVkb24gbGV0aGlmZXIgJmx0Oy9lbSZndDsoU2h1Y2thcmQgMTgzNykuICZsdDtlbSZndDtQLiBsZXRoaWZlciZsdDsvZW0mZ3Q7IGlzIGEgcG90ZW50aWFsIGJpb2NvbnRyb2wgYWdlbnQgZm9yIGFwaGlkIGNvbnRyb2wgYW5kIG5lc3RzIGluIHBpdGh5IHR3aWdzIGxpa2UgJmx0O2VtJmd0O1J1YnVzICZsdDsvZW0mZ3Q7c3BwLiBvciAmbHQ7ZW0mZ3Q7U2FtYnVjdXMmbHQ7L2VtJmd0OyBzc3AuLiBUbyBkZXZlbG9wIGEgc3VpdGFibGUgbmVzdGluZyBzeXN0ZW0sIGl0IHdhcyBhbmFseXNlZCB3aGV0aGVyICZsdDtlbSZndDtQLiBsZXRoaWZlciZsdDsvZW0mZ3Q7IHByZWZlcnMgYSBzcGVjaWZpYyBwaXRoIGRpYW1ldGVyIGNhdGVnb3J5IGFuZCB3aGV0aGVyIHRoZSBkaWFtZXRlciBjaG9pY2UgaW5mbHVlbmNlcyBvdGhlciBwYXJhbWV0ZXJzIHN1Y2ggYXMgdGhlIG51bWJlciBvZiBvZmZzcHJpbmcsIHNleCByYXRpbywgbW9ydGFsaXR5IG9yIHBhcmFzaXRpc20uJmx0Oy9wJmd0OyYjeEQ7CiYjeEQ7CiZsdDtwJmd0O1R3aWdzIG9mIGZvdXIgcGl0aCBkaWFtZXRlciBjYXRlZ29yaWVzIHJhbmdpbmcgYmV0d2VlbiAyLjUgYW5kIDEwLjUgbW0gd2VyZSBvZmZlcmVkIGluIGZpZWxkIHRyaWFscyBhcyB3ZWxsIGFzIHVuZGVyIGNvbnRyb2xsZWQgbGFiIGNvbmRpdGlvbnMuIFRvIGFuYWx5c2UgcGl0aCBkaWFtZXRlciBjaG9pY2VzIGluIHRoZSBmaWVsZCwgdHJhcCBuZXN0IGNhdGNoZXMgd2VyZSBjb25kdWN0ZWQgaW4gMjAyMiBhbmQgMjAyMyBpbiBCcmF1bnNjaHdlaWcgYW5kIHRoZSBzdXJyb3VuZGluZyBhcmVhLiBJbiBhZGRpdGlvbiwgY2hvaWNlIGV4cGVyaW1lbnRzIHdlcmUgY29uZHVjdGVkIGluIGNhZ2VzIHdpdGggc2luZ2xlIGZlbWFsZXMgaW4gdGhlIGxhYm9yYXRvcnkuJmx0Oy9wJmd0OyYjeEQ7CiYjeEQ7CiZsdDtwJmd0OyZsdDtzdHJvbmcmZ3Q7UGl0aCBkaWFtZXRlciBwcmVmZXJlbmNlcyBpbiB0aGUgZmllbGQmbHQ7L3N0cm9uZyZndDsmbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7VHJhcCBuZXN0cyBpbiB0aGUgZmllbGQgY29uc2lzdGVkIG9mIDE2IGJ1bmRlbGQgdHdpZ3Mgb2YgJmx0O2VtJmd0O1NhbWJ1Y3VzIG5pZ3JhJmx0Oy9lbSZndDsgKDMwIGNtIGxlbmd0aCksIGZvdXIgb2YgZWFjaCBjYXRlZ29yeS4gRGlhbWV0ZXIgd2FzIG1lYXN1cmVkIGF0IG9uZSBzaXRlIGFuZCB0aGUgb3RoZXIgc2l0ZSBvZiB0aGUgdHdpZyB3YXMgc2VhbGVkIHRvIGF2b2lkIG5lc3RpbmcuIFRyYXAgbmVzdHMgd2VyZSBpbnN0YWxsZWQgYXQgYSBoZWlnaHQgb2YgMSBtIHdpdGggYW4gYW5nbGUgb2YgMzDCsCBhbmQgdGhlIG9wZW4gc2l0ZSBvcmllbnRhdGVkIGVhc3QuIFRoZSB0cmFwIG5lc3RzIHdlcmUgY2hlY2tlZCB3ZWVrbHkgZm9yIG5lc3RpbmcgYW5kIG5lc3RzIHdlcmUgcmVtb3ZlZCBkaXJlY3RseSAoMjAwMikgb3IgdHdvIHdlZWtzICgyMDIzKSBhZnRlciB0aGUgZmlyc3Qgc2lnaHRpbmcuIFJlbW92ZWQgbmVzdHMgd2VyZSByZXBsYWNlZCBieSB0d2lncyBvZiB0aGUgc2FtZSBjYXRlZ29yeS4gRmVtYWxlIGRpZ2dlciB3YXNwcyBwcmVzZW50IGluIHRoZSBuZXN0IHdlcmUgaWRlbnRpZmllZCB0byBnZW51cyBsZXZlbCAoMjAyMikgb3Igc3BlY2llcyBsZXZlbCAoMjAyMykgYW5kIGhlYWQgd2lkdGggd2FzIG1lYXN1cmVkLiBOZXN0cyB3ZXJlIHJlYXJlZCBpbiB0aGUgbGFib3JhdG9yeSBhbmQgZW1lcmdpbmcgb2Zmc3ByaW5nIHdlcmUgY291bnRlZC4gRW1lcmdpbmcgb2Zmc3ByaW5nIGJlbG9uZ2luZyB0byB0aGUgZ2VudXMgJmx0O2VtJmd0O1BlbXBocmVkb24mbHQ7L2VtJmd0OyB3ZXJlIHNleGVkIGFuZCBpZGVudGlmaWVkIG9uIHNwZWNpZXMgbGV2ZWwuIFBhcmFzaXRvaWRzIHdlcmUgY291bnRlZCBhbmQgYXQgbGVhc3QgaWRlbnRpZmllZCBhdCBzdXBlciBmYW1pbHkgbGV2ZWwuIFRoZSBwcm9jZWR1cmUgd2FzIHJlcGVhdGVkIGFmdGVyIGEgY29vbGluZyBpbnRlcnZhbCBhdCA0IMKwQyBmb3IgMTAwIGRheXMuIFRoZSBjb29saW5nIHdhcyByZXBlYXRlZCBhIHNlY29uZCB0aW1lIGluIDIwMjMuIEZpbmFsbHksIG5lc3RzIHdlcmUgb3BlbmVkIGFuZCBuZXN0cyBwYXJhbWV0ZXJzIGFuZCByZW1haW5zIHdlcmUgZG9jdW1lbnRlZC4mbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7Jmx0O3N0cm9uZyZndDtQaXRoIGRpYW1ldGVyIHByZWZlcmVuY2VzIGluIHRoZSBsYWJvcmF0b3J5Jmx0Oy9zdHJvbmcmZ3Q7Jmx0Oy9wJmd0OyYjeEQ7CiYjeEQ7CiZsdDtwJmd0O0ZvciB0aGUgY2hvaWNlIGV4cGVyaW1lbnRzIGluIHRoZSBsYWJvcmF0b3J5LCBmcmVzaGx5IGVtZXJnZWQsIG1hdGVkIGZlbWFsZXMgd2VyZSBrZXB0IGluIGluZGl2aWR1YWwgY2F0Y2hlcyBhbmQgb25lIHR3aWcgcGVyIGNhdGVnb3J5IHdhcyBvZmZlcmVkIGZvciBuZXN0aW5nLiBUaGUgdHdpZ3Mgd2VyZSBwcmVwYXJlZCBhcyBkZXNjcmliZWQgZm9yIHRoZSBwaXRoIGRpYW1ldGVyIHByZWZlcmVuY2VzIGluIHRoZSBmaWVsZC4gQ2FnZXMgd2VyZSBjaGVja2VkIGZvciBuZXN0cyBhdCBsZWFzdCB0aHJlZSB0aW1lcyBhIHdlZWsuIE5lc3RzIHdlcmUgZG9jdW1lbnRlZCwgYW5kIGEgdHdpZyBvZiB0aGUgc2FtZSBjYXRlZ29yeSB3YXMgYWRkZWQgYXMgc29vbiBhcyBhIG5lc3Qgd2FzIGJ1aWx0IHRvIGVuc3VyZSBhbHdheXMgYWxsIGNob2ljZSBvcHRpb25zIHdlcmUgZ2l2ZW4uIFRoZSBleHBlcmltZW50IGVuZGVkIHdpdGggdGhlIGRlYXRoIG9yIGRpc2FwcGVhcmFuY2Ugb2YgdGhlIHdhc3AuIE5lc3RzIGFuZCBvZmZzcHJpbmcgd2VyZSBoYW5kbGVkIGFzIGRlc2NyaWJlZCBmb3IgcGl0aCBkaWFtZXRlciBwcmVmZXJlbmNlcyBpbiB0aGUgZmllbGQuJmx0Oy9wJmd0OyYjeEQ7CiYjeEQ7CiZsdDtwJmd0OyZhbXA7I3hhMDsmbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7RGV0YWlsZWQgaW5mb3JtYXRpb24gYWJvdXQgdGhlIG1ldGhvZG9sb2d5IGNhbiBiZSBmb3VuZCBpbiB0aGUgY29ycmVzcG9uZGluZyBwdWJsaWNhdGlvbi4mbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7VGhlIGRhdGFzZXQgY29tcHJpc2VzIHRocmVlIHRhYmxlczombHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7VGFibGUgJ1Jhd19kYXRhX1BlbXBocmVkb25fZmllbGRfMjAyMicgaW5jbHVkZXMgYWxsIGRhdGEgcmVnYXJkaW5nIHRoZSB0cmFwIG5lc3QgY2F0Y2hlcyBvZiAyMDIyLiBUaGlzIGluY2x1ZGVzIGFsbCBkYXRhIGZvciBlYWNoIG5lc3Qgc3VjaCBhcyBpbmZvcm1hdGlvbiBvbiBwaXRoIGRpYW1ldGVyLCB0d2lnIHN0cnVjdHVyZSwgbmVzdGluZywgbmVzdCBzdHJ1Y3R1cmUsIG9mZnNwcmluZyBhbmQgcGFyYXNpdGlzbS4mbHQ7L3AmZ3Q7JiN4RDsKJiN4RDsKJmx0O3AmZ3Q7VGFibGUgJ1Jhd19kYXRhX1BlbXBocmVkb25fZmllbGRfMjAyMycgaW5jbHVkZXMgYWxsIGRhdGEgcmVnYXJkaW5nIHRoZSB0cmFwIG5lc3QgY2F0Y2hlcyBvZiAyMDIzLiBUaGlzIGluY2x1ZGVzIGFsbCBkYXRhIGZvciBlYWNoIG5lc3Qgc3VjaCBhcyBpbmZvcm1hdGlvbiBvbiBwaXRoIGRpYW1ldGVyLCB0d2lnIHN0cnVjdHVyZSwgbmVzdGluZywgbmVzdCBzdHJ1Y3R1cmUsIG9mZnNwcmluZyBhbmQgcGFyYXNpdGlzbS4mbHQ7L3AmZ3Q7JiN4RDsKVGFibGUgJ1Jhd19kYXRhX2RpYW1ldGVyX3ByZWZlcmVuY2VfUGVtcGhyZWRvbl9sZXRoaWZlcl9sYWJvcmF0b3J5JyBpbmNsdWRlcyBhbGwgZGF0YSByZWdhcmRpbmcgdGhlIGxhYm9yYXRvcnkgY2FnZSBleHBlcmltZW50cy4gVGhpcyBpbmNsdWRlcyBhbGwgZGF0YSBmb3IgZWFjaCBuZXN0IHN1Y2ggYXMgaW5mb3JtYXRpb24gb24gcmVwZXRpdGlvbiwgcGl0aCBkaWFtZXRlciwgdHdpZyBzdHJ1Y3R1cmUsIG5lc3Qgc3RydWN0dXJlIG9yIG51bWJlciBhbmQgZ2VuZGVyIG9mIG9mZnNwcmluZy48L2Fic3RyYWN0Pg" xlink:type="simple" />
+          <mods:abstract altRepGroup="9d-ad65-f217b61d26af" xml:lang="en" xlink:type="simple">This dataset contains the data from three studies on the pith diameter preference of the digger wasp Pemphredon lethifer (Shuckard 1837). P. lethifer is a potential biocontrol agent for aphid control and nests in pithy twigs like Rubus spp. or Sambucus ssp.. To develop a suitable nesting system, it was analysed whether P. lethifer prefers a specific pith diameter category and whether the diameter choice influences other parameters such as the number of offspring, sex ratio, mortality or parasitism. Twigs of four pith diameter categories ranging between 2.5 and 10.5 mm were offered in field trials as well as under controlled lab conditions. To analyse pith diameter choices in the field, trap nest catches were conducted in 2022 and 2023 in Braunschweig and the surrounding area. In addition, choice experiments were conducted in cages with single females in the laboratory. Pith diameter preferences in the field Trap nests in the field consisted of 16 bundeld twigs of Sambucus nigra (30 cm length), four of each category. Diameter was measured at one site and the other site of the twig was sealed to avoid nesting. Trap nests were installed at a height of 1 m with an angle of 30° and the open site orientated east. The trap nests were checked weekly for nesting and nests were removed directly (2002) or two weeks (2023) after the first sighting. Removed nests were replaced by twigs of the same category. Female digger wasps present in the nest were identified to genus level (2022) or species level (2023) and head width was measured. Nests were reared in the laboratory and emerging offspring were counted. Emerging offspring belonging to the genus Pemphredon were sexed and identified on species level. Parasitoids were counted and at least identified at super family level. The procedure was repeated after a cooling interval at 4 °C for 100 days. The cooling was repeated a second time in 2023. Finally, nests were opened and nests parameters and remains were documented. Pith diameter preferences in the laboratory For the choice experiments in the laboratory, freshly emerged, mated females were kept in individual catches and one twig per category was offered for nesting. The twigs were prepared as described for the pith diameter preferences in the field. Cages were checked for nests at least three times a week. Nests were documented, and a twig of the same category was added as soon as a nest was built to ensure always all choice options were given. The experiment ended with the death or disappearance of the wasp. Nests and offspring were handled as described for pith diameter preferences in the field. Detailed information about the methodology can be found in the corresponding publication. The dataset comprises three tables: Table 'Raw_data_Pemphredon_field_2022' includes all data regarding the trap nest catches of 2022. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_Pemphredon_field_2023' includes all data regarding the trap nest catches of 2023. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_diameter_preference_Pemphredon_lethifer_laboratory' includes all data regarding the laboratory cage experiments. This includes all data for each nest such as information on repetition, pith diameter, twig structure, nest structure or number and gender of offspring.</mods:abstract>
+          <mods:originInfo eventType="publication">
+            <mods:dateIssued encoding="w3cdtf">2026-08-03</mods:dateIssued>
+            <mods:publisher>OpenAgrar Repository</mods:publisher>
+          </mods:originInfo>
+          <mods:originInfo eventType="creation">
+            <mods:dateCreated encoding="w3cdtf" point="start">2022</mods:dateCreated>
+            <mods:dateCreated encoding="w3cdtf" point="end">2023</mods:dateCreated>
+          </mods:originInfo>
+          <mods:extension type="characteristics">
+            <chars refereed="no" />
+          </mods:extension>
+          <mods:subject xlink:type="simple">
+            <mods:geographic authorityURI="http://d-nb.info/gnd/" valueURI="http://d-nb.info/gnd/4008065-1" authority="gnd">Braunschweig</mods:geographic>
+          </mods:subject>
+          <mods:subject xlink:type="simple">
+            <mods:topic>Crabronidae</mods:topic>
+            <mods:topic>trap nest</mods:topic>
+            <mods:topic>nesting preferences</mods:topic>
+            <mods:topic>nesting habitat</mods:topic>
+            <mods:topic>biocontrol</mods:topic>
+          </mods:subject>
+          <mods:name ID="N100EC-50877" type="corporate" authorityURI="https://www.openagrar.de/classifications/institutes" valueURI="https://www.openagrar.de/classifications/institutes#G" xlink:type="simple">
+            <mods:role>
+              <mods:roleTerm authority="marcrelator" type="code">his</mods:roleTerm>
+            </mods:role>
+          </mods:name>
+        </mods:mods>
+      </modsContainer>
+    </def.modsContainer>
+  </metadata>
+  <service>
+    <servdates class="MCRMetaISO8601Date">
+      <servdate type="createdate" inherited="0">2025-09-26T14:30:35.289Z</servdate>
+      <servdate type="modifydate" inherited="0">2026-08-03T10:50:51.427Z</servdate>
+    </servdates>
+    <servflags class="MCRMetaLangText">
+      <servflag type="createdby" inherited="0" form="plain">ustahl</servflag>
+      <servflag type="MyCoRe-PI" inherited="0" form="plain">{"identifier":"10.5073/20250926-163035-0","type":"doi","additional":"","service":"DataciteJKI","created":"2025-09-26T14:38:30.466Z","registrationStarted":"2026-08-03T10:48:30.691Z","registered":"2026-08-03T10:49:32.851Z"}</servflag>
+      <servflag type="modifiedby" inherited="0" form="plain">ustahl</servflag>
+    </servflags>
+    <servstates class="MCRMetaClassification">
+      <servstate inherited="0" classid="state" categid="published" />
+    </servstates>
+  </service>
+</mycoreobject>

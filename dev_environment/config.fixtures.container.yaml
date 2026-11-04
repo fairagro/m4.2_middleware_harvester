@@ -21,6 +21,20 @@ repositories:
     mapper:
       schema_org_general: {}
 
+  - rdi: "openagrar-mods-fixture"
+    generic:
+      protocol:
+        http:
+          respect_robots_txt: true
+          max_requests_per_second: null
+        mycore_rest:
+          entry_url: "http://fixtures:8080/api/v2/objects/list.xml"
+          page_size: 50
+    parser:
+      mods_xml: {}
+    mapper:
+      mods_general: {}
+
 api_client:
   api_url: "http://middleware-api:8000"
   timeout: 60.0

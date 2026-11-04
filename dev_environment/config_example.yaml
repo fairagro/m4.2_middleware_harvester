@@ -44,6 +44,21 @@ repositories:
   #   mapper:
   #     schema_org_general: {}
 
+  # Example: OpenAgrar via MyCoRe REST + MODS (preferred over Solr /receive HTML)
+  # - rdi: "openagrar"
+  #   generic:
+  #     protocol:
+  #       http:
+  #         # robots.txt allows /api/; keep polite defaults unless an overlay proves otherwise.
+  #         respect_robots_txt: true
+  #       mycore_rest:
+  #         entry_url: "https://www.openagrar.de/api/v2/objects?category=state:published&type=mods"
+  #         # page_size: 200
+  #   parser:
+  #     mods_xml: {}
+  #   mapper:
+  #     mods_general: {}
+
   # Example: PUBLISSO FRL via Regal /find on generic (preferred over linked_data).
   # - rdi: "publisso"
   #   generic:

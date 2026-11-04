@@ -112,8 +112,8 @@ async def test_materialize_inlines_root_and_import_and_caches_both() -> None:
     async with NiceHttpClient(
         NiceHttpClientConfig(respect_robots_txt=False), transport=httpx.MockTransport(handler)
     ) as client:
-        first = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
-        second = await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+        first = await materialize_payload_contexts(payload, allowed_context_url=[root, imported], client=client)
+        second = await materialize_payload_contexts(payload, allowed_context_url=[root, imported], client=client)
 
     assert first["@context"] == {"@vocab": "http://example.org/vocab/", "title": "http://purl.org/dc/terms/title"}
     assert second["@context"] == first["@context"]
@@ -401,3 +401,123 @@ async def test_materialize_inlines_nested_context_without_top_level() -> None:
     assert isinstance(node, dict)
     assert node["@context"] == {"@vocab": "http://schema.org/"}
     assert hits["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_materialize_rejects_nested_remote_not_on_allowlist() -> None:
+    root = "https://ctx.example/root.json"
+    nested = "https://evil.example/nested.json"
+    documents = {
+        root: {"@context": {"@import": nested, "title": "http://purl.org/dc/terms/title"}},
+        nested: {"@context": {"@vocab": "http://evil.example/"}},
+    }
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        url = str(request.url)
+        hits.append(url)
+        return httpx.Response(200, json=documents[url])
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ParserError, match="Remote JSON-LD @context"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    assert hits.count(root) == 1
+    assert hits.count(nested) == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_context_fetch_is_negatively_cached() -> None:
+    root = "https://ctx.example/down.json"
+    hits = {"n": 0}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits["n"] += 1
+        return httpx.Response(503, text="unavailable")
+
+    payload: JsonObject = {"@context": root, "@id": "https://example.org/1"}
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+        first_hits = hits["n"]
+        assert first_hits >= 1
+        with pytest.raises(ParserError, match="recently failed"):
+            await materialize_payload_contexts(payload, allowed_context_url=root, client=client)
+
+    assert hits["n"] == first_hits
+
+
+@pytest.mark.asyncio
+async def test_failure_cache_evicts_when_over_cap() -> None:
+    configure_document_cache_max_entries(2)
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits.append(str(request.url))
+        return httpx.Response(503, text="unavailable")
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        for i in range(3):
+            url = f"https://ctx.example/{i}.json"
+            with pytest.raises(ParserError, match="Failed to fetch"):
+                await ensure_document_cached(url, client)
+        # Oldest failure entry was LRU-evicted when the third URL failed.
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/2.json", client)
+
+    assert hits.count("https://ctx.example/0.json") == 2
+    assert hits.count("https://ctx.example/1.json") == 1
+    assert hits.count("https://ctx.example/2.json") == 1
+
+
+@pytest.mark.asyncio
+async def test_failure_cache_hit_refreshes_lru() -> None:
+    """A fresh negative-cache hit moves the entry to MRU so hot failures survive eviction."""
+    configure_document_cache_max_entries(2)
+    hits: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="")
+        hits.append(str(request.url))
+        return httpx.Response(503, text="unavailable")
+
+    async with NiceHttpClient(
+        NiceHttpClientConfig(respect_robots_txt=False, retry_attempts=0),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        for i in (0, 1):
+            url = f"https://ctx.example/{i}.json"
+            with pytest.raises(ParserError, match="Failed to fetch"):
+                await ensure_document_cached(url, client)
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/2.json", client)
+        # URL 0 was hit after insert → MRU; URL 1 was evicted when 2 was remembered.
+        with pytest.raises(ParserError, match="recently failed"):
+            await ensure_document_cached("https://ctx.example/0.json", client)
+        with pytest.raises(ParserError, match="Failed to fetch"):
+            await ensure_document_cached("https://ctx.example/1.json", client)
+
+    assert hits.count("https://ctx.example/0.json") == 1
+    assert hits.count("https://ctx.example/1.json") == 2
+    assert hits.count("https://ctx.example/2.json") == 1
