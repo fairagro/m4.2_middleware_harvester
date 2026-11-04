@@ -13,7 +13,7 @@ The system SHALL provide a `middleware.payload` workspace package that owns inte
 (`PayloadKind`, `ParsedPayload`) and shared `DataMapper` implementations (including RDF `LinkedDataMapper` /
 `StableGraph`, vocabulary mappers, and the INSPIRE `inspire_general` mapper for `PayloadKind.inspire_record`). Shared
 discovery-unit types and `PayloadParser` implementations SHALL live in `middleware.parsing` (not in `middleware.payload`
-and not in a single protocol plugin). Protocol plugins (`inspire`, `linked_data`, `generic`, `oai_pmh`, …) MAY depend on
+and not in a single protocol plugin). Protocol plugins (`inspire`, `generic`, `oai_pmh`, …) MAY depend on
 `middleware.payload` and `middleware.parsing`. `middleware.payload` MUST NOT depend on `middleware.parsing` or on
 protocol plugin packages. The orchestrator MAY depend on `middleware.payload` for mapper config types and on
 `middleware.parsing` when validating parser registries. CSW client and ISO/`MD_Metadata` parsing MAY remain in

@@ -2,265 +2,32 @@
 
 ## Purpose
 
-Top-level plugin contract for the Linked Data harvester component.
-
-This spec defines the plugin entrypoint, configuration contract, and implementation selection model. Concrete behavior
-is defined in specialized feature specs.
+Historical capability name for sources that formerly used the `linked_data:` repository plugin key. That key is removed;
+equivalent harvest uses `generic` with nested `protocol` and sibling `parser` / `mapper`. Concrete discovery, parse, and
+map behaviour lives under `generic-harvesting` and the feature-split specs below. Operator migration:
+`docs/linked_data_to_generic.md`.
 
 ## Requirements
 
-### Requirement: Provide a plugin-level Config class as a Pydantic BaseModel that…
+### Requirement: Reject the linked_data plugin key
 
-The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the main
-`middleware.harvester.config.Config` plugin config schema.
+The system SHALL NOT provide a harvestable `linked_data` repository plugin key. Sources formerly configured under
+`linked_data` MUST use `generic` with nested `protocol` and sibling `parser` / `mapper`. Concrete discovery, parse, and
+map behaviour for those sources is specified under `generic-harvesting` and the relevant protocol/parser/mapper specs
+(e.g. xml sitemap, MyCoRe Solr, Regal, html_jsonld).
 
-#### Scenario: Satisfies — Provide a plugin-level Config class as a Pydantic BaseModel that…
+#### Scenario: linked_data plugin key is not available
 
-- **WHEN** the conditions described by this requirement apply
-- **THEN** The system SHALL provide a plugin-level `Config` class as a Pydantic `BaseModel` that is referenced by the
-  main `middleware.harvester.config.Config` plugin config schema
+- **WHEN** an operator configures a repository with plugin key `linked_data`
+- **THEN** configuration validation fails at startup
+- **AND** no LinkedDataPlugin harvest path runs
 
-### Requirement: Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
+#### Scenario: Equivalent harvest uses generic
 
-The system SHALL require explicit `sitemap_type` and `dataset_type` on the linked-data plugin config. Mapper selection
-MUST use the repository-level `mapper.type` (shared `middleware.payload` registry). The plugin MUST NOT infer sitemap,
-dataset, or mapper formats automatically. The linked-data plugin `Config` model MUST keep `payload_type` as an optional
-field marked `Field(deprecated=True)`. When set, repository validation MUST lift the value to sibling `mapper.type` and
-MUST emit a `logger.warning`.
-
-#### Scenario: Satisfies — Require explicit sitemap_type, dataset_type, and payload_type values. Do not infer…
-
-- **WHEN** linked-data plugin config omits `sitemap_type` or `dataset_type`
-- **THEN** validation fails at startup; mapper selection uses repository `mapper.type` (or a deprecated
-  `linked_data.payload_type` lift), not inference
-
-#### Scenario: Explicit sitemap and dataset required
-
-- **WHEN** linked-data plugin config omits `sitemap_type` or `dataset_type`
-- **THEN** validation fails at startup
-
-#### Scenario: Mapper comes from repository mapper config
-
-- **WHEN** a linked-data repository is configured with `mapper.type`
-- **THEN** the plugin resolves the mapper from the shared payload registry using that type
-
-#### Scenario: Legacy payload_type is lifted with deprecation
-
-- **WHEN** a linked-data repository sets `linked_data.payload_type` and omits `mapper`
-- **THEN** validation succeeds, `mapper.type` equals the legacy value, and a `logger.warning` is emitted
-
-#### Scenario: Conflicting payload_type and mapper.type fail closed
-
-- **WHEN** `linked_data.payload_type` and `mapper.type` are both set to different values
-- **THEN** validation fails at startup
-
-### Requirement: Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-
-The system SHALL implement `LinkedDataPlugin(Plugin)` in `plugin.py`; the central Harvester instantiates it with the
-plugin config and repository mapper config and invokes `run()` and `get_expected_datasets()` via the `Plugin` interface.
-The plugin MUST pass intermediate RDF graphs into the shared `LinkedDataMapper` / `DataMapper` API.
-
-#### Scenario: Satisfies — Implement LinkedDataPlugin(Plugin) in plugin.py; the central Harvester instantiates it with…
-
-- **WHEN** the harvester runs a linked-data repository
-- **THEN** mapping is performed by a mapper instance from `middleware.payload`
-
-#### Scenario: Plugin uses shared mapper
-
-- **WHEN** the harvester runs a linked-data repository
-- **THEN** mapping is performed by a mapper instance from `middleware.payload`
-
-### Requirement: Select implementations using registries for sitemap, dataset, and mapper types
-
-The system SHALL select sitemap and dataset implementations using plugin-local registries, and SHALL select mapper
-implementations using the shared `middleware.payload` DataMapper registry keyed by repository `mapper.type`.
-
-#### Scenario: Satisfies — Select implementations using registries for sitemap, dataset, and mapper types
-
-- **WHEN** the linked-data plugin creates its mapper
-- **THEN** resolution uses the shared payload package registry keyed by repository `mapper.type`
-
-#### Scenario: Mapper registry is shared
-
-- **WHEN** the linked-data plugin creates its mapper
-- **THEN** resolution uses the shared payload package registry, not plugin-private ownership of Schema.org/Regal
-  implementations
-
-### Requirement: Validate config at startup and fail fast on unsupported enum…
-
-The system SHALL validate config at startup and fail fast on unsupported enum values.
-
-#### Scenario: Satisfies — Validate config at startup and fail fast on unsupported enum…
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Validate config at startup and fail fast on unsupported enum values
-
-### Requirement: Yield HarvestedArc, HarvesterError, or SkippedRecord for every dataset outcome
-
-The system SHALL yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for every dataset outcome (success, failure,
-or deliberate skip).
-
-#### Scenario: Satisfies — Yield HarvestedArc, HarvesterError, or SkippedRecord for every dataset outcome
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Yield `HarvestedArc`, `HarvesterError`, or `SkippedRecord` for every dataset outcome (success, failure, or
-  deliberate skip)
-
-### Requirement: Continue harvesting remaining datasets when a dataset-level failure occurs
-
-The system SHALL continue harvesting remaining datasets when a dataset-level failure occurs.
-
-#### Scenario: Satisfies — Continue harvesting remaining datasets when a dataset-level failure occurs
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Continue harvesting remaining datasets when a dataset-level failure occurs
-
-### Requirement: Ensure every yielded HarvesterError and SkippedRecord reaches the orchestrator so…
-
-The system SHALL ensure that every yielded `HarvesterError` and `SkippedRecord` reaches the orchestrator so
-harvest-report counters and `fairagro:failures` stay complete; do not treat local logging as a substitute for yielding.
-
-#### Scenario: Satisfies — Ensure every yielded HarvesterError and SkippedRecord reaches the orchestrator so…
-
-- **WHEN** the conditions described by this requirement apply
-- **THEN** Ensure every yielded `HarvesterError` and `SkippedRecord` reaches the orchestrator so harvest-report counters
-  and `fairagro:failures` stay complete; do not treat local logging as a substitute for yielding
-
-### Requirement: Edge case — - An empty sitemap must yield zero outputs and exit…
-
-The system SHALL handle this edge case: when - An empty sitemap must yield zero outputs and exit cleanly. - Duplicate
-dataset URLs in a sitemap must be deduplicated before parsing. - Unsupported sitemap, dataset, or payload types must
-fail fast during validation. - Dataset-level parse or map failures must be emitted as errors and should not stop the
-overall harvest. - Malformed discovery entries that cannot be turned into a dataset must be yielded as
-`RecordProcessingError` (shared harvester type), not only logged inside the sitemap. - Duplicate discovery identifiers
-must be yielded as `SkippedRecord`, not as failures., then behaviour matches the documented outcome.
-
-#### Scenario: Edge case — - An empty sitemap must yield zero outputs and exit…
-
-- **WHEN** - An empty sitemap must yield zero outputs and exit cleanly. - Duplicate dataset URLs in a sitemap must be
-  deduplicated before parsing. - Unsupported sitemap, dataset, or payload types must fail fast during validation. -
-  Dataset-level parse or map failures must be emitted as errors and should not stop the overall harvest. - Malformed
-  discovery entries that cannot be turned into a dataset must be yielded as `RecordProcessingError` (shared harvester
-  type), not only logged inside the sitemap. - Duplicate discovery identifiers must be yielded as `SkippedRecord`, not
-  as failures.
-- **THEN** behaviour matches the documented outcome
-
-### Requirement: Linked-data plugin MUST pass the discovered dataset URL into Schema.org mapping
-
-When mapping a linked-data graph, the linked-data plugin MUST build a `MappingContext` from discovery and pass it to
-`map_graph`. For `UrlDiscoveryResult`, the context MUST include the discovered page URL as `source_url` and MUST forward
-optional `harvest_source_id` when present so Schema.org mapping can key `Investigation.identifier` to the harvest unit
-without parsing URLs inside StableGraph. Inline discovery results without a fetched URL MUST still pass an explicit
-`MappingContext()` (with null `source_url` / `harvest_source_id`); callers MUST NOT omit the context argument.
-
-#### Scenario: Discovery URL is available to the Schema.org mapper
-
-- **WHEN** the plugin maps an HTML JSON-LD dataset discovered at a page URL
-- **THEN** `map_graph` MUST receive a MappingContext whose `source_url` is that page URL
-
-#### Scenario: Harvest source id from sitemap is forwarded to the mapper
-
-- **WHEN** the plugin processes a `UrlDiscoveryResult` with `harvest_source_id` set (e.g. MyCoRe Solr `id`)
-- **THEN** `map_graph` MUST receive a MappingContext carrying that `harvest_source_id`
-
-#### Scenario: Inline discovery without URL uses empty MappingContext
-
-- **WHEN** the plugin maps a dataset from an inline discovery result with no landing URL
-- **THEN** `map_graph` MUST be called with an explicit `MappingContext()` whose `source_url` and `harvest_source_id` are
-  null, and MUST NOT invent a fake URL solely to populate context
-
-#### Scenario: No per-run DOI collision registry required
-
-- **WHEN** a harvest run processes multiple Schema.org datasets including pages that share the same DOI
-- **THEN** the plugin MUST NOT require a collect-then-map phase or colliding-DOI set; distinct harvest source ids or
-  `source_url` values MUST yield distinct `Investigation.identifier` values via the mapper's harvest-source-first chain
-
-### Requirement: Linked Data plugin bounds buffered mapped ARC payloads
-
-The Linked Data plugin pipeline (`discovery → fetch/map → yield`) MUST apply backpressure with a bounded results queue
-of `maxsize = effective_worker_tasks` (derived from `max_connections`) and at most `effective_worker_tasks` concurrent
-worker tasks. Each worker handles one discovery item at a time. Together, at most **2 × `effective_worker_tasks`**
-discovery items may be in flight as workers plus queued result slots.
-
-The bound is on **discovery-item concurrency** (in-flight workers + queue slots), not on the raw count of individual
-`HarvestedArc` / `RecordProcessingError` / `SkippedRecord` objects. A single discovery item MAY map to multiple outcomes
-(e.g. several `schema:Dataset` entities on one page); those outcomes for one item are not required to be streamed
-one-by-one to keep the per-outcome count ≤ 2 × `effective_worker_tasks`.
-
-#### Scenario: Slow consumer does not grow unbounded discovery buffering
-
-- **WHEN** the plugin maps discovery items faster than the orchestrator consumes yielded items (simulated slow consumer)
-- **THEN** at most `effective_worker_tasks` workers MAY run concurrently AND the results queue MUST NOT accept more than
-  `effective_worker_tasks` pending items (production stalls on full queue rather than growing without bound)
-
-#### Scenario: Multi-Dataset pages do not redefine the concurrency bound
-
-- **WHEN** one discovery item maps to multiple `HarvestedArc` outcomes
-- **THEN** the plugin MAY hold that item's mapped outcomes while enqueueing them AND MUST still limit concurrent workers
-  and queue slots as above
-
-#### Scenario: Backpressure does not stall discovery permanently
-
-- **WHEN** the consumer resumes after a slow period
-- **THEN** the plugin MUST continue yielding remaining datasets in arrival order until discovery completes and all
-  workers finish
-
-### Requirement: Linked Data plugin stops promptly on generator close
-
-When the plugin async generator is closed early (e.g. orchestrator `aclose()` after upload abort or repository
-teardown), the plugin MUST stop starting new worker tasks and MUST cancel in-flight producer and worker tasks within a
-bounded shutdown window. The plugin MUST NOT continue mapping the remainder of the catalog into an unread queue.
-Shutdown MUST NOT leave unhandled exceptions on the asyncio event loop.
-
-#### Scenario: Early aclose cancels remaining work
-
-- **WHEN** the consumer takes one or more yielded items then closes the plugin generator while discovery would still
-  produce many more datasets
-- **THEN** further dataset mapping MUST stop without processing the full catalog AND the asyncio event loop MUST report
-  no unhandled task exceptions
-
-#### Scenario: Clean shutdown after full harvest is unchanged
-
-- **WHEN** the consumer drains all yielded items until the generator completes normally
-- **THEN** the plugin MUST exit cleanly with no cancellation side effects on the harvest report counters for items
-  already yielded
-
-### Requirement: Coexist with generic plugin during incremental migration
-
-The system SHALL keep the `linked_data` plugin key and its Sitemap/Dataset registries valid while equivalent sources
-migrate to `generic`. The `linked_data` plugin key is **deprecated**: repository configuration that still uses it MUST
-emit a `logger.warning` at config load (see harvester-configuration). Operators SHOULD point a repository at `generic`
-with a protocol/parser pair that preserves the prior harvest outcomes for that source. A later breaking change MAY
-remove the plugin key and shims after operators migrate.
-
-#### Scenario: Unmigrated linked_data repositories keep working
-
-- **WHEN** a repository still uses `linked_data` after the generic package lands
-- **THEN** harvesting continues to use LinkedDataPlugin without requiring an immediate config rewrite, and config load
-  emits the linked_data plugin-key deprecation warning
-
-#### Scenario: First migrated pair xml + html_jsonld via generic
-
-- **WHEN** a repository that previously used linked_data xml sitemap + html_jsonld is reconfigured to `generic` with the
-  corresponding nested `protocol`, a sibling `parser.type`, and the same `mapper`
+- **WHEN** a repository that previously used linked_data xml sitemap + html_jsonld is configured as `generic` with the
+  corresponding nested `protocol`, sibling `parser`, and `mapper`
 - **THEN** harvest yields remain observationally equivalent for successful records (same PayloadKind path into the
   shared DataMapper)
-
-### Requirement: Reject sitemap_type mycore_solr under linked_data
-
-The system SHALL NOT accept `linked_data.sitemap_type: mycore_solr`. Config load for such a repository MUST fail
-validation. Other `sitemap_type` values (`xml`, `regal_find`) are unaffected. MyCoRe Solr discovery MUST use
-`generic.protocol.mycore_solr` with sibling `parser` and `mapper`.
-
-#### Scenario: mycore_solr linked_data path is rejected
-
-- **WHEN** a linked_data repository sets `sitemap_type: mycore_solr`
-- **THEN** configuration validation fails
-
-#### Scenario: Other sitemap types remain valid
-
-- **WHEN** a linked_data repository sets `sitemap_type` to `xml` or `regal_find`
-- **THEN** validation does not fail for that reason alone
 
 ## Feature split
 
