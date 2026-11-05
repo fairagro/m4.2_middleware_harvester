@@ -16,4 +16,4 @@
 
 - [x] 2.1 Manual: SRADI harvest from the branch vs `main`; only `Spatial Extent` changes; source vs container identical
       for one ARC
-- [ ] 2.2 Archive after merge
+- [x] 2.2 Archive after merge
