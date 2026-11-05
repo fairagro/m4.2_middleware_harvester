@@ -292,6 +292,16 @@
       "depNameTemplate": "GoogleContainerTools/container-structure-test",
       "extractVersionTemplate": "^v?(?<version>.*)$",
       "autoReplaceStringTemplate": "CST_VERSION=v{{newValue}}"
+    },
+    {
+      "description": "gitleaks pin in versions.env",
+      "customType": "regex",
+      "managerFilePatterns": ["/^versions\\.env$/"],
+      "matchStrings": ["GITLEAKS_VERSION=v(?<currentValue>[^\\s#]+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "gitleaks/gitleaks",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "autoReplaceStringTemplate": "GITLEAKS_VERSION=v{{newValue}}"
     }
   ],
 
