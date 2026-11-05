@@ -166,7 +166,8 @@ mismatch, and SHALL stay silent when the constraint is absent or not a positive 
 
 - **WHEN** the endpoint advertises `MaxRecordDefault = 10` and `chunk_size` is 50
 - **THEN** request `maxRecords=10` per page for subsequent GetRecords paging
-- **AND** log one INFO at connect naming both 10 and 50 and that the page size was clamped
+- **AND** log one INFO naming both 10 and 50 and that the page size was clamped (when the effective request page size is
+  first reduced)
 - **AND** still harvest every record, paginating on the response's `nextrecord` / `returned`
 
 #### Scenario: XML maxRecords above the advert is also clamped

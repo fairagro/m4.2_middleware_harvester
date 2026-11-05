@@ -72,7 +72,7 @@ class CSWClient:
             headers={"User-Agent": self._config.user_agent},
             auth=Authentication(verify=self._config.verify_ssl),
         )
-        self._page_clamp = PageSizeClamp.from_csw(self._csw, self._config.chunk_size)
+        self._page_clamp = PageSizeClamp.from_csw(self._csw)
         logger.info("Connected to CSW at %s: %s", self._config.csw_url, describe_service(self._csw))
 
     def connect(self) -> None:

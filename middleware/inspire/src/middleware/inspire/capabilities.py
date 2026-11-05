@@ -92,17 +92,17 @@ class PageSizeClamp:
     _logged: bool = field(default=False, repr=False)
 
     @classmethod
-    def from_csw(cls, csw: Any, chunk_size: int) -> PageSizeClamp:  # noqa: ANN401
-        """Read capabilities and INFO when ``chunk_size`` alone would be clamped."""
-        advertised = advertised_max_records(csw)
-        logged = False
-        if advertised is not None and advertised < chunk_size:
-            log_page_size_clamp(chunk_size, advertised)
-            logged = True
-        return cls(advertised=advertised, _logged=logged)
+    def from_csw(cls, csw: Any) -> PageSizeClamp:  # noqa: ANN401
+        """Read ``MaxRecordDefault`` from capabilities without logging.
+
+        INFO is emitted only from :meth:`apply` when a real request page size shrinks,
+        so config ``chunk_size`` alone never produces a clamp log for an XML harvest
+        whose effective page size is already at or below the advert.
+        """
+        return cls(advertised=advertised_max_records(csw))
 
     def apply(self, page_size: int) -> int:
-        """Clamp ``page_size`` down; log once if connect did not already cover this."""
+        """Clamp ``page_size`` down and INFO once when the size actually shrinks."""
         clamped = clamp_page_size(page_size, self.advertised)
         if clamped < page_size and self.advertised is not None and not self._logged:
             log_page_size_clamp(page_size, self.advertised)
@@ -110,9 +110,6 @@ class PageSizeClamp:
         return clamped
 
 
-def note_server_caps_page_size(csw: Any, chunk_size: int) -> int | None:  # noqa: ANN401
-    """Read ``MaxRecordDefault`` and INFO once when it is below ``chunk_size``.
-
-    Convenience wrapper around :meth:`PageSizeClamp.from_csw` for unit tests.
-    """
-    return PageSizeClamp.from_csw(csw, chunk_size).advertised
+def note_server_caps_page_size(csw: Any) -> int | None:  # noqa: ANN401
+    """Read ``MaxRecordDefault`` (test helper around :meth:`PageSizeClamp.from_csw`)."""
+    return PageSizeClamp.from_csw(csw).advertised

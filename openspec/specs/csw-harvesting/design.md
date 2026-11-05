@@ -47,10 +47,12 @@
    / `returned`, never the requested page size — but oversized requests are noise. Issue #568 reverses the earlier
    warn-without-clamp choice: after connect, `CSWClient` stores the positive advert and applies
    `min(effective_page_size, advert)` for standard/CQL/FES paging and after XML `maxRecords` override resolution (clamp
-   down only; never raise). At most one INFO names both numbers and that the request was clamped; absent or unparsable
-   adverts leave the effective page size unchanged. CSW 2.0.2 still defines the value as a default rather than a ceiling
-   — conforming servers that would honour a larger `maxRecords` may see more pages after the clamp; that trade-off is
-   accepted. Capability readers stay in `capabilities.py` because `csw_client.py` sits at the pylint line ceiling.
+   down only; never raise). At most one INFO names both numbers and that the request was clamped — emitted when the
+   effective page size is first reduced, not merely because config `chunk_size` exceeds the advert while XML already
+   requests a smaller page. Absent or unparsable adverts leave the effective page size unchanged. CSW 2.0.2 still
+   defines the value as a default rather than a ceiling — conforming servers that would honour a larger `maxRecords` may
+   see more pages after the clamp; that trade-off is accepted. Capability readers stay in `capabilities.py` because
+   `csw_client.py` sits at the pylint line ceiling.
 
 7. **Connection pooling for CSW (issue #19, PR #347) is not adopted — production CSW volume does not justify it today.**
    A prototype rebinding `owslib.util.requests` to a thread-local pooled `requests.Session` measured 17 → 1 TCP

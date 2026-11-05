@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 
 from middleware.inspire.capabilities import (
+    PageSizeClamp,
     advertised_max_records,
     clamp_page_size,
     describe_service,
@@ -93,17 +94,25 @@ def test_clamp_page_size_leaves_page_size_when_advert_does_not_bind(page_size: i
     assert clamp_page_size(page_size, advertised) == page_size
 
 
-# --- note_server_caps_page_size / log -------------------------------------------------
+# --- PageSizeClamp / note_server_caps_page_size / log ---------------------------------
 
 
-def test_notes_and_logs_when_the_advertised_cap_is_below_chunk_size(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """The observed atlas.thuenen.de case: advertises 10, configured 50."""
+def test_from_csw_reads_advert_without_logging(caplog: pytest.LogCaptureFixture) -> None:
+    """Connect must not INFO solely because config chunk_size exceeds the advert."""
     with caplog.at_level(logging.INFO):
-        advertised = note_server_caps_page_size(_csw(["10"]), chunk_size=50)
+        clamp = PageSizeClamp.from_csw(_csw(["10"]))
 
-    assert advertised == 10
+    assert clamp.advertised == 10
+    assert caplog.records == []
+
+
+def test_apply_logs_once_when_page_size_shrinks(caplog: pytest.LogCaptureFixture) -> None:
+    """The observed atlas.thuenen.de case: advertises 10, request asks for 50."""
+    clamp = PageSizeClamp.from_csw(_csw(["10"]))
+    with caplog.at_level(logging.INFO):
+        assert clamp.apply(50) == 10
+        assert clamp.apply(50) == 10
+
     assert len(caplog.records) == 1
     assert caplog.records[0].levelno == logging.INFO
     message = caplog.records[0].getMessage()
@@ -113,21 +122,32 @@ def test_notes_and_logs_when_the_advertised_cap_is_below_chunk_size(
     assert "50" in message
 
 
+def test_apply_stays_silent_when_page_size_already_at_or_below_advert(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """XML maxRecords below the advert must not produce a clamp log."""
+    clamp = PageSizeClamp(advertised=10)
+    with caplog.at_level(logging.INFO):
+        assert clamp.apply(7) == 7
+
+    assert caplog.records == []
+
+
 @pytest.mark.parametrize(
-    ("advertised", "chunk_size"),
+    ("advertised", "page_size"),
     [
-        pytest.param("100", 50, id="cap-above-chunk-size"),
-        pytest.param("50", 50, id="cap-equals-chunk-size"),
+        pytest.param("100", 50, id="cap-above-page-size"),
+        pytest.param("50", 50, id="cap-equals-page-size"),
     ],
 )
-def test_stays_silent_when_the_cap_does_not_bind(
-    caplog: pytest.LogCaptureFixture, advertised: str, chunk_size: int
+def test_apply_stays_silent_when_the_cap_does_not_bind(
+    caplog: pytest.LogCaptureFixture, advertised: str, page_size: int
 ) -> None:
-    """A cap at or above the configured page size costs us nothing, so say nothing."""
+    """A cap at or above the request page size costs us nothing, so say nothing."""
+    clamp = PageSizeClamp(advertised=int(advertised))
     with caplog.at_level(logging.INFO):
-        result = note_server_caps_page_size(_csw([advertised]), chunk_size=chunk_size)
+        assert clamp.apply(page_size) == page_size
 
-    assert result == int(advertised)
     assert caplog.records == []
 
 
@@ -142,7 +162,8 @@ def test_stays_silent_when_the_cap_does_not_bind(
 def test_stays_silent_when_the_cap_is_unknowable(caplog: pytest.LogCaptureFixture, raw: object) -> None:
     """We only clamp/log about a cap we actually read; otherwise there is nothing to report."""
     with caplog.at_level(logging.INFO):
-        assert note_server_caps_page_size(_csw(raw), chunk_size=50) is None
+        assert note_server_caps_page_size(_csw(raw)) is None
+        assert PageSizeClamp.from_csw(_csw(raw)).apply(50) == 50
 
     assert caplog.records == []
 
@@ -150,8 +171,8 @@ def test_stays_silent_when_the_cap_is_unknowable(caplog: pytest.LogCaptureFixtur
 def test_does_not_raise_when_the_capabilities_shape_is_unexpected(caplog: pytest.LogCaptureFixture) -> None:
     """Connect must survive a server or OWSLib version we did not anticipate."""
     with caplog.at_level(logging.INFO):
-        assert note_server_caps_page_size(SimpleNamespace(), chunk_size=50) is None
-        assert note_server_caps_page_size(object(), chunk_size=50) is None
+        assert note_server_caps_page_size(SimpleNamespace()) is None
+        assert note_server_caps_page_size(object()) is None
 
     assert caplog.records == []
 

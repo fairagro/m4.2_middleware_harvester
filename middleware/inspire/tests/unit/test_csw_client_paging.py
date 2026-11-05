@@ -715,3 +715,26 @@ def test_xml_clamp_logs_info_when_chunk_size_did_not_need_clamp(
     clamp_logs = [r for r in caplog.records if "clamping" in r.getMessage()]
     assert len(clamp_logs) == 1
     assert clamp_logs[0].levelno == logging.INFO
+
+
+def test_connect_xml_below_advert_stays_silent_despite_larger_chunk_size(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Connect must not INFO for chunk_size when XML effective page size needs no clamp."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    fake_csw = MagicMock()
+    fake_csw.identification = MagicMock(title="Test CSW")
+    fake_csw.constraints = {"MaxRecordDefault": MagicMock(values=["10"])}
+    fake_csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    fake_csw.records = {}
+
+    with (
+        caplog.at_level(logging.INFO, logger="middleware.inspire.capabilities"),
+        patch("middleware.inspire.csw_client.CatalogueServiceWeb", return_value=fake_csw),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client.get_records(xml_query=_minimal_get_records_xml(maxRecords="7")))
+
+    sent_xml = fake_csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="7"' in sent_xml
+    assert [r for r in caplog.records if "clamping" in r.getMessage()] == []
