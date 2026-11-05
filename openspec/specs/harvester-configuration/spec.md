@@ -123,31 +123,31 @@ child. Legacy `{ type: <registry key>, … }` MUST remain accepted with a lift i
 - **WHEN** a repository sets both `mapper.regal_general` and `mapper.schema_org_general`
 - **THEN** configuration validation fails
 
-### Requirement: Repository entries that use shared mappers MUST include a mapper config beside the plugin
+### Requirement: Reject the linked_data plugin key
 
-Each repository entry that uses shared `middleware.payload` mappers (`linked_data`, `generic`, `oai_pmh`, **`inspire`**)
-MUST include a `mapper` configuration object beside the single plugin key, **or** MUST be covered by a documented legacy
-lift: (for legacy `linked_data` only) a `linked_data.payload_type` lifted into the mapper block with a `logger.warning`;
-(for legacy `inspire` only) an omitted `mapper` lifted to nested `inspire_general` with a `logger.warning`. The `mapper`
+The system SHALL NOT accept the repository plugin key `linked_data`. Configuration that still sets `linked_data` MUST
+fail validation at startup as an unknown repository field (no dedicated `linked_data` field or migration-only
+validator). Supported plugin keys remain `inspire`, `generic`, and `oai_pmh`. Migration guidance for operators remains
+in `docs/linked_data_to_generic.md`.
+
+#### Scenario: linked_data repository is rejected
+
+- **WHEN** a repository entry sets `linked_data`
+- **THEN** configuration validation fails before harvest
+
+#### Scenario: generic repository still validates
+
+- **WHEN** a repository entry sets exactly one plugin key `generic` with required sibling `parser` and `mapper`
+- **THEN** configuration validation succeeds
+
+### Requirement: Shared-mapper plugins require sibling mapper config (inspire legacy lift only)
+
+Each repository entry that uses shared `middleware.payload` mappers (`generic`, `oai_pmh`, **`inspire`**) MUST include a
+`mapper` configuration object beside the single plugin key, **or** MUST be covered by a documented legacy lift: (for
+legacy `inspire` only) an omitted `mapper` lifted to nested `inspire_general` with a `logger.warning`. The `mapper`
 block MUST select an explicit mapper registry type via type-as-key (preferred) or deprecated `{ type: … }`, and MAY
 include mapper-specific fields under the type child (and shared siblings such as `placeholders`). The `mapper` key is
 NOT counted as a plugin field for the exactly-one-plugin rule.
-
-#### Scenario: Valid linked_data entry with plugin and mapper
-
-- **WHEN** a repository entry sets exactly one plugin key `linked_data` and a `mapper` with a supported type (nested or
-  deprecated `type:`)
-- **THEN** configuration validation succeeds
-
-#### Scenario: Missing mapper is rejected for linked_data unless legacy payload_type is present
-
-- **WHEN** a `linked_data` repository entry omits both `mapper` and `linked_data.payload_type`
-- **THEN** configuration validation fails
-
-#### Scenario: Legacy payload_type satisfies mapper requirement
-
-- **WHEN** a `linked_data` repository entry omits `mapper` but sets `linked_data.payload_type` to a supported value
-- **THEN** configuration validation succeeds after lifting into the mapper block, and a `logger.warning` is emitted
 
 #### Scenario: Omitted inspire mapper defaults to inspire_general
 
@@ -169,9 +169,9 @@ NOT counted as a plugin field for the exactly-one-plugin rule.
 ### Requirement: Validate mapper type and PayloadKind compatibility at startup
 
 The system SHALL validate that the configured mapper `type` is registered and that its accepted `PayloadKind` is
-compatible with the payload the selected plugin produces (for `linked_data`, `generic`, and `oai_pmh`: as determined by
-the configured shared parser’s `produces` kind when a sibling `parser` is present; for **`inspire`**: `inspire_record`).
-Unsupported mapper types MUST fail fast at startup.
+compatible with the payload the selected plugin produces (for `generic` and `oai_pmh`: as determined by the configured
+shared parser’s `produces` kind when a sibling `parser` is present; for **`inspire`**: `inspire_record`). Unsupported
+mapper types MUST fail fast at startup.
 
 #### Scenario: Unknown mapper type fails fast
 
@@ -204,20 +204,20 @@ fail closed when a configured mapper’s `accepts` kind is not `inspire_record`.
 - **WHEN** a repository entry sets `inspire` and `mapper: { type: inspire_general }`
 - **THEN** configuration validation succeeds
 
-### Requirement: Each repository entry may use the generic plugin key
+### Requirement: generic is a supported plugin key among inspire and oai_pmh
 
 The system SHALL allow each repository entry to select exactly one plugin field among the supported keys, including
-`generic` alongside existing keys such as `inspire` and `linked_data`. Zero or two or more plugin fields remain
-rejected. Sibling `mapper` and `parser` keys are not plugin fields.
+`generic` alongside existing keys such as `inspire` and `oai_pmh`. Zero or two or more plugin fields remain rejected.
+Sibling `mapper` and `parser` keys are not plugin fields.
 
 #### Scenario: generic alone is accepted
 
 - **WHEN** a repository entry sets only `generic` (plus shared fields and `mapper` / `parser` as required)
 - **THEN** configuration validation succeeds
 
-#### Scenario: generic together with linked_data is rejected
+#### Scenario: generic together with inspire is rejected
 
-- **WHEN** a repository entry sets both `generic` and `linked_data`
+- **WHEN** a repository entry sets both `generic` and `inspire`
 - **THEN** configuration validation fails
 
 ### Requirement: generic repositories require mapper config
@@ -236,7 +236,7 @@ known statically.
 Each repository entry that uses shared `middleware.parsing` PayloadParsers (v1: `generic`, `oai_pmh`) MUST include a
 `parser` configuration object beside the single plugin key. The `parser` block MUST specify an explicit parser `type`
 (registry key). The `parser` key is NOT counted as a plugin field for the exactly-one-plugin rule. Repository entries
-that do not use shared parsers in v1 (e.g. `inspire`, `linked_data`) MUST NOT be required to set `parser`.
+that do not use shared parsers in v1 (e.g. `inspire`) MUST NOT be required to set `parser`.
 
 #### Scenario: Valid generic entry with plugin, parser, and mapper
 
@@ -261,8 +261,8 @@ that do not use shared parsers in v1 (e.g. `inspire`, `linked_data`) MUST NOT be
 ### Requirement: Each repository entry may use the oai_pmh plugin key
 
 The system SHALL allow each repository entry to select exactly one plugin field among the supported keys, including
-`oai_pmh` alongside existing keys such as `inspire`, `linked_data`, and `generic`. Zero or two or more plugin fields
-remain rejected. Sibling `mapper` and `parser` keys are not plugin fields.
+`oai_pmh` alongside existing keys such as `inspire` and `generic`. Zero or two or more plugin fields remain rejected.
+Sibling `mapper` and `parser` keys are not plugin fields.
 
 #### Scenario: oai_pmh alone is accepted
 
@@ -335,23 +335,52 @@ registrations alongside existing parser/mapper keys.
 
 ### Requirement: Placeholder values MUST be configurable per repository
 
-The repository `mapper` block MUST accept an optional `placeholders` object (`middleware.payload.placeholders`
-`PlaceholderConfig`): `values`, the whole-value placeholders this RDI writes instead of leaving a field empty, and
-`unrendered_templates`, whether unrendered `$var`, `${var}` and `{{var}}` templates also count. The defaults MUST live
-on the model and MUST be empty (`values: []`, `unrendered_templates: false`), so nothing is treated as a placeholder
-unless the operator configures it. Values MUST be compared trimmed and case-insensitive. Code that receives the
-placeholders (parsers, clients, mappers) MUST take the `PlaceholderConfig` object and MUST NOT supply its own default.
-The same field MUST apply to every plugin (`inspire`, `linked_data`, `generic`, `oai_pmh`).
+Placeholders MUST be configured as a `placeholders` object (`middleware.payload.placeholders` `PlaceholderConfig`):
+`values`, the whole-value placeholders this RDI writes instead of leaving a field empty, and `unrendered_templates`,
+whether unrendered `$var`, `${var}` and `{{var}}` templates also count. The block MUST sit where the check runs: the
+`inspire` plugin block for INSPIRE (`inspire.placeholders`, read by the parser), and the `mapper` block for `generic`
+and `oai_pmh` (`mapper.placeholders`, read by the mapper). The defaults MUST live on the model and MUST be empty
+(`values: []`, `unrendered_templates: false`), so nothing is treated as a placeholder unless the operator configures it.
+Values MUST be compared trimmed and case-insensitive. Code that receives the placeholders (parsers, clients, mappers)
+MUST take a config object holding the `PlaceholderConfig` and MUST NOT supply its own default.
 
 #### Scenario: Per-RDI values
 
 - **WHEN** a repository sets `mapper.placeholders.values: [" Keine Angabe "]`
 - **THEN** configuration validation succeeds and that repository's placeholder values are `{"keine angabe"}`
 
+#### Scenario: INSPIRE placeholders on the plugin block
+
+- **WHEN** an `inspire` repository sets `inspire.placeholders.values: ["None"]`
+- **THEN** configuration validation succeeds without a warning and the INSPIRE parser treats "None" as a placeholder
+
 #### Scenario: No placeholders by default
 
-- **WHEN** a repository omits `mapper.placeholders`
+- **WHEN** a repository sets no `placeholders`
 - **THEN** no value counts as a placeholder, including "None" and `$licenseURL`
+
+### Requirement: mapper.placeholders on inspire repositories is deprecated
+
+When an `inspire` repository explicitly sets `mapper.placeholders`, configuration validation MUST succeed, MUST emit a
+`logger.warning` pointing at `inspire.placeholders`, and MUST use that value as `inspire.placeholders`. When both are
+set and differ, validation MUST fail. An unset `mapper.placeholders` MUST NOT warn. Repositories of other plugins MUST
+keep reading `mapper.placeholders` unchanged.
+
+#### Scenario: Legacy location is lifted
+
+- **WHEN** an `inspire` repository sets `mapper.placeholders.values: ["None"]` and no `inspire.placeholders`
+- **THEN** validation succeeds, a deprecation warning is logged, and `inspire.placeholders.values` is `{"none"}`
+
+#### Scenario: Conflicting locations
+
+- **WHEN** an `inspire` repository sets `mapper.placeholders.values: ["None"]` and
+  `inspire.placeholders.values: ["n/a"]`
+- **THEN** configuration validation fails naming both fields
+
+#### Scenario: Generic repository is unaffected
+
+- **WHEN** a `generic` repository sets `mapper.placeholders.unrendered_templates: true`
+- **THEN** no deprecation warning is logged and the mapper receives that `PlaceholderConfig`
 
 ### Requirement: Top-level jsonld_context_cache_max_entries bounds the shared context cache
 
@@ -373,22 +402,3 @@ cache size cap (see `jsonld-context-loader`).
 
 - **WHEN** config sets `jsonld_context_cache_max_entries: 0`
 - **THEN** configuration validation fails
-
-### Requirement: linked_data plugin key emits deprecation warning
-
-The system SHALL treat the repository plugin key `linked_data` as deprecated in favour of `generic` with nested
-`protocol` and sibling `parser` / `mapper`. When a repository entry sets `linked_data`, configuration validation MUST
-succeed and MUST emit a `logger.warning` that points operators at the `generic` migration path. The warning MUST NOT
-block harvest. Behaviour of the linked_data plugin and its shims MUST remain unchanged aside from the warning.
-
-#### Scenario: linked_data repository warns and still validates
-
-- **WHEN** a repository entry sets exactly one plugin key `linked_data` with a valid sibling `mapper` (or legacy
-  `payload_type` lift)
-- **THEN** configuration validation succeeds and a `logger.warning` is emitted stating that `linked_data` is deprecated
-  in favour of `generic.protocol` (with sibling parser/mapper)
-
-#### Scenario: generic repository does not emit linked_data plugin-key warning
-
-- **WHEN** a repository entry sets exactly one plugin key `generic` (and not `linked_data`)
-- **THEN** configuration validation MUST NOT emit the linked_data plugin-key deprecation warning

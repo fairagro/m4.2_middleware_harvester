@@ -20,8 +20,8 @@ middleware.shared.report
 ├── RepositoryReport.skipped_datasets  # always int, default 0
 └── JsonLdReportSerializer             # fairagro:skippedDatasets always emitted
 
-middleware/linked_data/plugin.py
-└── producer()                  # forwards SkippedRecord / RecordProcessingError from sitemap.discover()
+middleware/generic/pipeline.py
+└── _run_discovery_producer()   # forwards SkippedRecord / RecordProcessingError from Protocol.discover()
 ```
 
 ## Key Decisions

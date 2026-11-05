@@ -69,14 +69,14 @@ emit `fairagro:skippedDatasets` for every repository entry, including when the v
 - **WHEN** a repository run finishes with no `SkippedRecord` yields
 - **THEN** `skipped_datasets` is `0` and `fairagro:skippedDatasets` is present in the JSON-LD output with value `0`
 
-### Requirement: linked_data yields SkippedRecord for duplicate discovery
+### Requirement: generic yields SkippedRecord for duplicate discovery
 
-The linked_data plugin MUST yield `SkippedRecord` (not `HarvesterError`) when discovery deduplication skips a duplicate
-identifier or URL.
+The generic plugin MUST yield `SkippedRecord` (not `HarvesterError`) when Protocol discovery deduplication skips a
+duplicate identifier or URL.
 
-#### Scenario: Duplicate sitemap / discovery id
+#### Scenario: Duplicate discovery id
 
-- **WHEN** the same discovery identity appears more than once in a harvest run
+- **WHEN** the same discovery identity appears more than once in a generic harvest run
 - **THEN** subsequent occurrences are yielded as `SkippedRecord` and counted toward `skipped_datasets`
 
 ### Requirement: Edge case — unhandled repository exception

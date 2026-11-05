@@ -8,7 +8,7 @@
     - `InspireError` (`middleware.inspire.errors` — inspire plugin base)
       - `CswConnectionError`
       - `SemanticError`
-    - `LinkedDataError` (`middleware.linked_data.errors` — linked_data plugin base)
+    - `GenericError` (`middleware.generic.errors` — generic plugin base)
 
 ## Key Decisions
 
@@ -39,5 +39,5 @@
    inspecting the concrete exception type.
 
 6. **Mandatory plugin-specific base exception** — Each plugin defines its own base exception (e.g., `InspireError`,
-   `LinkedDataError`) so that consumers can catch all failures originating from a specific plugin with one `except`
-   clause, independent of `RecordProcessingError`. It also makes stack traces immediately identifiable by plugin origin.
+   `GenericError`) so that consumers can catch all failures originating from a specific plugin with one `except` clause,
+   independent of `RecordProcessingError`. It also makes stack traces immediately identifiable by plugin origin.

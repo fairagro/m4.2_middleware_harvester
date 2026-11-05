@@ -3,8 +3,7 @@
 ## Purpose
 
 Generic-plugin `Protocol` that discovers Regal records from an offset-paginated `/find` JSON array endpoint (e.g.
-PUBLISSO FRL). It is the generic counterpart of the `linked_data` `regal_find` sitemap (#294 protocol half). The
-`regal_jsonld` / `jsonld` payload parser path is out of scope here.
+PUBLISSO FRL). The `regal_jsonld` / `jsonld` payload parser path is out of scope here.
 
 ## Requirements
 
@@ -28,8 +27,7 @@ page source (`_pages`) and the record identity (`_record_identifier`).
 ### Requirement: Register a regal_find Protocol
 
 The system SHALL register a `Protocol` under `ProtocolType.regal_find` whose canonical entry point is nested
-`generic.protocol.regal_find.entry_url`. The `linked_data` `regal_find` sitemap SHALL delegate to it, so existing
-`linked_data` configurations keep working with unchanged behaviour.
+`generic.protocol.regal_find.entry_url`.
 
 #### Scenario: regal_find resolves from the registry
 

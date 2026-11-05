@@ -1,28 +1,25 @@
-# Migrating `linked_data:` repositories to `generic:`
+# Migrating former `linked_data:` repositories to `generic:`
 
-Operator YAML and Helm values should prefer the `generic:` plugin when an equivalent Protocol + PayloadParser pair
-exists. The `linked_data:` plugin key is **deprecated** (config load emits a `logger.warning`); it remains a temporary
-shim until a later hard cut. MyCoRe Solr discovery is **generic-only** (`generic.protocol.mycore_solr`);
-`linked_data.sitemap_type: mycore_solr` is rejected.
+The repository plugin key `linked_data:` has been **removed**. Config that still sets it fails validation at startup.
+Use `generic:` with nested `protocol:` and sibling `parser:` / `mapper:` instead. MyCoRe Solr discovery is
+**generic-only** (`generic.protocol.mycore_solr`).
 
 Mapper and parser selection use **type-as-key** (same idiom as `generic.protocol`). Deprecated flat
-`mapper: { type: … }` / `parser: { type: … }` still lift with a warning until the hard-cut follow-up. This guide does
-**not** invent type-as-key under the deprecated `linked_data:` plugin key — migrate to `generic:` instead.
+`mapper: { type: … }` / `parser: { type: … }` still lift with a warning until a later hard-cut.
 
 ## Field mapping
 
-| `linked_data` field               | `generic` equivalent                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Former `linked_data` field        | `generic` equivalent                                                                                                                                                                                                                                                                                                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sitemap_type`                    | Nested key under `protocol:` (`xml`, `mycore_solr`, `regal_find`, …).                                                                                                                                                                                                                                                                                                                                                     |
 | `sitemap_url`                     | `protocol.<type>.entry_url`.                                                                                                                                                                                                                                                                                                                                                                                              |
 | `dataset_type: html_jsonld`       | Sibling `parser: { html_jsonld: { … } }`                                                                                                                                                                                                                                                                                                                                                                                  |
 | `dataset_type: regal_jsonld`      | Sibling `parser: { jsonld: { allowed_context_url: … } }`                                                                                                                                                                                                                                                                                                                                                                  |
-| `payload_type` (deprecated)       | Sibling `mapper: { <mapper_type>: { … } }`                                                                                                                                                                                                                                                                                                                                                                                |
+| `payload_type` (removed)          | Sibling `mapper: { <mapper_type>: { … } }`                                                                                                                                                                                                                                                                                                                                                                                |
 | `http`                            | `protocol.http`                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `page_size`                       | `protocol.<type>.page_size` (e.g. mycore_solr / regal_find)                                                                                                                                                                                                                                                                                                                                                               |
 | `resource_base_url`               | `generic.resource_base_url` (Regal may also set `mapper.regal_general.resource_base_url`)                                                                                                                                                                                                                                                                                                                                 |
 | `worker_tasks`                    | `generic.worker_tasks`                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `jsonld_parse_threshold_bytes`    | `parser.<jsonld\|html_jsonld>.jsonld_parse_threshold_bytes` (and/or `protocol.dcat_ap.jsonld_parse_threshold_bytes`)                                                                                                                                                                                                                                                                                                      |
 | _(new)_ remote JSON-LD `@context` | `parser.<jsonld\|html_jsonld>.allowed_context_url` — http(s) IRI or list of IRIs to pin (trailing-slash-insensitive; `http` also matches `https`); fetched once and cached for the process (transitive `@import` cached too). Cache size: top-level `jsonld_context_cache_max_entries` (default 64). When unset on `jsonld`/`html_jsonld`, config load warns and remotes are still fetched (legacy configs keep working). |
 
 ## Canonical shape
@@ -74,5 +71,5 @@ fetched).
 
 ## Out-of-repo configs
 
-Cluster / ops overlays not in this repository should apply the same mapping when operators next touch those values.
-In-repo examples live under `dev_environment/` and `helm/harvester/values.yaml`.
+Cluster / ops overlays not in this repository should apply the same mapping before upgrading past the hard cut. In-repo
+examples live under `dev_environment/` and `helm/harvester/values.yaml`.

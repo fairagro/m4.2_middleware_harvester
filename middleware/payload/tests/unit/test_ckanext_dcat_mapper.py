@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
@@ -21,10 +22,12 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, RDF
 
 from middleware.payload.linked_data_mapper.ckanext_dcat_mapper import DCAT, FOAF, VCARD, CkanextDcatMapper
+from middleware.payload.mapper_config import CkanextDcatMapperConfig, MapperConfig
 from middleware.payload.placeholders import PlaceholderConfig
 
 SUBJECT = URIRef("https://agrihub.example.org/dataset/0555406d")
 _LOCN = Namespace("http://www.w3.org/ns/locn#")
+_GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 
 
 def _mapper() -> CkanextDcatMapper:
@@ -190,19 +193,106 @@ def test_ckanext_dcat_mapper_does_not_emit_data_catalog_comment() -> None:
     assert _comment_text(arc_json, "Data Catalog") is None
 
 
-def test_ckanext_dcat_mapper_flags_spatial_extent_without_embedding_raw_geometry() -> None:
+def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
     graph = _base_graph()
     location = URIRef("https://agrihub.example.org/location/1")
     graph.add((SUBJECT, DCTERMS.spatial, location))
-    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 500 + "(0 0, 1 1, 2 2))"
-    graph.add((location, _LOCN.geometry, Literal(huge_wkt)))
+    graph.add((location, _LOCN.geometry, Literal("POINT (11.69 48.40)", datatype=_GSP.wktLiteral)))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
+
+
+def test_ckanext_dcat_mapper_spatial_extent_holds_multipolygon_wkt_verbatim() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = (
+        "MULTIPOLYGON (((11.6 48.3, 11.7 48.3, 11.7 48.4, 11.6 48.3)), ((12.0 49.0, 12.1 49.0, 12.1 49.1, 12.0 49.0)))"
+    )
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == wkt
+
+
+def test_ckanext_dcat_mapper_spatial_extent_keeps_placeholder_for_geojson_only_location() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    geojson = '{"type": "Point", "coordinates": [11.69, 48.4]}'
+    graph.add((location, _LOCN.geometry, Literal(geojson, datatype=_GSP.geoJSONLiteral)))
 
     arc_json = _mapped_arc_json(graph)
     assert (
         _comment_text(arc_json, "Spatial Extent")
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
+
+
+def test_ckanext_dcat_mapper_spatial_extent_joins_several_wkt_literals_sorted() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    graph.add((location, _LOCN.geometry, Literal("POINT (2 2)", datatype=_GSP.wktLiteral)))
+    graph.add((location, _LOCN.geometry, Literal("POINT (1 1)", datatype=_GSP.wktLiteral)))
+
+    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (1 1); POINT (2 2)"
+
+
+def test_ckanext_dcat_mapper_omits_spatial_extent_without_dct_spatial() -> None:
+    assert _comment_text(_mapped_arc_json(_base_graph()), "Spatial Extent") is None
+
+
+def test_ckanext_dcat_mapper_from_config_applies_spatial_extent_max_chars() -> None:
+    config = MapperConfig(ckanext_dcat=CkanextDcatMapperConfig(spatial_extent_max_chars=50))
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = "POINT (" + "1" * 92 + ")"
+    assert len(wkt) == 100
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    arc_json = _mapped_arc_json(graph, mapper=CkanextDcatMapper.from_config(config))
+
+    assert (
+        _comment_text(arc_json, "Spatial Extent")
+        == "Geographic extent provided by the source RDI (see the RDI record)."
+    )
+    assert wkt not in arc_json
+
+
+def test_ckanext_dcat_mapper_default_cap_keeps_a_12000_char_wkt() -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 740 + "(0 0, 1 1, 2 2))"
+    assert 11_500 < len(wkt) < 15_000
+    graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert _comment_text(arc_json, "Spatial Extent") == wkt
+
+
+def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    graph = _base_graph()
+    location = URIRef("https://agrihub.example.org/location/1")
+    graph.add((SUBJECT, DCTERMS.spatial, location))
+    huge_wkt = "MULTIPOLYGON(" + "(0 0, 1 1, 2 2)," * 1000 + "(0 0, 1 1, 2 2))"
+    assert len(huge_wkt) > 15_000
+    graph.add((location, _LOCN.geometry, Literal(huge_wkt, datatype=_GSP.wktLiteral)))
+
+    with caplog.at_level(logging.WARNING):
+        arc_json = _mapped_arc_json(graph)
+
+    assert (
+        _comment_text(arc_json, "Spatial Extent")
+        == "Geographic extent provided by the source RDI (see the RDI record)."
+    )
     assert huge_wkt not in arc_json
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert any(str(SUBJECT) in m and str(len(huge_wkt)) in m for m in warnings)
 
 
 # --- no invented data files (#353) ------------------------------------------

@@ -12,8 +12,7 @@
 log_level: INFO
 
 repositories:
-  # INSPIRE/CSW. Untouched by the linked_data mapper work -- included to show
-  # the orchestrator is unaffected.
+  # INSPIRE/CSW.
   # NOTE: config.yaml still points at repository-staging.dataservice.zalf.de,
   # which no longer resolves. repository-e is the working host.
   - rdi: "bonares"
@@ -43,9 +42,7 @@ repositories:
         unrendered_templates: true
       schema_org_general: {}
 
-  # Regal, not schema.org -- proves the shared Dataset/MappingContext plumbing
-  # did not disturb the other mapper. Prefer generic + jsonld with pinned
-  # allowed_context_url (see docs/linked_data_to_generic.md).
+  # Regal JSON-LD via generic + jsonld parser (pinned allowed_context_url).
   - rdi: "publisso"
     generic:
       protocol:

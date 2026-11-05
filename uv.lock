@@ -14,7 +14,6 @@ members = [
     "generic",
     "harvester",
     "inspire",
-    "linked-data",
     "m4-2-middleware-harvester",
     "oai-pmh",
     "parsing",
@@ -650,7 +649,6 @@ dependencies = [
     { name = "fairagro-middleware-shared" },
     { name = "generic" },
     { name = "inspire" },
-    { name = "linked-data" },
     { name = "oai-pmh" },
     { name = "parsing" },
     { name = "payload" },
@@ -665,7 +663,6 @@ requires-dist = [
     { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
     { name = "generic", editable = "middleware/generic" },
     { name = "inspire", editable = "middleware/inspire" },
-    { name = "linked-data", editable = "middleware/linked_data" },
     { name = "oai-pmh", editable = "middleware/oai_pmh" },
     { name = "parsing", editable = "middleware/parsing" },
     { name = "payload", editable = "middleware/payload" },
@@ -932,35 +929,6 @@ wheels = [
 ]
 
 [[package]]
-name = "linked-data"
-version = "0.1.0"
-source = { editable = "middleware/linked_data" }
-dependencies = [
-    { name = "arctrl" },
-    { name = "contracts" },
-    { name = "defusedxml" },
-    { name = "fairagro-middleware-shared" },
-    { name = "generic" },
-    { name = "parsing" },
-    { name = "payload" },
-    { name = "pydantic" },
-    { name = "rdflib" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "arctrl", specifier = ">=3.2.1" },
-    { name = "contracts", editable = "middleware/contracts" },
-    { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
-    { name = "generic", editable = "middleware/generic" },
-    { name = "parsing", editable = "middleware/parsing" },
-    { name = "payload", editable = "middleware/payload" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "rdflib", specifier = ">=7.0.0" },
-]
-
-[[package]]
 name = "lxml"
 version = "6.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1078,7 +1046,6 @@ dependencies = [
     { name = "generic" },
     { name = "harvester" },
     { name = "inspire" },
-    { name = "linked-data" },
     { name = "oai-pmh" },
     { name = "parsing" },
     { name = "payload" },
@@ -1105,7 +1072,6 @@ requires-dist = [
     { name = "generic", editable = "middleware/generic" },
     { name = "harvester", editable = "middleware/harvester" },
     { name = "inspire", editable = "middleware/inspire" },
-    { name = "linked-data", editable = "middleware/linked_data" },
     { name = "oai-pmh", editable = "middleware/oai_pmh" },
     { name = "parsing", editable = "middleware/parsing" },
     { name = "payload", editable = "middleware/payload" },
