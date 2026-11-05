@@ -397,8 +397,6 @@ items are removed. `unrendered_templates` also matches `$var` / `${var}` / `{{va
 (`IsoParser` validates with `validation_context(value_bounds, placeholders)`), not in the mapper. Nothing counts as a
 placeholder by default; the per-RDI strings live in the deployment config, not here. Required fields (`identifier`,
 `title`, `abstract`) keep their value, so a placeholder abstract still reaches `Investigation.Description` (#413).
-`mapper.placeholders` on an `inspire` repository is deprecated and lifted to `inspire.placeholders` with a warning
-(#459).
 
 ### 4. Opaque Fields
 

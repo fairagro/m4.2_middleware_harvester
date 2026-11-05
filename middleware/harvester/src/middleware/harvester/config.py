@@ -50,13 +50,8 @@ logger = logging.getLogger(__name__)
 
 _LEGACY_INSPIRE_MAPPER_MSG = (
     "inspire without a sibling mapper: block is deprecated; "
-    "add mapper: { inspire_general: {} } "
-    "(legacy mapper: { type: inspire_general } still lifts). "
+    "add mapper: { inspire_general: {} }. "
     "Omitting mapper will be rejected in a future release."
-)
-_LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG = (
-    "mapper.placeholders on an inspire repository is deprecated; move it to inspire.placeholders. "
-    "Support for mapper.placeholders on inspire will be removed in a future release."
 )
 
 
@@ -115,7 +110,7 @@ class RepositoryConfig(BaseModel):
     @model_validator(mode="after")
     def exactly_one_plugin(self) -> Self:
         """Ensure exactly one plugin key is set (``mapper`` / ``parser`` are not plugins)."""
-        plugin_fields = [name for name in self.__class__.model_fields if name not in _NON_PLUGIN_FIELDS]
+        plugin_fields = [name for name, _ in type(self).model_fields.items() if name not in _NON_PLUGIN_FIELDS]
         set_fields = [name for name in plugin_fields if getattr(self, name) is not None]
         if len(set_fields) != 1:
             raise ValueError(f"Each repository entry must have exactly one plugin key; got: {set_fields or 'none'}")
@@ -188,21 +183,6 @@ class RepositoryConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def lift_inspire_mapper_placeholders(self) -> Self:
-        """Move deprecated ``mapper.placeholders`` on inspire to ``inspire.placeholders``."""
-        if self.inspire is None or "placeholders" not in self.mapper.model_fields_set:
-            return self
-        logger.warning(_LEGACY_INSPIRE_MAPPER_PLACEHOLDERS_MSG)
-        legacy = self.mapper.placeholders
-        if "placeholders" in self.inspire.model_fields_set:
-            if self.inspire.placeholders != legacy:
-                raise ValueError(
-                    "mapper.placeholders conflicts with inspire.placeholders; set only inspire.placeholders"
-                )
-            return self
-        return self.model_copy(update={"inspire": self.inspire.model_copy(update={"placeholders": legacy})})
-
-    @model_validator(mode="after")
     def validate_mapper_for_inspire(self) -> Self:
         """Validate ``mapper`` for inspire repositories (after optional default lift)."""
         if self.inspire is None:
@@ -222,7 +202,7 @@ class RepositoryConfig(BaseModel):
         """The active plugin type name (derived dynamically from model_fields)."""
         return next(
             name
-            for name in self.__class__.model_fields
+            for name, _ in type(self).model_fields.items()
             if name not in _NON_PLUGIN_FIELDS and getattr(self, name) is not None
         )
 
