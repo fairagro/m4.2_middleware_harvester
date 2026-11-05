@@ -12,6 +12,8 @@ from middleware.payload.placeholders import PlaceholderConfig
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SPATIAL_EXTENT_MAX_CHARS = 15_000
+
 _LEGACY_MAPPER_TYPE_MSG = (
     "mapper.type is deprecated; use type-as-key under mapper: "
     "(e.g. mapper: { regal_general: { resource_base_url: … } }). "
@@ -124,6 +126,17 @@ class CkanextDcatMapperConfig(MapperTypeConfig):
             deprecated=True,
         ),
     ] = None
+
+    spatial_extent_max_chars: Annotated[
+        int,
+        Field(
+            ge=1,
+            description=(
+                "Longest WKT geometry (in characters) copied into the 'Spatial Extent' comment; "
+                "a longer one keeps the placeholder text and logs a WARNING."
+            ),
+        ),
+    ] = DEFAULT_SPATIAL_EXTENT_MAX_CHARS
 
     @field_validator("catalog_url", mode="before")
     @classmethod
@@ -268,6 +281,13 @@ class MapperConfig(BaseModel):
         if self.ckanext_dcat is None:
             return None
         return self.ckanext_dcat.__dict__.get("catalog_url")
+
+    @property
+    def spatial_extent_max_chars(self) -> int:
+        """WKT length cap for the DCAT-AP 'Spatial Extent' comment when active type is ``ckanext_dcat``."""
+        if self.ckanext_dcat is None:
+            return DEFAULT_SPATIAL_EXTENT_MAX_CHARS
+        return self.ckanext_dcat.spatial_extent_max_chars
 
     @property
     def individual_name_is_organisation(self) -> bool:
