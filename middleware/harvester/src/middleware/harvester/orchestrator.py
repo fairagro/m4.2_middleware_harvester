@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
+from importlib.metadata import version
 from pathlib import Path
 
 from opentelemetry import trace
@@ -178,7 +179,7 @@ async def _gather_repositories(
 async def run_orchestrator(config: Config) -> HarvestReport:
     """Execute the core harvester loop across all configured repositories."""
     tracer = trace.get_tracer(__name__)
-    report = HarvestReport()
+    report = HarvestReport(software_version=version("harvester"))
     heartbeat_task = asyncio.create_task(heartbeat_loop(Path(config.heartbeat_path), config.heartbeat_interval))
 
     try:
