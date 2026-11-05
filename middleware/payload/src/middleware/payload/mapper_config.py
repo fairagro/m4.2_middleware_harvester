@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from enum import StrEnum
 from typing import Annotated, Self, cast
 
@@ -10,15 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, mod
 
 from middleware.payload.placeholders import PlaceholderConfig
 
-logger = logging.getLogger(__name__)
-
 DEFAULT_SPATIAL_EXTENT_MAX_CHARS = 15_000
-
-_LEGACY_MAPPER_TYPE_MSG = (
-    "mapper.type is deprecated; use type-as-key under mapper: "
-    "(e.g. mapper: { regal_general: { resource_base_url: … } }). "
-    "Support for mapper.type will be removed in a future release."
-)
 
 
 class MapperType(StrEnum):
@@ -33,12 +24,6 @@ class MapperType(StrEnum):
 
 
 _MAPPER_TYPE_FIELDS = frozenset(member.value for member in MapperType)
-
-_MAPPER_TYPE_LOCAL_FIELDS: dict[str, frozenset[str]] = {
-    "regal_general": frozenset({"resource_base_url"}),
-    "ckanext_dcat": frozenset({"spatial_extent_max_chars"}),
-    "inspire_general": frozenset({"individual_name_is_organisation"}),
-}
 
 
 class MapperTypeConfig(BaseModel):
@@ -120,8 +105,6 @@ class MapperConfig(BaseModel):
           placeholders: { … }
           regal_general:
             resource_base_url: …
-
-    Deprecated ``{ type: …, … }`` lifts into that nested form with a warning.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -159,38 +142,6 @@ class MapperConfig(BaseModel):
         CkanextDcatMapperConfig | None,
         Field(description="ckanext_dcat mapper settings."),
     ] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def lift_legacy_type_discriminator(cls, data: object) -> object:
-        """Lift deprecated ``type:`` (+ flat type-local fields) into type-as-key."""
-        if not isinstance(data, dict):
-            return data
-        legacy_type = data.get("type")
-        if legacy_type is None:
-            return data
-
-        type_key = MapperType(legacy_type).value
-        nested_present = sorted(name for name in _MAPPER_TYPE_FIELDS if data.get(name) is not None)
-        if nested_present and nested_present != [type_key]:
-            raise ValueError(f"mapper.type {type_key!r} conflicts with nested mapper.{', '.join(nested_present)}")
-
-        logger.warning(_LEGACY_MAPPER_TYPE_MSG)
-        lifted = {key: value for key, value in data.items() if key != "type"}
-        raw_child = lifted.pop(type_key, None)
-        if raw_child is None:
-            child: dict[str, object] = {}
-        elif isinstance(raw_child, dict):
-            child = dict(raw_child)
-        elif isinstance(raw_child, BaseModel):
-            child = raw_child.model_dump()
-        else:
-            raise ValueError(f"mapper.{type_key} must be a mapping")
-        for field_name in _MAPPER_TYPE_LOCAL_FIELDS.get(type_key, ()):
-            if field_name in lifted:
-                child[field_name] = lifted.pop(field_name)
-        lifted[type_key] = child
-        return lifted
 
     @model_validator(mode="after")
     def exactly_one_mapper_type(self) -> Self:

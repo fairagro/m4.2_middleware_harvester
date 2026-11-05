@@ -49,26 +49,20 @@ def test_allowed_context_url_rejects_hostless_https() -> None:
         })
 
 
-def test_parser_config_type_as_key_nested(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level("WARNING", logger="middleware.parsing.parser_config"):
-        cfg = ParserConfig.model_validate({
-            "html_jsonld": {"allowed_context_url": "https://schema.org/"},
-        })
+def test_parser_config_type_as_key_nested() -> None:
+    cfg = ParserConfig.model_validate({
+        "html_jsonld": {"allowed_context_url": "https://schema.org/"},
+    })
     assert cfg.type == ParserType.html_jsonld
     assert cfg.allowed_context_url == ["https://schema.org/"]
-    assert not any("parser.type is deprecated" in r.message for r in caplog.records)
 
 
-def test_parser_config_legacy_type_warns_and_lifts(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level("WARNING", logger="middleware.parsing.parser_config"):
-        cfg = ParserConfig.model_validate({
+def test_parser_config_legacy_type_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        ParserConfig.model_validate({
             "type": ParserType.jsonld,
             "allowed_context_url": "https://schema.org/",
         })
-    assert cfg.type == ParserType.jsonld
-    assert cfg.jsonld is not None
-    assert cfg.allowed_context_url == ["https://schema.org/"]
-    assert any("parser.type is deprecated" in r.message for r in caplog.records)
 
 
 def test_parser_config_rejects_two_type_keys() -> None:
@@ -84,17 +78,13 @@ def test_parser_config_forbids_unknown_root_fields() -> None:
         })
 
 
-def test_legacy_non_jsonld_ignores_flat_jsonld_only_fields(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level("WARNING", logger="middleware.parsing.parser_config"):
-        cfg = ParserConfig.model_validate({
+def test_legacy_flat_type_with_jsonld_fields_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        ParserConfig.model_validate({
             "type": ParserType.phenoroam_xml,
             "allowed_context_url": "https://schema.org/",
             "jsonld_parse_threshold_bytes": 1,
         })
-    assert cfg.type == ParserType.phenoroam_xml
-    assert cfg.allowed_context_url is None
-    assert cfg.jsonld_parse_threshold_bytes == 65536
-    assert any("parser.type is deprecated" in r.message for r in caplog.records)
 
 
 def test_nested_non_jsonld_ignores_jsonld_only_child_fields() -> None:
