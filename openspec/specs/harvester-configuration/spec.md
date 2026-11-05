@@ -360,29 +360,6 @@ MUST take a config object holding the `PlaceholderConfig` and MUST NOT supply it
 - **WHEN** a repository sets no `placeholders`
 - **THEN** no value counts as a placeholder, including "None" and `$licenseURL`
 
-### Requirement: mapper.placeholders on inspire repositories is deprecated
-
-When an `inspire` repository explicitly sets `mapper.placeholders`, configuration validation MUST succeed, MUST emit a
-`logger.warning` pointing at `inspire.placeholders`, and MUST use that value as `inspire.placeholders`. When both are
-set and differ, validation MUST fail. An unset `mapper.placeholders` MUST NOT warn. Repositories of other plugins MUST
-keep reading `mapper.placeholders` unchanged.
-
-#### Scenario: Legacy location is lifted
-
-- **WHEN** an `inspire` repository sets `mapper.placeholders.values: ["None"]` and no `inspire.placeholders`
-- **THEN** validation succeeds, a deprecation warning is logged, and `inspire.placeholders.values` is `{"none"}`
-
-#### Scenario: Conflicting locations
-
-- **WHEN** an `inspire` repository sets `mapper.placeholders.values: ["None"]` and
-  `inspire.placeholders.values: ["n/a"]`
-- **THEN** configuration validation fails naming both fields
-
-#### Scenario: Generic repository is unaffected
-
-- **WHEN** a `generic` repository sets `mapper.placeholders.unrendered_templates: true`
-- **THEN** no deprecation warning is logged and the mapper receives that `PlaceholderConfig`
-
 ### Requirement: Top-level jsonld_context_cache_max_entries bounds the shared context cache
 
 The system SHALL accept optional top-level `jsonld_context_cache_max_entries` (positive integer; default 64) on the
