@@ -9,8 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import lxml.etree  # type: ignore[import-untyped]
 import pytest
 
-from middleware.inspire.config import Config
-from middleware.inspire.csw_client import CSWClient
+from middleware.inspire.getrecords_xml import prepare_xml_paging
 from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
 
 # A local file every CI runner has, used to prove external entities are not resolved.
@@ -75,7 +74,6 @@ def test_comment_and_namespace_handling_is_unchanged() -> None:
 
 def test_xml_query_template_cannot_expand_entities() -> None:
     """The explicitly-parsed xml_query path is hardened too."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10))
     hostile = (
         '<!DOCTYPE csw:GetRecords [<!ENTITY payload "EXPANDED">]>'
         '<csw:GetRecords xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
@@ -86,14 +84,12 @@ def test_xml_query_template_cannot_expand_entities() -> None:
         "</csw:GetRecords>"
     )
 
-    root, _page_size, _start, _as_bytes = client._prepare_xml_paging(hostile, 10)
+    root, _page_size, _start, _as_bytes = prepare_xml_paging(hostile, 10)
 
     assert "EXPANDED" not in (lxml.etree.tostring(root, encoding="unicode"))
 
 
 def test_malformed_xml_query_still_raises_value_error() -> None:
     """Hardening must not change the operator-facing error for a broken template."""
-    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=10))
-
     with pytest.raises(ValueError, match="not well-formed XML"):
-        client._prepare_xml_paging("<csw:GetRecords>", 10)
+        prepare_xml_paging("<csw:GetRecords>", 10)

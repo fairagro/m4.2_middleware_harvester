@@ -7,10 +7,13 @@ extra request.
 Every reader is total: a server that omits a field, or advertises it in an unexpected
 shape, must degrade to "unknown" rather than raise. These run inside
 ``CSWClient._connect``, where an exception would fail the whole harvest to report
-metadata we only use for logging.
+metadata we only use for logging and page-size clamping.
 """
 
+from __future__ import annotations
+
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -60,24 +63,53 @@ def advertised_max_records(csw: Any) -> int | None:  # noqa: ANN401
     return _first_int(getattr(constraint, "values", None))
 
 
-def warn_if_server_caps_page_size(csw: Any, chunk_size: int) -> None:  # noqa: ANN401
-    """Warn when the endpoint advertises a page size below the configured chunk_size.
+def clamp_page_size(page_size: int, advertised: int | None) -> int:
+    """Return ``min(page_size, advertised)`` when ``advertised`` is positive and lower.
 
-    Some servers enforce ``MaxRecordDefault`` as a ceiling, which makes a larger
-    ``chunk_size`` inert: the harvest still completes, because pagination follows the
-    response's ``nextrecord`` / ``returned``, but it issues the same number of requests
-    as if ``chunk_size`` matched the cap. Without this line that is invisible.
-
-    The value is a *default* per CSW 2.0.2, not a documented ceiling, so we report the
-    discrepancy and still request ``chunk_size``.
+    Clamp down only — a higher advert never raises the request page size.
     """
-    advertised = advertised_max_records(csw)
-    if advertised is None or advertised >= chunk_size:
-        return
-    logger.warning(
-        "CSW endpoint advertises MaxRecordDefault=%s, below the configured chunk_size=%s; "
-        "the server may cap pages at %s, so a larger chunk_size will not reduce the request count.",
+    if advertised is not None and advertised < page_size:
+        return advertised
+    return page_size
+
+
+def log_page_size_clamp(requested: int, advertised: int) -> None:
+    """Log one INFO when the request page size is clamped to the advertised default."""
+    logger.info(
+        "CSW endpoint advertises MaxRecordDefault=%s, below the requested page size=%s; "
+        "clamping request maxRecords to %s.",
         advertised,
-        chunk_size,
+        requested,
         advertised,
     )
+
+
+@dataclass
+class PageSizeClamp:
+    """Clamp request page sizes to advertised ``MaxRecordDefault``; INFO at most once."""
+
+    advertised: int | None = None
+    _logged: bool = field(default=False, repr=False)
+
+    @classmethod
+    def from_csw(cls, csw: Any) -> PageSizeClamp:  # noqa: ANN401
+        """Read ``MaxRecordDefault`` from capabilities without logging.
+
+        INFO is emitted only from :meth:`apply` when a real request page size shrinks,
+        so config ``chunk_size`` alone never produces a clamp log for an XML harvest
+        whose effective page size is already at or below the advert.
+        """
+        return cls(advertised=advertised_max_records(csw))
+
+    def apply(self, page_size: int) -> int:
+        """Clamp ``page_size`` down and INFO once when the size actually shrinks."""
+        clamped = clamp_page_size(page_size, self.advertised)
+        if clamped < page_size and self.advertised is not None and not self._logged:
+            log_page_size_clamp(page_size, self.advertised)
+            self._logged = True
+        return clamped
+
+
+def note_server_caps_page_size(csw: Any) -> int | None:  # noqa: ANN401
+    """Read ``MaxRecordDefault`` (test helper around :meth:`PageSizeClamp.from_csw`)."""
+    return PageSizeClamp.from_csw(csw).advertised

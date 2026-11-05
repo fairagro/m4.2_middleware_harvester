@@ -18,19 +18,22 @@ from owslib.iso import MD_Metadata  # type: ignore[import-untyped]
 from owslib.util import Authentication  # type: ignore[import-untyped]
 
 from middleware.contracts.errors import RecordProcessingError
-from middleware.inspire.capabilities import describe_service, warn_if_server_caps_page_size
+from middleware.inspire.capabilities import PageSizeClamp, describe_service
 from middleware.inspire.config import Config
 from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.getrecords_xml import (
+    apply_xml_paging_attrs,
+    normalize_xml_query,
+    prepare_xml_paging,
+    serialize_xml_query,
+)
 from middleware.inspire.iso_parser import IsoParser
-from middleware.inspire.xml_hardening import HARDENED_XML_PARSER
 from middleware.payload.inspire.models import InspireRecord
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
-_CSW_NS = "http://www.opengis.net/cat/csw/2.0.2"
-_CSW_GET_RECORDS_TAG = f"{{{_CSW_NS}}}GetRecords"
 _ISO_OUTPUT_SCHEMA = "http://www.isotc211.org/2005/gmd"
 _DC_OUTPUT_SCHEMA = "http://www.opengis.net/cat/csw/2.0.2"
 
@@ -48,6 +51,7 @@ class CSWClient:
         self._csw: CatalogueServiceWeb | None = None
         self._parser = IsoParser(config)
         self._executor: ThreadPoolExecutor | None = None
+        self._page_clamp = PageSizeClamp()
 
     def _connect(self) -> None:
         """Connect to the CSW service without error wrapping."""
@@ -68,7 +72,7 @@ class CSWClient:
             headers={"User-Agent": self._config.user_agent},
             auth=Authentication(verify=self._config.verify_ssl),
         )
-        warn_if_server_caps_page_size(self._csw, self._config.chunk_size)
+        self._page_clamp = PageSizeClamp.from_csw(self._csw)
         logger.info("Connected to CSW at %s: %s", self._config.csw_url, describe_service(self._csw))
 
     def connect(self) -> None:
@@ -227,21 +231,29 @@ class CSWClient:
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
         # Spec: invalid GetRecords must raise before any network call (including connect).
-        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
+        prepared_xml = None if effective_xml is None else prepare_xml_paging(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             self.connect()
         if self._csw is None:
             raise RuntimeError("CSW client is not initialized.")
 
+        # Clamp after connect so MaxRecordDefault from GetCapabilities is available.
+        # XML is prepared before connect; re-apply clamp to the prepared page size.
         if prepared_xml is not None:
+            xml_root, page_size, start_position, xml_as_bytes = prepared_xml
+            prepared_xml = (xml_root, self._page_clamp.apply(page_size), start_position, xml_as_bytes)
             yield from self._get_records_by_xml_prepared(prepared_xml, effective_max_records)
         elif effective_fes is not None:
-            yield from self._get_records_by_fes(effective_fes, effective_chunk_size, effective_max_records)
+            yield from self._get_records_by_fes(
+                effective_fes, self._page_clamp.apply(effective_chunk_size), effective_max_records
+            )
         elif effective_cql is not None:
-            yield from self._get_records_by_cql(effective_cql, effective_chunk_size, effective_max_records)
+            yield from self._get_records_by_cql(
+                effective_cql, self._page_clamp.apply(effective_chunk_size), effective_max_records
+            )
         else:
-            yield from self._get_records_standard(effective_chunk_size, effective_max_records)
+            yield from self._get_records_standard(self._page_clamp.apply(effective_chunk_size), effective_max_records)
 
     async def get_records_async(
         self,
@@ -256,7 +268,7 @@ class CSWClient:
         effective_chunk_size = chunk_size if chunk_size is not None else self._config.chunk_size
         effective_max_records = max_records if max_records is not None else self._config.max_records
         # Spec: invalid GetRecords must raise before any network call (including connect).
-        prepared_xml = self._prepare_xml_query_before_network(effective_xml, effective_chunk_size)
+        prepared_xml = None if effective_xml is None else prepare_xml_paging(effective_xml, effective_chunk_size)
 
         if self._csw is None:
             await self._retry_async(self._connect, "connect")
@@ -265,6 +277,8 @@ class CSWClient:
 
         strategy: tuple[str, Callable[..., Iterator[InspireRecord | RecordProcessingError]], tuple[object, ...]]
         if prepared_xml is not None:
+            xml_root, page_size, start_position, xml_as_bytes = prepared_xml
+            prepared_xml = (xml_root, self._page_clamp.apply(page_size), start_position, xml_as_bytes)
             strategy = (
                 "get_records_by_xml",
                 self._get_records_by_xml_prepared,
@@ -272,7 +286,11 @@ class CSWClient:
             )
         else:
             strategy = self._pick_strategy(
-                effective_xml, effective_fes, effective_cql, effective_chunk_size, effective_max_records
+                effective_xml,
+                effective_fes,
+                effective_cql,
+                self._page_clamp.apply(effective_chunk_size),
+                effective_max_records,
             )
         name, fn, args = strategy
         records = await self._retry_async(self._iter_to_list, name, fn, *args)
@@ -331,21 +349,6 @@ class CSWClient:
         logger.info("Using CQL query for harvesting: %s", cql_query)
         yield from self._get_records_paged(chunk_size, cql_query, None, max_records)
 
-    @staticmethod
-    def _normalize_xml_query(xml_query: str | bytes) -> str | bytes:
-        """Normalize raw XML queries for OWSLib compatibility."""
-        if isinstance(xml_query, str) and ("<?xml" in xml_query and "encoding" in xml_query):
-            return xml_query.encode("utf-8")
-        return xml_query
-
-    def _prepare_xml_query_before_network(
-        self, xml_query: str | bytes | None, chunk_size: int
-    ) -> tuple[lxml.etree._Element, int, int, bool] | None:
-        """Parse/validate ``xml_query`` before connect; return prepared paging state or None."""
-        if xml_query is None:
-            return None
-        return self._prepare_xml_paging(xml_query, chunk_size)
-
     def _get_records_by_xml(
         self, xml_query: str | bytes, chunk_size: int, max_records: int | None
     ) -> Iterator[InspireRecord | RecordProcessingError]:
@@ -392,7 +395,7 @@ class CSWClient:
 
         When ``xml`` is set, the GetRecords filter body is preserved and only paging
         attributes are rewritten. Pass prepared paging state from
-        ``_prepare_xml_query_before_network`` so invalid XML fails before ``connect()``.
+        ``prepare_xml_paging`` so invalid XML fails before ``connect()``.
         """
         start_position = 1
         effective_chunk_size = chunk_size
@@ -401,7 +404,7 @@ class CSWClient:
             xml_root, effective_chunk_size, start_position, xml_as_bytes = xml
             xml_page = (xml_root, xml_as_bytes)
         elif xml is not None:
-            xml_root, effective_chunk_size, start_position, xml_as_bytes = self._prepare_xml_paging(xml, chunk_size)
+            xml_root, effective_chunk_size, start_position, xml_as_bytes = prepare_xml_paging(xml, chunk_size)
             xml_page = (xml_root, xml_as_bytes)
 
         records_yielded = 0
@@ -516,95 +519,6 @@ class CSWClient:
             return None
         return next_start
 
-    def _prepare_xml_paging(
-        self, xml_query: str | bytes, chunk_size: int
-    ) -> tuple[lxml.etree._Element, int, int, bool]:
-        """Parse GetRecords XML and resolve page size / initial start overrides.
-
-        Returns:
-            (root element, page_size, start_position, serialize_as_bytes)
-        """
-        normalized = self._normalize_xml_query(xml_query)
-        as_bytes = isinstance(normalized, (bytes, bytearray))
-        try:
-            root = lxml.etree.fromstring(normalized, parser=HARDENED_XML_PARSER)
-        except lxml.etree.XMLSyntaxError as exc:
-            raise ValueError(f"xml_query is not well-formed XML: {exc}") from exc
-
-        get_records = self._find_get_records_element(root)
-        if get_records is None:
-            raise ValueError("xml_query must have a CSW GetRecords root element")
-
-        page_size = chunk_size
-        raw_max = get_records.get("maxRecords")
-        if raw_max is not None:
-            xml_max = self._coerce_result_int(raw_max)
-            if xml_max is not None and xml_max > 0:
-                page_size = xml_max
-                logger.info("xml_query maxRecords=%s overrides chunk_size for page size", xml_max)
-            else:
-                logger.warning(
-                    "xml_query maxRecords=%r is invalid or non-positive; using chunk_size=%s",
-                    raw_max,
-                    chunk_size,
-                )
-
-        start_position = 1
-        raw_start = get_records.get("startPosition")
-        if raw_start is not None:
-            xml_start = self._coerce_result_int(raw_start)
-            if xml_start is not None and xml_start >= 1:
-                start_position = xml_start
-                if xml_start != 1:
-                    logger.info("xml_query startPosition=%s overrides initial paging offset", xml_start)
-            else:
-                logger.warning(
-                    "xml_query startPosition=%r is invalid or non-positive; using startPosition=1",
-                    raw_start,
-                )
-
-        # Inspect only — request copies apply ISO schema so the shared template stays intact.
-        raw_schema = get_records.get("outputSchema")
-        if raw_schema is not None and raw_schema != _ISO_OUTPUT_SCHEMA:
-            logger.warning(
-                "xml_query outputSchema=%r will be overridden to ISO (%s) for harvest parsing",
-                raw_schema,
-                _ISO_OUTPUT_SCHEMA,
-            )
-
-        return get_records, page_size, start_position, as_bytes
-
-    @staticmethod
-    def _find_get_records_element(root: lxml.etree._Element) -> lxml.etree._Element | None:
-        """Return *root* when it is a CSW 2.0.2 GetRecords element; otherwise None.
-
-        Only the document root is accepted. The element must expand to the CSW 2.0.2
-        namespace (any prefix or default xmlns is fine); unnamespaced ``GetRecords``
-        and GetRecords in any other namespace are rejected.
-        """
-        if root.tag == _CSW_GET_RECORDS_TAG:
-            return root
-        return None
-
-    @staticmethod
-    def _serialize_xml_query(root: lxml.etree._Element, as_bytes: bool) -> str | bytes:
-        """Serialize a GetRecords element for OWSLib."""
-        if as_bytes:
-            payload = lxml.etree.tostring(root, encoding="UTF-8", xml_declaration=True)
-            if not isinstance(payload, (bytes, bytearray)):
-                raise TypeError("expected bytes from lxml.etree.tostring")
-            return bytes(payload)
-        payload = lxml.etree.tostring(root, encoding="unicode")
-        if not isinstance(payload, str):
-            raise TypeError("expected str from lxml.etree.tostring")
-        return payload
-
-    @staticmethod
-    def _apply_xml_paging_attrs(root: lxml.etree._Element, batch_size: int, start_position: int) -> None:
-        """Set CSW paging attributes on a GetRecords root (in-place)."""
-        root.set("startPosition", str(start_position))
-        root.set("maxRecords", str(batch_size))
-
     def _fetch_iso_batch_xml(
         self,
         xml_root: lxml.etree._Element,
@@ -625,13 +539,13 @@ class CSWClient:
             raise RuntimeError("CSW client is not initialized.")
 
         request_root = copy.deepcopy(xml_root)
-        self._apply_xml_paging_attrs(request_root, batch_size, start_position)
+        apply_xml_paging_attrs(request_root, batch_size, start_position)
         # Same as _fetch_iso_batch: ISO parsing only yields MD_Metadata for gmd schema.
         if request_root.get("outputSchema") != _ISO_OUTPUT_SCHEMA:
             request_root.set("outputSchema", _ISO_OUTPUT_SCHEMA)
 
         try:
-            self._csw.getrecords2(xml=self._serialize_xml_query(request_root, as_bytes))
+            self._csw.getrecords2(xml=serialize_xml_query(request_root, as_bytes))
             return True
         except (OSError, TimeoutError) as e:
             # ValueError (e.g. malformed request) is not caught here and propagates
@@ -654,13 +568,13 @@ class CSWClient:
 
         try:
             dc_root = copy.deepcopy(xml_root)
-            self._apply_xml_paging_attrs(dc_root, batch_size, start_position)
+            apply_xml_paging_attrs(dc_root, batch_size, start_position)
             dc_root.set("outputSchema", _DC_OUTPUT_SCHEMA)
             for element_set in dc_root.iter():
                 if isinstance(element_set.tag, str) and lxml.etree.QName(element_set).localname == "ElementSetName":
                     element_set.text = "brief"
                     break
-            self._csw.getrecords2(xml=self._serialize_xml_query(dc_root, as_bytes))
+            self._csw.getrecords2(xml=serialize_xml_query(dc_root, as_bytes))
             return [rec.identifier for rec in self._csw.records.values()]
         except (OSError, TimeoutError, ValueError) as e:
             logger.warning("Failed to fetch DC IDs for XML batch at %d: %s", start_position, e)
@@ -895,7 +809,8 @@ class CSWClient:
         """
         effective_xml, effective_fes, effective_cql = self._resolve_filter(cql_query, xml_query, fes_constraints)
         # Spec: invalid GetRecords must raise before any network call (including connect).
-        self._prepare_xml_query_before_network(effective_xml, self._config.chunk_size)
+        if effective_xml is not None:
+            prepare_xml_paging(effective_xml, self._config.chunk_size)
 
         if self._csw is None:
             self.connect()
@@ -903,7 +818,7 @@ class CSWClient:
             return 0
 
         if effective_xml:
-            self._csw.getrecords2(xml=self._normalize_xml_query(effective_xml))
+            self._csw.getrecords2(xml=normalize_xml_query(effective_xml))
         elif effective_fes:
             self._csw.getrecords2(constraints=effective_fes, maxrecords=1, esn="brief")
         elif effective_cql:
