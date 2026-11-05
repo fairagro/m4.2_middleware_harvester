@@ -30,8 +30,8 @@ _LOCN = Namespace("http://www.w3.org/ns/locn#")
 _GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 
 
-def _mapper(catalog_name: str | None = None, catalog_url: str | None = None) -> CkanextDcatMapper:
-    return CkanextDcatMapper(PlaceholderConfig(), catalog_name=catalog_name, catalog_url=catalog_url)
+def _mapper() -> CkanextDcatMapper:
+    return CkanextDcatMapper(PlaceholderConfig())
 
 
 def _mapped_arc_json(graph: Graph, mapper: CkanextDcatMapper | None = None) -> str:
@@ -188,15 +188,7 @@ def test_ckanext_dcat_mapper_maps_distribution_table_details() -> None:
     assert "https://example.org/soil3" in arc_json
 
 
-def test_ckanext_dcat_mapper_adds_catalog_comment_when_configured() -> None:
-    arc_json = _mapped_arc_json(
-        _base_graph(),
-        mapper=_mapper(catalog_name="SRADI", catalog_url="https://agrihub.example.org"),
-    )
-    assert _comment_text(arc_json, "Data Catalog") == "SRADI (https://agrihub.example.org)"
-
-
-def test_ckanext_dcat_mapper_omits_catalog_comment_when_unconfigured() -> None:
+def test_ckanext_dcat_mapper_does_not_emit_data_catalog_comment() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _comment_text(arc_json, "Data Catalog") is None
 

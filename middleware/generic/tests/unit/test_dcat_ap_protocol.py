@@ -227,7 +227,7 @@ async def test_generic_plugin_harvests_dcat_ap_catalog_end_to_end(monkeypatch: p
     monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
     plugin = GenericPlugin(
         _config(),
-        MapperConfig.model_validate({"ckanext_dcat": {"catalog_name": "Example Catalog"}}),
+        MapperConfig.model_validate({"ckanext_dcat": {}}),
         ParserConfig.model_validate({"jsonld": {}}),
     )
 

@@ -1,9 +1,8 @@
 """Mapper from DCAT-AP RDF graphs (e.g. CKAN ``ckanext-dcat`` output) to ARC RO-Crate JSON-LD.
 
 Field access goes through StableGraph / ResourceView; ARC assembly stays here.
-Nothing RDI-specific is hardcoded: catalog display name/URL come from
-repository ``mapper:`` config (``catalog_name`` / ``catalog_url``), so the
-same mapper serves any DCAT-AP RDI, not just SRADI.
+Nothing RDI-specific is hardcoded: catalog / RDI provenance is added by the middleware
+API from its ``known_rdis`` registry, so the same mapper serves any DCAT-AP RDI.
 """
 
 from __future__ import annotations
@@ -77,14 +76,10 @@ class CkanextDcatMapper(LinkedDataMapper):
     def __init__(
         self,
         placeholders: PlaceholderConfig,
-        catalog_name: str | None = None,
-        catalog_url: str | None = None,
         spatial_extent_max_chars: int = DEFAULT_SPATIAL_EXTENT_MAX_CHARS,
     ) -> None:
-        """Create a mapper with the RDI's placeholders and optional repository-configured catalog provenance."""
+        """Create a mapper with the RDI's placeholders and Spatial Extent WKT length cap."""
         super().__init__(placeholders)
-        self._catalog_name = catalog_name
-        self._catalog_url = catalog_url
         self._spatial_extent_max_chars = spatial_extent_max_chars
 
     @classmethod
@@ -94,8 +89,6 @@ class CkanextDcatMapper(LinkedDataMapper):
         _ = resource_base_url  # DCAT-AP subjects are already absolute IRIs; unused here.
         return cls(
             config.placeholders,
-            catalog_name=config.catalog_name,
-            catalog_url=str(config.catalog_url) if config.catalog_url else None,
             spatial_extent_max_chars=config.spatial_extent_max_chars,
         )
 
@@ -113,7 +106,7 @@ class CkanextDcatMapper(LinkedDataMapper):
         if not subjects:
             raise ValueError("Graph does not contain a dcat:Dataset entity")
 
-        run = _CkanextDcatRun(self, stable, self._catalog_name, self._catalog_url, self._spatial_extent_max_chars)
+        run = _CkanextDcatRun(self, stable, self._spatial_extent_max_chars)
         return [HarvestedArc.from_arctrl(run.map_arc(subject.node)) for subject in subjects]
 
 
@@ -123,8 +116,6 @@ class _CkanextDcatRun:
 
     mapper: CkanextDcatMapper
     stable: StableGraph
-    catalog_name: str | None
-    catalog_url: str | None
     spatial_extent_max_chars: int
 
     def view(self, subject: Node) -> ResourceView:
@@ -275,10 +266,6 @@ class _CkanextDcatRun:
         if spatial is not None:
             inv.Comments.append(Comment.create("Spatial Extent", self._spatial_extent_text(view, spatial)))
 
-        catalog_value = self._catalog_comment_value()
-        if catalog_value:
-            inv.Comments.append(Comment.create("Data Catalog", catalog_value))
-
     def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView) -> str:
         """WKT of the dataset location, or the placeholder when it is missing or over the configured cap."""
         wkts = {
@@ -309,11 +296,6 @@ class _CkanextDcatRun:
                 description="Data Catalog Vocabulary (DCAT-AP)",
             )
         )
-
-    def _catalog_comment_value(self) -> str | None:
-        if self.catalog_name and self.catalog_url:
-            return f"{self.catalog_name} ({self.catalog_url})"
-        return self.catalog_name or self.catalog_url
 
     @classmethod
     def _org_label(cls, org: ResourceView, *name_predicates: URIRef) -> str | None:
