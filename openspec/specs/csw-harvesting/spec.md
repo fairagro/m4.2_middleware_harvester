@@ -152,29 +152,46 @@ schema on its own copy.
   → override to ISO 19139 (`gmd`) on each ISO request copy (warned once at prepare); the shared template is not mutated;
   Dublin Core fallback still switches schema on its own copy
 
-### Requirement: Warn when the server's advertised MaxRecordDefault is below the configured page size
+### Requirement: Clamp request page size to advertised MaxRecordDefault when lower
 
-The system SHALL inspect the `MaxRecordDefault` constraint from the CSW `GetCapabilities` response after connecting, and
-SHALL log a warning naming both the advertised cap and the configured `chunk_size` when the advertised cap is lower. The
-system SHALL continue to send the configured `chunk_size` as `maxRecords` without clamping it, and SHALL stay silent
-when the constraint is absent or not a positive integer.
+The system SHALL inspect the `MaxRecordDefault` constraint from the CSW `GetCapabilities` response after connecting.
+When the advertised value is a positive integer **below** the effective page size for subsequent GetRecords paging, the
+system SHALL use the advertised value as `maxRecords` (clamp down only; never raise the configured size when the advert
+is higher). The effective page size is config `chunk_size`, or — for `xml_query` — a valid XML root `maxRecords` (> 0)
+when that override applies; the clamp SHALL apply after that override is resolved. The system SHALL log at most one INFO
+naming both the advertised value and the pre-clamp page size when a clamp occurs, SHALL NOT emit a WARNING for this
+mismatch, and SHALL stay silent when the constraint is absent or not a positive integer.
 
 #### Scenario: Server advertises a cap below the configured chunk_size
 
 - **WHEN** the endpoint advertises `MaxRecordDefault = 10` and `chunk_size` is 50
-- **THEN** log one warning at connect naming both 10 and 50
-- **AND** still request `maxRecords=50` per page
+- **THEN** request `maxRecords=10` per page for subsequent GetRecords paging
+- **AND** log one INFO at connect naming both 10 and 50 and that the page size was clamped
 - **AND** still harvest every record, paginating on the response's `nextrecord` / `returned`
 
-#### Scenario: Server advertises a cap at or above the configured chunk_size
+#### Scenario: XML maxRecords above the advert is also clamped
+
+- **WHEN** the endpoint advertises `MaxRecordDefault = 10` and `xml_query` specifies `maxRecords="50"`
+- **THEN** each page requests `maxRecords=10`
+- **AND** at most one INFO describes the clamp
+
+#### Scenario: Effective page size already at or below the advert
 
 - **WHEN** the endpoint advertises `MaxRecordDefault = 100` and `chunk_size` is 50
-- **THEN** log no page-cap warning
+- **THEN** request `maxRecords=50` per page
+- **AND** log no page-cap clamp message
+
+#### Scenario: XML maxRecords already below the advert
+
+- **WHEN** the endpoint advertises `MaxRecordDefault = 10` and `xml_query` specifies `maxRecords="7"`
+- **THEN** each page requests `maxRecords=7`
+- **AND** log no page-cap clamp message
 
 #### Scenario: Constraint is absent or unparsable
 
 - **WHEN** `GetCapabilities` omits `MaxRecordDefault`, or advertises a non-numeric or non-positive value
-- **THEN** log no page-cap warning
+- **THEN** use the configured effective page size without clamping
+- **AND** log no page-cap clamp message
 - **AND** connect successfully
 
 ### Requirement: CSW response body size limiting is out of scope without owned HTTP transport
