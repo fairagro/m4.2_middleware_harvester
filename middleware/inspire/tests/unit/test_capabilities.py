@@ -11,8 +11,10 @@ import pytest
 
 from middleware.inspire.capabilities import (
     advertised_max_records,
+    clamp_page_size,
     describe_service,
-    warn_if_server_caps_page_size,
+    log_page_size_clamp,
+    note_server_caps_page_size,
 )
 
 
@@ -70,18 +72,43 @@ def test_returns_none_when_constraints_is_not_a_mapping() -> None:
     assert advertised_max_records(SimpleNamespace(constraints=["MaxRecordDefault"])) is None
 
 
-# --- warn_if_server_caps_page_size ----------------------------------------------------
+# --- clamp_page_size ------------------------------------------------------------------
 
 
-def test_warns_when_the_advertised_cap_is_below_chunk_size(caplog: pytest.LogCaptureFixture) -> None:
+def test_clamp_page_size_reduces_when_advert_is_lower() -> None:
+    """Thünen-style advert below the requested page size."""
+    assert clamp_page_size(50, 10) == 10
+
+
+@pytest.mark.parametrize(
+    ("page_size", "advertised"),
+    [
+        pytest.param(50, 100, id="advert-higher"),
+        pytest.param(50, 50, id="advert-equal"),
+        pytest.param(50, None, id="advert-unknown"),
+    ],
+)
+def test_clamp_page_size_leaves_page_size_when_advert_does_not_bind(page_size: int, advertised: int | None) -> None:
+    """Never raise the request size; stay put when the advert is absent or not lower."""
+    assert clamp_page_size(page_size, advertised) == page_size
+
+
+# --- note_server_caps_page_size / log -------------------------------------------------
+
+
+def test_notes_and_logs_when_the_advertised_cap_is_below_chunk_size(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """The observed atlas.thuenen.de case: advertises 10, configured 50."""
-    with caplog.at_level(logging.WARNING):
-        warn_if_server_caps_page_size(_csw(["10"]), chunk_size=50)
+    with caplog.at_level(logging.INFO):
+        advertised = note_server_caps_page_size(_csw(["10"]), chunk_size=50)
 
+    assert advertised == 10
     assert len(caplog.records) == 1
+    assert caplog.records[0].levelno == logging.INFO
     message = caplog.records[0].getMessage()
     assert "MaxRecordDefault" in message
-    # Both numbers must appear, so the line is actionable without re-reading the code.
+    assert "clamping" in message
     assert "10" in message
     assert "50" in message
 
@@ -97,9 +124,10 @@ def test_stays_silent_when_the_cap_does_not_bind(
     caplog: pytest.LogCaptureFixture, advertised: str, chunk_size: int
 ) -> None:
     """A cap at or above the configured page size costs us nothing, so say nothing."""
-    with caplog.at_level(logging.WARNING):
-        warn_if_server_caps_page_size(_csw([advertised]), chunk_size=chunk_size)
+    with caplog.at_level(logging.INFO):
+        result = note_server_caps_page_size(_csw([advertised]), chunk_size=chunk_size)
 
+    assert result == int(advertised)
     assert caplog.records == []
 
 
@@ -112,20 +140,29 @@ def test_stays_silent_when_the_cap_does_not_bind(
     ],
 )
 def test_stays_silent_when_the_cap_is_unknowable(caplog: pytest.LogCaptureFixture, raw: object) -> None:
-    """We only warn about a cap we actually read; otherwise there is nothing to report."""
-    with caplog.at_level(logging.WARNING):
-        warn_if_server_caps_page_size(_csw(raw), chunk_size=50)
+    """We only clamp/log about a cap we actually read; otherwise there is nothing to report."""
+    with caplog.at_level(logging.INFO):
+        assert note_server_caps_page_size(_csw(raw), chunk_size=50) is None
 
     assert caplog.records == []
 
 
 def test_does_not_raise_when_the_capabilities_shape_is_unexpected(caplog: pytest.LogCaptureFixture) -> None:
     """Connect must survive a server or OWSLib version we did not anticipate."""
-    with caplog.at_level(logging.WARNING):
-        warn_if_server_caps_page_size(SimpleNamespace(), chunk_size=50)
-        warn_if_server_caps_page_size(object(), chunk_size=50)
+    with caplog.at_level(logging.INFO):
+        assert note_server_caps_page_size(SimpleNamespace(), chunk_size=50) is None
+        assert note_server_caps_page_size(object(), chunk_size=50) is None
 
     assert caplog.records == []
+
+
+def test_log_page_size_clamp_is_info_not_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Operators should not see WARNING spam for an intentional clamp."""
+    with caplog.at_level(logging.INFO):
+        log_page_size_clamp(requested=50, advertised=10)
+
+    assert len(caplog.records) == 1
+    assert caplog.records[0].levelno == logging.INFO
 
 
 # --- describe_service -----------------------------------------------------------------

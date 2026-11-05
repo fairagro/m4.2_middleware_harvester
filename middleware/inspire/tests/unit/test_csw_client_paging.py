@@ -7,9 +7,11 @@ import pytest
 from csw_client_helpers import _make_csw_config, _minimal_get_records_xml, _stub_inspire_record
 
 from middleware.contracts.errors import RecordProcessingError
+from middleware.inspire.capabilities import PageSizeClamp
 from middleware.inspire.config import Config
 from middleware.inspire.csw_client import CSWClient
 from middleware.inspire.errors import CswConnectionError
+from middleware.inspire.getrecords_xml import prepare_xml_paging
 from middleware.payload.inspire.models import InspireRecord
 
 
@@ -507,7 +509,7 @@ def test_xml_iso_fetch_does_not_mutate_shared_template() -> None:
         "</csw:Query>"
         "</csw:GetRecords>"
     )
-    root, page_size, start, as_bytes = client._prepare_xml_paging(xml_query, chunk_size=2)  # noqa: SLF001
+    root, page_size, start, as_bytes = prepare_xml_paging(xml_query, chunk_size=2)
     assert page_size == 99
     assert start == 9
 
@@ -605,7 +607,7 @@ def test_fetch_iso_batch_xml_raises_csw_connection_error_on_failure() -> None:
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = OSError("boom")
-    root, _page_size, _start, as_bytes = client._prepare_xml_paging(  # noqa: SLF001
+    root, _page_size, _start, as_bytes = prepare_xml_paging(
         _minimal_get_records_xml(),
         chunk_size=10,
     )
@@ -620,10 +622,96 @@ def test_fetch_iso_batch_xml_propagates_value_error() -> None:
     csw = MagicMock()
     object.__setattr__(client, "_csw", csw)
     csw.getrecords2.side_effect = ValueError("bad xml request")
-    root, _page_size, _start, as_bytes = client._prepare_xml_paging(  # noqa: SLF001
+    root, _page_size, _start, as_bytes = prepare_xml_paging(
         _minimal_get_records_xml(),
         chunk_size=10,
     )
 
     with pytest.raises(ValueError, match="bad xml request"):
         client._fetch_iso_batch_xml(root, batch_size=10, start_position=1, as_bytes=as_bytes)  # noqa: SLF001
+
+
+def test_chunk_size_clamped_to_advertised_max_record_default() -> None:
+    """When MaxRecordDefault is below chunk_size, GetRecords uses the advert."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    object.__setattr__(client, "_page_clamp", PageSizeClamp(advertised=10, _logged=True))
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records())
+
+    assert csw.getrecords2.call_args.kwargs["maxrecords"] == 10
+
+
+def test_xml_max_records_above_advert_is_clamped() -> None:
+    """XML maxRecords above MaxRecordDefault is clamped down after connect."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    object.__setattr__(client, "_page_clamp", PageSizeClamp(advertised=10, _logged=True))
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records(xml_query=_minimal_get_records_xml(maxRecords="50")))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="10"' in sent_xml
+
+
+def test_xml_max_records_below_advert_is_not_raised() -> None:
+    """XML maxRecords already below the advert stays as the page size."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    object.__setattr__(client, "_page_clamp", PageSizeClamp(advertised=10, _logged=True))
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records(xml_query=_minimal_get_records_xml(maxRecords="7")))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="7"' in sent_xml
+
+
+def test_absent_advert_leaves_chunk_size_unchanged() -> None:
+    """No MaxRecordDefault means the configured page size is used as-is."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=50))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    object.__setattr__(client, "_page_clamp", PageSizeClamp())
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)):
+        list(client.get_records())
+
+    assert csw.getrecords2.call_args.kwargs["maxrecords"] == 50
+
+
+def test_xml_clamp_logs_info_when_chunk_size_did_not_need_clamp(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """XML-only clamp still emits one INFO when connect did not already log."""
+    client = CSWClient(Config(csw_url="https://example.com/csw", timeout=5, chunk_size=5))
+    csw = MagicMock()
+    object.__setattr__(client, "_csw", csw)
+    object.__setattr__(client, "_page_clamp", PageSizeClamp(advertised=10))
+    csw.results = {"matches": 1, "returned": 1, "nextrecord": 0}
+    csw.records = {}
+
+    with (
+        caplog.at_level(logging.INFO, logger="middleware.inspire.capabilities"),
+        patch.object(CSWClient, "_parse_iso_batch", return_value=([object()], [], 1)),
+    ):
+        list(client.get_records(xml_query=_minimal_get_records_xml(maxRecords="50")))
+
+    sent_xml = csw.getrecords2.call_args.kwargs["xml"]
+    assert 'maxRecords="10"' in sent_xml
+    clamp_logs = [r for r in caplog.records if "clamping" in r.getMessage()]
+    assert len(clamp_logs) == 1
+    assert clamp_logs[0].levelno == logging.INFO
