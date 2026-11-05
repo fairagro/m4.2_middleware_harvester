@@ -231,9 +231,8 @@ config:
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- List of repositories to harvest. Each entry must specify exactly one
-  # -- plugin type (inspire, generic, linked_data, or oai_pmh). Prefer generic:
-  # -- for sitemap / Solr / Regal / DCAT sources; linked_data remains a temporary
-  # -- shim during migration (see docs/linked_data_to_generic.md).
+  # -- plugin type (inspire, generic, or oai_pmh). Prefer generic: for sitemap /
+  # -- Solr / Regal / DCAT / MyCoRe sources (see docs/linked_data_to_generic.md).
   repositories:
 
     # -------------------------------------------------------------------------

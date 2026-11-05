@@ -18,15 +18,6 @@ repositories:
         allowed_context_url: "https://schema.org/"
     mapper:
       schema_org_general: {}
-  # Legacy linked_data form (deprecated plugin key; prefer nested generic above):
-  # - rdi: "edal-legacy"
-  #   linked_data:
-  #     sitemap_url: https://doi.ipk-gatersleben.de/sitemap.xml
-  #     sitemap_type: xml
-  #     dataset_type: html_jsonld
-  #     allowed_context_url: "https://schema.org/"
-  #   mapper:
-  #     schema_org_general: {}
   # Example: MyCoRe Solr discovery via nested protocol (query-free select URL;
   # defaults fill core/q/fl/rows; wt=json is always set by the software)
   # - rdi: "openagrar-solr"
@@ -59,7 +50,7 @@ repositories:
   #   mapper:
   #     mods_general: {}
 
-  # Example: PUBLISSO FRL via Regal /find on generic (preferred over linked_data).
+  # Example: PUBLISSO FRL via Regal /find on generic.
   # - rdi: "publisso"
   #   generic:
   #     protocol:

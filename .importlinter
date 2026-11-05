@@ -7,7 +7,6 @@
 #   middleware.parsing                      — DiscoveryResult / PayloadParser registry (may use contracts)
 #   middleware.harvester                    — orchestrator; imports plugins + payload + parsing + contracts
 #   middleware.inspire                      — INSPIRE/CSW plugin
-#   middleware.linked_data                  — sitemap/HTML JSON-LD plugin (shim→generic during migration)
 #   middleware.generic                      — Protocol + shared pipeline (consumes parsing)
 #   middleware.oai_pmh                      — OAI-PMH / Scythe plugin (consumes parsing + payload)
 #
@@ -24,7 +23,6 @@ root_packages =
     middleware.generic
     middleware.harvester
     middleware.inspire
-    middleware.linked_data
     middleware.oai_pmh
     middleware.parsing
     middleware.payload
@@ -39,7 +37,6 @@ ancestors =
     middleware.generic
     middleware.harvester
     middleware.inspire
-    middleware.linked_data
     middleware.oai_pmh
     middleware.parsing
     middleware.payload
@@ -55,7 +52,6 @@ forbidden_modules =
     middleware.harvester
     middleware.contracts
     middleware.inspire
-    middleware.linked_data
     middleware.generic
     middleware.oai_pmh
     middleware.parsing
@@ -70,7 +66,6 @@ forbidden_modules =
     middleware.harvester
     middleware.parsing
     middleware.inspire
-    middleware.linked_data
     middleware.generic
     middleware.oai_pmh
 
@@ -83,7 +78,6 @@ source_modules =
 forbidden_modules =
     middleware.harvester
     middleware.inspire
-    middleware.linked_data
     middleware.generic
     middleware.oai_pmh
 
@@ -93,31 +87,27 @@ name = protocol plugins must not import harvester
 type = forbidden
 source_modules =
     middleware.inspire
-    middleware.linked_data
     middleware.generic
     middleware.oai_pmh
 forbidden_modules =
     middleware.harvester
 
-# Protocol plugins must not import each other, except the documented temporary
-# linked_data → generic discovery/parser/pipeline shims (principles.md).
+# Protocol plugins must not import each other.
 [importlinter:contract:inspire-plugin-isolation]
-name = inspire must not import linked_data, generic, or oai_pmh
+name = inspire must not import generic or oai_pmh
 type = forbidden
 source_modules =
     middleware.inspire
 forbidden_modules =
-    middleware.linked_data
     middleware.generic
     middleware.oai_pmh
 
 [importlinter:contract:generic-plugin-isolation]
-name = generic must not import linked_data, inspire, or oai_pmh
+name = generic must not import inspire or oai_pmh
 type = forbidden
 source_modules =
     middleware.generic
 forbidden_modules =
-    middleware.linked_data
     middleware.inspire
     middleware.oai_pmh
 
@@ -127,18 +117,8 @@ type = forbidden
 source_modules =
     middleware.oai_pmh
 forbidden_modules =
-    middleware.linked_data
     middleware.inspire
     middleware.generic
-
-[importlinter:contract:linked-data-not-inspire]
-name = linked_data must not import inspire or oai_pmh
-type = forbidden
-source_modules =
-    middleware.linked_data
-forbidden_modules =
-    middleware.inspire
-    middleware.oai_pmh
 
 # inspire and generic have no shared migration edge — keep them independent.
 [importlinter:contract:inspire-generic-independence]

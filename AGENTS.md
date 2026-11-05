@@ -62,8 +62,7 @@ middleware/
 │   └── tests/
 │       ├── unit/          # Unit tests for mapper and harvester
 │       └── integration/   # Integration tests with real CSW endpoints
-├── oai_pmh/               # OAI-PMH / Scythe harvester (shared parsers + mappers)
-└── linked_data/           # Linked-data / sitemap / Regal harvester
+└── oai_pmh/               # OAI-PMH / Scythe harvester (shared parsers + mappers)
 ```
 
 ## 🔧 Important Commands
@@ -88,7 +87,7 @@ bash scripts/run-quality-cli.sh mypy --config-file mypy.ini middleware/
 bash scripts/run-quality-cli.sh pylint \
   --rcfile .pylintrc \
   --extension-pkg-allow-list=lxml \
-  middleware/inspire middleware/linked_data middleware/harvester middleware/payload middleware/contracts middleware/generic middleware/parsing middleware/oai_pmh
+  middleware/inspire middleware/harvester middleware/payload middleware/contracts middleware/generic middleware/parsing middleware/oai_pmh
 uv run bandit -r middleware/ -c .bandit -ll
 
 # Or wrap commit-stage pre-commit hooks:
@@ -194,20 +193,20 @@ Before generating or modifying code, read the relevant OpenSpec domains under `o
 - **[`openspec/specs/inspire-workflow-execution/`](openspec/specs/inspire-workflow-execution/)** — The INSPIRE plugin
   processing loop.
 
-**Linked-data plugin**:
+**Generic / linked-data sources** (sitemap, Solr, Regal, HTML JSON-LD — via `generic:` + shared parsers/mappers):
 
-- **[`openspec/specs/linked-data-harvesting/`](openspec/specs/linked-data-harvesting/)** — Top-level harvesting loop:
-  sitemap discovery → dataset fetch → mapper → upload.
+- **[`openspec/specs/linked-data-harvesting/`](openspec/specs/linked-data-harvesting/)** — Former `linked_data:` plugin
+  key removed; migrate to `generic` (`docs/linked_data_to_generic.md`).
 - **[`openspec/specs/xml-sitemap-parser/`](openspec/specs/xml-sitemap-parser/)** — XML sitemap protocol; `urlset` /
   `sitemapindex` traversal and deduplication.
 - **[`openspec/specs/sitemap-mycore-solr/`](openspec/specs/sitemap-mycore-solr/)** — MyCoRe Solr JSON discovery source;
   Solr pagination, `id`→`/receive/{id}` URL construction.
 - **[`openspec/specs/html-jsonld-dataset/`](openspec/specs/html-jsonld-dataset/)** — HTML page scraping and embedded
   JSON-LD extraction.
-- **[`openspec/specs/linked-data-dataset-abstraction/`](openspec/specs/linked-data-dataset-abstraction/)** — `Dataset`
-  base class and `DiscoveryResult` abstraction.
+- **[`openspec/specs/linked-data-dataset-abstraction/`](openspec/specs/linked-data-dataset-abstraction/)** —
+  `DiscoveryResult` abstraction (shared parsing).
 - **[`openspec/specs/linked-data-mapper/`](openspec/specs/linked-data-mapper/)** — Mapping rdflib `Graph` to ARC
-  RO-Crate JSON-LD.
+  RO-Crate JSON-LD (`middleware.payload.linked_data_mapper`).
 - **[`openspec/specs/regal-jsonld/`](openspec/specs/regal-jsonld/)** — Regal `/find` discovery, inline Regal JSON-LD
   datasets, and Regal→ARC mapping (e.g. PUBLISSO FRL).
 - **[`openspec/specs/regal-to-arc-mapping/`](openspec/specs/regal-to-arc-mapping/)** — Regal ResearchData → ARC

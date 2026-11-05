@@ -111,7 +111,7 @@ openspec/
 ```
 
 All domains live under the single `openspec/specs/` tree (flat domain IDs). Grouping in `AGENTS.md` (project / harvester
-/ inspire / linked_data) is navigational only.
+/ inspire / generic / oai_pmh) is navigational only.
 
 ---
 

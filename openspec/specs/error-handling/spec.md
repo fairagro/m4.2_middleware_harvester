@@ -29,14 +29,14 @@ The system SHALL provide a global `RecordProcessingError` inheriting from `Harve
 
 ### Requirement: Each plugin MUST define its own plugin-specific base exception (e.g.,…
 
-Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `LinkedDataError`) that inherits
+Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `GenericError`) that inherits
 directly from `HarvesterError`. All further plugin-internal exception classes MUST inherit from that plugin-specific
 base — never directly from `HarvesterError`.
 
 #### Scenario: Satisfies — Each plugin MUST define its own plugin-specific base exception (e.g.,…
 
 - **WHEN** the conditions described by this requirement apply
-- **THEN** Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `LinkedDataError`) that
+- **THEN** Each plugin MUST define its own plugin-specific base exception (e.g., `InspireError`, `GenericError`) that
   inherits directly from `HarvesterError`. All further plugin-internal exception classes MUST inherit from that
   plugin-specific base — never directly from `HarvesterError`
 

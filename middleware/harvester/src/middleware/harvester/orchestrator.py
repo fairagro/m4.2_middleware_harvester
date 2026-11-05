@@ -20,7 +20,6 @@ from middleware.harvester.errors import (
 )
 from middleware.harvester.upload import execute_harvest_upload
 from middleware.inspire.plugin import InspirePlugin
-from middleware.linked_data.plugin import LinkedDataPlugin
 from middleware.oai_pmh.plugin import OaiPmhPlugin
 from middleware.shared.report import HarvestReport, RepositoryScope
 
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
     "inspire": InspirePlugin,
-    "linked_data": LinkedDataPlugin,
     "generic": GenericPlugin,
     "oai_pmh": OaiPmhPlugin,
 }
@@ -37,13 +35,11 @@ PLUGIN_FACTORIES: dict[str, Callable[..., Plugin]] = {
 def _create_plugin(repo: RepositoryConfig) -> Plugin:
     """Instantiate the plugin for ``repo``, passing mapper/parser config when required."""
     factory = PLUGIN_FACTORIES[repo.plugin_type]
-    if repo.plugin_type in {"generic", "oai_pmh"}:
-        if repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
-            raise ValueError(f"{repo.plugin_type} repositories require parser config")
-        return factory(repo.plugin_config, repo.mapper, repo.parser)
-    if repo.plugin_type in {"linked_data", "inspire"}:
+    if repo.plugin_type == "inspire":
         return factory(repo.plugin_config, repo.mapper)
-    return factory(repo.plugin_config)
+    if repo.parser is None:  # pragma: no cover — guarded by RepositoryConfig
+        raise ValueError(f"{repo.plugin_type} repositories require parser config")
+    return factory(repo.plugin_config, repo.mapper, repo.parser)
 
 
 async def heartbeat_loop(path: Path, interval: int) -> None:

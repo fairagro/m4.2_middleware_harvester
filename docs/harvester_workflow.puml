@@ -12,15 +12,15 @@ partition "Per repository (concurrent)" {
       :Map to ARC;
       :Serialize to RO-Crate JSON-LD;
     }
-  case (linked_data)
-    :Discover dataset URLs\n(XML Sitemap / MyCoRe Solr request);
+  case (generic / oai_pmh)
+    :Discover datasets\n(sitemap / Solr / Regal / OAI-PMH);
     partition "Per dataset (concurrent)" {
-      :Fetch dataset landing page;
-      :Parse embedded schema.org metadata to RDF graph;
+      :Fetch and parse via registered parser;
       :Map to ARC;
       :Serialize to RO-Crate JSON-LD;
     }
   endswitch
+
 
   partition "Per dataset (concurrent, pipelined)" {
     :Upload RO-Crate JSON-LD to Middleware API;

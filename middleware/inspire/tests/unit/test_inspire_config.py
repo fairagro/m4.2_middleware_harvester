@@ -1,9 +1,7 @@
 """Unit tests for `middleware.inspire.config.Config`'s validation constraints.
 
-Named `test_inspire_config.py` (not `test_config.py`) to avoid a module-name collision
-with `middleware/linked_data/tests/unit/test_config.py`: both `inspire/tests/unit` and
-`linked_data/tests/unit` are on the shared root `pythonpath` (for cross-file test-helper
-imports), so a bare `test_config` basename is ambiguous between them at collection time.
+Named `test_inspire_config.py` (not `test_config.py`) so the basename stays unique on the
+shared root `pythonpath` used for cross-file test helpers.
 
 These guard `openspec/specs/inspire-value-bounds/`'s config-level requirements.
 """
