@@ -26,7 +26,7 @@ concurrency:
 jobs:
   code-quality:
     name: Code Quality
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@371ac9cefdf4c36ddc906d3ddff9e92e0b7af0cf
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-code-quality.yml@16382189b5f803f02a80c8a5992b90f721178a7f
     with:
       python_package_root: middleware
       components: '["harvester"]'
