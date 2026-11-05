@@ -4,9 +4,9 @@
 
 Canonical repository `mapper:` and `parser:` configuration SHALL use type-as-key form: shared fields (when any) as
 siblings of exactly one type-named child whose key is the registry type. Type-specific settings MUST live under that
-child. Configuration that still sets a `type:` discriminator under `mapper` or `parser` MUST fail validation with an
-error that points operators to type-as-key (e.g. `mapper: { schema_org_general: {} }`). The system MUST NOT lift or
-warn-and-accept legacy `{ type: <registry key>, … }` shapes.
+child. Configuration that still sets a `type:` discriminator under `mapper` or `parser` MUST fail validation as an
+unknown field (no soft-lift and no dedicated migration-only validator). The system MUST NOT lift or warn-and-accept
+legacy `{ type: <registry key>, … }` shapes.
 
 #### Scenario: Nested mapper type-as-key loads
 
@@ -22,12 +22,12 @@ warn-and-accept legacy `{ type: <registry key>, … }` shapes.
 #### Scenario: Legacy mapper type discriminator is rejected
 
 - **WHEN** a repository sets `mapper: { type: schema_org_general }`
-- **THEN** configuration validation fails with an error mentioning type-as-key
+- **THEN** configuration validation fails before harvest
 
 #### Scenario: Legacy parser type discriminator is rejected
 
 - **WHEN** a repository sets `parser: { type: jsonld, allowed_context_url: … }`
-- **THEN** configuration validation fails with an error mentioning type-as-key
+- **THEN** configuration validation fails before harvest
 
 #### Scenario: Two mapper type keys fail closed
 

@@ -60,7 +60,7 @@ def test_nothing_matches_by_default() -> None:
 
 def test_configured_values_are_folded() -> None:
     config = MapperConfig.model_validate({
-        "type": "schema_org_general",
+        "schema_org_general": {},
         "placeholders": {"values": [" Keine Angabe ", ""], "unrendered_templates": True},
     })
 
@@ -81,7 +81,10 @@ def _schema_org_graph(license_text: str) -> Graph:
 
 
 def test_schema_org_mapper_uses_repository_placeholders() -> None:
-    config = MapperConfig.model_validate({"type": "schema_org_general", "placeholders": {"values": ["Lizenz folgt"]}})
+    config = MapperConfig.model_validate({
+        "schema_org_general": {},
+        "placeholders": {"values": ["Lizenz folgt"]},
+    })
     mapper = GeneralSchemaOrgMapper.from_config(config)
 
     arc_json = first_harvest(mapper.map_graph(_schema_org_graph("Lizenz folgt"), NO_DISCOVERY)).arc_json
@@ -93,8 +96,7 @@ def test_schema_org_mapper_uses_repository_placeholders() -> None:
 
 def test_regal_mapper_uses_repository_placeholders() -> None:
     config = MapperConfig.model_validate({
-        "type": "regal_general",
-        "resource_base_url": "https://example.org/resource/",
+        "regal_general": {"resource_base_url": "https://example.org/resource/"},
         "placeholders": {"values": ["Lizenz folgt"]},
     })
     subject = URIRef("https://example.org/resource/frl:1")
@@ -111,7 +113,10 @@ def test_regal_mapper_uses_repository_placeholders() -> None:
 
 def test_linked_data_mapper_license_applies_placeholders() -> None:
     """``LinkedDataMapper.license`` is ``license_from_value`` with the mapper's placeholders (#459)."""
-    config = MapperConfig.model_validate({"type": "schema_org_general", "placeholders": {"unrendered_templates": True}})
+    config = MapperConfig.model_validate({
+        "schema_org_general": {},
+        "placeholders": {"unrendered_templates": True},
+    })
     mapper = GeneralSchemaOrgMapper.from_config(config)
 
     assert mapper.placeholders is config.placeholders
@@ -120,7 +125,7 @@ def test_linked_data_mapper_license_applies_placeholders() -> None:
 
 
 def test_ckanext_dcat_mapper_takes_repository_placeholders() -> None:
-    config = MapperConfig.model_validate({"type": "ckanext_dcat", "placeholders": {"values": ["n/a"]}})
+    config = MapperConfig.model_validate({"ckanext_dcat": {}, "placeholders": {"values": ["n/a"]}})
     mapper = CkanextDcatMapper.from_config(config)
 
     assert mapper.placeholders is config.placeholders

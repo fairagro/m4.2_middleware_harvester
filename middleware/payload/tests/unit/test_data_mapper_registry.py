@@ -113,39 +113,29 @@ def test_regal_from_config_uses_fallback() -> None:
 
 def test_mapper_config_resource_base_url_requires_http_scheme() -> None:
     cfg = MapperConfig.model_validate({
-        "type": MapperType.regal_general,
-        "resource_base_url": "https://example.org/resource",
+        "regal_general": {"resource_base_url": "https://example.org/resource"},
     })
     assert cfg.normalize_resource_base_url() == "https://example.org/resource/"
-    assert (
-        MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "  "}).resource_base_url
-        is None
-    )
+    assert MapperConfig.model_validate({"regal_general": {"resource_base_url": "  "}}).resource_base_url is None
     with pytest.raises(ValidationError):
         MapperConfig.model_validate({
-            "type": MapperType.regal_general,
-            "resource_base_url": "ftp://example.org/resource",
+            "regal_general": {"resource_base_url": "ftp://example.org/resource"},
         })
     with pytest.raises(ValidationError):
-        MapperConfig.model_validate({"type": MapperType.regal_general, "resource_base_url": "not-a-url"})
+        MapperConfig.model_validate({"regal_general": {"resource_base_url": "not-a-url"}})
 
 
-def test_mapper_config_type_as_key_nested(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level("WARNING", logger="middleware.payload.mapper_config"):
-        cfg = MapperConfig.model_validate({
-            "regal_general": {"resource_base_url": "https://example.org/resource"},
-        })
+def test_mapper_config_type_as_key_nested() -> None:
+    cfg = MapperConfig.model_validate({
+        "regal_general": {"resource_base_url": "https://example.org/resource"},
+    })
     assert cfg.type == MapperType.regal_general
     assert cfg.normalize_resource_base_url() == "https://example.org/resource/"
-    assert not any("mapper.type is deprecated" in r.message for r in caplog.records)
 
 
-def test_mapper_config_legacy_type_warns_and_lifts(caplog: pytest.LogCaptureFixture) -> None:
-    with caplog.at_level("WARNING", logger="middleware.payload.mapper_config"):
-        cfg = MapperConfig.model_validate({"type": "schema_org_general"})
-    assert cfg.type == MapperType.schema_org_general
-    assert cfg.schema_org_general is not None
-    assert any("mapper.type is deprecated" in r.message for r in caplog.records)
+def test_mapper_config_legacy_type_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        MapperConfig.model_validate({"type": "schema_org_general"})
 
 
 def test_mapper_config_rejects_two_type_keys() -> None:

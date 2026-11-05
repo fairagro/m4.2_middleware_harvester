@@ -8,8 +8,8 @@ is leftover migration debt: operators can still ship the old discriminator, and 
 
 ## What Changes
 
-- **BREAKING:** Reject leftover `mapper.type` / `parser.type` discriminators at config validation with a clear pointer
-  to type-as-key (e.g. `mapper: { schema_org_general: {} }`). Do **not** ignore `type:` as an unknown field.
+- **BREAKING:** Delete soft-lift of leftover `mapper.type` / `parser.type`. With type-as-key-only models
+  (`extra="forbid"`), a leftover `type:` key fails as an unknown field — no dedicated reject/migration validator.
 - **BREAKING:** Delete soft-lift validators and deprecation warning messages for those discriminators (including flat
   type-local field lift that existed only for the legacy shape).
 - Update OpenSpec (`harvester-configuration`, `payload`, `payload-parser`) and unit tests so nested form is the only
@@ -32,7 +32,7 @@ issues.
 ### Modified Capabilities
 
 - `harvester-configuration`: Require type-as-key only for `mapper` / `parser`; remove legacy lift + warning
-  requirements; reject leftover `type:` with a migration pointer.
+  requirements; leftover `type:` fails as an unknown field.
 - `payload`: Select DataMappers via nested type-as-key only (drop deprecated `mapper.type` selection wording).
 - `payload-parser`: Select PayloadParsers via nested type-as-key only; drop deprecated lift / flat `parser.type`
   scenarios (including legacy `allowed_context_url` lift).

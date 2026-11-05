@@ -27,7 +27,7 @@ def test_harvester_config_loading() -> None:
                 "inspire": {
                     "csw_url": "https://csw.example.com",
                 },
-                "mapper": {"type": "inspire_general"},
+                "mapper": {"inspire_general": {}},
             }
         ],
     }
@@ -49,7 +49,7 @@ def test_jsonld_context_cache_max_entries_accepts_override() -> None:
     config = Config.model_validate({
         "api_client": {"api_url": "https://api.example.com"},
         "repositories": [
-            {"rdi": "test", "inspire": {"csw_url": "https://csw.example.com"}, "mapper": {"type": "inspire_general"}},
+            {"rdi": "test", "inspire": {"csw_url": "https://csw.example.com"}, "mapper": {"inspire_general": {}}},
         ],
         "jsonld_context_cache_max_entries": 8,
     })
@@ -64,7 +64,7 @@ def test_jsonld_context_cache_max_entries_rejects_non_positive() -> None:
                 {
                     "rdi": "test",
                     "inspire": {"csw_url": "https://csw.example.com"},
-                    "mapper": {"type": "inspire_general"},
+                    "mapper": {"inspire_general": {}},
                 },
             ],
             "jsonld_context_cache_max_entries": 0,
@@ -76,7 +76,7 @@ def test_repository_config_source_url_inspire() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "test",
         "inspire": {"csw_url": "https://csw.example.com"},
-        "mapper": {"type": "inspire_general"},
+        "mapper": {"inspire_general": {}},
     })
     assert repo.source_url == "https://csw.example.com"
 
@@ -113,7 +113,7 @@ def test_unknown_repository_plugin_key_is_forbidden() -> None:
                 "sitemap_type": "xml",
                 "dataset_type": "html_jsonld",
             },
-            "mapper": {"type": "schema_org_general"},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -146,7 +146,7 @@ def test_inspire_repository_accepts_inspire_general() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "inspire",
         "inspire": {"csw_url": "https://csw.example.com"},
-        "mapper": {"type": "inspire_general"},
+        "mapper": {"inspire_general": {}},
     })
     assert repo.mapper is not None
     assert repo.mapper.type == "inspire_general"
@@ -158,7 +158,7 @@ def test_inspire_repository_rejects_rdf_mapper() -> None:
         RepositoryConfig.model_validate({
             "rdi": "inspire",
             "inspire": {"csw_url": "https://csw.example.com"},
-            "mapper": {"type": "schema_org_general"},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -167,7 +167,7 @@ _INSPIRE_PLACEHOLDERS_MSG = "mapper.placeholders on an inspire repository is dep
 
 def _inspire_repo(**blocks: object) -> RepositoryConfig:
     inspire: dict[str, object] = {"csw_url": "https://csw.example.com"}
-    mapper: dict[str, object] = {"type": "inspire_general"}
+    mapper: dict[str, object] = {"inspire_general": {}}
     if "inspire_placeholders" in blocks:
         inspire["placeholders"] = blocks["inspire_placeholders"]
     if "mapper_placeholders" in blocks:
@@ -209,8 +209,8 @@ def test_generic_mapper_placeholders_do_not_warn(caplog: pytest.LogCaptureFixtur
         repo = RepositoryConfig.model_validate({
             "rdi": "gen",
             "generic": {"protocol": {"xml": {"entry_url": "https://example.org/sitemap.xml"}}},
-            "parser": {"type": "html_jsonld"},
-            "mapper": {"type": "schema_org_general", "placeholders": {"unrendered_templates": True}},
+            "parser": {"html_jsonld": {}},
+            "mapper": {"schema_org_general": {}, "placeholders": {"unrendered_templates": True}},
         })
     assert repo.mapper is not None
     assert repo.mapper.placeholders.unrendered_templates
@@ -228,7 +228,7 @@ def test_generic_repository_requires_mapper() -> None:
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
-            "parser": {"type": "html_jsonld"},
+            "parser": {"html_jsonld": {}},
         })
 
 
@@ -237,7 +237,7 @@ def test_generic_repository_requires_parser() -> None:
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
-            "mapper": {"type": "schema_org_general"},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -245,8 +245,8 @@ def test_generic_repository_accepts_schema_org_mapper() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "g",
         "generic": _minimal_generic(),
-        "parser": {"type": "html_jsonld"},
-        "mapper": {"type": "schema_org_general"},
+        "parser": {"html_jsonld": {}},
+        "mapper": {"schema_org_general": {}},
     })
     assert repo.plugin_type == "generic"
     assert repo.mapper is not None
@@ -262,8 +262,8 @@ def test_generic_and_inspire_mutual_exclusion() -> None:
             "rdi": "both",
             "generic": _minimal_generic(),
             "inspire": {"csw_url": "https://csw.example.com"},
-            "parser": {"type": "html_jsonld"},
-            "mapper": {"type": "schema_org_general"},
+            "parser": {"html_jsonld": {}},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -275,8 +275,8 @@ def test_resource_base_url_conflict_between_generic_and_mapper() -> None:
                 "protocol": {"regal_find": {"entry_url": "https://example.org/resources/find"}},
                 "resource_base_url": "https://a.example/resource/",
             },
-            "parser": {"type": "jsonld"},
-            "mapper": {"type": "regal_general", "resource_base_url": "https://b.example/resource/"},
+            "parser": {"jsonld": {}},
+            "mapper": {"regal_general": {"resource_base_url": "https://b.example/resource/"}},
         })
 
 
@@ -287,8 +287,8 @@ def test_generic_unregistered_protocol_type_fails_closed(monkeypatch: pytest.Mon
         RepositoryConfig.model_validate({
             "rdi": "g",
             "generic": _minimal_generic(),
-            "parser": {"type": "html_jsonld"},
-            "mapper": {"type": "schema_org_general"},
+            "parser": {"html_jsonld": {}},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -303,8 +303,8 @@ def test_generic_nested_protocol_source_url() -> None:
                 }
             }
         },
-        "parser": {"type": "html_jsonld"},
-        "mapper": {"type": "schema_org_general"},
+        "parser": {"html_jsonld": {}},
+        "mapper": {"schema_org_general": {}},
     })
     assert repo.source_url == "https://example.org/servlets/solr/select"
     assert repo.generic is not None
@@ -323,7 +323,7 @@ def test_oai_pmh_repository_requires_mapper() -> None:
         RepositoryConfig.model_validate({
             "rdi": "oai",
             "oai_pmh": _minimal_oai_pmh(),
-            "parser": {"type": "rdf_xml"},
+            "parser": {"rdf_xml": {}},
         })
 
 
@@ -332,7 +332,7 @@ def test_oai_pmh_repository_requires_parser() -> None:
         RepositoryConfig.model_validate({
             "rdi": "oai",
             "oai_pmh": _minimal_oai_pmh(),
-            "mapper": {"type": "schema_org_general"},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -340,8 +340,8 @@ def test_oai_pmh_repository_accepts_parser_and_mapper() -> None:
     repo = RepositoryConfig.model_validate({
         "rdi": "oai",
         "oai_pmh": _minimal_oai_pmh(),
-        "parser": {"type": "rdf_xml"},
-        "mapper": {"type": "schema_org_general"},
+        "parser": {"rdf_xml": {}},
+        "mapper": {"schema_org_general": {}},
     })
     assert repo.plugin_type == "oai_pmh"
     assert repo.parser is not None
@@ -358,8 +358,8 @@ def test_oai_pmh_repository_rejects_kind_mismatch(monkeypatch: pytest.MonkeyPatc
         RepositoryConfig.model_validate({
             "rdi": "oai",
             "oai_pmh": _minimal_oai_pmh(),
-            "parser": {"type": "rdf_xml"},
-            "mapper": {"type": "schema_org_general"},
+            "parser": {"rdf_xml": {}},
+            "mapper": {"schema_org_general": {}},
         })
 
 
@@ -369,6 +369,6 @@ def test_oai_pmh_and_generic_mutual_exclusion() -> None:
             "rdi": "both",
             "oai_pmh": _minimal_oai_pmh(),
             "generic": _minimal_generic(),
-            "parser": {"type": "rdf_xml"},
-            "mapper": {"type": "schema_org_general"},
+            "parser": {"rdf_xml": {}},
+            "mapper": {"schema_org_general": {}},
         })
