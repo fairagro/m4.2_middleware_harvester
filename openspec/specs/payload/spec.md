@@ -107,7 +107,7 @@ The system SHALL extend `PayloadKind` with `phenoroam_record` for typed PhenoRoa
 ### Requirement: Register phenoroam_general mapper type
 
 The system SHALL register a DataMapper implementation under registry key `phenoroam_general` selectable via repository
-`mapper` type-as-key (`mapper.phenoroam_general`) or deprecated `mapper.type: phenoroam_general`.
+`mapper` type-as-key (`mapper.phenoroam_general`).
 
 #### Scenario: Unknown mapper type still fails closed
 
@@ -131,7 +131,7 @@ The system SHALL register mapper type `mods_general` in the shared DataMapper re
 
 #### Scenario: Registry resolves mods_general
 
-- **WHEN** repository config selects nested `mapper.mods_general` (or deprecated `mapper.type: mods_general`)
+- **WHEN** repository config selects nested `mapper.mods_general`
 - **THEN** registry resolution returns the MODS DataMapper implementation
 
 ### Requirement: Harvested ARCs MUST have unique Comment names

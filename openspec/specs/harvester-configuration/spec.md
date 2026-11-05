@@ -90,12 +90,13 @@ fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch,
 - **THEN** Pydantic ignores extra fields by default; no silent data loss because `_PLUGIN_FIELDS` drives dispatch, not
   raw dict keys
 
-### Requirement: Prefer type-as-key mapper and parser blocks
+### Requirement: Require type-as-key mapper and parser blocks
 
 Canonical repository `mapper:` and `parser:` configuration SHALL use type-as-key form: shared fields (when any) as
 siblings of exactly one type-named child whose key is the registry type. Type-specific settings MUST live under that
-child. Legacy `{ type: <registry key>, … }` MUST remain accepted with a lift into the nested form and MUST emit a
-`logger.warning` directing operators to type-as-key. Validation MUST NOT fail solely because `type:` is present.
+child. Configuration that still sets a `type:` discriminator under `mapper` or `parser` MUST fail validation as an
+unknown field (no soft-lift and no dedicated migration-only validator). The system MUST NOT lift or warn-and-accept
+legacy `{ type: <registry key>, … }` shapes.
 
 #### Scenario: Nested mapper type-as-key loads
 
@@ -108,15 +109,15 @@ child. Legacy `{ type: <registry key>, … }` MUST remain accepted with a lift i
 - **WHEN** a repository sets `parser: { html_jsonld: { allowed_context_url: … } }`
 - **THEN** configuration validation succeeds and the active parser type is `html_jsonld`
 
-#### Scenario: Legacy mapper type discriminator warns and lifts
+#### Scenario: Legacy mapper type discriminator is rejected
 
 - **WHEN** a repository sets `mapper: { type: schema_org_general }`
-- **THEN** validation succeeds after lift to `mapper.schema_org_general`, and a `logger.warning` mentions type-as-key
+- **THEN** configuration validation fails before harvest
 
-#### Scenario: Legacy parser type discriminator warns and lifts
+#### Scenario: Legacy parser type discriminator is rejected
 
 - **WHEN** a repository sets `parser: { type: jsonld, allowed_context_url: … }`
-- **THEN** validation succeeds after lift under `parser.jsonld`, and a `logger.warning` mentions type-as-key
+- **THEN** configuration validation fails before harvest
 
 #### Scenario: Two mapper type keys fail closed
 
@@ -145,9 +146,9 @@ in `docs/linked_data_to_generic.md`.
 Each repository entry that uses shared `middleware.payload` mappers (`generic`, `oai_pmh`, **`inspire`**) MUST include a
 `mapper` configuration object beside the single plugin key, **or** MUST be covered by a documented legacy lift: (for
 legacy `inspire` only) an omitted `mapper` lifted to nested `inspire_general` with a `logger.warning`. The `mapper`
-block MUST select an explicit mapper registry type via type-as-key (preferred) or deprecated `{ type: … }`, and MAY
-include mapper-specific fields under the type child (and shared siblings such as `placeholders`). The `mapper` key is
-NOT counted as a plugin field for the exactly-one-plugin rule.
+block MUST select an explicit mapper registry type via type-as-key, and MAY include mapper-specific fields under the
+type child (and shared siblings such as `placeholders`). The `mapper` key is NOT counted as a plugin field for the
+exactly-one-plugin rule.
 
 #### Scenario: Omitted inspire mapper defaults to inspire_general
 
@@ -163,7 +164,7 @@ NOT counted as a plugin field for the exactly-one-plugin rule.
 
 #### Scenario: Valid inspire entry with plugin and mapper
 
-- **WHEN** a repository entry sets `inspire` and `mapper` with type `inspire_general` (nested or deprecated `type:`)
+- **WHEN** a repository entry sets `inspire` and nested `mapper.inspire_general`
 - **THEN** configuration validation succeeds
 
 ### Requirement: Validate mapper type and PayloadKind compatibility at startup
@@ -191,17 +192,17 @@ mapper types MUST fail fast at startup.
 ### Requirement: inspire repositories use shared mapper config
 
 The system SHALL resolve a top-level repository `mapper` for the `inspire` plugin key. When `mapper` is omitted, the
-system SHALL default to `mapper.type: inspire_general`, emit a `logger.warning` that omission is deprecated, and SHALL
+system SHALL default to nested `mapper.inspire_general`, emit a `logger.warning` that omission is deprecated, and SHALL
 fail closed when a configured mapper’s `accepts` kind is not `inspire_record`.
 
 #### Scenario: inspire without mapper defaults with deprecation warning
 
 - **WHEN** a repository entry sets `inspire` but omits `mapper`
-- **THEN** configuration validation succeeds with `mapper.type` equal to `inspire_general` and a deprecation warning
+- **THEN** configuration validation succeeds with active mapper type `inspire_general` and a deprecation warning
 
 #### Scenario: Valid inspire entry with inspire_general
 
-- **WHEN** a repository entry sets `inspire` and `mapper: { type: inspire_general }`
+- **WHEN** a repository entry sets `inspire` and `mapper: { inspire_general: {} }`
 - **THEN** configuration validation succeeds
 
 ### Requirement: generic is a supported plugin key among inspire and oai_pmh
