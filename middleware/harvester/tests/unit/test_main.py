@@ -341,11 +341,15 @@ async def test_run_orchestrator_returns_when_no_repositories() -> None:
 
     assert mock_client.harvest_arcs.call_count == 0
     assert report.repository_reports == ()
+    assert report.software_version == version("harvester")
 
 
 def test_emit_report_via_shared_counting_api() -> None:
     """Harvester emit path uses finished HarvestReport + JsonLdReportSerializer."""
-    report = HarvestReport(start_time=datetime(2026, 1, 1, 0, 0, tzinfo=UTC))
+    report = HarvestReport(
+        start_time=datetime(2026, 1, 1, 0, 0, tzinfo=UTC),
+        software_version=version("harvester"),
+    )
     scope = report.open_repository("bonares")
     scope.set_harvest_id("harvest-1")
     for _ in range(5):
@@ -360,6 +364,10 @@ def test_emit_report_via_shared_counting_api() -> None:
     document = json.loads(JsonLdReportSerializer().render(report))
     assert document["@context"]["fairagro"] == FAIRAGRO_HARVEST_REPORT_NS
     assert FAIRAGRO_HARVEST_REPORT_NS.endswith("/ns/harvest-report/v2/#")
+    assert document["schema:instrument"] == {
+        "@type": "schema:SoftwareApplication",
+        "schema:softwareVersion": version("harvester"),
+    }
     jsonld = document["schema:result"][0]
 
     assert jsonld["@type"] == "schema:EntryPoint"

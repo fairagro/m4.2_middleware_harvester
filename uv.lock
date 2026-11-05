@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -516,7 +516,7 @@ wheels = [
 
 [[package]]
 name = "fairagro-middleware-shared"
-version = "12.3.0"
+version = "14.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "opentelemetry-api" },
@@ -526,9 +526,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/e0/af6860a1f3b950d2631f0c87627460884a2dcb68c8774e5f60ce0f0b0e59/fairagro_middleware_shared-12.3.0.tar.gz", hash = "sha256:4e420fc3a73fa8d18e652ab590454e7a2ce7de22017fc5021b0a8db1e3295f98", size = 29508, upload-time = "2026-09-01T15:28:15.009Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/0d/d9d3cedb8574b004fe2ade481eb797a514b4875179a169dc21ecd0b5a5f8/fairagro_middleware_shared-14.2.0.tar.gz", hash = "sha256:70472491571dd9300b2f98da847669f4d9ce063fa1f37fa6c719de3d1595c9f7", size = 29226, upload-time = "2026-11-05T16:21:23.713Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/1b/56cfa52d6fdd135508d851b8ad1246bd7add777df4caa3f1bffa4ce9fc92/fairagro_middleware_shared-12.3.0-py3-none-any.whl", hash = "sha256:73ea9b898be42cdc7060ec4a4df700ce7294d0d8f8703ece867bf5713ad9a844", size = 25442, upload-time = "2026-09-01T15:28:13.421Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/e0/61c17e27f26a5c575676abe52802b119d7ed1ecd5dae30b5d02a3b059b41/fairagro_middleware_shared-14.2.0-py3-none-any.whl", hash = "sha256:c5bb6236d92d01058d0b4cdb59ba682005187e7a61c1028dca72994f097e1495", size = 26447, upload-time = "2026-11-05T16:21:22.778Z" },
 ]
 
 [[package]]
@@ -559,7 +559,7 @@ dependencies = [
 requires-dist = [
     { name = "contracts", editable = "middleware/contracts" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "lxml", specifier = ">=5.0.0" },
     { name = "parsing", editable = "middleware/parsing" },
     { name = "payload", editable = "middleware/payload" },
@@ -660,7 +660,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "contracts", editable = "middleware/contracts" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.1.1.dev34" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "generic", editable = "middleware/generic" },
     { name = "inspire", editable = "middleware/inspire" },
     { name = "oai-pmh", editable = "middleware/oai_pmh" },
@@ -782,7 +782,7 @@ requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
     { name = "contracts", editable = "middleware/contracts" },
     { name = "fairagro-middleware-api-client", specifier = ">=11.1.1.dev34" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "owslib", specifier = ">=0.31.0" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -1201,7 +1201,7 @@ dependencies = [
 requires-dist = [
     { name = "contracts", editable = "middleware/contracts" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "oaipmh-scythe", specifier = ">=0.16.0" },
     { name = "parsing", editable = "middleware/parsing" },
     { name = "payload", editable = "middleware/payload" },
@@ -1449,7 +1449,7 @@ dependencies = [
 requires-dist = [
     { name = "contracts", editable = "middleware/contracts" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "lxml", specifier = ">=5.0.0" },
     { name = "payload", editable = "middleware/payload" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -1480,7 +1480,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "arctrl", specifier = ">=3.2.1" },
-    { name = "fairagro-middleware-shared", specifier = ">=11.1.1.dev34" },
+    { name = "fairagro-middleware-shared", specifier = ">=14.2.0" },
     { name = "nameparser", specifier = ">=2.1.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
