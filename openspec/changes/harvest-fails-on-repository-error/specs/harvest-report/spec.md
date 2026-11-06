@@ -7,9 +7,9 @@
 When a plugin yields a `HarvesterError` that is not a `RecordProcessingError` for a repository, the system MUST end that
 repository's API harvest as FAILED, not COMPLETED, whether or not ARCs were submitted before the error. ARCs the API
 accepted before the error MUST still be recorded as harvested, and the repository scope MUST hold exactly one repository
-issue for the plugin's error (no additional upload-aborted issue). The system MUST log the failure at ERROR with the
-RDI, the harvest id and the reason, and other repositories MUST continue. Record-level errors alone MUST NOT fail the
-harvest.
+issue for the plugin's error (no additional upload-aborted issue). The system MUST log the failure once at ERROR with
+the RDI and the reason, and SHALL add the harvest id when the API client exposes it on the raised error; other
+repositories MUST continue. Record-level errors alone MUST NOT fail the harvest.
 
 #### Scenario: Repository error with no ARCs submitted
 
@@ -33,5 +33,5 @@ harvest.
 
 - **GIVEN** two repositories where the first yields a repository-level `HarvesterError`
 - **WHEN** the harvester runs
-- **THEN** an ERROR log names the first RDI, its harvest id and the reason, and the second repository's harvest is
+- **THEN** exactly one harvester ERROR log names the first RDI and the reason, and the second repository's harvest is
   COMPLETED

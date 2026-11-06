@@ -32,3 +32,6 @@ always calls `complete`. It calls `fail` only when the ARC stream (or a submissi
   the effect on a real run.
 - [A failed harvest leaves the dump unrefreshed until the RDI's next COMPLETED run] → accepted: stored ARCs are kept and
   appear then (#546 spike).
+- [`harvest_arcs` re-raises the stream's exception without the harvest id, so the harvester's ERROR log and the report
+  cannot name it on this path] → api_client's own WARNING log names it; the api_client issue (task 2.2) also asks to
+  attach `harvest_id` to the re-raised exception, which `harvest_id_from_exception` already reads.
