@@ -14,5 +14,5 @@
 
 - [x] 2.1 T6: local dev stack: a PlabiPD-style repository error gives a FAILED harvest and leaves `{rdi}.json`
       untouched; note any trailing-ARC rejections from the in-flight race
-- [ ] 2.2 Open the api_client issue (drain pending submissions before failing) and link it from #546
+- [x] 2.2 Open the api_client issue (drain pending submissions before failing) and link it from #546
 - [ ] 2.3 Archive after merge
