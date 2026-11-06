@@ -120,12 +120,14 @@ async def execute_harvest_upload(
                     if harvest_id is not None:
                         scope.set_harvest_id(harvest_id)
                         upload_span.set_attribute("harvester.harvest_id", harvest_id)
-                    logger.error(
-                        "Error uploading arcs for repository %s (%s): %s",
-                        repo.rdi,
-                        repo.plugin_type,
-                        format_exception_for_report(e),
-                    )
+                    # A reported plugin error is logged once, as the repository failure below.
+                    if not isinstance(e, ReportedRepositoryError):
+                        logger.error(
+                            "Error uploading arcs for repository %s (%s): %s",
+                            repo.rdi,
+                            repo.plugin_type,
+                            format_exception_for_report(e),
+                        )
                     logger.debug(
                         "Exception during harvest upload for repository %s (%s).",
                         repo.rdi,
