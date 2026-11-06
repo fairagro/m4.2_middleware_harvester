@@ -9,6 +9,7 @@ import pytest
 from middleware.contracts.errors import HarvesterError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.orchestrator import run_orchestrator
+from middleware.shared.report import IssueKind
 
 
 class FakeApiClient:
@@ -86,3 +87,31 @@ async def test_repository_error_without_arcs_fails_harvest() -> None:
         await run_orchestrator(config)
 
     assert client.outcomes == [("rdi-a", "fail")]
+
+
+@pytest.mark.asyncio
+async def test_repository_error_after_arcs_fails_harvest_and_keeps_harvested_count() -> None:
+    """Two ARCs then a repository-level error: FAILED harvest, both ARCs harvested, one repository issue."""
+    config = MagicMock()
+    config.repositories = [_make_repo("rdi-a")]
+    client = FakeApiClient()
+    plugin = _plugin_yielding(
+        HarvestedArc(arc_json="arc-1"),
+        HarvestedArc(arc_json="arc-2"),
+        HarvesterError("sitemap page 3 unreachable"),
+    )
+
+    with (
+        patch("middleware.harvester.orchestrator.PLUGIN_FACTORIES", {"inspire": plugin}),
+        patch("middleware.harvester.orchestrator.ApiClient", return_value=client),
+    ):
+        report = await run_orchestrator(config)
+
+    repo_report = report.repository_reports[0]
+    assert client.outcomes == [("rdi-a", "fail")]
+    assert client.submitted == ["arc-1", "arc-2"]
+    assert repo_report.harvested_datasets == 2
+    assert repo_report.failed_datasets == 0
+    assert [(f.kind, f.message) for f in repo_report.failures] == [
+        (IssueKind.REPOSITORY, "sitemap page 3 unreachable"),
+    ]
