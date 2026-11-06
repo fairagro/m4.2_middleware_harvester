@@ -1,5 +1,6 @@
 """Tests for the harvest upload path: API harvest status after plugin-yielded errors."""
 
+import logging
 from collections.abc import AsyncGenerator, AsyncIterable
 from types import TracebackType
 from unittest.mock import MagicMock, patch
@@ -47,9 +48,9 @@ class FakeApiClient:
         return result
 
 
-def _make_repo(rdi: str) -> MagicMock:
+def _make_repo(rdi: str, plugin_type: str = "inspire") -> MagicMock:
     repo = MagicMock()
-    repo.plugin_type = "inspire"
+    repo.plugin_type = plugin_type
     repo.rdi = rdi
     repo.source_url = f"https://example.test/{rdi}"
     return repo
@@ -133,3 +134,30 @@ async def test_record_error_only_completes_harvest() -> None:
 
     assert client.outcomes == [("rdi-a", "complete")]
     assert report.repository_reports[0].failed_datasets == 1
+
+
+@pytest.mark.asyncio
+async def test_repository_error_logged_once_and_other_repositories_complete(caplog: pytest.LogCaptureFixture) -> None:
+    """The failed repository gets one upload ERROR log with RDI and reason; the next repository still completes."""
+    config = MagicMock()
+    config.repositories = [_make_repo("rdi-a", "inspire"), _make_repo("rdi-b", "generic")]
+    client = FakeApiClient()
+    factories = {
+        "inspire": _plugin_yielding(HarvesterError("CSW endpoint unreachable")),
+        "generic": _plugin_yielding(HarvestedArc(arc_json="arc-b")),
+    }
+
+    with (
+        caplog.at_level(logging.ERROR, logger="middleware.harvester.upload"),
+        patch("middleware.harvester.orchestrator.PLUGIN_FACTORIES", factories),
+        patch("middleware.harvester.orchestrator.ApiClient", return_value=client),
+    ):
+        await run_orchestrator(config)
+
+    upload_errors = [
+        r.getMessage() for r in caplog.records if r.name == "middleware.harvester.upload" and r.levelno == logging.ERROR
+    ]
+    assert len(upload_errors) == 1
+    assert "rdi-a" in upload_errors[0]
+    assert "CSW endpoint unreachable" in upload_errors[0]
+    assert sorted(client.outcomes) == [("rdi-a", "fail"), ("rdi-b", "complete")]
