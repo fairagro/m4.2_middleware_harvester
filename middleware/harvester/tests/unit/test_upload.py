@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from middleware.contracts.errors import HarvesterError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.orchestrator import run_orchestrator
 from middleware.shared.report import IssueKind
@@ -115,3 +115,21 @@ async def test_repository_error_after_arcs_fails_harvest_and_keeps_harvested_cou
     assert [(f.kind, f.message) for f in repo_report.failures] == [
         (IssueKind.REPOSITORY, "sitemap page 3 unreachable"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_record_error_only_completes_harvest() -> None:
+    """A plugin that yields only a record-level error ends with a COMPLETED harvest and one failed dataset."""
+    config = MagicMock()
+    config.repositories = [_make_repo("rdi-a")]
+    client = FakeApiClient()
+    plugin = _plugin_yielding(RecordProcessingError("bad ISO 19139 record", record_id="rec-1"))
+
+    with (
+        patch("middleware.harvester.orchestrator.PLUGIN_FACTORIES", {"inspire": plugin}),
+        patch("middleware.harvester.orchestrator.ApiClient", return_value=client),
+    ):
+        report = await run_orchestrator(config)
+
+    assert client.outcomes == [("rdi-a", "complete")]
+    assert report.repository_reports[0].failed_datasets == 1
