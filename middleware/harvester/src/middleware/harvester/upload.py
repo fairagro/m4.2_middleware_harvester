@@ -9,7 +9,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from middleware.api_client import ApiClient
-from middleware.contracts.errors import HarvesterError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.config import RepositoryConfig
 from middleware.harvester.errors import (
@@ -38,7 +38,8 @@ async def arc_stream(
 ) -> AsyncGenerator[str, None]:
     """Filter the plugin stream and track submitted ARC composition for reporting.
 
-    Raises the first plugin error once the plugin stream ends, so ``harvest_arcs`` fails the harvest.
+    Raises the first repository-level plugin error (any ``HarvesterError`` except
+    ``RecordProcessingError``) once the plugin stream ends, so ``harvest_arcs`` fails the harvest.
     """
     plugin_error: HarvesterError | None = None
     async for item in gen:
@@ -48,7 +49,8 @@ async def arc_stream(
             continue
         if isinstance(item, HarvesterError):
             record_plugin_error(item, rdi, scope)
-            plugin_error = plugin_error or item
+            if not isinstance(item, RecordProcessingError):
+                plugin_error = plugin_error or item
             continue
         if item.source_url is not None and item.identifier:
             counts = state.arc_id_to_url_counts.setdefault(item.identifier, {})
