@@ -13,6 +13,7 @@ from middleware.contracts.errors import HarvesterError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.config import RepositoryConfig
 from middleware.harvester.errors import (
+    ReportedRepositoryError,
     failure_url_for_exception,
     format_exception_for_report,
     harvest_id_from_exception,
@@ -35,7 +36,11 @@ async def arc_stream(
     scope: RepositoryScope,
     state: ArcStreamState,
 ) -> AsyncGenerator[str, None]:
-    """Filter the plugin stream and track submitted ARC composition for reporting."""
+    """Filter the plugin stream and track submitted ARC composition for reporting.
+
+    Raises the first plugin error once the plugin stream ends, so ``harvest_arcs`` fails the harvest.
+    """
+    plugin_error: HarvesterError | None = None
     async for item in gen:
         if isinstance(item, SkippedRecord):
             scope.record_skipped()
@@ -43,6 +48,7 @@ async def arc_stream(
             continue
         if isinstance(item, HarvesterError):
             record_plugin_error(item, rdi, scope)
+            plugin_error = plugin_error or item
             continue
         if item.source_url is not None and item.identifier:
             counts = state.arc_id_to_url_counts.setdefault(item.identifier, {})
@@ -51,6 +57,8 @@ async def arc_stream(
         state.studies += item.studies
         state.assays += item.assays
         yield item.arc_json
+    if plugin_error is not None:
+        raise ReportedRepositoryError(plugin_error)
 
 
 async def execute_harvest_upload(
@@ -150,6 +158,9 @@ async def execute_harvest_upload(
                 repo.plugin_type,
                 exc_info=e,
             )
+            if isinstance(e, ReportedRepositoryError):
+                record_upload_outcomes([], state, scope)
+                return
             record_upload_aborted(
                 state,
                 scope,

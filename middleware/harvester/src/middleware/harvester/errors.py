@@ -33,6 +33,18 @@ _CONNECTION_TYPE_NAMES = frozenset({
 })
 
 
+class ReportedRepositoryError(Exception):
+    """Raised at the end of the ARC stream to fail the API harvest after a recorded plugin error.
+
+    The plugin error is already on the report, so the upload path must not record it again.
+    """
+
+    def __init__(self, plugin_error: Exception) -> None:
+        """Wrap the first plugin error recorded for the repository."""
+        super().__init__(str(plugin_error))
+        self.plugin_error = plugin_error
+
+
 def _exception_type_label(exc: BaseException) -> str:
     """Return a short type label, preferring httpx.* for httpx exceptions."""
     module = type(exc).__module__
