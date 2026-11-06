@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import TypeGuard
 
 from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
 from middleware.shared.report import HarvestReport, JsonLdReportSerializer, RepositoryScope
@@ -89,6 +90,11 @@ def record_upload_aborted(
         scope.record_failed(detail, url=url)
 
 
+def is_record_error(item: HarvesterError) -> TypeGuard[RecordProcessingError]:
+    """Return True for record-level plugin errors; every other ``HarvesterError`` is repository-level."""
+    return isinstance(item, RecordProcessingError)
+
+
 def record_plugin_error(item: HarvesterError, rdi: str, scope: RepositoryScope) -> None:
     """Log a plugin error and record it on the repository scope.
 
@@ -96,7 +102,7 @@ def record_plugin_error(item: HarvesterError, rdi: str, scope: RepositoryScope) 
     values (e.g. sitemap/discovery failures) are repository-level issues and
     must not increment ``failed_datasets``.
     """
-    if isinstance(item, RecordProcessingError):
+    if is_record_error(item):
         logger.error(
             "Processing error in repository '%s' for record '%s': %s",
             rdi,

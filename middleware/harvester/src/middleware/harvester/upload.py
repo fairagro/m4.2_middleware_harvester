@@ -9,7 +9,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 from middleware.api_client import ApiClient
-from middleware.contracts.errors import HarvesterError, RecordProcessingError, SkippedRecord
+from middleware.contracts.errors import HarvesterError, SkippedRecord
 from middleware.contracts.plugin_base import HarvestedArc
 from middleware.harvester.config import RepositoryConfig
 from middleware.harvester.errors import (
@@ -21,6 +21,7 @@ from middleware.harvester.errors import (
 from middleware.harvester.reporting import (
     ArcStreamState,
     handle_skipped_record,
+    is_record_error,
     record_plugin_error,
     record_upload_aborted,
     record_upload_outcomes,
@@ -49,7 +50,7 @@ async def arc_stream(
             continue
         if isinstance(item, HarvesterError):
             record_plugin_error(item, rdi, scope)
-            if not isinstance(item, RecordProcessingError):
+            if not is_record_error(item):
                 plugin_error = plugin_error or item
             continue
         if item.source_url is not None and item.identifier:
