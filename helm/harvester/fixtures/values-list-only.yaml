@@ -1,0 +1,11 @@
+# Legacy list-only: null out the default rdi_catalog (Helm map merge keeps
+# keys if you only set rdi_catalog: {}).
+rdi_catalog: null
+
+config:
+  repositories:
+    - rdi: "legacy-list-rdi"
+      inspire:
+        csw_url: "https://example.test/legacy/csw"
+      mapper:
+        inspire_general: {}

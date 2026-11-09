@@ -1,0 +1,16 @@
+# Both non-empty → helm template must fail.
+config:
+  repositories:
+    - rdi: "leftover"
+      inspire:
+        csw_url: "https://example.test/leftover/csw"
+      mapper:
+        inspire_general: {}
+
+rdi_catalog:
+  bonares:
+    enabled: true
+    inspire:
+      csw_url: "https://example.test/bonares/csw"
+    mapper:
+      inspire_general: {}

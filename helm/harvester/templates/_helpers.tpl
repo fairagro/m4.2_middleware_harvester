@@ -84,3 +84,33 @@ Name of the Secret holding mTLS client certificates.
 {{- define "harvester.tlsSecretName" -}}
 {{- printf "%s-tls" (include "harvester.fullname" .) }}
 {{- end }}
+
+{{/*
+Effective harvester config.yaml body.
+
+When .Values.rdi_catalog is a non-empty map, materialise config.repositories from
+enabled entries (rdi = map key, strip enabled, sortAlpha by key). Fails if both
+rdi_catalog and a non-empty config.repositories list are set.
+*/}}
+{{- define "harvester.configYaml" -}}
+{{- $catalog := .Values.rdi_catalog | default dict -}}
+{{- $config := deepCopy .Values.config -}}
+{{- $repos := $config.repositories | default list -}}
+{{- if gt (len $catalog) 0 -}}
+{{- if gt (len $repos) 0 -}}
+{{- fail "harvester chart: set either rdi_catalog or config.repositories (non-empty), not both" -}}
+{{- end -}}
+{{- $built := list -}}
+{{- range $key := keys $catalog | sortAlpha -}}
+{{- $entry := index $catalog $key -}}
+{{- if $entry.enabled -}}
+{{- $item := deepCopy $entry -}}
+{{- $_ := unset $item "enabled" -}}
+{{- $_ := set $item "rdi" $key -}}
+{{- $built = append $built $item -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $config "repositories" $built -}}
+{{- end -}}
+{{- toYaml $config -}}
+{{- end }}

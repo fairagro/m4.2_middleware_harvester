@@ -34,8 +34,12 @@ Infra umbrellas own a map-shaped catalog and cannot rewrite this dependency’s 
 
 4. **Chart version bump** — Patch bump `Chart.yaml` `version` in this change so OCI consumers can pin the new contract.
 
-5. **Verification** — Add small values fixtures under `helm/harvester/ci/` or `helm/harvester/tests/` and assert with
-   `helm template` in tasks (lint hook already smokes bare chart).
+5. **Verification** — Add small values fixtures under `helm/harvester/fixtures/` and assert with `helm template` in
+   tasks (lint hook already smokes bare chart).
+
+6. **Defaults favour the catalog** — Example RDIs live under `rdi_catalog` with `enabled: false`; `config.repositories`
+   defaults to `[]`. Legacy list-only overlays must set `rdi_catalog: null` (Helm map merge does not clear keys with
+   `{}`).
 
 ## Risks / Trade-offs
 

@@ -1,0 +1,23 @@
+# Catalog-only: clear list so mutual exclusion passes.
+config:
+  repositories: []
+
+rdi_catalog:
+  zebra:
+    enabled: true
+    inspire:
+      csw_url: "https://example.test/zebra/csw"
+    mapper:
+      inspire_general: {}
+  alpha:
+    enabled: true
+    inspire:
+      csw_url: "https://example.test/alpha/csw"
+    mapper:
+      inspire_general: {}
+  disabled:
+    enabled: false
+    inspire:
+      csw_url: "https://example.test/disabled/csw"
+    mapper:
+      inspire_general: {}
