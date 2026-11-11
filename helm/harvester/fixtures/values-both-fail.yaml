@@ -1,4 +1,4 @@
-# Both non-empty → helm template must fail.
+# Enabled catalog entry + non-empty list → helm template must fail.
 config:
   repositories:
     - rdi: "leftover"

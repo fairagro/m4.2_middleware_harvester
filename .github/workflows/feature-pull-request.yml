@@ -98,3 +98,23 @@ jobs:
       chart_dir: helm/harvester
       skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
     secrets: inherit
+
+  helm-lint-catalog:
+    name: Helm Lint (catalog fixture)
+    needs: detect-changes
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
+    with:
+      chart_dir: helm/harvester
+      values_file: helm/harvester/fixtures/values-catalog.yaml
+      skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
+    secrets: inherit
+
+  helm-lint-list-only:
+    name: Helm Lint (list-only fixture)
+    needs: detect-changes
+    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
+    with:
+      chart_dir: helm/harvester
+      values_file: helm/harvester/fixtures/values-list-only.yaml
+      skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
+    secrets: inherit

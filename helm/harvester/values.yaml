@@ -231,20 +231,21 @@ config:
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
   # -- Legacy authorship: hand-maintained list (each entry needs rdi: + one
-  # -- plugin). Prefer rdi_catalog below. Keep [] when using the catalog.
-  # -- If you must use this list with chart defaults, set top-level
-  # -- rdi_catalog: null (empty {} does not clear merged map keys in Helm).
-  # -- Chart fails when both a non-empty rdi_catalog and a non-empty list are set.
+  # -- plugin). Prefer rdi_catalog below. Keep [] when enabling catalog entries.
+  # -- List-only overlays work with the default (all-disabled) examples below.
+  # -- Chart fails when any rdi_catalog entry is enabled: true and this list is
+  # -- also non-empty.
   repositories: []
 
 # =============================================================================
 # RDI catalog → config.repositories (recommended)
 # =============================================================================
 # -- Preferred way to define RDIs (umbrella / env overlays). Map key = rdi id.
-# -- Chart builds config.repositories from enabled: true entries (sets rdi from
-# -- the key, strips enabled, sorts keys). Missing enabled ⇒ false — examples
-# -- below stay off until you flip enabled in an overlay.
-# -- Leave config.repositories: []. Env overlays: enabled + nested URL merges.
+# -- Chart builds config.repositories only when at least one entry has
+# -- enabled: true (sets rdi from the key, strips enabled, sorts keys).
+# -- Missing enabled ⇒ false — examples below stay off until you flip enabled
+# -- in an overlay; disabled-only catalog does not override config.repositories.
+# -- Leave config.repositories: [] when enabling catalog entries.
 rdi_catalog:
   # -------------------------------------------------------------------------
   # Example 1: INSPIRE / CSW

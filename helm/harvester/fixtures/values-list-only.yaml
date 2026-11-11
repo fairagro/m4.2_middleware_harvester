@@ -1,7 +1,5 @@
-# Legacy list-only: null out the default rdi_catalog (Helm map merge keeps
-# keys if you only set rdi_catalog: {}).
-rdi_catalog: null
-
+# Legacy list-only: chart default rdi_catalog examples are all disabled, so they
+# do not trip fail-both or replace this list.
 config:
   repositories:
     - rdi: "legacy-list-rdi"

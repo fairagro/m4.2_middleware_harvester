@@ -88,22 +88,30 @@ Name of the Secret holding mTLS client certificates.
 {{/*
 Effective harvester config.yaml body.
 
-When .Values.rdi_catalog is a non-empty map, materialise config.repositories from
-enabled entries (rdi = map key, strip enabled, sortAlpha by key). Fails if both
-rdi_catalog and a non-empty config.repositories list are set.
+When any rdi_catalog entry has enabled: true, materialise config.repositories from
+enabled entries (rdi = map key, strip enabled, sortAlpha by key). Fails if any
+enabled catalog entry exists and config.repositories is also non-empty. Disabled-only
+(or empty) catalog leaves config.repositories unchanged so list-only overlays work
+with chart default examples.
 */}}
 {{- define "harvester.configYaml" -}}
 {{- $catalog := .Values.rdi_catalog | default dict -}}
 {{- $config := deepCopy .Values.config -}}
 {{- $repos := $config.repositories | default list -}}
-{{- if gt (len $catalog) 0 -}}
+{{- $anyEnabled := false -}}
+{{- range $key, $entry := $catalog -}}
+{{- if and (kindIs "map" $entry) $entry.enabled -}}
+{{- $anyEnabled = true -}}
+{{- end -}}
+{{- end -}}
+{{- if $anyEnabled -}}
 {{- if gt (len $repos) 0 -}}
-{{- fail "harvester chart: set either rdi_catalog or config.repositories (non-empty), not both" -}}
+{{- fail "harvester chart: set either rdi_catalog (enabled entries) or config.repositories (non-empty), not both" -}}
 {{- end -}}
 {{- $built := list -}}
 {{- range $key := keys $catalog | sortAlpha -}}
 {{- $entry := index $catalog $key -}}
-{{- if $entry.enabled -}}
+{{- if and (kindIs "map" $entry) $entry.enabled -}}
 {{- $item := deepCopy $entry -}}
 {{- $_ := unset $item "enabled" -}}
 {{- $_ := set $item "rdi" $key -}}
