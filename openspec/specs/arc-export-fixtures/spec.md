@@ -7,7 +7,7 @@ under `system_local` tests and a Docker-capable CI job, so client CI catches exp
 
 ## Requirements
 
-### Requirement: Per-RDI RO-Crate fixtures exist for active mapper families
+### Requirement: Per-RDI RO-Crate fixtures exist for active RDIs
 
 The repository SHALL commit RO-Crate fixtures under a stable per-RDI path (for example
 `tests/fixtures/arc_export/<rdi>/…`) for each **active RDI** used in harvest comparison configs (enabled entries in

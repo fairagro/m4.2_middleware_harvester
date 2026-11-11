@@ -33,3 +33,20 @@ def test_mvp_mapper_family_fixtures_present(
     """MVP covers inspire / schema.org-generic / regal representative RDI ids."""
     rdi_ids = {path.relative_to(arc_export_fixtures_root).parts[0] for path in arc_export_fixture_dirs}
     assert {"bonares", "openagrar", "publisso"} <= rdi_ids
+
+
+def test_bonares_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed bonares real-data suite must be multi-case (nested dirs), not smoke alone."""
+    bonares_cases = [
+        path
+        for path in arc_export_fixture_dirs
+        if path.relative_to(arc_export_fixtures_root).parts[:1] == ("bonares",)
+        and len(path.relative_to(arc_export_fixtures_root).parts) >= 2
+    ]
+    assert len(bonares_cases) >= 2, (
+        f"expected ≥2 nested bonares/<case>/ fixtures, found {len(bonares_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in bonares_cases]}"
+    )
