@@ -665,14 +665,14 @@ class InspireMapper(DataMapper[MappingContext]):
         # Set Technology Platform (user suggested acquisitionInformation)
         assay.TechnologyPlatform = OntologyAnnotation(name="Satellite/Sensor Acquisition")
 
-        sensor_protocol = self._create_sensor_acquisition_protocol(record)
-        if sensor_protocol is not None:
-            assay.AddTable(sensor_protocol)
-
-        # Add the annotation table, unless the record has nothing to put in it.
+        # Measurement annotation first so Tables[0] stays Measurement when both exist.
         table = self._create_assay_table(record)
         if table.ColumnCount:
             assay.AddTable(table)
+
+        sensor_protocol = self._create_sensor_acquisition_protocol(record)
+        if sensor_protocol is not None:
+            assay.AddTable(sensor_protocol)
 
         return assay
 

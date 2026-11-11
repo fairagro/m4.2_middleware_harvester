@@ -155,6 +155,21 @@ def test_sensor_acquisition_protocol_parameters_only() -> None:
     assert assay.TechnologyPlatform.Name == "Satellite/Sensor Acquisition"
 
 
+def test_sensor_acquisition_after_measurement_when_both_present() -> None:
+    assay = InspireMapper().map_assay(
+        _minimal_record(
+            dataset_uri="https://data.example.com/api",
+            acquisition_information={
+                "platforms": [{"description": "Sentinel-2", "instruments": [{"instrument_type": "MSI"}]}]
+            },
+        )
+    )
+    assert [table.Name for table in assay.Tables] == ["Measurement", "Sensor Acquisition"]
+    measurement = assay.Tables[0]
+    output = next(col for col in measurement.Columns if col.header.is_output)
+    assert output.cells[0].AsFreeText == "https://data.example.com/api"
+
+
 def test_empty_acquisition_omits_sensor_protocol() -> None:
     assay = InspireMapper().map_assay(_minimal_record())
     assert [table.Name for table in assay.Tables if table.Name == "Sensor Acquisition"] == []
