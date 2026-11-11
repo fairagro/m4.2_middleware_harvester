@@ -1,0 +1,293 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.5447/ipk/2016/12",
+      "@type": "URI",
+      "name": "https://doi.org/10.5447/ipk/2016/12"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.5447/ipk/2016/12"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0/legalcode\"}",
+        "Comment {Name = \"Publisher\", Value = \"e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben\"}",
+        "Comment {Name = \"Language\", Value = \"en\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming",
+      "hasPart": [],
+      "name": "Assemblies of individual barley BACs after contamination removal and renaming",
+      "about": {
+        "@id": "#Process_A_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_barley,_genome_annotation,_genome_assembly,_Hordeum_vulgare,_next-generation_sequencing,_sequence_resource",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "barley, genome annotation, genome assembly, Hordeum vulgare, next-generation sequencing, sequence resource",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_barley,_genome_annotation,_genome_assembly,_Hordeum_vulgare,_next-generation_sequencing,_sequence_resource"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben"
+      }
+    },
+    {
+      "@id": "studies/assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming",
+      "dateCreated": "2016-06-24",
+      "datePublished": "2016-06-29",
+      "description": "Individual barley BAC assemblies after removal of contaminant sequences.\nIf necessary, sequence identifiers were changed to conform to a uniform pattern (e.g.  HVVMRXALLEA0018H22_C1, ..., \nHVVMRXALLEA0018H22_Cn).  Each contig/scaffold sequence is printed on a single line without breaks.",
+      "hasPart": [],
+      "name": "Assemblies of individual barley BACs after contamination removal and renaming",
+      "about": [
+        {
+          "@id": "#Process_S_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.5447/ipk/2016/12",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.5447/ipk/2016/12",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Assemblies_of_individual_barley_BACs_after_contamination_removal_and_renaming",
+      "@type": "ScholarlyArticle",
+      "headline": "Assemblies of individual barley BACs after contamination removal and renaming",
+      "identifier": {
+        "@id": "10.5447/ipk/2016/12"
+      }
+    },
+    {
+      "@id": "#LDComment_Creator_Organization_IBSC",
+      "@type": "Comment",
+      "name": "Creator Organization",
+      "text": "IBSC"
+    },
+    {
+      "@id": "#LDComment_Keywords_barley,_genome_annotation,_genome_assembly,_Hordeum_vulgare,_next-generation_sequencing,_sequence_resource",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "barley, genome annotation, genome assembly, Hordeum vulgare, next-generation sequencing, sequence resource"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/legalcode",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0/legalcode"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_URL_https://doi.org/10.5447/ipk/2016/12",
+      "@type": "Comment",
+      "name": "URL",
+      "text": "https://doi.org/10.5447/ipk/2016/12"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://doi.org/10.5447/ipk/2016/12",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://doi.org/10.5447/ipk/2016/12"
+    },
+    {
+      "@id": "#LDComment_Publisher_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/legalcode"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "10.5447/ipk/2016/12",
+      "dateCreated": "2016-06-24",
+      "datePublished": "2016-06-29",
+      "description": "Individual barley BAC assemblies after removal of contaminant sequences.\nIf necessary, sequence identifiers were changed to conform to a uniform pattern (e.g.  HVVMRXALLEA0018H22_C1, ..., \nHVVMRXALLEA0018H22_Cn).  Each contig/scaffold sequence is printed on a single line without breaks.",
+      "hasPart": [
+        {
+          "@id": "assays/assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming/"
+        },
+        {
+          "@id": "studies/assemblies_of_individual_barley_bacs_after_contamination_removal_and_renaming/"
+        }
+      ],
+      "name": "Assemblies of individual barley BACs after contamination removal and renaming",
+      "citation": {
+        "@id": "#Assemblies_of_individual_barley_BACs_after_contamination_removal_and_renaming"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Creator_Organization_IBSC"
+        },
+        {
+          "@id": "#LDComment_Keywords_barley,_genome_annotation,_genome_assembly,_Hordeum_vulgare,_next-generation_sequencing,_sequence_resource"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/legalcode"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_URL_https://doi.org/10.5447/ipk/2016/12"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://doi.org/10.5447/ipk/2016/12"
+        },
+        {
+          "@id": "#LDComment_Publisher_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben"
+        }
+      ],
+      "sdDatePublished": "2026-11-11T18:27:12.0893060",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

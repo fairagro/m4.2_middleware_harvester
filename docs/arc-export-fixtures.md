@@ -52,7 +52,7 @@ Minimal MVP smoke crates may remain for `bonares` / `openagrar` / `publisso` alo
 | RDI                     | Status                                                                                                              |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | bonares                 | Real-data cases under `fixtures/arc_export/bonares/<uuid>/` (+ smoke at folder root); see that folder’s `README.md` |
-| edal                    | Deferred — #610                                                                                                     |
+| edal                    | Real-data cases under `fixtures/arc_export/edal/<doi-slug>/`; see that folder’s `README.md` (#610)                  |
 | publisso                | Deferred — #611                                                                                                     |
 | sradi                   | Deferred — #612                                                                                                     |
 | plabipd                 | Deferred — #613                                                                                                     |
