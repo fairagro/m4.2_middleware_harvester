@@ -99,6 +99,15 @@ production or `arc-export` gap appears.
   temporarily covering the full curated breadth with a follow-up to expand), and docs state which input features each
   file covers
 
+#### Scenario: Edal real-data suite is multi-case
+
+- **WHEN** the edal real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for edal under
+  `fixtures/arc_export/edal/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as temporarily
+  covering the full curated breadth with a follow-up to expand), docs/`README` state which e!DAL input features each
+  file covers (for example license placeholder, person/ORCID or flat address, organization-only, DOI/`@id` edges), and
+  `docs/arc-export-fixtures.md` no longer lists edal as deferred-only
+
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
 
 - **WHEN** a landed real-data suite folder for an active RDI is inspected
