@@ -34,15 +34,56 @@ export FAIRAGRO_ARC_EXPORT_IMAGE='ghcr.io/nfdi4plants/arc-export@sha256:…'  # 
 ## Fixture layout
 
 ```text
-middleware/harvester/tests/fixtures/arc_export/<rdi>/ro-crate-metadata.json
+middleware/harvester/tests/fixtures/arc_export/<rdi>/ro-crate-metadata.json          # optional smoke
+middleware/harvester/tests/fixtures/arc_export/<rdi>/<case-id>/ro-crate-metadata.json # real-data cases
 ```
 
-MVP families: `bonares` (INSPIRE), `openagrar` (Schema.org/generic), `publisso` (Regal).
+`system_local` discovers **every** leaf directory under `arc_export/` that contains `ro-crate-metadata.json` (smoke and
+nested cases). The first path segment is the RDI id.
+
+**Active RDI inventory** for real-data suites: enabled repositories in `dev_environment/config.all-rdis.yaml` (plus the
+preferred OpenAgrar live path tracked as #614). Technology family is secondary — sibling RDIs can diverge even when they
+share a mapper.
+
+Minimal MVP smoke crates may remain for `bonares` / `openagrar` / `publisso` alongside real-data sets.
+
+### Real-data suites (status)
+
+| RDI                     | Status                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| bonares                 | Real-data cases under `fixtures/arc_export/bonares/<uuid>/` (+ smoke at folder root); see that folder’s `README.md` |
+| edal                    | Deferred — #610                                                                                                     |
+| publisso                | Deferred — #611                                                                                                     |
+| sradi                   | Deferred — #612                                                                                                     |
+| plabipd                 | Deferred — #613                                                                                                     |
+| openagrar (live / MODS) | Deferred — #614                                                                                                     |
+| phenoroam               | Deferred — #615                                                                                                     |
+| openagrar-fixture       | Local fixture-server stand-in only; does not satisfy the OpenAgrar live suite (#614)                                |
+
+## Generate a real-data fixture
+
+1. Curate one or more **real** source records for the RDI (live endpoint or archived harvest input).
+2. Map them through the **real client path** for that RDI (same plugin + mapper config operators use — e.g. inspire
+   plugin + `inspire_general` for bonares).
+3. Write `ro-crate-metadata.json` under `tests/fixtures/arc_export/<rdi>/<case-id>/`.
+4. Document which input features the case covers (folder `README.md` and/or this doc).
+5. Run `uv run pytest -m system_local middleware/harvester/tests/system_local -v`.
+
+Prefer failing-test-first when a production / DataHUB `arc-export` gap appears: add the failing crate, fix the mapper,
+re-run until green.
+
+### Git LFS and redaction
+
+- Use **Git LFS** when a crate (or the suite) is large enough to hurt clone/CI (rough guide: multi‑MB JSON). Prefer
+  small curated sets (single-digit files per RDI) over full harvest dumps.
+- **Redact** personal emails / phone numbers in committed crates when they are not required to reproduce the
+  `arc-export` failure mode; note redactions next to the case coverage list. Do not invent synthetic contacts to “fix”
+  redaction — omit or replace with obvious placeholders only when needed for privacy.
 
 ## Add a fixture after a DataHUB / production failure
 
 1. Capture the failing RO-Crate (or regenerate from the source record that failed `arc-export`).
-2. Add it under `tests/fixtures/arc_export/<rdi>/` (new file or replace the representative if appropriate).
+2. Add it under `tests/fixtures/arc_export/<rdi>/` (new case dir, or replace the representative if appropriate).
 3. Run `uv run pytest -m system_local middleware/harvester/tests/system_local -v` — expect **fail** with a readable
    `cause_excerpt`.
 4. Fix the mapper / payload; re-run until green; commit fixture + fix together when possible.

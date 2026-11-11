@@ -1,0 +1,357 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2282",
+      "@type": "URI",
+      "name": "https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2282"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": [],
+      "result": {
+        "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2282"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"Online Resource\", Value = \"https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetLegendGraphic&format=image/png&WIDTH=20&HEIGHT=20&LAYER=geonode:int_basicdata&STYLE=int_basicdata&version=1.3.0&sld_version=1.1.0&legend_options=fontAntiAliasing:true;fontSize:12;forceLabels:on;https://repository-e.dataservice.zalf.de/api/v2/assets/1370/link;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=json&srs=EPSG%3A4326&srsName=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Aint_basicdata&format=image%2Fjpeg&height=550&width=550&srs=EPSG%3A4326&bbox=-118.6243100%2C-43.5515340%2C175.1602260%2C56.8858330;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Aint_basicdata&format=application%2Fpdf&height=550&width=550&srs=EPSG%3A4326&bbox=-118.6243100%2C-43.5515340%2C175.1602260%2C56.8858330;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Aint_basicdata&format=image%2Fpng&height=550&width=550&srs=EPSG%3A4326&bbox=-118.6243100%2C-43.5515340%2C175.1602260%2C56.8858330;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=SHAPE-ZIP&srs=EPSG%3A4326&format_options=charset%3AUTF-8;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=gml2&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=text%2Fxml%3B+subtype%3Dgml%2F3.1.1&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=csv&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Aint_basicdata&outputFormat=excel&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetLegendGraphic&format=image/png&WIDTH=20&HEIGHT=20&LAYER=geonode:int_basicdata&STYLE=eem_soils_int_basicdata&version=1.3.0&sld_version=1.1.0&legend_options=fontAntiAliasing:true;fontSize:12;forceLabels:on;https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-bdc804a2-4e20-4463-b21a-57ce4cb6df00-thumb-26522a56-6879-41d3-9988-ef93edd12586.jpg;https://repository-e.dataservice.zalf.de/geoserver/ows;https://repository-e.dataservice.zalf.de/geoserver/ows\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"int_basicdata.png;int_basicdata.dbf;int_basicdata.json;int_basicdata.jpg;int_basicdata.pdf;int_basicdata.png;int_basicdata.zip;int_basicdata.gml;int_basicdata.gml;int_basicdata.csv;int_basicdata.excel;int_basicdata.png;int_basicdata.png;geonode:int_basicdata;geonode:int_basicdata\"}",
+        "Comment {Name = \"Online Resource Protocol\", Value = \"WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;OGC:WMS;OGC:WFS\"}",
+        "Comment {Name = \"Online Resource Description\", Value = \"Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Legend Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Original Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (GeoJSON Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (JPEG Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (PDF Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (PNG Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Zipped Shapefile Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (GML 2.0 Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (GML 3.1.1 Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (CSV Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Excel Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Legend Format);Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata) (Thumbnail Format);geonode Service - Provides Layer: Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata);geonode Service - Provides Layer: Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata)\"}",
+        "Comment {Name = \"Graphic Overview\", Value = \"https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-bdc804a2-4e20-4463-b21a-57ce4cb6df00-thumb-26522a56-6879-41d3-9988-ef93edd12586.jpg\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Collection",
+      "@type": "DefinedTerm",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "#OA_Satellite/Sensor_Acquisition",
+      "@type": "DefinedTerm",
+      "name": "Satellite/Sensor Acquisition"
+    },
+    {
+      "@id": "#PV_Spatial_Data_Acquisition",
+      "@type": "PropertyValue",
+      "name": "Spatial Data Acquisition",
+      "propertyID": "http://purl.obolibrary.org/obo/NCIT_C19026"
+    },
+    {
+      "@id": "assays/soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo",
+      "hasPart": [],
+      "name": "Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata)",
+      "about": {
+        "@id": "#Process_A_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Collection"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Satellite/Sensor_Acquisition"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Spatial_Data_Acquisition"
+      }
+    },
+    {
+      "@id": "#Source_Geographic_Region",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Geographic Region"
+    },
+    {
+      "@id": "#Sample_Selected_Location",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": "Selected Location"
+    },
+    {
+      "@id": "#Protocol_Spatial_Sampling",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Bounding_Box_[-118.62430999999998,_-43.55153399999995,_175.16022600000008,_56.88583300000005]",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Bounding Box",
+      "value": "[-118.62430999999998, -43.55153399999995, 175.16022600000008, 56.88583300000005]",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Coordinate Reference System",
+      "value": "EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Spatial_Sampling_0",
+      "@type": "LabProcess",
+      "name": "Spatial Sampling_0",
+      "object": {
+        "@id": "#Source_Geographic_Region"
+      },
+      "result": {
+        "@id": "#Sample_Selected_Location"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Spatial_Sampling"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Bounding_Box_[-118.62430999999998,_-43.55153399999995,_175.16022600000008,_56.88583300000005]"
+        },
+        {
+          "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326"
+        }
+      ]
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_(en)_This_published_data_have_undergone_a_comprehensive_quality_assurance_process_to_ensure_formal,_structural,_and_content_integrity._All_datasets_were_systematically_reviewed_by_author_and_data_stewards_for_consistency,_completeness,_and_accuracy_according_to_established_agricultural_standards._This_process_involved_rigorous_checks_and_validation_steps,_supported_by_significant_intellectual_effort_to_guarantee_scientific_reusability._The_quality_assessment_included_technical_and_semantical_ver",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "(en) This published data have undergone a comprehensive quality assurance process to ensure formal, structural, and content integrity. All datasets were systematically reviewed by author and data stewards for consistency, completeness, and accuracy according to established agricultural standards. This process involved rigorous checks and validation steps, supported by significant intellectual effort to guarantee scientific reusability. The quality assessment included technical and semantical ver",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Date_2026-10-06T07:42:20Z",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Date",
+      "value": "2026-10-06T07:42:20Z",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_(en)_This_published_data_have_undergone_a_comprehensive_quality_assurance_process_to_ensure_formal,_structural,_and_content_integrity._All_datasets_were_systematically_reviewed_by_author_and_data_stewards_for_consistency,_completeness,_and_accuracy_according_to_established_agricultural_standards._This_process_involved_rigorous_checks_and_validation_steps,_supported_by_significant_intellectual_effort_to_guarantee_scientific_reusability._The_quality_assessment_included_technical_and_semantical_ver"
+        },
+        {
+          "@id": "#ParameterValue_Processing_Date_2026-10-06T07:42:20Z"
+        }
+      ]
+    },
+    {
+      "@id": "studies/soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo",
+      "datePublished": "2026-10-06T07:42:20Z",
+      "description": "Lineage: (en) This published data have undergone a comprehensive quality assurance process to ensure formal, structural, and content integrity. All datasets were systematically reviewed by author and data stewards for consistency, completeness, and accuracy according to established agricultural standards. This process involved rigorous checks and validation steps, supported by significant intellectual effort to guarantee scientific reusability. The quality assessment included technical and semantical verification of metadata, logical coherence, and adherence to agricultural domain-specific requirements.  (de) Diese veröffentlichten Daten haben einen umfassenden Qualitätssicherungsprozess durchlaufen, um die formale, strukturelle und inhaltliche Integrität zu gewährleisten. Alle Datensätze wurden systematisch von Autoren und Datenverwaltern auf Konsistenz, Vollständigkeit und Genauigkeit gemäß den etablierten landwirtschaftlichen Standards überprüft. Dieser Prozess umfasste rigorose Prüf- und Validierungsschritte, die durch erheblichen intellektuellen Aufwand unterstützt wurden, um die wissenschaftliche Wiederverwendbarkeit zu garantieren. Die Qualitätsbewertung beinhaltet technische und semantische Überprüfungen der Metadaten, logische Kohärenz und die Einhaltung landwirtschaftsspezifischer Anforderungen.",
+      "hasPart": [],
+      "name": "Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata)",
+      "about": [
+        {
+          "@id": "#Process_S_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Spatial_Sampling_0"
+        },
+        {
+          "@id": "#Process_S_soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.20387/3b53c499-cc70-4343-8a93-c08c62876b51",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.20387/3b53c499-cc70-4343-8a93-c08c62876b51",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Soil_hydraulic_functions_of_international_soils_measured_with_the_Extended_Evaporation_Method_(EEM)_and_the_HYPROP_device_(int_basicdata)",
+      "@type": "ScholarlyArticle",
+      "headline": "Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata)",
+      "identifier": {
+        "@id": "10.20387/3b53c499-cc70-4343-8a93-c08c62876b51"
+      }
+    },
+    {
+      "@id": "#LDComment_Point_of_Contact_Leibniz_Centre_for_Agricultural_Landscape_Research",
+      "@type": "Comment",
+      "name": "Point of Contact",
+      "text": "Leibniz Centre for Agricultural Landscape Research"
+    },
+    {
+      "@id": "#LDComment_Publisher_Leibniz_Centre_for_Agricultural_Landscape_Research",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Leibniz Centre for Agricultural Landscape Research"
+    },
+    {
+      "@id": "#LDComment_Custodian_Leibniz_Centre_for_Agricultural_Landscape_Research",
+      "@type": "Comment",
+      "name": "Custodian",
+      "text": "Leibniz Centre for Agricultural Landscape Research"
+    },
+    {
+      "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata",
+      "@type": "Comment",
+      "name": "Metadata Standard",
+      "text": "ISO 19115:2003 - Geographic information - Metadata"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Edition_1",
+      "@type": "Comment",
+      "name": "Edition",
+      "text": "1"
+    },
+    {
+      "@id": "#LDComment_Status_completed",
+      "@type": "Comment",
+      "name": "Status",
+      "text": "completed"
+    },
+    {
+      "@id": "#LDComment_Alternate_Title_geonode:int_basicdata",
+      "@type": "Comment",
+      "name": "Alternate Title",
+      "text": "geonode:int_basicdata"
+    },
+    {
+      "@id": "#LDComment_Metadata_Date_2026-10-26T13:49:38Z",
+      "@type": "Comment",
+      "name": "Metadata Date",
+      "text": "2026-10-26T13:49:38Z"
+    },
+    {
+      "@id": "#LDComment_Use_Constraints_license",
+      "@type": "Comment",
+      "name": "Use Constraints",
+      "text": "license"
+    },
+    {
+      "@id": "#LDComment_Other_Constraints_CC-BY_(CC-BY):_https://creativecommons.org/licenses/by/4.0/_(https://creativecommons.org/licenses/by/4.0/legalcode)",
+      "@type": "Comment",
+      "name": "Other Constraints",
+      "text": "CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (https://creativecommons.org/licenses/by/4.0/legalcode)"
+    },
+    {
+      "@id": "#LDComment_Keywords_conductivity,_hydraulic_conductivity,_hygroscopicity,_soil,_soil_hydraulic_properties,_water",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "conductivity, hydraulic conductivity, hygroscopicity, soil, soil hydraulic properties, water"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (https://creativecommons.org/licenses/by/4.0/legalcode)"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "bdc804a2-4e20-4463-b21a-57ce4cb6df00",
+      "datePublished": "2026-10-06T07:42:20Z",
+      "description": "This dataset contains a data base of 173 soil hydrological data (raw data) from 71 sites all over the world (Asia, Africa, Australia America and Europe). The samples were mainly collected and measured as part of research projects. The soils cover a wide range of texture classes and dry bulk densities. The data base consists of water retention and unsaturated hydraulic conductivity data. Additional data of the particle size distribution, the dry bulk density, the organic matter content and other variables are included. The hydraulic data were measured with the Extended Evaporation Method (EEM) and the HYPROP device in the range between saturation and close to the wilting point. Information to the geo reference, the soil type, the sampling depth and the horizon are given.",
+      "hasPart": [
+        {
+          "@id": "assays/soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo/"
+        },
+        {
+          "@id": "studies/soil_hydraulic_functions_of_international_soils_measured_with_the_extended_evapo/"
+        }
+      ],
+      "name": "Soil hydraulic functions of international soils measured with the Extended Evaporation Method (EEM) and the HYPROP device (int_basicdata)",
+      "citation": {
+        "@id": "#Soil_hydraulic_functions_of_international_soils_measured_with_the_Extended_Evaporation_Method_(EEM)_and_the_HYPROP_device_(int_basicdata)"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Point_of_Contact_Leibniz_Centre_for_Agricultural_Landscape_Research"
+        },
+        {
+          "@id": "#LDComment_Publisher_Leibniz_Centre_for_Agricultural_Landscape_Research"
+        },
+        {
+          "@id": "#LDComment_Custodian_Leibniz_Centre_for_Agricultural_Landscape_Research"
+        },
+        {
+          "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Edition_1"
+        },
+        {
+          "@id": "#LDComment_Status_completed"
+        },
+        {
+          "@id": "#LDComment_Alternate_Title_geonode:int_basicdata"
+        },
+        {
+          "@id": "#LDComment_Metadata_Date_2026-10-26T13:49:38Z"
+        },
+        {
+          "@id": "#LDComment_Use_Constraints_license"
+        },
+        {
+          "@id": "#LDComment_Other_Constraints_CC-BY_(CC-BY):_https://creativecommons.org/licenses/by/4.0/_(https://creativecommons.org/licenses/by/4.0/legalcode)"
+        },
+        {
+          "@id": "#LDComment_Keywords_conductivity,_hydraulic_conductivity,_hygroscopicity,_soil,_soil_hydraulic_properties,_water"
+        }
+      ],
+      "sdDatePublished": "2026-11-11T16:31:22.3057010",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
