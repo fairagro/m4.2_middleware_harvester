@@ -80,12 +80,12 @@ Core descriptive metadata about the dataset.
 
 Descriptive keywords with optional thesaurus information.
 
-| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                                             |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| **keyword**            | `keywords[].name`                                             | Keyword text                                | **Not mapped** today (`InspireRecord.keywords` is unused by the mapper) |
-| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | **Not mapped** today                                                    |
-| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | **Not mapped** today                                                    |
-| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., GEMET)             | **Not mapped** today                                                    |
+| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **keyword**            | `keywords[].name`                                             | Keyword text                                | Retained on `InspireRecord.keywords[].name`. Investigation Comment `Keywords` (comma-joined names; trim / casefold-dedupe / sort) — transitional Search Hub surface. Per-term Comments → #603. |
+| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | Retained on `InspireRecord.keywords[].url` when present. **Not** written to ARC yet (typed/per-term Comments → #603).                                                                          |
+| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | **Not mapped** today                                                                                                                                                                           |
+| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., AGROVOC, GEMET)    | Thesaurus **title** retained on each term from that group (`keywords[].thesaurus`). Thesaurus URL/date not stored. ARC emission → #603.                                                        |
 
 ### 4. CI_ResponsibleParty (Contacts)
 
@@ -352,8 +352,11 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 | transportation                   | Transportation Measurement | NCIT:C19043   | NCIT            |
 | utilitiesCommunication           | Utility Measurement        | NCIT:C19044   | NCIT            |
 
-> [!NOTE] Keywords are currently mapped as Investigation comments with ontology references (e.g., "keyword [GEMET]") due
-> to limitations in the ARC OntologyAnnotation collection structure.
+> [!NOTE] Keyword **names** use one Investigation Comment `Keywords` (aggregate) so the API can export Schema.org
+> `keywords` for Search Hub. Optional Anchor URIs and thesaurus titles are kept on `InspireRecord` but not yet emitted
+> as per-term ARC Comments — that writing contract is
+> [#603](https://github.com/fairagro/m4.2_middleware_harvester/issues/603). Plain-string sources stay name-only; URIs
+> are not invented.
 
 ### Publication (Related Resources)
 

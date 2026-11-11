@@ -209,6 +209,62 @@ def test_configured_bounds_are_enforced(mock_iso_record: MagicMock) -> None:
         ).parse_record(mock_iso_record, record_uuid="uuid-123")
 
 
+def _md_keywords(
+    *entries: str | tuple[str, str | None],
+    thesaurus: str | dict[str, str | None] | None = "AGROVOC Keywords",
+) -> MagicMock:
+    """OWSLib-shaped MD_Keywords group (nested Keyword.name/url), as returned by GeoNode CSW."""
+    group = MagicMock()
+    group.keywords = []
+    for entry in entries:
+        if isinstance(entry, tuple):
+            name, url = entry
+        else:
+            name, url = entry, None
+        kw = MagicMock()
+        kw.name = name
+        kw.url = url
+        group.keywords.append(kw)
+    group.thesaurus = thesaurus
+    return group
+
+
+def test_md_keywords_objects_yield_terms_with_url_and_thesaurus(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.keywords = [
+        _md_keywords(
+            "crop rotation",
+            ("Germany", "http://example.org/agrovoc/germany"),
+            thesaurus={"title": "AGROVOC Keywords", "url": None},
+        ),
+        _md_keywords(("spatial distribution", None), "", thesaurus=None),
+    ]
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert [(t.name, t.url, t.thesaurus) for t in rec.keywords] == [
+        ("crop rotation", None, "AGROVOC Keywords"),
+        ("Germany", "http://example.org/agrovoc/germany", "AGROVOC Keywords"),
+        ("spatial distribution", None, None),
+    ]
+
+
+def test_plain_string_keywords_still_parse(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.identification.keywords = ["a", "b"]
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert [(t.name, t.url, t.thesaurus) for t in rec.keywords] == [("a", None, None), ("b", None, None)]
+
+
+@pytest.mark.parametrize("keywords", [[], None])
+def test_empty_or_absent_keywords_stay_empty(
+    mock_iso_record: MagicMock, parser: IsoParser, keywords: list[str] | None
+) -> None:
+    mock_iso_record.identification.keywords = keywords
+
+    assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").keywords == []
+
+
 def test_configured_bounds_reach_nested_models(mock_iso_record: MagicMock) -> None:
     """Context must propagate into OnlineResource, not only top-level InspireRecord fields."""
     _with_online(mock_iso_record, "https://example.com/data.csv")
@@ -438,6 +494,23 @@ def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock)
     assert rec.other_constraints == ["Not Specified: The original author did not specify a license."]
     assert rec.graphic_overviews == ["https://example.com/thumb.png"]
     assert rec.online_resources[0].description is None
+
+
+def test_placeholder_keyword_term_names_are_dropped(mock_iso_record: MagicMock) -> None:
+    """MD_Keywords dicts must not bypass list placeholder stripping (#35 review)."""
+    parser = IsoParser(IsoParserConfig(value_bounds=ValueBounds(), placeholders=GEONODE_PLACEHOLDERS))
+    mock_iso_record.identification.keywords = [
+        _md_keywords("None", ("crop rotation", "http://example.org/agrovoc/crop"), thesaurus="AGROVOC Keywords"),
+        "No information provided",
+        "real keyword",
+    ]
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert [(t.name, t.url, t.thesaurus) for t in rec.keywords] == [
+        ("crop rotation", "http://example.org/agrovoc/crop", "AGROVOC Keywords"),
+        ("real keyword", None, None),
+    ]
 
 
 def test_placeholder_in_required_field_is_kept(mock_iso_record: MagicMock) -> None:

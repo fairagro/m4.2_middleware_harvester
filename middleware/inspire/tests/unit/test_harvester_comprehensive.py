@@ -149,7 +149,7 @@ def test_get_records_success(mock_csw_cls: MagicMock, mock_iso_record: MagicMock
     assert rec.identifier == "uuid-123"
     assert rec.title == "Test Title"
     assert rec.abstract == "Test Abstract"
-    assert rec.keywords == ["kw1", "kw2"]
+    assert [t.name for t in rec.keywords] == ["kw1", "kw2"]
     assert rec.spatial_extent == [10.0, 48.0, 11.0, 49.0]
     assert rec.temporal_extent == ("2020-01-01", "2020-12-31")
     assert rec.lineage == "Test Lineage"
