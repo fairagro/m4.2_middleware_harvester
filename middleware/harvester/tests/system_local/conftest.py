@@ -9,14 +9,13 @@ from pathlib import Path
 
 import pytest
 
-# Pinned base used when building the PATH symlink wrapper (see docs/arc-export-fixtures.md).
-ARC_EXPORT_BASE_DIGEST = (
-    "ghcr.io/nfdi4plants/arc-export@sha256:4c4f7adfcfdb988b5ceb03b372b11332d6fd675059fc8d8cc450ff32404d609c"
-)
+_SYSTEM_LOCAL_DIR = Path(__file__).resolve().parent
+# Single SoT for the pinned base image (CI reads the same file).
+ARC_EXPORT_BASE_DIGEST = (_SYSTEM_LOCAL_DIR / "arc-export-base.digest").read_text(encoding="utf-8").strip()
 ARC_EXPORT_WRAPPER_TAG = "fairagro-arc-export-path:ci"
 IMAGE_ENV_VAR = "FAIRAGRO_ARC_EXPORT_IMAGE"
 
-FIXTURES_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "arc_export"
+FIXTURES_ROOT = _SYSTEM_LOCAL_DIR.parents[0] / "fixtures" / "arc_export"
 
 
 def _docker_available() -> bool:
@@ -48,6 +47,26 @@ def _ensure_path_wrapper_image() -> str:
     return ARC_EXPORT_WRAPPER_TAG
 
 
+def _discover_fixture_dirs() -> list[Path]:
+    if not FIXTURES_ROOT.is_dir():
+        return []
+    return sorted(
+        path for path in FIXTURES_ROOT.iterdir() if path.is_dir() and (path / "ro-crate-metadata.json").is_file()
+    )
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    """Parametrize each RO-Crate fixture directory as its own test case."""
+    if "arc_export_fixture_dir" not in metafunc.fixturenames:
+        return
+    dirs = _discover_fixture_dirs()
+    metafunc.parametrize(
+        "arc_export_fixture_dir",
+        dirs,
+        ids=[path.name for path in dirs],
+    )
+
+
 @pytest.fixture(scope="session")
 def arc_export_image() -> str:
     """Resolve the Docker image for ``validate_rocrate`` (env override or local PATH wrapper)."""
@@ -62,11 +81,9 @@ def arc_export_image() -> str:
 @pytest.fixture(scope="session")
 def arc_export_fixture_dirs() -> list[Path]:
     """Per-RDI directories that contain ``ro-crate-metadata.json``."""
+    dirs = _discover_fixture_dirs()
     if not FIXTURES_ROOT.is_dir():
         pytest.fail(f"Missing fixtures root: {FIXTURES_ROOT}")
-    dirs = sorted(
-        path for path in FIXTURES_ROOT.iterdir() if path.is_dir() and (path / "ro-crate-metadata.json").is_file()
-    )
     if not dirs:
         pytest.fail(f"No ro-crate-metadata.json fixtures under {FIXTURES_ROOT}")
     return dirs

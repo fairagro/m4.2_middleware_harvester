@@ -23,7 +23,8 @@ Default commit-stage / pre-push pytest **excludes** `system_local` (no Docker re
 `arc-export`. The test suite builds a thin local tag (`fairagro-arc-export-path:ci`) that symlinks
 `/usr/local/bin/arc-export` → `/arc-export`, unless you already set `FAIRAGRO_ARC_EXPORT_IMAGE`.
 
-Pin a digest in CI (see Feature PR job). Override anytime:
+Base image digest SoT: `middleware/harvester/tests/system_local/arc-export-base.digest` (CI and local wrapper build both
+read it). Override the final image anytime:
 
 ```bash
 export FAIRAGRO_ARC_EXPORT_IMAGE='ghcr.io/nfdi4plants/arc-export@sha256:…'  # only if PATH is fixed

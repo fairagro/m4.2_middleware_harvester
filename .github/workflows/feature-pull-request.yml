@@ -113,11 +113,10 @@ jobs:
 
       - name: Build arc-export PATH wrapper and run system_local suite
         if: ${{ needs.detect-changes.outputs.code == 'true' }}
-        env:
-          # Base digest matches middleware/harvester/tests/system_local/conftest.py
-          ARC_EXPORT_BASE: ghcr.io/nfdi4plants/arc-export@sha256:4c4f7adfcfdb988b5ceb03b372b11332d6fd675059fc8d8cc450ff32404d609c
         run: |
           set -euo pipefail
+          # Single SoT: middleware/harvester/tests/system_local/arc-export-base.digest
+          ARC_EXPORT_BASE="$(tr -d '[:space:]' < middleware/harvester/tests/system_local/arc-export-base.digest)"
           docker pull "${ARC_EXPORT_BASE}"
           printf 'FROM %s\nRUN ln -sf /arc-export /usr/local/bin/arc-export\n' "${ARC_EXPORT_BASE}" \
             | docker build -t fairagro-arc-export-path:ci -f- /tmp
