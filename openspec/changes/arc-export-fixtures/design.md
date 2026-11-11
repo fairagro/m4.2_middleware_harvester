@@ -35,10 +35,11 @@ arc-export suite exists yet.
    invent a second gate that fights pre-push. Skip clearly when Docker is missing if a job accidentally collects the
    tests without Docker (fail closed in the dedicated CI job).
 
-5. **CI** — New Feature-PR job (not folded into `reusable-code-quality`): checkout, `uv sync`, set
-   `FAIRAGRO_ARC_EXPORT_IMAGE` to a digest, `uv run pytest -m system_local` on the harvester tests path. Runner
-   `ubuntu-latest` provides Docker. Path-filter: run when middleware/tests/fixtures/lockfile/workflow change (or always
-   with code filter — prefer code + fixture paths).
+5. **CI** — New Feature-PR job (not folded into `reusable-code-quality`): checkout, `uv sync`, pin
+   `ghcr.io/nfdi4plants/arc-export@sha256:…`, build a thin local tag that symlinks `/usr/local/bin/arc-export` →
+   `/arc-export` (current image has no `arc-export` on `PATH`; package invokes the bare command), set
+   `FAIRAGRO_ARC_EXPORT_IMAGE` to that tag, then `uv run pytest -m system_local`. Runner `ubuntu-latest` provides
+   Docker. Skip when Feature `code` path filter is false.
 
 6. **Producing initial fixtures** — Offline once: map a minimal representative record per family (dev_environment / unit
    fixtures / small hand-built ARC via arctrl) → serialize RO-Crate JSON → commit. Prefer minimal valid crates that
@@ -56,6 +57,8 @@ arc-export suite exists yet.
   follow-up to generate crates from source in a slower job.
 - **[Risk] arc-export upstream breaks good fixtures** → Digest pin freezes behaviour; bump deliberately with suite
   green.
+- **[Risk] Package invokes `arc-export` but image only ships `/arc-export`** → PATH symlink wrapper image in tests/CI;
+  follow-up to fix `fairagro-middleware-arc-validation` / coordinate with nfdi4plants image layout.
 
 ## Migration Plan
 

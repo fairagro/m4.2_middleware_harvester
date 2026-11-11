@@ -37,3 +37,12 @@ packages = ["src/middleware"]
 [tool.pytest.ini_options]
 pythonpath = "src"
 testpaths = ["tests"]
+markers = [
+    "system_local: marks tests that use locally runnable external services (e.g. Docker arc-export)",
+    "system_external: marks tests that call real external network services",
+]
+
+[dependency-groups]
+dev = [
+    "fairagro-middleware-arc-validation>=14.2.0",
+]

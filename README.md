@@ -102,6 +102,12 @@ We maintain high code quality through automated checks:
 
 # Run unit and integration tests
 uv run pytest middleware/
+
+# DataHUB arc-export fixture gate (needs Docker; excluded from pre-push)
+uv run pytest -m system_local middleware/harvester/tests/system_local -v
 ```
+
+See [`docs/arc-export-fixtures.md`](docs/arc-export-fixtures.md) for fixtures, image overrides, and the regression loop
+when production/`arc-export` fails.
 
 Maintained by: **FAIRagro Middleware Team** | License: [LICENSE](LICENSE)
