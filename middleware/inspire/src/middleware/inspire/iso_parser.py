@@ -95,6 +95,8 @@ class IsoParser:
             "reference_systems": self._extract_reference_systems(iso),
             # Supplemental (new)
             "supplemental_information": self._extract_identification_str("supplementalinformation", identification),
+            # ISO 19115-2 acquisition
+            "acquisition_information": self._extract_acquisition_information(iso),
         }
         return InspireRecord.model_validate(data, context=self._context)
 
@@ -441,6 +443,51 @@ class IsoParser:
                 "specification_url": getattr(dist, "specification_url", None),
             }
         ]
+
+    @staticmethod
+    def _nonempty_str(value: object) -> str | None:
+        return value if isinstance(value, str) and value else None
+
+    @classmethod
+    def _extract_acquisition_instruments(cls, platform: object) -> list[_Data]:
+        nested = getattr(platform, "instruments", None)
+        if not isinstance(nested, list):
+            return []
+        instruments: list[_Data] = []
+        for instrument in nested:
+            identifier = cls._nonempty_str(getattr(instrument, "identifier", None))
+            instrument_type = cls._nonempty_str(getattr(instrument, "type", None))
+            if identifier is None and instrument_type is None:
+                continue
+            term: _Data = {}
+            if identifier is not None:
+                term["identifier"] = identifier
+            if instrument_type is not None:
+                term["instrument_type"] = instrument_type
+            instruments.append(term)
+        return instruments
+
+    @classmethod
+    def _extract_acquisition_information(cls, iso: MD_Metadata) -> _Data:
+        """Extract slim ``MI_AcquisitionInformation`` (platforms / instruments)."""
+        acquisition = getattr(iso, "acquisition", None)
+        platforms_attr = getattr(acquisition, "platforms", None) if acquisition is not None else None
+        if not isinstance(platforms_attr, list):
+            return {"platforms": []}
+        platforms: list[_Data] = []
+        for platform in platforms_attr:
+            identifier = cls._nonempty_str(getattr(platform, "identifier", None))
+            description = cls._nonempty_str(getattr(platform, "description", None))
+            instruments = cls._extract_acquisition_instruments(platform)
+            if identifier is None and description is None and not instruments:
+                continue
+            entry: _Data = {"instruments": instruments}
+            if identifier is not None:
+                entry["identifier"] = identifier
+            if description is not None:
+                entry["description"] = description
+            platforms.append(entry)
+        return {"platforms": platforms}
 
     @staticmethod
     def _extract_online_resources(iso: MD_Metadata) -> list[_Data]:

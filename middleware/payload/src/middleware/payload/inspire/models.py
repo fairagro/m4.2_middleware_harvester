@@ -319,6 +319,27 @@ class ReferenceSystem(_HarvestedModel):
     version_url: OptionalUrl = None
 
 
+class AcquisitionInstrument(_HarvestedModel):
+    """One ``MI_Instrument`` (OWSLib ``type`` → ``instrument_type``)."""
+
+    identifier: MediumStr | None = None
+    instrument_type: MediumStr | None = None
+
+
+class AcquisitionPlatform(_HarvestedModel):
+    """One ``MI_Platform`` with nested instruments."""
+
+    identifier: MediumStr | None = None
+    description: MediumStr | None = None
+    instruments: Annotated[list[AcquisitionInstrument], MaxItems, Field(default_factory=list)]
+
+
+class AcquisitionInformation(_HarvestedModel):
+    """Slim ``MI_AcquisitionInformation`` (platforms / instruments only)."""
+
+    platforms: Annotated[list[AcquisitionPlatform], MaxItems, Field(default_factory=list)]
+
+
 class Contact(_HarvestedModel):
     """Enhanced contact information with full CI_ResponsibleParty details."""
 
@@ -418,5 +439,7 @@ class InspireRecord(_HarvestedModel):
     # Supplemental (new)
     supplemental_information: LongStr | None = None
 
-    # Note: acquisition and contentinfo are complex nested objects that will be
-    # handled separately if needed (mapped as Assay Protocols in the mapper)
+    # ISO 19115-2 acquisition (platforms / instruments); contentInfo still deferred
+    acquisition_information: AcquisitionInformation = Field(
+        default_factory=lambda: AcquisitionInformation(platforms=[])
+    )

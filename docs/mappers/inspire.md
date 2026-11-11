@@ -32,23 +32,23 @@ documents all available fields and their proposed ARC mappings.
 
 Metadata about the metadata record itself.
 
-| INSPIRE Field               | OWSLib Attribute              | Description                                   | ARC Mapping                                                                                                                              |
-| --------------------------- | ----------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **fileIdentifier**          | `identifier`                  | UUID of the metadata record                   | `Investigation.Identifier`                                                                                                               |
-| **parentIdentifier**        | `parentidentifier`            | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment)                                                                                                    |
-| **language**                | `language` / `languagecode`   | Language of the metadata                      | `Investigation` comment/remark                                                                                                           |
-| **characterSet**            | `charset`                     | Character encoding (UTF-8, etc.)              | **Not mapped** today (model may carry `charset`; mapper does not emit a comment)                                                         |
-| **hierarchyLevel**          | `hierarchy`                   | Scope: dataset, series, service, etc.         | `Investigation` comment (non-standard levels documented)                                                                                 |
-| **dateStamp**               | `datestamp` / `datetimestamp` | When metadata was created/updated             | `Investigation` Comment `Metadata Date` (not a dataset date)                                                                             |
-| **metadataStandardName**    | `stdname`                     | Standard name (ISO 19115, etc.)               | `Investigation` comment (provenance)                                                                                                     |
-| **metadataStandardVersion** | `stdver`                      | Standard version                              | `Investigation` comment (provenance)                                                                                                     |
-| **dataSetURI**              | `dataseturi`                  | Direct URI to the dataset                     | **Assay Annotation Table** `Output [URI]` (preferred Output value)                                                                       |
-| **contact**                 | `contact`                     | Metadata point of contact                     | `Investigation.Contacts` (Person with role="metadata_contact")                                                                           |
-| **referenceSystemInfo**     | `referencesystem`             | Coordinate Reference System (CRS)             | **Spatial Sampling Protocol** parameter "CRS"                                                                                            |
-| **contentInfo**             | `contentinfo`                 | Feature catalogue or image description        | **Assay Protocol** "Feature Catalogue" or "Image Description"                                                                            |
-| **distributionInfo**        | `distribution`                | How to obtain the data                        | **Assay Annotation Table** `Comment [Online Resource]` (semicolon-joined URLs; if no `dataSetURI`, first URL promoted to `Output [URI]`) |
-| **dataQualityInfo**         | `dataquality`                 | Data quality and lineage                      | **Protocol** "Data Processing" (conformance as parameters)                                                                               |
-| **acquisitionInformation**  | `acquisition`                 | Sensor/platform metadata (remote sensing)     | **Not extracted** today — Assay `TechnologyPlatform` is hardcoded `"Satellite/Sensor Acquisition"`                                       |
+| INSPIRE Field               | OWSLib Attribute              | Description                                   | ARC Mapping                                                                                                                                                                                                           |
+| --------------------------- | ----------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **fileIdentifier**          | `identifier`                  | UUID of the metadata record                   | `Investigation.Identifier`                                                                                                                                                                                            |
+| **parentIdentifier**        | `parentidentifier`            | Parent metadata record UUID (for hierarchies) | `Investigation.Description` (comment)                                                                                                                                                                                 |
+| **language**                | `language` / `languagecode`   | Language of the metadata                      | `Investigation` comment/remark                                                                                                                                                                                        |
+| **characterSet**            | `charset`                     | Character encoding (UTF-8, etc.)              | **Not mapped** today (model may carry `charset`; mapper does not emit a comment)                                                                                                                                      |
+| **hierarchyLevel**          | `hierarchy`                   | Scope: dataset, series, service, etc.         | `Investigation` comment (non-standard levels documented)                                                                                                                                                              |
+| **dateStamp**               | `datestamp` / `datetimestamp` | When metadata was created/updated             | `Investigation` Comment `Metadata Date` (not a dataset date)                                                                                                                                                          |
+| **metadataStandardName**    | `stdname`                     | Standard name (ISO 19115, etc.)               | `Investigation` comment (provenance)                                                                                                                                                                                  |
+| **metadataStandardVersion** | `stdver`                      | Standard version                              | `Investigation` comment (provenance)                                                                                                                                                                                  |
+| **dataSetURI**              | `dataseturi`                  | Direct URI to the dataset                     | **Assay Annotation Table** `Output [URI]` (preferred Output value)                                                                                                                                                    |
+| **contact**                 | `contact`                     | Metadata point of contact                     | `Investigation.Contacts` (Person with role="metadata_contact")                                                                                                                                                        |
+| **referenceSystemInfo**     | `referencesystem`             | Coordinate Reference System (CRS)             | **Spatial Sampling Protocol** parameter "CRS"                                                                                                                                                                         |
+| **contentInfo**             | `contentinfo`                 | Feature catalogue or image description        | **Assay Protocol** "Feature Catalogue" or "Image Description"                                                                                                                                                         |
+| **distributionInfo**        | `distribution`                | How to obtain the data                        | **Assay Annotation Table** `Comment [Online Resource]` (semicolon-joined URLs; if no `dataSetURI`, first URL promoted to `Output [URI]`)                                                                              |
+| **dataQualityInfo**         | `dataquality`                 | Data quality and lineage                      | **Protocol** "Data Processing" (conformance as parameters)                                                                                                                                                            |
+| **acquisitionInformation**  | `acquisition`                 | Sensor/platform metadata (remote sensing)     | Retained on `InspireRecord.acquisition_information`. Assay protocol **Sensor Acquisition** (parameters `Platform` / `Instrument` only). `TechnologyPlatform` stays hardcoded `"Satellite/Sensor Acquisition"` (#441). |
 
 ### 2. MD_DataIdentification (Resource Identification)
 
@@ -174,15 +174,14 @@ Spatial reference system information.
 
 Remote sensing specific: platform, instrument, operation metadata.
 
-> [!NOTE] This is mapped via OWSLib `acquisition` attribute as an `MI_AcquisitionInformation` object. The exact
-> structure depends on the metadata, but typically includes platform, instrument, operation, and event information.
+| INSPIRE / OWSLib                         | `InspireRecord` field                                             | ARC Mapping                                                                                                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MI_Platform.description` / `identifier` | `acquisition_information.platforms[].description` / `.identifier` | Assay protocol **Sensor Acquisition** parameter `Platform` (description preferred, else identifier; multi-value `"; "`-joined, trim/dedupe/sort) |
+| `MI_Instrument.type` / `identifier`      | `…instruments[].instrument_type` / `.identifier`                  | Same protocol parameter `Instrument` (type preferred, else identifier; same join policy)                                                         |
+| Operation / event                        | —                                                                 | **Not mapped** today                                                                                                                             |
 
-**Proposed Mapping**: Create an **Assay Protocol** named "Sensor Acquisition" with parameters for:
-
-- Platform name/type
-- Instrument/sensor name/type
-- Operation type/status
-- Acquisition date/time
+Protocol is omitted when no Platform/Instrument labels remain. No invented Input/Output columns. Temporal extent stays
+on Study **Data Acquisition**. Assay `TechnologyPlatform` remains hardcoded (see #441).
 
 ### 11. MD_ContentInfo (Feature Catalogue / Image Description)
 
@@ -278,7 +277,9 @@ One INSPIRE record = One Study representing the data creation workflow.
 - **MeasurementType**: Derived from topicCategory with ontology mapping (e.g., "biota" → "Biological Measurement"
   [NCIT:C19026])
 - **TechnologyType**: "Data Collection"
-- **TechnologyPlatform**: hardcoded `"Satellite/Sensor Acquisition"` (acquisition metadata not extracted)
+- **TechnologyPlatform**: hardcoded `"Satellite/Sensor Acquisition"` (live platform name deferred — #441)
+- **Protocol table** **Sensor Acquisition** (optional): parameters `Platform` / `Instrument` from
+  `acquisition_information` when present; omitted when empty; no invented Input/Output
 - **Annotation Table** (one row; omitted when the record has no URI, online resource or graphic overview; no
   `Input [Source Name]` column, since the dataset is not a sample):
   - **Output [URI]**: `dataSetURI` (preferred) → `online_resources[0].url` (fallback); the column is omitted when the
@@ -414,6 +415,5 @@ structures.
 
 ### 6. Complex Nested Structures
 
-**acquisition** and **contentinfo**: These are complex nested objects. We map them as Assay Protocols with parameters
-extracted from the nested structure (platform name, sensor type, band information, etc.). The exact parameters depend on
-the metadata content.
+**acquisition**: slim platform/instrument extraction → Assay protocol **Sensor Acquisition** (see §10). **contentinfo**
+(feature catalogue / image description) is still deferred.
