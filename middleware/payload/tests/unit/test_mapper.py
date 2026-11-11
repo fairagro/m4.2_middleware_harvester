@@ -23,6 +23,7 @@ from mapper_test_helpers import (
     first_harvest,
     invented_data_entities,
     investigation_description,
+    keyword_comment_pairs,
     keywords_comment_text,
     keywords_derived_ids,
     parse_jsonld,
@@ -343,8 +344,15 @@ def test_keywords_order_invariant() -> None:
         GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(build(["Beta", "zeta", "alpha"]), NO_DISCOVERY)
     ).arc_json
     assert keywords_comment_text(first) == keywords_comment_text(second) == "alpha, Beta, zeta"
+    expected_pairs = [
+        ("Keywords", "alpha, Beta, zeta"),
+        ("keyword [Beta]", "Beta"),
+        ("keyword [alpha]", "alpha"),
+        ("keyword [zeta]", "zeta"),
+    ]
+    assert keyword_comment_pairs(first) == keyword_comment_pairs(second) == expected_pairs
     assert keywords_derived_ids(first) == keywords_derived_ids(second)
-    assert keywords_derived_ids(first), "expected Keywords Comment and/or ParameterValue @ids"
+    assert keywords_derived_ids(first), "expected Keywords / per-term keyword Comment @ids"
 
 
 def test_description_prefers_en_over_de_and_skips_empty() -> None:
@@ -430,6 +438,13 @@ def test_double_map_openagrar_like_fixture_is_stable() -> None:
     first = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
     second = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
     assert keywords_comment_text(first) == keywords_comment_text(second) == "intercrop, legume, pollinators"
+    assert keyword_comment_pairs(first) == keyword_comment_pairs(second)
+    assert {name for name, _ in keyword_comment_pairs(first)} == {
+        "Keywords",
+        "keyword [intercrop]",
+        "keyword [legume]",
+        "keyword [pollinators]",
+    }
     assert keywords_derived_ids(first) == keywords_derived_ids(second)
     assert investigation_description(first) == investigation_description(second) == "Full English abstract"
     assert contact_name_pairs(first) == contact_name_pairs(second)

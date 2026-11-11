@@ -39,7 +39,8 @@ Regal record → one Investigation with one Study and one Assay.
 > encodes laboratory steps; we still model publication as process:
 >
 > - **Spatial Sampling** — only when recording location / coordinates exist
-> - **Data Collection** — subjects, data origin / measurement technique
+> - **Data Collection** — data origin / measurement technique and temporal extent (subjects/DDC are Investigation
+>   Comments, not protocol parameters)
 > - **Data Processing** — repository publication, license, funding context
 
 ## Available Regal Metadata Fields
@@ -192,9 +193,9 @@ One Regal ResearchData record = one Study.
 
 #### Protocol 2: "Data Collection"
 
-- **Parameters**: Keywords / subjects / DDC; Data Origin; Temporal Extent (`recordingPeriod`)
-- Omit the protocol only if none of these parameters would be non-empty **and** Spatial Sampling is also
-  omitted—otherwise keep a minimal Data Collection table when subjects or dataOrigin exist
+- **Parameters**: Data Origin; Temporal Extent (`recordingPeriod`) — not Keywords / subjects / DDC (those are
+  Investigation Comments per #603)
+- Omit the protocol when neither Data Origin nor Temporal Extent is non-empty (subjects alone do not create this table)
 
 #### Protocol 3: "Data Processing"
 

@@ -256,14 +256,30 @@ def comment_text(arc_json: str, name: str) -> str | None:
     return None
 
 
+def keyword_comment_pairs(arc_json: str) -> list[tuple[str, str]]:
+    """Sorted ``(name, text)`` for aggregate ``Keywords`` and per-term ``keyword […]`` Comments."""
+    assert_harvest_has_no_bnode_labels(arc_json)
+    pairs: list[tuple[str, str]] = []
+    for item in json.loads(arc_json).get("@graph", []):
+        types = item.get("@type")
+        type_list = types if isinstance(types, list) else [types]
+        if "Comment" not in type_list:
+            continue
+        name = rocrate_prop(item, "name")
+        if name != "Keywords" and not name.startswith("keyword ["):
+            continue
+        pairs.append((name, rocrate_prop(item, "text")))
+    return sorted(pairs)
+
+
 def keywords_derived_ids(arc_json: str) -> list[str]:
-    """Return sorted @ids of Keywords Comment / ParameterValue nodes (hash-relevant)."""
+    """Return sorted @ids of Keywords / per-term keyword Comment / ParameterValue nodes."""
     assert_harvest_has_no_bnode_labels(arc_json)
     payload = json.loads(arc_json)
     ids: list[str] = []
     for item in payload.get("@graph", []):
         node_id = str(item.get("@id") or "")
-        if "Keywords" in node_id and node_id.startswith(("#LDComment_Keywords", "#ParameterValue_Keywords")):
+        if node_id.startswith(("#LDComment_Keywords", "#LDComment_keyword_", "#ParameterValue_Keywords")):
             ids.append(node_id)
     return sorted(ids)
 
