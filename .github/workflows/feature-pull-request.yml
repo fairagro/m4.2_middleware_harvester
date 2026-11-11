@@ -90,6 +90,39 @@ jobs:
       skip: ${{ needs.detect-changes.outputs.code != 'true' }}
     secrets: inherit
 
+  arc-export-fixtures:
+    name: ARC export fixtures
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: No code changes — skipping arc-export fixtures
+        if: ${{ needs.detect-changes.outputs.code != 'true' }}
+        run: echo "No code paths changed. Exiting with success."
+
+      - name: Checkout code
+        if: ${{ needs.detect-changes.outputs.code == 'true' }}
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        if: ${{ needs.detect-changes.outputs.code == 'true' }}
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Sync workspace
+        if: ${{ needs.detect-changes.outputs.code == 'true' }}
+        run: uv sync --dev --all-packages
+
+      - name: Build arc-export PATH wrapper and run system_local suite
+        if: ${{ needs.detect-changes.outputs.code == 'true' }}
+        run: |
+          set -euo pipefail
+          # Single SoT: middleware/harvester/tests/system_local/arc-export-base.digest
+          ARC_EXPORT_BASE="$(tr -d '[:space:]' < middleware/harvester/tests/system_local/arc-export-base.digest)"
+          docker pull "${ARC_EXPORT_BASE}"
+          printf 'FROM %s\nRUN ln -sf /arc-export /usr/local/bin/arc-export\n' "${ARC_EXPORT_BASE}" \
+            | docker build -t fairagro-arc-export-path:ci -f- /tmp
+          export FAIRAGRO_ARC_EXPORT_IMAGE=fairagro-arc-export-path:ci
+          uv run pytest -m system_local middleware/harvester/tests/system_local -v
+
   helm-lint:
     name: Helm Lint
     needs: detect-changes
