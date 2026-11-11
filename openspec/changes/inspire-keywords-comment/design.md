@@ -2,60 +2,52 @@
 
 ## Context
 
-See proposal.md — Why. Today `_extract_identification_list("keywords", …)` keeps only `isinstance(i, str)`, so live CSW
-`MD_Keywords` objects become `[]`. Mapper never reads `record.keywords`. Other mappers already emit transitional
-Investigation Comment `Keywords` for Search Hub via the API. Model stays `keywords: list[str]` under existing
-`inspire-value-bounds`.
+See proposal.md — Why. Live CSW `identification.keywords` is a list of OWSLib `MD_Keywords` (nested `Keyword.name` /
+`Keyword.url`, optional `thesaurus['title']`). Dropping URI at parse time is irreversible; #603 only defines how typed
+keywords are written into ARC Comments later.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Correct ISO→`InspireRecord.keywords` extraction for OWSLib `MD_Keywords` and plain strings.
-- Emit one deterministic `Keywords` Comment from those names.
-- Align `docs/mappers/inspire.md` with behaviour.
+- Persist keyword **name** plus optional **url** and **thesaurus** title on `InspireRecord`.
+- Emit one deterministic aggregate `Keywords` Comment from names for Search Hub.
+- Align `docs/mappers/inspire.md`.
 
 **Non-Goals:**
 
-- Nested keyword model (thesaurus / Anchor URI) — #603 / #441.
-- Per-term Comments or OntologyAnnotation keywords.
-- Protocol-table `Keywords` parameter on INSPIRE Study/Assay (Schema.org/Regal also have protocol params; not required
-  for Search Hub Comment path).
+- Per-term ARC Comments / OntologyAnnotation emission (#603).
+- Protocol-table `Keywords` parameter on INSPIRE Study/Assay.
+- Inferring ontology URIs from plain labels.
 
 ## Decisions
 
-1. **Keep `list[str]` names only** — Aggregate Comment needs labels; richer `Keyword` models would force bounds/docs
-   churn without Search Hub benefit in this slice. Thesaurus/URI deferred.
-   - Alternative: nested model now → rejected as scope creep for lock-in A.
+1. **`KeywordTerm` nested model** — `name: RequiredMediumStr`, `url: OptionalUrl`, `thesaurus: MediumStr | None`.
+   Bounds/URL scheme checks reuse existing nested-model validation.
+   - Alternative: parallel lists / keep `list[str]` → rejected; loses URI with no recovery path.
 
-2. **Parser walks `MD_Keywords.keywords[].name`** — Match OWSLib shape verified on BonaRes. Also accept legacy/test
-   plain `str` items so existing unit fixtures keep working.
-   - Alternative: only `MD_Keywords` → would break string-based tests without migration value.
+2. **Coerce bare strings → `{name: …}`** — Field `BeforeValidator` so existing tests and plain-string CSW edge cases
+   keep working; placeholders still strip string list items on `InspireRecord` before coerce.
 
-3. **Mapper dedupe/sort like Schema.org** — Trim → drop empty → casefold dedupe (first spelling wins) → sort
-   `(casefold, original)` → `", ".join`. Harvest-stable across CSW order noise.
-   - Alternative: preserve source order → non-deterministic ARC hashes when OWSLib/list order shifts.
+3. **Thesaurus = citation title only** — Copy `thesaurus['title']` (or a string mock) onto each term from that group.
+   Thesaurus URL/date/type not stored in this slice (can extend later without ARC contract change).
 
-4. **Comment only, no OntologyAnnotation** — Matches API Comments lock-in (#417/#603). Existing hardcoded GEMET
-   `OntologySourceReference` in `_add_ontology_sources` is unrelated and unchanged.
+4. **Mapper uses names only** — Same Schema.org-style trim / casefold-dedupe / sort / `", "` join. URI/thesaurus ignored
+   until #603 writing lands.
 
-5. **Docs edit in same change** — `inspire-to-arc-mapping` treats `docs/mappers/inspire.md` as authoritative; table +
-   stale GEMET NOTE must match the Comment MVP.
+5. **Comment only, no OntologyAnnotation** — Matches API Comments lock-in.
 
 ## Risks / Trade-offs
 
-- **[Risk] Aggregate join vs commas inside labels** → Same known limitation as Regal/Schema.org; #604 / API per-term
-  path is the fix. Do not invent a different separator for INSPIRE alone.
-- **[Risk] Losing thesaurus/URI until #603** → Acceptable for Search Hub string keywords; document as deferred in
-  proposal/non-goals.
-- **[Trade-off] No Study protocol Keywords column** → Slightly less parity with Schema.org protocol tables; Comment is
-  enough for dump `keywords`.
+- **[Risk] Aggregate join vs commas in labels** → Known; #604 / API per-term path.
+- **[Risk] Thesaurus URL unused** → Acceptable; title is enough to label AGROVOC vs GEMET for a later writer.
+- **[Trade-off] Model churn for callers passing `list[str]`** → Mitigated by coerce validator.
 
 ## Migration Plan
 
-- Ship with next harvester release; no config flag. Re-harvest fills Comments; API already materializes `Keywords`.
-- Rollback: revert parser/mapper; old behaviour was empty keywords (no worse than today).
+- Ship with next harvester release; no config flag.
+- Rollback: revert; prior behaviour was empty keywords.
 
 ## Open Questions
 
-- None for this slice. Per-term / AGROVOC URI encoding deferred to #603.
+- None.

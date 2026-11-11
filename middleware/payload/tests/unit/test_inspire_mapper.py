@@ -118,6 +118,19 @@ def test_publication_authors_survive_ro_crate_serialization() -> None:
     assert author_ids == ["#Author_J. Doe; R. Roe"]
 
 
+# --- keywords Comment (#35) -------------------------------------------------
+
+
+def test_keywords_comment_trim_dedupe_sort() -> None:
+    inv = InspireMapper().map_investigation(_minimal_record(keywords=["Soil", "soil", " Agriculture ", "", "  "]))
+    assert [(c.Name, c.Value) for c in inv.Comments if c.Name == "Keywords"] == [("Keywords", "Agriculture, Soil")]
+
+
+def test_empty_keywords_omit_keywords_comment() -> None:
+    inv = InspireMapper().map_investigation(_minimal_record(keywords=[]))
+    assert [c for c in inv.Comments if c.Name == "Keywords"] == []
+
+
 # --- dataset date (#408) ----------------------------------------------------
 
 
@@ -441,7 +454,7 @@ def test_assay_has_no_output_uri_column_without_any_uri() -> None:
 def test_assay_without_uri_or_comments_has_no_annotation_table() -> None:
     assay = InspireMapper().map_assay(_minimal_record())
 
-    assert list(assay.Tables) == []
+    assert not list(assay.Tables)
 
 
 def test_record_without_uris_has_no_invented_dataset_uri_in_ro_crate() -> None:

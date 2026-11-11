@@ -47,7 +47,7 @@ class IsoParser:
             "title": self._extract_title(identification),
             "abstract": self._extract_abstract(identification),
             "date_stamp": iso.datestamp,
-            "keywords": self._extract_identification_list("keywords", identification),
+            "keywords": self._extract_keywords(identification),
             "topic_categories": self._extract_identification_list("topiccategory", identification),
             "contacts": self._extract_contacts(iso),
             "lineage": self._extract_lineage(iso),
@@ -148,6 +148,62 @@ class IsoParser:
                 result.extend([str(i) for i in attr if isinstance(i, str)])
             elif isinstance(attr, str):
                 result.append(attr)
+        return result
+
+    @staticmethod
+    def _thesaurus_title(group: object) -> str | None:
+        thesaurus = getattr(group, "thesaurus", None)
+        if isinstance(thesaurus, str) and thesaurus:
+            return thesaurus
+        if isinstance(thesaurus, dict):
+            title = thesaurus.get("title")
+            if isinstance(title, str) and title:
+                return title
+        return None
+
+    @classmethod
+    def _keyword_terms_from_group(cls, group: object) -> list[_Data]:
+        """Return keyword term dicts from one OWSLib ``MD_Keywords`` group."""
+        nested = getattr(group, "keywords", None)
+        if not isinstance(nested, list):
+            return []
+        thesaurus = cls._thesaurus_title(group)
+        terms: list[_Data] = []
+        for keyword in nested:
+            name = getattr(keyword, "name", None)
+            if not isinstance(name, str) or not name:
+                continue
+            term: _Data = {"name": name}
+            url = getattr(keyword, "url", None)
+            if isinstance(url, str) and url.strip():
+                term["url"] = url.strip()
+            if thesaurus is not None:
+                term["thesaurus"] = thesaurus
+            terms.append(term)
+        return terms
+
+    @classmethod
+    def _extract_keywords(cls, identification: MD_DataIdentification | None) -> list[_Data]:
+        """Extract keyword terms from plain strings or OWSLib ``MD_Keywords`` groups.
+
+        Live CSW ``identification.keywords`` is a list of ``MD_Keywords``; each holds
+        ``Keyword`` objects with ``.name`` / optional ``.url``. Plain ``str`` items become
+        name-only terms. Per-term ARC Comments remain #603 — this only preserves source facts.
+        """
+        if identification is None:
+            return []
+        attr = getattr(identification, "keywords", None)
+        if isinstance(attr, str):
+            return [{"name": attr}] if attr else []
+        if not isinstance(attr, list):
+            return []
+        result: list[_Data] = []
+        for item in attr:
+            if isinstance(item, str):
+                if item:
+                    result.append({"name": item})
+            else:
+                result.extend(cls._keyword_terms_from_group(item))
         return result
 
     def _extract_contacts(self, iso: MD_Metadata) -> list[_Data]:

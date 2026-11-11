@@ -26,6 +26,7 @@ from middleware.payload.inspire.models import (
     DistributionFormat,
     InspireDate,
     InspireRecord,
+    KeywordTerm,
     OnlineResource,
     ReferenceSystem,
     ResourceIdentifier,
@@ -41,7 +42,7 @@ def sample_record() -> InspireRecord:
         title="Test Dataset",
         abstract="A test dataset description",
         date_stamp="2023-10-27",
-        keywords=["keyword1", "keyword2"],
+        keywords=[KeywordTerm(name="keyword1"), KeywordTerm(name="keyword2")],
         topic_categories=["biota"],
         contacts=[
             Contact(

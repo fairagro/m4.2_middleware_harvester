@@ -219,6 +219,28 @@ class _HarvestedModel(BaseModel):
         return cleaned
 
 
+class KeywordTerm(_HarvestedModel):
+    """One descriptive keyword from ISO ``MD_Keywords`` (name + optional Anchor / thesaurus)."""
+
+    name: RequiredMediumStr
+    url: OptionalUrl = None
+    thesaurus: MediumStr | None = None
+
+
+def _coerce_keyword_terms(value: object) -> object:
+    """Accept legacy ``list[str]`` as name-only terms (tests / plain-string sources)."""
+    if not isinstance(value, list):
+        return value
+    coerced: list[object] = []
+    for item in value:
+        if isinstance(item, str):
+            if item:  # empty names are omitted (same as IsoParser)
+                coerced.append({"name": item})
+        else:
+            coerced.append(item)
+    return coerced
+
+
 class ResourceIdentifier(_HarvestedModel):
     """Resource identifier (DOI, ISBN, etc.)."""
 
@@ -321,7 +343,12 @@ class InspireRecord(_HarvestedModel):
     title: RequiredMediumStr
     abstract: RequiredLongStr
     date_stamp: IsoDate | None = None
-    keywords: Annotated[list[MediumStr], MaxItems, Field(default_factory=list)]
+    keywords: Annotated[
+        list[KeywordTerm],
+        BeforeValidator(_coerce_keyword_terms),
+        MaxItems,
+        Field(default_factory=list),
+    ]
     topic_categories: Annotated[list[TopicCategoryCode], MaxItems, Field(default_factory=list)]
     contacts: Annotated[list[Contact], MaxItems, Field(default_factory=list)]
     lineage: LongStr | None = None
