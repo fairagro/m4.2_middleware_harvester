@@ -308,11 +308,17 @@ def test_dataset_processing_keeps_its_parameters() -> None:
     graph.add((SUBJECT, DCAT.keyword, Literal("subsoil")))
     graph.add((SUBJECT, DCTERMS.language, Literal("en")))
 
-    parameters = processing_parameters(_mapped_arc_json(graph), "Dataset Processing")
+    arc_json = _mapped_arc_json(graph)
+    parameters = processing_parameters(arc_json, "Dataset Processing")
 
     assert parameters["Processing Description"] == "Published dataset metadata harvested via DCAT-AP."
-    assert set(parameters["Keywords"].split(", ")) == {"soil", "subsoil"}
+    assert "Keywords" not in parameters
     assert parameters["Language"] == "en"
+    keywords = _comment_text(arc_json, "Keywords")
+    assert keywords is not None
+    assert set(keywords.split(", ")) == {"soil", "subsoil"}
+    assert _comment_text(arc_json, "keyword [soil]") == "soil"
+    assert _comment_text(arc_json, "keyword [subsoil]") == "subsoil"
 
 
 def test_assay_output_uri_is_unchanged() -> None:

@@ -26,6 +26,7 @@ from middleware.payload.data_mapper import DataMapper
 from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
@@ -113,9 +114,6 @@ class ModsMapper(DataMapper[MappingContext]):
             title=title,
             description=record.abstract,
         )
-        keywords_table = self._create_keywords_table(record)
-        if keywords_table is not None:
-            study.AddTable(keywords_table)
         return study
 
     def _map_assay(self, record: ModsRecord, context: MappingContext) -> ArcAssay:
@@ -243,6 +241,7 @@ class ModsMapper(DataMapper[MappingContext]):
             inv.Comments.append(Comment.create("Language", record.language.strip()))
         if record.license_uri and record.license_uri.strip():
             inv.Comments.append(Comment.create("License", record.license_uri.strip()))
+        add_keyword_comments(inv, subjects=[(label, None) for label in record.keywords])
 
     def _license(self, record: ModsRecord) -> License | None:
         return license_from_value(
@@ -262,25 +261,6 @@ class ModsMapper(DataMapper[MappingContext]):
         fragment = text.rsplit("#", 1)[-1].strip().lower().replace("-", "_")
         mapped = _MIR_LICENSE_URLS.get(fragment)
         return mapped or text
-
-    @staticmethod
-    def _create_keywords_table(record: ModsRecord) -> ArcTable | None:
-        if not record.keywords:
-            return None
-        table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-            [CompositeCell.term(OntologyAnnotation(name=", ".join(record.keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
-        return table
 
     def _create_assay_table(self, record: ModsRecord, context: MappingContext) -> ArcTable:
         """Annotation table: source URI + metadata comments — no data-file Outputs."""

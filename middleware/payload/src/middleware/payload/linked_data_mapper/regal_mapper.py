@@ -33,6 +33,7 @@ from rdflib.term import Node
 from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.keyword_comments import KeywordClassification, add_keyword_comments
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import LabelledNode, ResourceView, StableGraph
 from middleware.payload.mapper_config import MapperConfig, MapperType
@@ -281,10 +282,9 @@ class _RegalRun:
         return table
 
     def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
-        keywords = self._keyword_labels(subject)
         data_origins = self._labelled_pairs(subject, REGAL.dataOrigin)
         temporal = self.view(subject).text(REGAL.recordingPeriod)
-        if not keywords and not data_origins and not temporal:
+        if not data_origins and not temporal:
             return None
 
         table = ArcTable.init("Data Collection")
@@ -292,11 +292,6 @@ class _RegalRun:
             CompositeHeader.input(IOType.source()),
             [CompositeCell.free_text("Research Subject")],
         )
-        if keywords:
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-                [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-            )
         if data_origins:
             labels = ", ".join(label for label, _ in data_origins)
             table.AddColumn(
@@ -568,20 +563,14 @@ class _RegalRun:
             inv.Comments.append(modified)
 
     def _add_keyword_comments(self, inv: ArcInvestigation, subject: Node) -> None:
-        # "Keywords" is what the API materializes as Schema.org ``keywords`` (same as the Schema.org mapper).
-        # DDC is a classification, not a keyword, and its labels contain commas the API would split on.
-        # The per-term comments below keep the subject / DDC URIs until typed keywords exist (#417).
-        subjects = self._labelled_pairs(subject, DCTERMS.subject)
-        if subjects:
-            inv.Comments.append(Comment.create("Keywords", ", ".join(label.strip() for label, _ in subjects)))
-
-        for label, node_id in subjects:
-            comment_name = f"keyword [{node_id}]" if node_id else "keyword"
-            inv.Comments.append(Comment.create(comment_name, label))
-
-        for label, node_id in self._labelled_pairs(subject, REGAL.ddc):
-            comment_name = f"keyword [DDC:{node_id}]" if node_id else "keyword [DDC]"
-            inv.Comments.append(Comment.create(comment_name, label))
+        # Shared #603 contract: aggregate Keywords + per-term / optional DDC Comments.
+        add_keyword_comments(
+            inv,
+            subjects=self._labelled_pairs(subject, DCTERMS.subject),
+            classifications=[
+                KeywordClassification(label, uri) for label, uri in self._labelled_pairs(subject, REGAL.ddc) if uri
+            ],
+        )
 
     @staticmethod
     def _add_institution_comments(
@@ -660,11 +649,6 @@ class _RegalRun:
         programs.extend(self.view(subject).texts(REGAL.fundingProgram))
         project_ids.extend(self.view(subject).texts(REGAL.projectId))
         return funders, programs, project_ids
-
-    def _keyword_labels(self, subject: Node) -> list[str]:
-        labels = [label for label, _ in self._labelled_pairs(subject, DCTERMS.subject)]
-        labels.extend(label for label, _ in self._labelled_pairs(subject, REGAL.ddc))
-        return labels
 
     def _license_value(self, subject: Node) -> str | None:
         return self.view(subject).text(REGAL.license)

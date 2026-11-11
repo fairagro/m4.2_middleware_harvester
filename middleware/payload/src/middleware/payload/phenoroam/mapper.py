@@ -23,6 +23,7 @@ from arctrl import (  # type: ignore[import-untyped]
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
@@ -96,9 +97,6 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             title=title,
             description=description,
         )
-        keywords_table = self._create_keywords_table(record)
-        if keywords_table is not None:
-            study.AddTable(keywords_table)
         return study
 
     def _map_assay(self, record: PhenoroamRecord, context: MappingContext) -> ArcAssay:
@@ -215,25 +213,7 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         thumb = self._valid_http_url(record.thumbnail_url)
         if thumb:
             inv.Comments.append(Comment.create("Thumbnail", thumb))
-
-    @staticmethod
-    def _create_keywords_table(record: PhenoroamRecord) -> ArcTable | None:
-        if not record.keywords:
-            return None
-        table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-            [CompositeCell.term(OntologyAnnotation(name=", ".join(record.keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
-        return table
+        add_keyword_comments(inv, subjects=[(label, None) for label in record.keywords])
 
     def _create_assay_table(self, record: PhenoroamRecord, context: MappingContext) -> ArcTable:
         """Annotation table: landing URI + metadata comments — no data-file Outputs (#353)."""

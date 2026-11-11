@@ -19,6 +19,19 @@ docs/mappers/
     <rdi>_<base>.md         # optional RDI overlay (deltas only)
 ```
 
+## Keyword Comments (#603)
+
+All keyword-producing mappers write Investigation Comments via `middleware.payload.keyword_comments`:
+
+| Comment name                             | Text                                                               | When                                                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Keywords`                               | `", "`-joined subject/plain labels (trim / casefold-dedupe / sort) | ≥1 subject label; transitional API/Search Hub surface ([#604](https://github.com/fairagro/m4.2_middleware_harvester/issues/604) removes it) |
+| `keyword [<URI>]` or `keyword [<label>]` | term label                                                         | every subject/plain term                                                                                                                    |
+| `keyword [DDC:<URI>]`                    | classification label                                               | only when a class URI is known (Regal DDC)                                                                                                  |
+
+Study / protocol **Keywords** parameters are not used for this contract. `#417` OntologyAnnotation-only keywords remain
+superseded (API Comments → DefinedTerm: api#578 / api#663).
+
 ## Front matter (MVP)
 
 Base documents:

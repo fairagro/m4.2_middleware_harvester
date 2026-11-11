@@ -102,7 +102,7 @@ contributors get the roles author and contributor.
 
 | Schema.org Field          | Description                         | ARC Mapping                                                                                                                                                                  |
 | ------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | `Investigation.Comment("Keywords")`                                                                                                                                          |
+| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<label>]` (no Study Data Collection Keywords parameter)                              |
 | **`schema:license`**      | License identifier or URL           | `ARC.License` (see below) and `Investigation.Comment("License")`                                                                                                             |
 | **`schema:inLanguage`**   | Language code                       | `Investigation.Comment("Language")`                                                                                                                                          |
 | **`schema:version`**      | Dataset version                     | `Investigation.Comment("Version")`                                                                                                                                           |
