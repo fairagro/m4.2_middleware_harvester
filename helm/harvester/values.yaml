@@ -230,152 +230,133 @@ config:
     # -- Path to a custom CA bundle PEM file (for private/internal CAs).
     # -- Example: ca_cert_path: "/run/secrets/tls/ca.crt"
 
-  # -- List of repositories to harvest. Each entry must specify exactly one
-  # -- plugin type (inspire, generic, or oai_pmh). Prefer generic: for sitemap /
-  # -- Solr / Regal / DCAT / MyCoRe sources (see docs/linked_data_to_generic.md).
-  repositories:
+  # -- Legacy authorship: hand-maintained list (each entry needs rdi: + one
+  # -- plugin). Prefer rdi_catalog below. Keep [] when enabling catalog entries.
+  # -- List-only overlays work with the default (all-disabled) examples below.
+  # -- Chart fails when any rdi_catalog entry is enabled: true and this list is
+  # -- also non-empty.
+  repositories: []
 
-    # -------------------------------------------------------------------------
-    # Example 1: INSPIRE / CSW repository
-    # -------------------------------------------------------------------------
-    - rdi: "example-inspire-gdi-de"
-      inspire:
-        # -- CSW endpoint URL (required).
-        csw_url: "https://gdk.gdi-de.org/gdi-de/srv/eng/csw"
-        # -- Records per paginated CSW request.
-        chunk_size: 50
-        # -- Maximum total records to harvest. null = harvest everything.
-        # -- Use a small number (e.g. 10) for smoke-testing a new source.
-        max_records: null
-        # -- CQL filter string. Mutually exclusive with xml_query.
-        cql_query: null
-        # -- Raw GetRecords XML body. Mutually exclusive with cql_query.
-        # -- Use this for complex OGC filter expressions.
-        xml_query: null
-        # -- CSW connection timeout in seconds.
-        timeout: 30
-        # -- User-Agent header sent to the CSW server.
-        user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
-        # -- Retry attempts on transient CSW failures (network errors, 5xx).
-        retry_attempts: 5
-        # -- Initial retry backoff in seconds.
-        retry_backoff_base: 1.0
-        # -- Exponential factor applied to each successive retry delay.
-        retry_backoff_factor: 2.0
-        # -- Maximum retry delay cap in seconds (prevents runaway backoff).
-        retry_max_delay: 600.0
-        # -- Placeholder text this RDI writes instead of leaving an optional field
-        # -- empty; matching values are treated as absent. Empty by default.
-        # -- unrendered_templates: also treat $var / ${var} / {{var}} as placeholders.
-        placeholders:
-          values: []
-          unrendered_templates: false
-      mapper:
-        # -- Required for inspire: shared ISO→ARC DataMapper (type-as-key child).
-        inspire_general: {}
+# =============================================================================
+# RDI catalog → config.repositories (recommended)
+# =============================================================================
+# -- Preferred way to define RDIs (umbrella / env overlays). Map key = rdi id.
+# -- Chart builds config.repositories only when at least one entry has
+# -- enabled: true (sets rdi from the key, strips enabled, sorts keys).
+# -- Missing enabled ⇒ false — examples below stay off until you flip enabled
+# -- in an overlay; disabled-only catalog does not override config.repositories.
+# -- Leave config.repositories: [] when enabling catalog entries.
+rdi_catalog:
+  # -------------------------------------------------------------------------
+  # Example 1: INSPIRE / CSW
+  # -------------------------------------------------------------------------
+  example-inspire-gdi-de:
+    enabled: false
+    inspire:
+      # -- CSW endpoint URL (required).
+      csw_url: "https://gdk.gdi-de.org/gdi-de/srv/eng/csw"
+      # -- Records per paginated CSW request.
+      chunk_size: 50
+      # -- Maximum total records to harvest. null = harvest everything.
+      # -- Use a small number (e.g. 10) for smoke-testing a new source.
+      max_records: null
+      # -- CQL filter string. Mutually exclusive with xml_query.
+      cql_query: null
+      # -- Raw GetRecords XML body. Mutually exclusive with cql_query.
+      xml_query: null
+      # -- CSW connection timeout in seconds.
+      timeout: 30
+      user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
+      retry_attempts: 5
+      retry_backoff_base: 1.0
+      retry_backoff_factor: 2.0
+      retry_max_delay: 600.0
+      # -- Placeholder text this RDI writes instead of leaving an optional field
+      # -- empty; matching values are treated as absent.
+      placeholders:
+        values: []
+        unrendered_templates: false
+    mapper:
+      inspire_general: {}
 
-    # -------------------------------------------------------------------------
-    # Example 2: Schema.org / HTML JSON-LD repository via XML sitemap
-    # -------------------------------------------------------------------------
-    - rdi: "example-schemaorg-openagrar"
-      generic:
-        protocol:
-          http:
-            connect_timeout: 10.0
-            read_timeout: 30.0
-            # -- Maximum simultaneous open connections.
-            max_connections: 10
-            retry_attempts: 5
-            retry_backoff_base: 1.0
-            retry_backoff_factor: 2.0
-            # -- Maximum delay cap for retry backoff in seconds.
-            max_retry_delay: 600.0
-            # -- Rate limit: max requests per second to the same host.
-            # -- null disables rate limiting.
-            max_requests_per_second: 2.0
-            # -- Honour robots.txt crawl-delay and disallow directives.
-            respect_robots_txt: true
-            # -- User-Agent header sent with every HTTP request.
-            user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
-          xml:
-            # -- Sitemap entry point URL (required).
-            entry_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
-        # -- Number of parallel worker tasks fetching dataset pages.
-        # -- null defaults to protocol.http.max_connections.
-        worker_tasks: null
-      parser:
-        # -- Pin remote @context IRIs (string or list; trailing-slash-insensitive).
-        # -- An http pin also accepts the same IRI under https.
-        # -- Byte threshold above which JSON-LD parsing is offloaded to a
-        # -- background thread to avoid blocking the event loop.
-        html_jsonld:
-          allowed_context_url: "http://schema.org"
-          jsonld_parse_threshold_bytes: 65536
-      mapper:
-        schema_org_general: {}
+  # -------------------------------------------------------------------------
+  # Example 2: Schema.org / HTML JSON-LD via XML sitemap
+  # -------------------------------------------------------------------------
+  example-schemaorg-openagrar:
+    enabled: false
+    generic:
+      protocol:
+        http:
+          connect_timeout: 10.0
+          read_timeout: 30.0
+          max_connections: 10
+          retry_attempts: 5
+          retry_backoff_base: 1.0
+          retry_backoff_factor: 2.0
+          max_retry_delay: 600.0
+          max_requests_per_second: 2.0
+          respect_robots_txt: true
+          user_agent: "FAIRagro-Harvester/2.0 (harvestmaster@fairagro.net)"
+        xml:
+          entry_url: "https://openagrar.bmel-forschung.de/sitemap.xml"
+      worker_tasks: null
+    parser:
+      html_jsonld:
+        allowed_context_url: "http://schema.org"
+        jsonld_parse_threshold_bytes: 65536
+    mapper:
+      schema_org_general: {}
 
-    # -------------------------------------------------------------------------
-    # Example 3: Schema.org via MyCoRe Solr discovery source
-    # -------------------------------------------------------------------------
-    - rdi: "example-schemaorg-mycore-solr"
-      generic:
-        protocol:
-          http:
-            connect_timeout: 10.0
-            read_timeout: 30.0
-            max_connections: 5
-            retry_attempts: 5
-            max_requests_per_second: 1.0
-            # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
-            # -- requires respect_robots_txt: false (machine-to-machine endpoint).
-            respect_robots_txt: false
-          mycore_solr:
-            # -- MyCoRe Solr select endpoint. Query-free is fine; defaults fill
-            # -- core=main, q=*:* , fl=id, rows=<page_size>. wt=json is always set
-            # -- by the software (URL wt is ignored).
-            # -- Add filters as needed, e.g. ?q=category.top:"mir_genres:research_data"
-            entry_url: "https://www.openagrar.de/servlets/solr/select"
-            # -- Optional page size (default 200). Used as Solr `rows` only when
-            # -- entry_url has no `rows` parameter; URL `rows` wins when present.
-            page_size: 100
-      parser:
-        html_jsonld:
-          allowed_context_url: "http://schema.org"
-      mapper:
-        schema_org_general: {}
+  # -------------------------------------------------------------------------
+  # Example 3: Schema.org via MyCoRe Solr
+  # -------------------------------------------------------------------------
+  example-schemaorg-mycore-solr:
+    enabled: false
+    generic:
+      protocol:
+        http:
+          connect_timeout: 10.0
+          read_timeout: 30.0
+          max_connections: 5
+          retry_attempts: 5
+          max_requests_per_second: 1.0
+          # -- OpenAgrar robots.txt Disallow: /servlets/ blocks Solr; API harvest
+          # -- requires respect_robots_txt: false (machine-to-machine endpoint).
+          respect_robots_txt: false
+        mycore_solr:
+          entry_url: "https://www.openagrar.de/servlets/solr/select"
+          page_size: 100
+    parser:
+      html_jsonld:
+        allowed_context_url: "http://schema.org"
+    mapper:
+      schema_org_general: {}
 
-    # -------------------------------------------------------------------------
-    # Example 4: PUBLISSO FRL via Regal /find (inline JSON-LD) on generic
-    # -------------------------------------------------------------------------
-    - rdi: "example-publisso-regal"
-      generic:
-        protocol:
-          http:
-            connect_timeout: 10.0
-            read_timeout: 60.0
-            max_connections: 5
-            retry_attempts: 5
-            max_requests_per_second: 2.0
-            # -- FRL robots.txt is Disallow: / for all agents; /find is still a
-            # -- public machine API. Set false for this RDI or discovery fails.
-            respect_robots_txt: false
-          regal_find:
-            # -- Regal /find endpoint (query-free is fine). Defaults fill
-            # -- q=contentType:researchData and until=<page_size>. Operator query
-            # -- params override overridable keys; format=json and from are always
-            # -- set by the software. URL until overrides page_size.
-            entry_url: "https://frl.publisso.de/find"
-            # -- Page size for /find `until` (default 200). URL `until` overrides.
-            page_size: 200
-        # -- Base URL for expanding compact Regal ids (frl:…) to absolute IRIs.
-        # -- null → derived as {scheme}://{host}/resource/ from entry_url.
-        # -- PUBLISSO landing pages use repository.publisso.de; override if needed:
-        resource_base_url: "https://repository.publisso.de/resource/"
-      parser:
-        jsonld:
-          allowed_context_url: "https://frl.publisso.de/context.json"
-      mapper:
-        regal_general: {}
+  # -------------------------------------------------------------------------
+  # Example 4: PUBLISSO FRL via Regal /find on generic
+  # -------------------------------------------------------------------------
+  example-publisso-regal:
+    enabled: false
+    generic:
+      protocol:
+        http:
+          connect_timeout: 10.0
+          read_timeout: 60.0
+          max_connections: 5
+          retry_attempts: 5
+          max_requests_per_second: 2.0
+          # -- FRL robots.txt is Disallow: / for all agents; /find is still a
+          # -- public machine API. Set false for this RDI or discovery fails.
+          respect_robots_txt: false
+        regal_find:
+          entry_url: "https://frl.publisso.de/find"
+          page_size: 200
+      resource_base_url: "https://repository.publisso.de/resource/"
+    parser:
+      jsonld:
+        allowed_context_url: "https://frl.publisso.de/context.json"
+    mapper:
+      regal_general: {}
 
 # =============================================================================
 # Pod scheduling

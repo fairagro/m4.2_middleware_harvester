@@ -7,4 +7,4 @@ metadata:
     {{- include "harvester.labels" . | nindent 4 }}
 data:
   config.yaml: |
-    {{- toYaml .Values.config | nindent 4 }}
+    {{- include "harvester.configYaml" . | nindent 4 }}

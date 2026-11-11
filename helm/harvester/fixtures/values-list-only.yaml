@@ -1,0 +1,9 @@
+# Legacy list-only: chart default rdi_catalog examples are all disabled, so they
+# do not trip fail-both or replace this list.
+config:
+  repositories:
+    - rdi: "legacy-list-rdi"
+      inspire:
+        csw_url: "https://example.test/legacy/csw"
+      mapper:
+        inspire_general: {}

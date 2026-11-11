@@ -5,7 +5,7 @@ description: >
   Kubernetes CronJob. Supports INSPIRE/CSW and Schema.org sources.
 type: application
 # Chart version — bump on every chart change.
-version: 0.1.0
+version: 0.1.1
 # Application version — placeholder for local development only (helm lint, helm template).
 # In CI, helm package --app-version <version> overrides this value inside the
 # produced .tgz without modifying this file. The version is auto-detected from
