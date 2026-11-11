@@ -48,7 +48,7 @@ jobs:
               # Do NOT put chart paths only here — that forces Docker build/check
               # without a separate Helm lint job.
             helm:
-              - 'helm/**'
+              - 'charts/**'
 
   code-quality:
     name: Code Quality
@@ -128,7 +128,7 @@ jobs:
     needs: detect-changes
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
     with:
-      chart_dir: helm/harvester
+      chart_dir: charts/harvester
       skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
     secrets: inherit
 
@@ -169,10 +169,10 @@ jobs:
         if: ${{ needs.detect-changes.outputs.helm == 'true' }}
         run: |
           set -euo pipefail
-          chart=helm/harvester
-          helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-catalog.yaml >/dev/null
-          helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-list-only.yaml >/dev/null
-          if helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-both-fail.yaml >/dev/null 2>&1; then
+          chart=charts/harvester
+          helm template ci-smoke "./${chart}" -f charts/harvester/fixtures/values-catalog.yaml >/dev/null
+          helm template ci-smoke "./${chart}" -f charts/harvester/fixtures/values-list-only.yaml >/dev/null
+          if helm template ci-smoke "./${chart}" -f charts/harvester/fixtures/values-both-fail.yaml >/dev/null 2>&1; then
             echo "::error::values-both-fail.yaml should fail render (enabled catalog + non-empty repositories)"
             exit 1
           fi

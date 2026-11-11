@@ -48,7 +48,7 @@ DCAT-AP payloads without a remote `@context` can leave it unset (you will still 
 ## Regal / PUBLISSO
 
 `RegalFindProtocol` is available under `generic`. In-repo examples (`dev_environment/config.all-rdis.yaml`,
-`helm/harvester/values.yaml`) use:
+`charts/harvester/values.yaml`) use:
 
 ```yaml
 - rdi: "publisso"
@@ -72,4 +72,4 @@ fetched).
 ## Out-of-repo configs
 
 Cluster / ops overlays not in this repository should apply the same mapping before upgrading past the hard cut. In-repo
-examples live under `dev_environment/` and `helm/harvester/values.yaml`.
+examples live under `dev_environment/` and `charts/harvester/values.yaml`.
