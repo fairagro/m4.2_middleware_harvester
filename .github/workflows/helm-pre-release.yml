@@ -18,7 +18,7 @@ jobs:
   helm:
     uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-pre-release.yml@main
     with:
-      chart_dir: helm/harvester
+      chart_dir: charts/harvester
       chart_name: fairagro-advanced-middleware-harvester-chart
       dockerhub_namespace: zalf
     secrets: inherit
