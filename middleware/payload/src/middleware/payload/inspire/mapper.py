@@ -665,12 +665,59 @@ class InspireMapper(DataMapper[MappingContext]):
         # Set Technology Platform (user suggested acquisitionInformation)
         assay.TechnologyPlatform = OntologyAnnotation(name="Satellite/Sensor Acquisition")
 
-        # Add the annotation table, unless the record has nothing to put in it.
+        # Measurement annotation first so Tables[0] stays Measurement when both exist.
         table = self._create_assay_table(record)
         if table.ColumnCount:
             assay.AddTable(table)
 
+        sensor_protocol = self._create_sensor_acquisition_protocol(record)
+        if sensor_protocol is not None:
+            assay.AddTable(sensor_protocol)
+
         return assay
+
+    @staticmethod
+    def _join_acquisition_labels(labels: list[str]) -> str | None:
+        """Trim, casefold-dedupe, sort; join with semicolon+space for multi-value protocol parameters."""
+        by_fold: dict[str, str] = {}
+        for raw in labels:
+            text = raw.strip()
+            if not text:
+                continue
+            fold = text.casefold()
+            if fold not in by_fold:
+                by_fold[fold] = text
+        if not by_fold:
+            return None
+        return "; ".join(sorted(by_fold.values(), key=lambda value: (value.casefold(), value)))
+
+    @classmethod
+    def _create_sensor_acquisition_protocol(cls, record: InspireRecord) -> ArcTable | None:
+        """Assay protocol for MI_AcquisitionInformation (parameters only; no invented IO)."""
+        platform_labels: list[str] = []
+        instrument_labels: list[str] = []
+        for platform in record.acquisition_information.platforms:
+            platform_label = (platform.description or "").strip() or (platform.identifier or "").strip()
+            if platform_label:
+                platform_labels.append(platform_label)
+            for instrument in platform.instruments:
+                instrument_label = (instrument.instrument_type or "").strip() or (instrument.identifier or "").strip()
+                if instrument_label:
+                    instrument_labels.append(instrument_label)
+
+        parameters: list[tuple[str, str]] = []
+        platforms = cls._join_acquisition_labels(platform_labels)
+        if platforms is not None:
+            parameters.append(("Platform", platforms))
+        instruments = cls._join_acquisition_labels(instrument_labels)
+        if instruments is not None:
+            parameters.append(("Instrument", instruments))
+        if not parameters:
+            return None
+
+        table = ArcTable.init("Sensor Acquisition")
+        cls._add_parameter_columns(table, parameters)
+        return table
 
     @staticmethod
     def _create_assay_table(record: InspireRecord) -> ArcTable:

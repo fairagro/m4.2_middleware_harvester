@@ -75,6 +75,7 @@ def mock_iso_record(create_mock_identification: MagicMock) -> MagicMock:
     record.stdname = None
     record.stdver = None
     record.dataseturi = None
+    record.acquisition = None
     return record
 
 
@@ -263,6 +264,33 @@ def test_empty_or_absent_keywords_stay_empty(
     mock_iso_record.identification.keywords = keywords
 
     assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").keywords == []
+
+
+def test_acquisition_platforms_and_instruments_are_parsed(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    instrument = MagicMock()
+    instrument.identifier = None
+    instrument.type = "MSI"
+    platform = MagicMock()
+    platform.identifier = "sentinel-2"
+    platform.description = "Sentinel-2"
+    platform.instruments = [instrument, MagicMock(identifier=None, type=None)]
+    acquisition = MagicMock()
+    acquisition.platforms = [platform, MagicMock(identifier=None, description=None, instruments=[])]
+    mock_iso_record.acquisition = acquisition
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert len(rec.acquisition_information.platforms) == 1
+    plat = rec.acquisition_information.platforms[0]
+    assert plat.identifier == "sentinel-2"
+    assert plat.description == "Sentinel-2"
+    assert [(i.identifier, i.instrument_type) for i in plat.instruments] == [(None, "MSI")]
+
+
+def test_missing_acquisition_stays_empty(mock_iso_record: MagicMock, parser: IsoParser) -> None:
+    mock_iso_record.acquisition = None
+
+    assert parser.parse_record(mock_iso_record, record_uuid="uuid-123").acquisition_information.platforms == []
 
 
 def test_configured_bounds_reach_nested_models(mock_iso_record: MagicMock) -> None:

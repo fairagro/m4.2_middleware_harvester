@@ -131,6 +131,50 @@ def test_empty_keywords_omit_keywords_comment() -> None:
     assert [c for c in inv.Comments if c.Name == "Keywords"] == []
 
 
+# --- Sensor Acquisition protocol (#36) --------------------------------------
+
+
+def test_sensor_acquisition_protocol_parameters_only() -> None:
+    assay = InspireMapper().map_assay(
+        _minimal_record(
+            acquisition_information={
+                "platforms": [
+                    {
+                        "description": "Sentinel-2",
+                        "identifier": "ignored-when-description",
+                        "instruments": [{"instrument_type": "MSI", "identifier": "msi-1"}],
+                    }
+                ]
+            }
+        )
+    )
+    sensor = next(table for table in assay.Tables if table.Name == "Sensor Acquisition")
+    params = {col.header.ToTerm().Name: col.cells[0].AsTerm.Name for col in sensor.Columns if col.header.is_parameter}
+    assert params == {"Platform": "Sentinel-2", "Instrument": "MSI"}
+    assert not any(col.header.is_input or col.header.is_output for col in sensor.Columns)
+    assert assay.TechnologyPlatform.Name == "Satellite/Sensor Acquisition"
+
+
+def test_sensor_acquisition_after_measurement_when_both_present() -> None:
+    assay = InspireMapper().map_assay(
+        _minimal_record(
+            dataset_uri="https://data.example.com/api",
+            acquisition_information={
+                "platforms": [{"description": "Sentinel-2", "instruments": [{"instrument_type": "MSI"}]}]
+            },
+        )
+    )
+    assert [table.Name for table in assay.Tables] == ["Measurement", "Sensor Acquisition"]
+    measurement = assay.Tables[0]
+    output = next(col for col in measurement.Columns if col.header.is_output)
+    assert output.cells[0].AsFreeText == "https://data.example.com/api"
+
+
+def test_empty_acquisition_omits_sensor_protocol() -> None:
+    assay = InspireMapper().map_assay(_minimal_record())
+    assert [table.Name for table in assay.Tables if table.Name == "Sensor Acquisition"] == []
+
+
 # --- dataset date (#408) ----------------------------------------------------
 
 
