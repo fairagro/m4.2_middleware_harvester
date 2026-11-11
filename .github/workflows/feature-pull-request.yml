@@ -99,22 +99,48 @@ jobs:
       skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
     secrets: inherit
 
-  helm-lint-catalog:
-    name: Helm Lint (catalog fixture)
+  # Extra reusable-helm-lint calls share one concurrency group
+  # (repo + caller workflow + PR) and cancel each other — smoke fixtures here.
+  helm-fixture-smoke:
+    name: Helm fixture smoke
     needs: detect-changes
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
-    with:
-      chart_dir: helm/harvester
-      values_file: helm/harvester/fixtures/values-catalog.yaml
-      skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: No chart changes — skipping fixture smoke
+        if: ${{ needs.detect-changes.outputs.helm != 'true' }}
+        run: echo "No chart files changed. Exiting with success."
 
-  helm-lint-list-only:
-    name: Helm Lint (list-only fixture)
-    needs: detect-changes
-    uses: fairagro/m4.2_middleware_devinfra/.github/workflows/reusable-helm-lint.yml@main
-    with:
-      chart_dir: helm/harvester
-      values_file: helm/harvester/fixtures/values-list-only.yaml
-      skip: ${{ needs.detect-changes.outputs.helm != 'true' }}
-    secrets: inherit
+      - name: Checkout code
+        if: ${{ needs.detect-changes.outputs.helm == 'true' }}
+        uses: actions/checkout@v7
+
+      - name: Load HELM_VERSION from versions.env
+        if: ${{ needs.detect-changes.outputs.helm == 'true' }}
+        id: versions
+        run: |
+          # shellcheck source=scripts/load-versions-env.sh
+          source scripts/load-versions-env.sh
+          HELM_PIN="${HELM_VERSION#v}"
+          if [[ -z "$HELM_PIN" ]]; then
+            echo "::error::HELM_VERSION missing from versions.env" >&2
+            exit 1
+          fi
+          echo "helm=${HELM_PIN}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-helm@v5
+        if: ${{ needs.detect-changes.outputs.helm == 'true' }}
+        with:
+          version: ${{ steps.versions.outputs.helm }}
+
+      - name: Template catalog, list-only; expect-fail both-set
+        if: ${{ needs.detect-changes.outputs.helm == 'true' }}
+        run: |
+          set -euo pipefail
+          chart=helm/harvester
+          helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-catalog.yaml >/dev/null
+          helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-list-only.yaml >/dev/null
+          if helm template ci-smoke "./${chart}" -f helm/harvester/fixtures/values-both-fail.yaml >/dev/null 2>&1; then
+            echo "::error::values-both-fail.yaml should fail render (enabled catalog + non-empty repositories)"
+            exit 1
+          fi
+          echo "helm fixture smoke: catalog + list-only ok; both-fail failed as expected"
