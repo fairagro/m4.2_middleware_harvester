@@ -23,12 +23,12 @@ may contain multiple Dataset entities (e.g. DataCatalog with `hasPart`), each pr
 > [!IMPORTANT] **Protocols are central to ARC**: They describe exactly how data was created. Since Schema.org metadata
 > rarely encodes laboratory steps, we model publication as process:
 >
-> - **Data Collection** — keywords, research subject (single-row protocol stub)
 > - **Data Processing** — repository publication, license, publisher context
 > - **Measurement** — dataset landing page URL, distribution file access
 >
-> Dataset `schema:description` maps to `Investigation.Description` / `Study.Description` only — it is not duplicated as
-> a Data Collection parameter.
+> Keywords map to Investigation Comments (aggregate `Keywords` + per-term `keyword [<label>]`); there is no Study Data
+> Collection protocol solely for keywords. Dataset `schema:description` maps to `Investigation.Description` /
+> `Study.Description` only — it is not duplicated as a protocol parameter.
 
 ### Scope
 
@@ -102,7 +102,7 @@ contributors get the roles author and contributor.
 
 | Schema.org Field          | Description                         | ARC Mapping                                                                                                                                                                  |
 | ------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | `Investigation.Comment("Keywords")`                                                                                                                                          |
+| **`schema:keywords`**     | Keywords (deduped, sorted casefold) | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<label>]` (no Study Data Collection Keywords parameter)                              |
 | **`schema:license`**      | License identifier or URL           | `ARC.License` (see below) and `Investigation.Comment("License")`                                                                                                             |
 | **`schema:inLanguage`**   | Language code                       | `Investigation.Comment("Language")`                                                                                                                                          |
 | **`schema:version`**      | Dataset version                     | `Investigation.Comment("Version")`                                                                                                                                           |

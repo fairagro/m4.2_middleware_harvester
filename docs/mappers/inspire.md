@@ -80,12 +80,12 @@ Core descriptive metadata about the dataset.
 
 Descriptive keywords with optional thesaurus information.
 
-| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                                                                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **keyword**            | `keywords[].name`                                             | Keyword text                                | Retained on `InspireRecord.keywords[].name`. Investigation Comment `Keywords` (comma-joined names; trim / casefold-dedupe / sort) — transitional Search Hub surface. Per-term Comments → #603. |
-| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | Retained on `InspireRecord.keywords[].url` when present. **Not** written to ARC yet (typed/per-term Comments → #603).                                                                          |
-| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | **Not mapped** today                                                                                                                                                                           |
-| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., AGROVOC, GEMET)    | Thesaurus **title** retained on each term from that group (`keywords[].thesaurus`). Thesaurus URL/date not stored. ARC emission → #603.                                                        |
+| INSPIRE Field          | OWSLib Attribute                                              | Description                                 | ARC Mapping                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **keyword**            | `keywords[].name`                                             | Keyword text                                | Retained on `InspireRecord.keywords[].name`. Investigation Comments via shared helper (#603): aggregate `Keywords` (comma-joined names; trim / casefold-dedupe / sort) + per-term `keyword [<url\|label>]`. |
+| **keyword@xlink:href** | `keywords[].url`                                              | Keyword URI (if gmx:Anchor)                 | Retained on `InspireRecord.keywords[].url`; when present, Comment name is `keyword [<url>]`.                                                                                                                |
+| **type**               | `type`                                                        | Keyword type (theme, place, temporal, etc.) | **Not mapped** today                                                                                                                                                                                        |
+| **thesaurusName**      | `thesaurus['title']`, `thesaurus['url']`, `thesaurus['date']` | Source vocabulary (e.g., AGROVOC, GEMET)    | Thesaurus **title** retained on each term (`keywords[].thesaurus`). Thesaurus URL/date not stored. Not encoded in Comment names in this release.                                                            |
 
 ### 4. CI_ResponsibleParty (Contacts)
 
@@ -353,11 +353,11 @@ INSPIRE topic categories are mapped to specific ontology terms for precise seman
 | transportation                   | Transportation Measurement | NCIT:C19043   | NCIT            |
 | utilitiesCommunication           | Utility Measurement        | NCIT:C19044   | NCIT            |
 
-> [!NOTE] Keyword **names** use one Investigation Comment `Keywords` (aggregate) so the API can export Schema.org
-> `keywords` for Search Hub. Optional Anchor URIs and thesaurus titles are kept on `InspireRecord` but not yet emitted
-> as per-term ARC Comments — that writing contract is
-> [#603](https://github.com/fairagro/m4.2_middleware_harvester/issues/603). Plain-string sources stay name-only; URIs
-> are not invented.
+> [!NOTE] Keywords use the shared Investigation Comment contract
+> ([#603](https://github.com/fairagro/m4.2_middleware_harvester/issues/603)): aggregate `Keywords` (API / Search Hub
+> transitional surface; removal → [#604](https://github.com/fairagro/m4.2_middleware_harvester/issues/604)) plus
+> per-term `keyword [<URI|label>]`. Thesaurus titles stay on the record only. OntologyAnnotation Investigation keywords
+> are out of scope (#417 Comments-first / api#663 materialization).
 
 ### Publication (Related Resources)
 

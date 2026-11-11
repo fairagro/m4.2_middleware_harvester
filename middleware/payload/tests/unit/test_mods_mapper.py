@@ -87,3 +87,22 @@ def test_mods_mapper_openagrar_fixture_parity_fields() -> None:
 def test_mods_mapper_refuses_missing_title() -> None:
     with pytest.raises(ValueError, match="no title"):
         ModsMapper().map_record(ModsRecord(object_id="x", doi="10.1/x"))
+
+
+def test_mods_keywords_become_investigation_comments() -> None:
+    record = ModsRecord(
+        object_id="fixture_mods_kw",
+        title="Keyworded dataset",
+        keywords=["Soil", "soil", "Water"],
+    )
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_kw",
+        harvest_source_id="fixture_mods_kw",
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+    by_name = {c.Name: c.Value for c in arc.Comments if c.Name}
+    assert by_name["Keywords"] == "Soil, Water"
+    assert by_name["keyword [Soil]"] == "Soil"
+    assert by_name["keyword [Water]"] == "Water"
+    assert "keyword [soil]" not in by_name
+    assert all(table.Name != "Data Collection" for study in arc.Studies for table in study.Tables)

@@ -353,16 +353,16 @@ with remaining records.
 
 ### Requirement: Schema.org mapping MUST be harvest-deterministic for keywords, multi-literals, and contacts
 
-`GeneralSchemaOrgMapper` MUST produce identical Investigation keyword comments / keyword protocol values, description
-text, Contact order, and Publication author strings when the logical RDF payload is unchanged — including when rdflib
-object iteration order differs between parses. The mapper MUST NOT rely on `graph.value` or unsorted `graph.objects` for
-these fields when multiple values exist.
+`GeneralSchemaOrgMapper` MUST produce identical Investigation keyword Comments (aggregate and per-term names/texts),
+description text, Contact order, and Publication author strings when the logical RDF payload is unchanged — including
+when rdflib object iteration order differs between parses. The mapper MUST NOT rely on `graph.value` or unsorted
+`graph.objects` for these fields when multiple values exist.
 
-Keyword literals MUST be trimmed and sorted with a documented stable Unicode policy before joining. When multiple
-Literals exist for a string predicate (at least `description`; preferably also `name` / other `_str` call sites),
-selection MUST drop empty values and prefer language tags in order `en`, then `de`, then untagged / other, with
-deterministic length-then-lexicographic tie-breaks. Creator, author, and contributor nodes MUST be sorted by a stable
-key (family name, given name, display name, node IRI) before Contacts are appended.
+Keyword literals MUST be trimmed and sorted with a documented stable Unicode policy before joining / naming per-term
+Comments. When multiple Literals exist for a string predicate (at least `description`; preferably also `name` / other
+`_str` call sites), selection MUST drop empty values and prefer language tags in order `en`, then `de`, then untagged /
+other, with deterministic length-then-lexicographic tie-breaks. Creator, author, and contributor nodes MUST be sorted by
+a stable key (family name, given name, display name, node IRI) before Contacts are appended.
 
 Publication author strings built from those Contacts MUST use the form `F. Last` (given-name initial, space, family
 name) joined with `"; "`, and MUST NOT use comma-separated `Last, F.` forms that ARCtrl splits into unstable `#Author_*`
@@ -371,8 +371,8 @@ nodes.
 #### Scenario: Same keywords, different RDF object order
 
 - **WHEN** a Schema.org Dataset has the same keyword literal set presented in two different object orders
-- **THEN** both mappings MUST produce the same Keywords comment text, the same joined keyword protocol value, and the
-  same derived Keywords Comment / ParameterValue `@id`s
+- **THEN** both mappings MUST produce the same `Keywords` comment text and the same set of per-term `keyword […]`
+  Comment names and texts
 
 #### Scenario: Multi-language description with empty literal
 

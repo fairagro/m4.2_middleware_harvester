@@ -28,6 +28,7 @@ from middleware.payload.dois import normalize_doi
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
+from middleware.payload.keyword_comments import KeywordSubject, add_keyword_comments
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
@@ -341,6 +342,10 @@ class InspireMapper(DataMapper[MappingContext]):
         comments = self._generate_comments(record)
         for comment in comments:
             inv.Comments.append(comment)
+        add_keyword_comments(
+            inv,
+            subjects=[KeywordSubject(term.name, term.url) for term in record.keywords],
+        )
 
     def _generate_comments(self, record: InspireRecord) -> list[Comment]:
         """Generate metadata-level comments from record fields."""
@@ -370,29 +375,7 @@ class InspireMapper(DataMapper[MappingContext]):
 
         self._add_hierarchy_comments(comments, record)
         self._add_constraint_comments(comments, record)
-        keywords = self._keywords_comment(record)
-        if keywords is not None:
-            comments.append(keywords)
         return comments
-
-    @staticmethod
-    def _keywords_comment(record: InspireRecord) -> Comment | None:
-        """Transitional Search Hub surface: one ``Keywords`` Comment (comma-joined names).
-
-        Term ``url`` / ``thesaurus`` are retained on the record for a later ARC shape (#603).
-        """
-        by_fold: dict[str, str] = {}
-        for term in record.keywords:
-            text = term.name.strip()
-            if not text:
-                continue
-            fold = text.casefold()
-            if fold not in by_fold:
-                by_fold[fold] = text
-        if not by_fold:
-            return None
-        labels = sorted(by_fold.values(), key=lambda value: (value.casefold(), value))
-        return Comment.create("Keywords", ", ".join(labels))
 
     @staticmethod
     def _add_hierarchy_comments(comments: list[Comment], record: InspireRecord) -> None:

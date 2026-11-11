@@ -54,12 +54,12 @@ catalog id is available for the landing-URL identifier fallback. A DOI is **not*
 
 ## Study
 
-| Source field                  | Description       | ARC Mapping                                                                            |
-| ----------------------------- | ----------------- | -------------------------------------------------------------------------------------- |
-| **`study.study_title`**       | Study title       | `Study.Title` (else `title`, else `"PhenoRoam Study"`)                                 |
-| **`study.study_description`** | Study description | `Study.Description` (else `description`)                                               |
-| Study title (slug)            | Study identifier  | `Study.Identifier` = slug of study title, or `phenoroam_study`                         |
-| **`keywords`**                | Keyword list      | Study table `Data Collection`: Parameter `Keywords` (comma-joined); omitted when empty |
+| Source field                  | Description       | ARC Mapping                                                                                                           |
+| ----------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **`study.study_title`**       | Study title       | `Study.Title` (else `title`, else `"PhenoRoam Study"`)                                                                |
+| **`study.study_description`** | Study description | `Study.Description` (else `description`)                                                                              |
+| Study title (slug)            | Study identifier  | `Study.Identifier` = slug of study title, or `phenoroam_study`                                                        |
+| **`keywords`**                | Keyword list      | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<label>]`; omitted when empty |
 
 ## Assay
 

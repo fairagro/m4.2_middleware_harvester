@@ -31,6 +31,7 @@ from rdflib.namespace import DCTERMS
 from rdflib.term import Node
 
 from middleware.payload.harvested_arc import HarvestedArc
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper, MappingContext
 from middleware.payload.linked_data_mapper.stable_graph import ResourceView, StableGraph
 from middleware.payload.mapper_config import DEFAULT_SPATIAL_EXTENT_MAX_CHARS, MapperConfig, MapperType
@@ -184,12 +185,6 @@ class _CkanextDcatRun:
             CompositeHeader.parameter(OntologyAnnotation(name="Processing Description")),
             [CompositeCell.term(OntologyAnnotation(name="Published dataset metadata harvested via DCAT-AP."))],
         )
-        keywords = self.view(subject).texts(DCAT.keyword)
-        if keywords:
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-                [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-            )
         languages = self.view(subject).texts(DCTERMS.language)
         if languages:
             table.AddColumn(
@@ -244,9 +239,7 @@ class _CkanextDcatRun:
         if modified:
             inv.Comments.append(Comment.create("Modified", modified))
 
-        keywords = view.texts(DCAT.keyword)
-        if keywords:
-            inv.Comments.append(Comment.create("Keywords", "; ".join(keywords)))
+        add_keyword_comments(inv, subjects=[(label, None) for label in view.texts(DCAT.keyword)])
 
         languages = view.texts(DCTERMS.language)
         if languages:
