@@ -496,6 +496,23 @@ def test_placeholders_in_optional_fields_mean_absent(mock_iso_record: MagicMock)
     assert rec.online_resources[0].description is None
 
 
+def test_placeholder_keyword_term_names_are_dropped(mock_iso_record: MagicMock) -> None:
+    """MD_Keywords dicts must not bypass list placeholder stripping (#35 review)."""
+    parser = IsoParser(IsoParserConfig(value_bounds=ValueBounds(), placeholders=GEONODE_PLACEHOLDERS))
+    mock_iso_record.identification.keywords = [
+        _md_keywords("None", ("crop rotation", "http://example.org/agrovoc/crop"), thesaurus="AGROVOC Keywords"),
+        "No information provided",
+        "real keyword",
+    ]
+
+    rec = parser.parse_record(mock_iso_record, record_uuid="uuid-123")
+
+    assert [(t.name, t.url, t.thesaurus) for t in rec.keywords] == [
+        ("crop rotation", "http://example.org/agrovoc/crop", "AGROVOC Keywords"),
+        ("real keyword", None, None),
+    ]
+
+
 def test_placeholder_in_required_field_is_kept(mock_iso_record: MagicMock) -> None:
     """Required title/abstract keep the source value; dropping them would fail the whole record."""
     parser = IsoParser(

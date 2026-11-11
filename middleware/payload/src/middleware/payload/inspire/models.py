@@ -215,8 +215,19 @@ class _HarvestedModel(BaseModel):
             if isinstance(value, str) and placeholders.matches(value):
                 del cleaned[name]
             elif isinstance(value, list):
-                cleaned[name] = [v for v in value if not (isinstance(v, str) and placeholders.matches(v))]
+                cleaned[name] = [v for v in value if _keep_list_item(v, placeholders)]
         return cleaned
+
+
+def _keep_list_item(item: object, placeholders: PlaceholderConfig) -> bool:
+    """Drop placeholder strings and KeywordTerm-shaped dicts whose ``name`` is a placeholder."""
+    if isinstance(item, str):
+        return not placeholders.matches(item)
+    if isinstance(item, dict) and set(item).issubset({"name", "url", "thesaurus"}):
+        name = item.get("name")
+        if isinstance(name, str) and placeholders.matches(name):
+            return False
+    return True
 
 
 class KeywordTerm(_HarvestedModel):
