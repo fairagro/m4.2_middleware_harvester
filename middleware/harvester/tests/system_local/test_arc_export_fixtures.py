@@ -30,9 +30,16 @@ def test_mvp_mapper_family_fixtures_present(
     arc_export_fixture_dirs: list[Path],
     arc_export_fixtures_root: Path,
 ) -> None:
-    """MVP covers inspire / schema.org-generic / regal representative RDI ids."""
+    """MVP covers inspire / schema.org-generic / regal; openagrar is MODS real-data (#614)."""
     rdi_ids = {path.relative_to(arc_export_fixtures_root).parts[0] for path in arc_export_fixture_dirs}
-    assert {"bonares", "openagrar", "publisso"} <= rdi_ids
+    # INSPIRE + Regal stand-ins (historical smoke RDI ids).
+    assert {"bonares", "publisso"} <= rdi_ids
+    # Schema.org/generic: edal/plabipd — not openagrar (live suite is MODS-mapped).
+    assert {"edal", "plabipd"} & rdi_ids, (
+        f"expected a Schema.org/generic RDI fixture (edal or plabipd), found {sorted(rdi_ids)}"
+    )
+    # OpenAgrar live MODS suite folder must remain present after smoke removal.
+    assert "openagrar" in rdi_ids
 
 
 def _nested_cases(arc_export_fixture_dirs: list[Path], root: Path, rdi: str) -> list[Path]:
@@ -89,3 +96,17 @@ def test_plabipd_real_data_suite_has_multiple_cases(
         f"expected ≥2 nested plabipd/<case>/ fixtures, found {len(plabipd_cases)}: "
         f"{[str(p.relative_to(arc_export_fixtures_root)) for p in plabipd_cases]}"
     )
+
+
+def test_openagrar_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed openagrar real-data suite must be multi-case (nested dirs), no root smoke."""
+    openagrar_cases = _nested_cases(arc_export_fixture_dirs, arc_export_fixtures_root, "openagrar")
+    assert len(openagrar_cases) >= 2, (
+        f"expected ≥2 nested openagrar/<case>/ fixtures, found {len(openagrar_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in openagrar_cases]}"
+    )
+    root_smoke = arc_export_fixtures_root / "openagrar" / "ro-crate-metadata.json"
+    assert not root_smoke.exists(), "openagrar root smoke crate must be removed once real-data suite lands"

@@ -1,0 +1,208 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_Julius_Kühn-Institut,_Bundesforschungsinstitut_für_Kulturpflanzen,_Institut_für_Rebenzüchtung_Geilweilerhof,_Siebeldingen",
+      "@type": "Organization",
+      "name": "Julius Kühn-Institut, Bundesforschungsinstitut für Kulturpflanzen, Institut für Rebenzüchtung Geilweilerhof, Siebeldingen"
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_Margit_Harst",
+      "@type": "Person",
+      "givenName": "Margit",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institut,_Bundesforschungsinstitut_für_Kulturpflanzen,_Institut_für_Rebenzüchtung_Geilweilerhof,_Siebeldingen"
+      },
+      "familyName": "Harst",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1059151456\"}"
+    },
+    {
+      "@id": "#Organization_Julius_Kühn-Institut,_Bundesforschungsinstitut_für_Kulturpflanzen,_Pressesprecherin_des_JKI,_Braunschweig",
+      "@type": "Organization",
+      "name": "Julius Kühn-Institut, Bundesforschungsinstitut für Kulturpflanzen, Pressesprecherin des JKI, Braunschweig"
+    },
+    {
+      "@id": "#Person_Gerlinde_Nachtigall",
+      "@type": "Person",
+      "givenName": "Gerlinde",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institut,_Bundesforschungsinstitut_für_Kulturpflanzen,_Pressesprecherin_des_JKI,_Braunschweig"
+      },
+      "familyName": "Nachtigall",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"172675464\"}"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00050000",
+      "@type": "URI",
+      "name": "https://www.openagrar.de/receive/openagrar_mods_00050000"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00050000"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#rights_reserved\"}",
+        "Comment {Name = \"Datafile Name\", Value = \"2013_0388.pdf\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_MODS",
+      "@type": "DefinedTerm",
+      "name": "MODS"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau",
+      "hasPart": [],
+      "name": "Der Asiatische Marienkäfer - ein brisantes Thema für den Weinbau?",
+      "about": {
+        "@id": "#Process_A_der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_MODS"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "studies/der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau",
+      "name": "Der Asiatische Marienkäfer - ein brisantes Thema für den Weinbau?"
+    },
+    {
+      "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00050000",
+      "@type": "Comment",
+      "name": "Source URL",
+      "text": "https://www.openagrar.de/receive/openagrar_mods_00050000"
+    },
+    {
+      "@id": "#LDComment_Language_de",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "de"
+    },
+    {
+      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#rights_reserved",
+      "@type": "Comment",
+      "name": "License",
+      "text": "http://www.mycore.org/classifications/mir_licenses#rights_reserved"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "http://www.mycore.org/classifications/mir_licenses#rights_reserved"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "openagrar_mods_00050000",
+      "creator": [
+        {
+          "@id": "#Person_Margit_Harst"
+        },
+        {
+          "@id": "#Person_Gerlinde_Nachtigall"
+        }
+      ],
+      "dateCreated": "2013",
+      "datePublished": "2013",
+      "hasPart": [
+        {
+          "@id": "assays/der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau/"
+        },
+        {
+          "@id": "studies/der_asiatische_marienk_fer_ein_brisantes_thema_f_r_den_weinbau/"
+        }
+      ],
+      "name": "Der Asiatische Marienkäfer - ein brisantes Thema für den Weinbau?",
+      "comment": [
+        {
+          "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00050000"
+        },
+        {
+          "@id": "#LDComment_Language_de"
+        },
+        {
+          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#rights_reserved"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T13:37:47.2571730",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

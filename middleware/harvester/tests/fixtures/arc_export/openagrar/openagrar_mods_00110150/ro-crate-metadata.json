@@ -1,0 +1,281 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_Julius_Kühn_Institute_(JKI),_Institute_for_Plant_Protection_in_Horticulture_and_Urban_Green,_Germany.",
+      "@type": "Organization",
+      "name": "Julius Kühn Institute (JKI), Institute for Plant Protection in Horticulture and Urban Green, Germany."
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "http://orcid.org/0009-0004-2610-6724",
+      "@type": "Person",
+      "givenName": "Jana",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn_Institute_(JKI),_Institute_for_Plant_Protection_in_Horticulture_and_Urban_Green,_Germany."
+      },
+      "familyName": "Furtwengler",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1256061514\"}"
+    },
+    {
+      "@id": "#Organization_Julius_Kühn_Institute_(JKI),_Institute_for_Plant_Protection_in_Horticulture_and_Urban_Green,_Germany",
+      "@type": "Organization",
+      "name": "Julius Kühn Institute (JKI), Institute for Plant Protection in Horticulture and Urban Green, Germany"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-4782-0714",
+      "@type": "Person",
+      "givenName": "Elias",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn_Institute_(JKI),_Institute_for_Plant_Protection_in_Horticulture_and_Urban_Green,_Germany"
+      },
+      "familyName": "Böckman",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1181976936\"}"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00110150",
+      "@type": "URI",
+      "name": "https://www.openagrar.de/receive/openagrar_mods_00110150"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00110150"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#cc_by_4.0\"}",
+        "Comment {Name = \"Datafile Name\", Value = \"Raw_data_diameter_preference_Pemphredon_lethifer_laboratory.xlsx\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_MODS",
+      "@type": "DefinedTerm",
+      "name": "MODS"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe",
+      "hasPart": [],
+      "name": "Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer",
+      "about": {
+        "@id": "#Process_A_trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_MODS"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Crabronidae,_trap_nest,_nesting_preferences,_nesting_habitat,_biocontrol",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Crabronidae, trap nest, nesting preferences, nesting habitat, biocontrol",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Crabronidae,_trap_nest,_nesting_preferences,_nesting_habitat,_biocontrol"
+      }
+    },
+    {
+      "@id": "studies/trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe",
+      "description": "This dataset contains the data from three studies on the pith diameter preference of the digger wasp Pemphredon lethifer (Shuckard 1837). P. lethifer is a potential biocontrol agent for aphid control and nests in pithy twigs like Rubus spp. or Sambucus ssp.. To develop a suitable nesting system, it was analysed whether P. lethifer prefers a specific pith diameter category and whether the diameter choice influences other parameters such as the number of offspring, sex ratio, mortality or parasitism. Twigs of four pith diameter categories ranging between 2.5 and 10.5 mm were offered in field trials as well as under controlled lab conditions. To analyse pith diameter choices in the field, trap nest catches were conducted in 2022 and 2023 in Braunschweig and the surrounding area. In addition, choice experiments were conducted in cages with single females in the laboratory. Pith diameter preferences in the field Trap nests in the field consisted of 16 bundeld twigs of Sambucus nigra (30 cm length), four of each category. Diameter was measured at one site and the other site of the twig was sealed to avoid nesting. Trap nests were installed at a height of 1 m with an angle of 30° and the open site orientated east. The trap nests were checked weekly for nesting and nests were removed directly (2002) or two weeks (2023) after the first sighting. Removed nests were replaced by twigs of the same category. Female digger wasps present in the nest were identified to genus level (2022) or species level (2023) and head width was measured. Nests were reared in the laboratory and emerging offspring were counted. Emerging offspring belonging to the genus Pemphredon were sexed and identified on species level. Parasitoids were counted and at least identified at super family level. The procedure was repeated after a cooling interval at 4 °C for 100 days. The cooling was repeated a second time in 2023. Finally, nests were opened and nests parameters and remains were documented. Pith diameter preferences in the laboratory For the choice experiments in the laboratory, freshly emerged, mated females were kept in individual catches and one twig per category was offered for nesting. The twigs were prepared as described for the pith diameter preferences in the field. Cages were checked for nests at least three times a week. Nests were documented, and a twig of the same category was added as soon as a nest was built to ensure always all choice options were given. The experiment ended with the death or disappearance of the wasp. Nests and offspring were handled as described for pith diameter preferences in the field. Detailed information about the methodology can be found in the corresponding publication. The dataset comprises three tables: Table 'Raw_data_Pemphredon_field_2022' includes all data regarding the trap nest catches of 2022. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_Pemphredon_field_2023' includes all data regarding the trap nest catches of 2023. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_diameter_preference_Pemphredon_lethifer_laboratory' includes all data regarding the laboratory cage experiments. This includes all data for each nest such as information on repetition, pith diameter, twig structure, nest structure or number and gender of offspring.",
+      "hasPart": [],
+      "name": "Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer",
+      "about": {
+        "@id": "#Process_S_trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "10.5073/20250926-163035-0",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.5073/20250926-163035-0",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_J. Furtwengler; E. Böckman",
+      "@type": "Person",
+      "givenName": "J. Furtwengler; E. Böckman"
+    },
+    {
+      "@id": "#Trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_preferences_of_the_digger_wasp_Pemphredon_lethifer",
+      "@type": "ScholarlyArticle",
+      "headline": "Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer",
+      "identifier": {
+        "@id": "10.5073/20250926-163035-0"
+      },
+      "author": {
+        "@id": "#Author_J. Furtwengler; E. Böckman"
+      }
+    },
+    {
+      "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00110150",
+      "@type": "Comment",
+      "name": "Source URL",
+      "text": "https://www.openagrar.de/receive/openagrar_mods_00110150"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0",
+      "@type": "Comment",
+      "name": "License",
+      "text": "http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "openagrar_mods_00110150",
+      "creator": [
+        {
+          "@id": "http://orcid.org/0009-0004-2610-6724"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-4782-0714"
+        }
+      ],
+      "dateCreated": "2026-08-03",
+      "datePublished": "2026-08-03",
+      "description": "This dataset contains the data from three studies on the pith diameter preference of the digger wasp Pemphredon lethifer (Shuckard 1837). P. lethifer is a potential biocontrol agent for aphid control and nests in pithy twigs like Rubus spp. or Sambucus ssp.. To develop a suitable nesting system, it was analysed whether P. lethifer prefers a specific pith diameter category and whether the diameter choice influences other parameters such as the number of offspring, sex ratio, mortality or parasitism. Twigs of four pith diameter categories ranging between 2.5 and 10.5 mm were offered in field trials as well as under controlled lab conditions. To analyse pith diameter choices in the field, trap nest catches were conducted in 2022 and 2023 in Braunschweig and the surrounding area. In addition, choice experiments were conducted in cages with single females in the laboratory. Pith diameter preferences in the field Trap nests in the field consisted of 16 bundeld twigs of Sambucus nigra (30 cm length), four of each category. Diameter was measured at one site and the other site of the twig was sealed to avoid nesting. Trap nests were installed at a height of 1 m with an angle of 30° and the open site orientated east. The trap nests were checked weekly for nesting and nests were removed directly (2002) or two weeks (2023) after the first sighting. Removed nests were replaced by twigs of the same category. Female digger wasps present in the nest were identified to genus level (2022) or species level (2023) and head width was measured. Nests were reared in the laboratory and emerging offspring were counted. Emerging offspring belonging to the genus Pemphredon were sexed and identified on species level. Parasitoids were counted and at least identified at super family level. The procedure was repeated after a cooling interval at 4 °C for 100 days. The cooling was repeated a second time in 2023. Finally, nests were opened and nests parameters and remains were documented. Pith diameter preferences in the laboratory For the choice experiments in the laboratory, freshly emerged, mated females were kept in individual catches and one twig per category was offered for nesting. The twigs were prepared as described for the pith diameter preferences in the field. Cages were checked for nests at least three times a week. Nests were documented, and a twig of the same category was added as soon as a nest was built to ensure always all choice options were given. The experiment ended with the death or disappearance of the wasp. Nests and offspring were handled as described for pith diameter preferences in the field. Detailed information about the methodology can be found in the corresponding publication. The dataset comprises three tables: Table 'Raw_data_Pemphredon_field_2022' includes all data regarding the trap nest catches of 2022. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_Pemphredon_field_2023' includes all data regarding the trap nest catches of 2023. This includes all data for each nest such as information on pith diameter, twig structure, nesting, nest structure, offspring and parasitism. Table 'Raw_data_diameter_preference_Pemphredon_lethifer_laboratory' includes all data regarding the laboratory cage experiments. This includes all data for each nest such as information on repetition, pith diameter, twig structure, nest structure or number and gender of offspring.",
+      "hasPart": [
+        {
+          "@id": "assays/trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe/"
+        },
+        {
+          "@id": "studies/trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_prefe/"
+        }
+      ],
+      "name": "Trap nest and laboratory experiment data used to investigate pith diameter preferences of the digger wasp Pemphredon lethifer",
+      "citation": {
+        "@id": "#Trap_nest_and_laboratory_experiment_data_used_to_investigate_pith_diameter_preferences_of_the_digger_wasp_Pemphredon_lethifer"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00110150"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T13:37:45.7929040",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

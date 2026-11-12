@@ -127,6 +127,17 @@ production or `arc-export` gap appears.
   license, keywords, shared-DOI / composite discovery identifier edges), and `docs/arc-export-fixtures.md` no longer
   lists plabipd as deferred-only
 
+#### Scenario: Openagrar real-data suite is multi-case
+
+- **WHEN** the openagrar real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for openagrar under
+  `fixtures/arc_export/openagrar/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), cases MUST originate from the live MyCoRe
+  REST + MODS client path (not the local `openagrar-fixture` stand-in or synthetic Schema.org smoke), docs/`README`
+  state which OpenAgrar/MODS input features each file covers (for example title/identifier, person vs organization
+  creators, license, subjects/keywords, related items), the root smoke crate MUST NOT remain once the suite lands, and
+  `docs/arc-export-fixtures.md` no longer lists openagrar (live / MODS) as deferred-only
+
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
 
 - **WHEN** a landed real-data suite folder for an active RDI is inspected
