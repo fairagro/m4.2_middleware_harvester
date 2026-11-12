@@ -1,0 +1,251 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_University_of_Bonn",
+      "@type": "Organization",
+      "name": "University of Bonn"
+    },
+    {
+      "@id": "#Person_Julius_Rückin",
+      "@type": "Person",
+      "givenName": "Julius",
+      "affiliation": {
+        "@id": "#Organization_University_of_Bonn"
+      },
+      "email": "redacted@example.invalid",
+      "familyName": "Rückin"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869",
+      "@type": "URI",
+      "name": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_informative_path_planning_framework_for_active_learning_in_uav_based_semantic_ma_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"DATA PROVISION * All data collected or created within the framework of PhenoRob must be made available to the PhenoRob Database immediately. * The datasets must be sufficiently documented including data format, structure and quality to allow for easy access and use, if possible adhering to existing standards. * Datasets submitted to the PhenoRob Database must be accompanied by metadata. The metadata are open access. DATA USE *Users have to inform the owner of the data of their intended use, and, in case of planned publication, the owner of the data has to be involved. Authorship needs to be negotiated with the owner of the data. * Users agree not to distribute datasets of the PhenoRob Database to others (third persons) without prior consent by the owner of the data. * Users agree to use PhenoRob data only for non-commercial scientific purposes. In case of conflict the PhenoRob Executive Board should mediate.\"}",
+        "Comment {Name = \"Datafile Link\", Value = \"https://phenoroam.phenorob.de/file-uploader/download/1878135163-flightmare.zip;https://phenoroam.phenorob.de/file-uploader/download/4930684482-potsdam.zip;https://phenoroam.phenorob.de/file-uploader/download/2463968057-rit18.zip;https://phenoroam.phenorob.de/file-uploader/download/6314864478-worlds.zip;https://phenoroam.phenorob.de/file-uploader/download/244704144-pretrained.zip\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_PhenoRoam",
+      "@type": "DefinedTerm",
+      "name": "PhenoRoam"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/informative_path_planning_framework_for_active_learning_in_uav_based_semantic_ma/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "informative_path_planning_framework_for_active_learning_in_uav_based_semantic_ma",
+      "hasPart": [],
+      "name": "Informative Path Planning Framework for Active Learning in UAV-based Semantic Mapping",
+      "about": {
+        "@id": "#Process_A_informative_path_planning_framework_for_active_learning_in_uav_based_semantic_ma_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_PhenoRoam"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Semantic_Segmentation,_UAV,_RGB_images,_Urban_Planning",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Semantic Segmentation, UAV, RGB images, Urban Planning",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_semantic_segmentation_in_uav_based_semantic_mapping_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Semantic_Segmentation,_UAV,_RGB_images,_Urban_Planning"
+      }
+    },
+    {
+      "@id": "studies/semantic_segmentation_in_uav_based_semantic_mapping/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "semantic_segmentation_in_uav_based_semantic_mapping",
+      "description": "Semantic segmentation of aerial RGB images for different UAV-based terrain mapping missions: (1) urban planning, (2) landcover analysis, (3) industrial monitoring",
+      "hasPart": [],
+      "name": "Semantic Segmentation in UAV-based Semantic Mapping",
+      "about": {
+        "@id": "#Process_S_semantic_segmentation_in_uav_based_semantic_mapping_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869"
+    },
+    {
+      "@id": "#LDComment_How_To_Cite_Rückin,_J.,_Magistri,_F.,_Stachniss,_C.,_&_Popovic,_M._(2023)._An_Informative_Path_Planning_Framework_for_Active_Learning_in_UAV-based_Semantic_Mapping._arXiv_preprint_arXiv:2302.03347.",
+      "@type": "Comment",
+      "name": "How To Cite",
+      "text": "Rückin, J., Magistri, F., Stachniss, C., & Popovic, M. (2023). An Informative Path Planning Framework for Active Learning in UAV-based Semantic Mapping. arXiv preprint arXiv:2302.03347."
+    },
+    {
+      "@id": "#LDComment_Funded_By_This_work_has_been_funded_by_the_Deutsche_Forschungsgemeinschaft_(DFG,_German_Research_Foundation)_under_Germany's_Excellence_Strategy,_EXC-2070_--_390732324_(PhenoRob).",
+      "@type": "Comment",
+      "name": "Funded By",
+      "text": "This work has been funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence Strategy, EXC-2070 -- 390732324 (PhenoRob)."
+    },
+    {
+      "@id": "#LDComment_Download_Information_Original_orthomosaics:_https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx",
+      "@type": "Comment",
+      "name": "Download Information",
+      "text": "Original orthomosaics: https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx"
+    },
+    {
+      "@id": "#LDComment_Core_Project_CP4:_Autonomous_In-Field_Intervention",
+      "@type": "Comment",
+      "name": "Core Project",
+      "text": "CP4: Autonomous In-Field Intervention"
+    },
+    {
+      "@id": "#LDComment_Thumbnail_https://phenoroam.phenorob.de:/geonetwork/srv/api/records/9f1b0543-6377-47b0-8385-3406a0090869/attachments/potsdam_classification.png",
+      "@type": "Comment",
+      "name": "Thumbnail",
+      "text": "https://phenoroam.phenorob.de:/geonetwork/srv/api/records/9f1b0543-6377-47b0-8385-3406a0090869/attachments/potsdam_classification.png"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "9f1b0543-6377-47b0-8385-3406a0090869",
+      "creator": {
+        "@id": "#Person_Julius_Rückin"
+      },
+      "dateCreated": "2023-02-23",
+      "datePublished": "2026-11-12T14:14:26.5786550",
+      "description": "This dataset contains semantic segmentation train-validation-test data splits of (1) the ISPRS Potsdam orthomosaic (https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx), (2) the RIT-18 landcover orthomosaic (https://github.com/rmkemker/RIT-18), and (3) the industrial environment of the photorealistic Flightmare quadrotor simulator (https://github.com/uzh-rpg/flightmare). All splits are generated by simulating UAV missions at fixed altitudes. We use these datasets in our \"An Informative Path Planning Framework for Active Learning in UAV-based Semantic Mapping\" paper. Further, it contains (4) model checkpoints of our proposed Bayesian ERFNet framework (https://github.com/dmar-bonn/bayesian_erfnet) pre-trained on Cityscapes, (5) the ISPRS Potsdam and RIT-18 RGB and semantically labelled orthomosaics, and (6) the Flightmare render binary for the industrial environment.",
+      "hasPart": [
+        {
+          "@id": "assays/informative_path_planning_framework_for_active_learning_in_uav_based_semantic_ma/"
+        },
+        {
+          "@id": "studies/semantic_segmentation_in_uav_based_semantic_mapping/"
+        }
+      ],
+      "name": "Informative Path Planning Framework for Active Learning in UAV-based Semantic Mapping",
+      "comment": [
+        {
+          "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/9f1b0543-6377-47b0-8385-3406a0090869"
+        },
+        {
+          "@id": "#LDComment_How_To_Cite_Rückin,_J.,_Magistri,_F.,_Stachniss,_C.,_&_Popovic,_M._(2023)._An_Informative_Path_Planning_Framework_for_Active_Learning_in_UAV-based_Semantic_Mapping._arXiv_preprint_arXiv:2302.03347."
+        },
+        {
+          "@id": "#LDComment_Funded_By_This_work_has_been_funded_by_the_Deutsche_Forschungsgemeinschaft_(DFG,_German_Research_Foundation)_under_Germany's_Excellence_Strategy,_EXC-2070_--_390732324_(PhenoRob)."
+        },
+        {
+          "@id": "#LDComment_Download_Information_Original_orthomosaics:_https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx"
+        },
+        {
+          "@id": "#LDComment_Core_Project_CP4:_Autonomous_In-Field_Intervention"
+        },
+        {
+          "@id": "#LDComment_Thumbnail_https://phenoroam.phenorob.de:/geonetwork/srv/api/records/9f1b0543-6377-47b0-8385-3406a0090869/attachments/potsdam_classification.png"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T14:14:26.5805770",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
