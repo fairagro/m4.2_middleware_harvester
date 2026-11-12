@@ -1,0 +1,274 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.1038/35048692",
+      "@type": "URI",
+      "name": "https://doi.org/10.1038/35048692"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.1038/35048692"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0/\"}",
+        "Comment {Name = \"Publisher\", Value = \"Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana",
+      "hasPart": [],
+      "name": "Analysis of the genome sequence of the flowering plant Arabidopsis thaliana.",
+      "about": {
+        "@id": "#Process_A_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Arabidopsis_thaliana,_rosid,_1,_Thale_cress",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Arabidopsis thaliana, rosid, 1, Thale cress",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Arabidopsis_thaliana,_rosid,_1,_Thale_cress"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+      }
+    },
+    {
+      "@id": "studies/analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana",
+      "datePublished": "2000-12-14",
+      "description": "Genomic dataset for Arabidopsis thaliana. Commonly known as Thale cress. Genome size: 130 Mb. Originally published in: Nature. 2000 Dec 14 408(6814):796-815.",
+      "hasPart": [],
+      "name": "Analysis of the genome sequence of the flowering plant Arabidopsis thaliana.",
+      "about": [
+        {
+          "@id": "#Process_S_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.1038/35048692",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.1038/35048692",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Analysis_of_the_genome_sequence_of_the_flowering_plant_Arabidopsis_thaliana.",
+      "@type": "ScholarlyArticle",
+      "headline": "Analysis of the genome sequence of the flowering plant Arabidopsis thaliana.",
+      "identifier": {
+        "@id": "10.1038/35048692"
+      }
+    },
+    {
+      "@id": "#Nature._2000_Dec_14_408(6814):796-815.",
+      "@type": "ScholarlyArticle",
+      "headline": "Nature. 2000 Dec 14 408(6814):796-815.",
+      "identifier": []
+    },
+    {
+      "@id": "#LDComment_Creator_Organization_Arabidopsis_Genome_Initiative",
+      "@type": "Comment",
+      "name": "Creator Organization",
+      "text": "Arabidopsis Genome Initiative"
+    },
+    {
+      "@id": "#LDComment_Keywords_Arabidopsis_thaliana,_rosid,_1,_Thale_cress",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "Arabidopsis thaliana, rosid, 1, Thale cress"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "doi_org_10_1038_35048692:7cc2766e3ba04cda",
+      "datePublished": "2000-12-14",
+      "description": "Genomic dataset for Arabidopsis thaliana. Commonly known as Thale cress. Genome size: 130 Mb. Originally published in: Nature. 2000 Dec 14 408(6814):796-815.",
+      "hasPart": [
+        {
+          "@id": "assays/analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana/"
+        },
+        {
+          "@id": "studies/analysis_of_the_genome_sequence_of_the_flowering_plant_arabidopsis_thaliana/"
+        }
+      ],
+      "name": "Analysis of the genome sequence of the flowering plant Arabidopsis thaliana.",
+      "citation": [
+        {
+          "@id": "#Analysis_of_the_genome_sequence_of_the_flowering_plant_Arabidopsis_thaliana."
+        },
+        {
+          "@id": "#Nature._2000_Dec_14_408(6814):796-815."
+        }
+      ],
+      "comment": [
+        {
+          "@id": "#LDComment_Creator_Organization_Arabidopsis_Genome_Initiative"
+        },
+        {
+          "@id": "#LDComment_Keywords_Arabidopsis_thaliana,_rosid,_1,_Thale_cress"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T12:13:26.0285620",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
