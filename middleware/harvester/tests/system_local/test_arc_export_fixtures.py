@@ -77,3 +77,15 @@ def test_publisso_real_data_suite_has_multiple_cases(
         f"expected ≥2 nested publisso/<case>/ fixtures, found {len(publisso_cases)}: "
         f"{[str(p.relative_to(arc_export_fixtures_root)) for p in publisso_cases]}"
     )
+
+
+def test_plabipd_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed plabipd real-data suite must be multi-case (nested dirs)."""
+    plabipd_cases = _nested_cases(arc_export_fixture_dirs, arc_export_fixtures_root, "plabipd")
+    assert len(plabipd_cases) >= 2, (
+        f"expected ≥2 nested plabipd/<case>/ fixtures, found {len(plabipd_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in plabipd_cases]}"
+    )
