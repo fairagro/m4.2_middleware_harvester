@@ -361,6 +361,70 @@ def test_from_config_passes_individual_name_is_organisation() -> None:
     assert not list(inv.Contacts)
 
 
+def test_orcid_online_resource_url_sets_person_orcid() -> None:
+    record = _minimal_record(
+        contacts=[
+            Contact(
+                name="Jane Doe",
+                role="author",
+                online_resource_url="https://orcid.org/0000-0002-1825-0097",
+                online_resource_name="ORCID",
+            )
+        ]
+    )
+
+    inv = InspireMapper().map_investigation(record)
+
+    assert len(list(inv.Contacts)) == 1
+    person = inv.Contacts[0]
+    assert person.ORCID == "0000-0002-1825-0097"
+    assert not list(person.Comments)
+
+
+def test_orcid_online_resource_name_sets_person_orcid() -> None:
+    record = _minimal_record(
+        contacts=[Contact(name="Jane Doe", role="author", online_resource_name="0000-0002-1825-0097")]
+    )
+
+    inv = InspireMapper().map_investigation(record)
+
+    assert inv.Contacts[0].ORCID == "0000-0002-1825-0097"
+    assert not list(inv.Contacts[0].Comments)
+
+
+def test_orcid_name_with_website_url_uses_generic_comment_name() -> None:
+    url = "https://example.org/people/jane"
+    record = _minimal_record(
+        contacts=[
+            Contact(
+                name="Jane Doe",
+                role="author",
+                online_resource_url=url,
+                online_resource_name="0000-0002-1825-0097",
+            )
+        ]
+    )
+
+    inv = InspireMapper().map_investigation(record)
+
+    person = inv.Contacts[0]
+    assert person.ORCID == "0000-0002-1825-0097"
+    assert [(c.Name, c.Value) for c in person.Comments] == [("Online Resource", url)]
+
+
+def test_non_orcid_online_resource_stays_comment() -> None:
+    url = "https://example.org/people/jane"
+    record = _minimal_record(
+        contacts=[Contact(name="Jane Doe", role="author", online_resource_url=url, online_resource_name="Homepage")]
+    )
+
+    inv = InspireMapper().map_investigation(record)
+
+    person = inv.Contacts[0]
+    assert not person.ORCID
+    assert [(c.Name, c.Value) for c in person.Comments] == [("Homepage", url)]
+
+
 # --- no invented data files (#353) ------------------------------------------
 
 

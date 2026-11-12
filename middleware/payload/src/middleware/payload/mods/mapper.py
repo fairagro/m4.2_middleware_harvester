@@ -31,7 +31,12 @@ from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
 from middleware.payload.mods.models import ModsName, ModsRecord
 from middleware.payload.parsed_payload import ParsedPayload
-from middleware.payload.person_contacts import add_contact, publication_authors, require_nonempty_person_given_names
+from middleware.payload.person_contacts import (
+    add_contact,
+    orcid_id,
+    publication_authors,
+    require_nonempty_person_given_names,
+)
 from middleware.payload.person_names import split_display_name
 from middleware.payload.placeholders import PlaceholderConfig
 
@@ -209,9 +214,8 @@ class ModsMapper(DataMapper[MappingContext]):
         comments: list[Comment] = []
         if contact.gnd and contact.gnd.strip():
             comments.append(Comment.create("GND", contact.gnd.strip()))
-        orcid = (contact.orcid or "").strip() or None
         return Person.create(
-            orcid=orcid,
+            orcid=orcid_id(contact.orcid),
             last_name=family or "",
             first_name=given,
             affiliation=contact.affiliation or "",
