@@ -422,10 +422,10 @@
       "text": "frl:6420709.rdf"
     },
     {
-      "@id": "#LDComment_isPrimaryTopicOf_http://localhost:8080/resource/frl:6420709/edit",
+      "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6420709/edit",
       "@type": "Comment",
       "name": "isPrimaryTopicOf",
-      "text": "http://localhost:8080/resource/frl:6420709/edit"
+      "text": "https://repository.publisso.de/resource/frl:6420709/edit"
     },
     {
       "@id": "#LDComment_primaryTopic_frl:6420709",
@@ -546,7 +546,7 @@
           "@id": "#LDComment_isDescribedBy_frl:6420709.rdf"
         },
         {
-          "@id": "#LDComment_isPrimaryTopicOf_http://localhost:8080/resource/frl:6420709/edit"
+          "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6420709/edit"
         },
         {
           "@id": "#LDComment_primaryTopic_frl:6420709"
