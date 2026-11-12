@@ -110,6 +110,20 @@ def test_mods_mapper_orcid_url_normalizes_to_bare_id() -> None:
     assert arc.Contacts[0].ORCID == "0000-0002-1825-0097"
 
 
+def test_mods_mapper_invalid_orcid_string_leaves_orcid_empty() -> None:
+    record = ModsRecord(
+        object_id="orcid_bad_1",
+        title="Invalid ORCID creator",
+        doi="10.1/orcid-bad",
+        names=[ModsName(given="Jane", family="Doe", orcid="not-an-orcid", role_codes=["aut"])],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/orcid_bad_1", harvest_source_id="orcid_bad_1"),
+    )
+    assert not arc.Contacts[0].ORCID
+
+
 def test_mods_mapper_gnd_only_leaves_orcid_empty() -> None:
     record = ModsRecord(
         object_id="gnd_only_1",
