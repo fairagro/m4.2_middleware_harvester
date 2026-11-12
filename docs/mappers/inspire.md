@@ -100,7 +100,7 @@ Detailed contact information for persons and organizations.
 | **contactInfo/fax**                   | `fax`                                              | Fax number                                 | `Person.Fax`                                                                                                                                                                                                                                                                                                                                                  |
 | **contactInfo/address**               | `address`, `city`, `region`, `postcode`, `country` | Full postal address                        | `Person.Address` (formatted)                                                                                                                                                                                                                                                                                                                                  |
 | **contactInfo/electronicMailAddress** | `email`                                            | Email address                              | `Person.Email`                                                                                                                                                                                                                                                                                                                                                |
-| **contactInfo/onlineResource**        | `onlineresource` (CI_OnlineResource)               | Website URL                                | `Person` comment (ORCID or website)                                                                                                                                                                                                                                                                                                                           |
+| **contactInfo/onlineResource**        | `onlineresource` (CI_OnlineResource)               | Website / ORCID URL                        | ORCID URL or bare iD (via `orcid_id` on linkage, else name) → `Person.ORCID` (no duplicate Comment). Non-ORCID → `Person` comment (`online_resource_name` or `Online Resource`)                                                                                                                                                                               |
 | **role**                              | `role`                                             | Role code (custodian, owner, author, etc.) | `Person.Roles` (via ontology mapping to NCIT terms); also names organisation-only Comments                                                                                                                                                                                                                                                                    |
 
 ### 5. MD_Constraints (Legal and Security Constraints)
@@ -318,7 +318,8 @@ Map CI_ResponsibleParty objects using ISO field typing:
   - principalInvestigator → NCIT:C70910 (Principal Investigator)
   - processor → NCIT:C70911 (Processor)
   - metadataContact → NCIT:C70912 (Metadata Contact)
-- **Comments**: positionName, onlineResource (ORCID or website URL)
+- **ORCID**: contactInfo/onlineResource linkage (else name) when ORCID-shaped → `Person.ORCID` (bare iD); not a Comment
+- **Comments**: positionName; onlineResource website URL when not an ORCID
 
 ### OntologyAnnotation (Keywords)
 

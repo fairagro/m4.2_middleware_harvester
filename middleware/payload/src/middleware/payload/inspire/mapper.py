@@ -34,6 +34,7 @@ from middleware.payload.mapping_context import MappingContext
 from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.person_contacts import (
     add_creator_organization,
+    orcid_id,
     publication_authors,
     require_nonempty_person_given_names,
 )
@@ -125,7 +126,11 @@ class InspireMapper(DataMapper[MappingContext]):
             )
 
         full_address = self._format_address(contact)
+        orcid = orcid_id(str(contact.online_resource_url) if contact.online_resource_url else None)
+        if orcid is None:
+            orcid = orcid_id(contact.online_resource_name)
         person = Person.create(
+            orcid=orcid,
             last_name=last_name,
             first_name=first_name,
             email=contact.email,
@@ -188,12 +193,20 @@ class InspireMapper(DataMapper[MappingContext]):
 
     @staticmethod
     def _add_person_comments(person: Person, contact: Contact) -> None:
-        """Add comments to person from position and online resources."""
+        """Add comments to person from position and online resources.
+
+        ORCID online resources become ``Person.ORCID`` in ``map_person``; do not
+        duplicate them as Comments.
+        """
         if contact.position:
             person.Comments.append(Comment.create("Position", contact.position))
-        if contact.online_resource_url:
-            name = contact.online_resource_name or "Online Resource"
-            person.Comments.append(Comment.create(name, contact.online_resource_url))
+        if not contact.online_resource_url:
+            return
+        url = str(contact.online_resource_url)
+        if person.ORCID and orcid_id(url) == person.ORCID:
+            return
+        name = contact.online_resource_name or "Online Resource"
+        person.Comments.append(Comment.create(name, url))
 
     def map_investigation(self, record: InspireRecord) -> ArcInvestigation:
         """Map to ArcInvestigation with enhanced metadata-level fields."""

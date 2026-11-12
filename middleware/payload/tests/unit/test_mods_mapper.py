@@ -87,3 +87,40 @@ def test_mods_mapper_openagrar_fixture_parity_fields() -> None:
 def test_mods_mapper_refuses_missing_title() -> None:
     with pytest.raises(ValueError, match="no title"):
         ModsMapper().map_record(ModsRecord(object_id="x", doi="10.1/x"))
+
+
+def test_mods_mapper_orcid_url_normalizes_to_bare_id() -> None:
+    record = ModsRecord(
+        object_id="orcid_url_1",
+        title="ORCID URL creator",
+        doi="10.1/orcid-url",
+        names=[
+            ModsName(
+                given="Jane",
+                family="Doe",
+                orcid="https://orcid.org/0000-0002-1825-0097",
+                role_codes=["aut"],
+            )
+        ],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/orcid_url_1", harvest_source_id="orcid_url_1"),
+    )
+    assert arc.Contacts[0].ORCID == "0000-0002-1825-0097"
+
+
+def test_mods_mapper_gnd_only_leaves_orcid_empty() -> None:
+    record = ModsRecord(
+        object_id="gnd_only_1",
+        title="GND only creator",
+        doi="10.1/gnd-only",
+        names=[ModsName(given="Jane", family="Doe", gnd="123456789", role_codes=["aut"])],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/gnd_only_1", harvest_source_id="gnd_only_1"),
+    )
+    person = arc.Contacts[0]
+    assert not person.ORCID
+    assert [(c.Name, c.Value) for c in person.Comments] == [("GND", "123456789")]
