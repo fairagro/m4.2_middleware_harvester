@@ -138,6 +138,17 @@ production or `arc-export` gap appears.
   creators, license, subjects/keywords, related items), the root smoke crate MUST NOT remain once the suite lands, and
   `docs/arc-export-fixtures.md` no longer lists openagrar (live / MODS) as deferred-only
 
+#### Scenario: Phenoroam real-data suite is multi-case
+
+- **WHEN** the phenoroam real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for phenoroam under
+  `fixtures/arc_export/phenoroam/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), cases MUST originate from the live OAI-PMH
+  - `phenoroam_xml` + `phenoroam_general` client path (not synthetic one-field Investigations), docs/`README` state
+    which PhenoRoam input features each file covers (for example bbox / spatial, Person contacts±affiliation, keywords,
+    license, datafile-link comments, study-parent titles), no root smoke crate is required, and
+    `docs/arc-export-fixtures.md` no longer lists phenoroam as deferred-only
+
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
 
 - **WHEN** a landed real-data suite folder for an active RDI is inspected

@@ -58,7 +58,7 @@ only (smoke removed in #614).
 | sradi                   | Deferred — #612                                                                                                                 |
 | plabipd                 | Real-data cases under `fixtures/arc_export/plabipd/<composite-id>/`; see that folder’s `README.md` (#613)                       |
 | openagrar (live / MODS) | Real-data cases under `fixtures/arc_export/openagrar/<mods-id>/` (no root smoke); see that folder’s `README.md` (#614)          |
-| phenoroam               | Deferred — #615                                                                                                                 |
+| phenoroam               | Real-data cases under `fixtures/arc_export/phenoroam/<uuid>/`; see that folder’s `README.md` (#615)                             |
 | openagrar-fixture       | Local fixture-server stand-in only; does not satisfy the OpenAgrar live suite (#614)                                            |
 
 ## Generate a real-data fixture

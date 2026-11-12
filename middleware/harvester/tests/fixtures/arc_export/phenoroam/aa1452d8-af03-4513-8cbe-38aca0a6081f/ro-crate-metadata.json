@@ -1,0 +1,224 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_University_of_Bonn",
+      "@type": "Organization",
+      "name": "University of Bonn"
+    },
+    {
+      "@id": "#Person_Hendrik_Zeddies",
+      "@type": "Person",
+      "givenName": "Hendrik",
+      "affiliation": {
+        "@id": "#Organization_University_of_Bonn"
+      },
+      "email": "redacted@example.invalid",
+      "familyName": "Zeddies"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f",
+      "@type": "URI",
+      "name": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_public_attitudes_towards_agricultural_robots_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"DATA PROVISION * All data collected or created within the framework of PhenoRob must be made available to the PhenoRob Database immediately. * The datasets must be sufficiently documented including data format, structure and quality to allow for easy access and use, if possible adhering to existing standards. * Datasets submitted to the PhenoRob Database must be accompanied by metadata. The metadata are open access. DATA USE *Users have to inform the owner of the data of their intended use, and, in case of planned publication, the owner of the data has to be involved. Authorship needs to be negotiated with the owner of the data. * Users agree not to distribute datasets of the PhenoRob Database to others (third persons) without prior consent by the owner of the data. * Users agree to use PhenoRob data only for non-commercial scientific purposes. In case of conflict the PhenoRob Executive Board should mediate.\"}",
+        "Comment {Name = \"Datafile Link\", Value = \"https://phenoroam.phenorob.de:/geonetwork/srv/api/records/aa1452d8-af03-4513-8cbe-38aca0a6081f/attachments/Positive%20public%20attitude%20towards%20agricultural%20robots.zip;https://phenoroam.phenorob.de:/geonetwork/srv/api/records/aa1452d8-af03-4513-8cbe-38aca0a6081f/attachments/Positive%20public%20attitudes%20towards%20agricultural%20robots_Do.zip;https://phenoroam.phenorob.de:/geonetwork/srv/api/records/aa1452d8-af03-4513-8cbe-38aca0a6081f/attachments/Positive%20public%20attitudes%20towards%20agricultural%20robots_Factoranalysis&Reliability.zip\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_PhenoRoam",
+      "@type": "DefinedTerm",
+      "name": "PhenoRoam"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/public_attitudes_towards_agricultural_robots/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "public_attitudes_towards_agricultural_robots",
+      "hasPart": [],
+      "name": "Public attitudes towards agricultural robots",
+      "about": {
+        "@id": "#Process_A_public_attitudes_towards_agricultural_robots_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_PhenoRoam"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Public_perception",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Public perception",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_public_perceptions_of_digil_farming_technologies_and_future_farming_systems_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Public_perception"
+      }
+    },
+    {
+      "@id": "studies/public_perceptions_of_digil_farming_technologies_and_future_farming_systems/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "public_perceptions_of_digil_farming_technologies_and_future_farming_systems",
+      "description": "This data set contains online survey data from an experiment investigating German public attitudes towards agricultural robots. Major components are the data set containing 2,269 complete questionnaires (after data cleaning), the according Stata do-file to analyze the data and the output files from the preceding construct validity tests in SPSS.",
+      "hasPart": [],
+      "name": "Public perceptions of digil farming technologies and future farming systems",
+      "about": {
+        "@id": "#Process_S_public_perceptions_of_digil_farming_technologies_and_future_farming_systems_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f"
+    },
+    {
+      "@id": "#LDComment_Core_Project_CP6:_Technology_Adoption_and_Impact",
+      "@type": "Comment",
+      "name": "Core Project",
+      "text": "CP6: Technology Adoption and Impact"
+    },
+    {
+      "@id": "#LDComment_Thumbnail_http://www.phenorob.de/wp-content/uploads/2019/08/cropped-Logo_PhenoRob-notxt-1.png",
+      "@type": "Comment",
+      "name": "Thumbnail",
+      "text": "http://www.phenorob.de/wp-content/uploads/2019/08/cropped-Logo_PhenoRob-notxt-1.png"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "aa1452d8-af03-4513-8cbe-38aca0a6081f",
+      "creator": {
+        "@id": "#Person_Hendrik_Zeddies"
+      },
+      "dateCreated": "2024-05-14",
+      "datePublished": "2026-11-12T14:14:26.6315340",
+      "description": "This data set contains online survey data from an experiment investigating German public attitudes towards agricultural robots. Major components are the data set containing 2,269 complete questionnaires (after data cleaning), the according Stata do-file to analyze the data and the output files from the preceding construct validity tests in SPSS.",
+      "hasPart": [
+        {
+          "@id": "assays/public_attitudes_towards_agricultural_robots/"
+        },
+        {
+          "@id": "studies/public_perceptions_of_digil_farming_technologies_and_future_farming_systems/"
+        }
+      ],
+      "name": "Public perceptions of digil farming technologies and future farming systems",
+      "comment": [
+        {
+          "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/aa1452d8-af03-4513-8cbe-38aca0a6081f"
+        },
+        {
+          "@id": "#LDComment_Core_Project_CP6:_Technology_Adoption_and_Impact"
+        },
+        {
+          "@id": "#LDComment_Thumbnail_http://www.phenorob.de/wp-content/uploads/2019/08/cropped-Logo_PhenoRob-notxt-1.png"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T14:14:26.6332300",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

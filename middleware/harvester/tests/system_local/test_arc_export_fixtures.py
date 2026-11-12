@@ -110,3 +110,17 @@ def test_openagrar_real_data_suite_has_multiple_cases(
     )
     root_smoke = arc_export_fixtures_root / "openagrar" / "ro-crate-metadata.json"
     assert not root_smoke.exists(), "openagrar root smoke crate must be removed once real-data suite lands"
+
+
+def test_phenoroam_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed phenoroam real-data suite must be multi-case (nested dirs), no root smoke."""
+    phenoroam_cases = _nested_cases(arc_export_fixture_dirs, arc_export_fixtures_root, "phenoroam")
+    assert len(phenoroam_cases) >= 2, (
+        f"expected ≥2 nested phenoroam/<case>/ fixtures, found {len(phenoroam_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in phenoroam_cases]}"
+    )
+    root_smoke = arc_export_fixtures_root / "phenoroam" / "ro-crate-metadata.json"
+    assert not root_smoke.exists(), "phenoroam must not invent a root smoke crate"
