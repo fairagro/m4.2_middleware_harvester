@@ -16,7 +16,7 @@ lack usable spatial coverage. PhenoRoam has a four-side bbox but only an Assay c
 - **PhenoRoam:** When `pr:blockBBox` has usable sides, emit Study Spatial Sampling with parameter `Bounding Box` in the
   same schema.org string; stop dual-writing the Assay `Geographic Bounding Box` `W:… E:… S:… N:…` comment (single
   catalog contract).
-- **Shared helper** (optional small util in `middleware.payload`) to format four floats as the schema.org box string.
+- **Shared helper** `bounding_box` in `middleware.payload.geo` to format four floats as `south west north east`.
 - **Docs / OpenSpec:** Document the ARC ParameterValue contract and source→order conversion for INSPIRE and PhenoRoam.
 
 ### Non-goals

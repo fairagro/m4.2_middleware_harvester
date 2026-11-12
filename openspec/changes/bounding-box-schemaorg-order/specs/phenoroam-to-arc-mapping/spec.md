@@ -2,11 +2,11 @@
 
 ## ADDED Requirements
 
-### Requirement: PhenoRoam bbox MUST become Study Bounding Box in schema.org order
+### Requirement: PhenoRoam bbox MUST become Study Bounding Box in south west north east order
 
 When `PhenoroamRecord.bbox` has west, south, east, and north that each parse as floats, `phenoroam_general` MUST add a
-Study Spatial Sampling protocol table with parameter `Bounding Box` whose value is the schema.org `GeoShape.box` string
-`south west north east` (same grammar as INSPIRE). The mapper MUST NOT emit the Assay annotation comment
+Study Spatial Sampling protocol table with parameter `Bounding Box` whose value is `south west north east` (same grammar
+as INSPIRE; compatible with schema.org `GeoShape.box`). The mapper MUST NOT emit the Assay annotation comment
 `Geographic Bounding Box` for that bbox. When any required side is missing or unparseable, the mapper MUST omit Study
 `Bounding Box` (and MUST NOT emit the Assay geographic bbox comment either). `docs/mappers/phenoroam.md` MUST document
 this contract.

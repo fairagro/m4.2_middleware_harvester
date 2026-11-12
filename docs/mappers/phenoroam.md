@@ -54,12 +54,13 @@ catalog id is available for the landing-URL identifier fallback. A DOI is **not*
 
 ## Study
 
-| Source field                  | Description       | ARC Mapping                                                                            |
-| ----------------------------- | ----------------- | -------------------------------------------------------------------------------------- |
-| **`study.study_title`**       | Study title       | `Study.Title` (else `title`, else `"PhenoRoam Study"`)                                 |
-| **`study.study_description`** | Study description | `Study.Description` (else `description`)                                               |
-| Study title (slug)            | Study identifier  | `Study.Identifier` = slug of study title, or `phenoroam_study`                         |
-| **`keywords`**                | Keyword list      | Study table `Data Collection`: Parameter `Keywords` (comma-joined); omitted when empty |
+| Source field                  | Description       | ARC Mapping                                                                                                                                                                                  |
+| ----------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`study.study_title`**       | Study title       | `Study.Title` (else `title`, else `"PhenoRoam Study"`)                                                                                                                                       |
+| **`study.study_description`** | Study description | `Study.Description` (else `description`)                                                                                                                                                     |
+| Study title (slug)            | Study identifier  | `Study.Identifier` = slug of study title, or `phenoroam_study`                                                                                                                               |
+| **`keywords`**                | Keyword list      | Study table `Data Collection`: Parameter `Keywords` (comma-joined); omitted when empty                                                                                                       |
+| **`bbox`**                    | Geographic bbox   | Study table `Spatial Sampling`: Parameter `Bounding Box` as `south west north east` when all four sides parse as floats (compatible with schema.org `GeoShape.box`); omitted when incomplete |
 
 ## Assay
 
@@ -70,7 +71,6 @@ catalog id is available for the landing-URL identifier fallback. A DOI is **not*
 | Landing URL              | Catalog landing page          | Assay table `Measurement` `Output [URI]`                                                                |
 | **`license_text`**       | License / rights text         | Assay table `Comment("License")` (whitespace collapsed)                                                 |
 | **`datafile_links`**     | Remote file URLs (`itemLink`) | Assay table `Comment("Datafile Link")` — valid http(s) URLs joined with `;` — **not** Data File Outputs |
-| **`bbox`**               | Geographic bounding box       | Assay table `Comment("Geographic Bounding Box")` as `W:… E:… S:… N:…` when any side present             |
 
 Empty-port URLs such as `https://host:/path` are accepted (PhenoRoam fixture shape).
 

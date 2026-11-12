@@ -357,7 +357,7 @@ def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: Inspire
 
     # Check value
     bbox_col = next(col for col in table.Columns if col.header.ToTerm().Name == "Bounding Box")
-    assert bbox_col.cells[0].AsTerm.Name == "[10.0, 48.0, 11.0, 49.0]"
+    assert bbox_col.cells[0].AsTerm.Name == "48.0 10.0 49.0 11.0"
 
 
 def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:

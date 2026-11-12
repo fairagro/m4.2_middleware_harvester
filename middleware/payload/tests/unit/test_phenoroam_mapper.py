@@ -171,7 +171,7 @@ def test_keywords_map_to_study_annotation_table() -> None:
     assert "Keywords" in harvested.arc_json
 
 
-def test_bbox_maps_to_assay_geographic_comment() -> None:
+def test_bbox_maps_to_study_bounding_box() -> None:
     record = PhenoroamRecord(
         item_uuid="abc-uuid",
         title="Dataset",
@@ -185,11 +185,28 @@ def test_bbox_maps_to_assay_geographic_comment() -> None:
             )
         )
     )
-    assert "Geographic Bounding Box" in harvested.arc_json
-    assert "W:6.9895" in harvested.arc_json
-    assert "E:6.9922" in harvested.arc_json
-    assert "S:50.6152" in harvested.arc_json
-    assert "N:50.6165" in harvested.arc_json
+    assert "Bounding Box" in harvested.arc_json
+    assert "50.6152 6.9895 50.6165 6.9922" in harvested.arc_json
+    assert "Geographic Bounding Box" not in harvested.arc_json
+    assert "W:6.9895" not in harvested.arc_json
+
+
+def test_incomplete_bbox_omits_bounding_box() -> None:
+    record = PhenoroamRecord(
+        item_uuid="abc-uuid",
+        title="Dataset",
+        bbox=PhenoroamBBox(west="6.9895", east="6.9922"),
+    )
+    harvested = next(
+        iter(
+            PhenoroamMapper().map(
+                ParsedPayload(kind=PayloadKind.phenoroam_record, value=record, identifier="abc-uuid"),
+                MappingContext(harvest_source_id="abc-uuid"),
+            )
+        )
+    )
+    assert "Bounding Box" not in harvested.arc_json
+    assert "Geographic Bounding Box" not in harvested.arc_json
 
 
 @pytest.mark.asyncio
@@ -237,11 +254,9 @@ async def test_bbox_fixture_round_trip_parse_and_map() -> None:
     assert len(harvested) == 1
     blob = harvested[0].arc_json
     assert "multi-temporal, orthomosaic, mixed cropping, rgb imagery" in blob
-    assert "Geographic Bounding Box" in blob
-    assert "W:6.9895" in blob
-    assert "E:6.9922" in blob
-    assert "S:50.6152" in blob
-    assert "N:50.6165" in blob
+    assert "Bounding Box" in blob
+    assert "50.6152 6.9895 50.6165 6.9922" in blob
+    assert "Geographic Bounding Box" not in blob
     # Live PhenoRoam attachments use empty-port hosts (``phenoroam.phenorob.de:``); keep them.
     assert "Datafile Link" in blob
     assert "cka_04_02_RGB_A.zip" in blob

@@ -8,8 +8,8 @@ See `proposal.md` — Why. schema.org [`GeoShape.box`](https://schema.org/box): 
 
 ## Goals / Non-Goals
 
-**Goals:** One ParameterValue name (`Bounding Box`) and one value grammar (schema.org SWNE string) for every mapper that
-can emit a four-number box in this PR (INSPIRE + PhenoRoam).
+**Goals:** One ParameterValue name (`Bounding Box`) and one value grammar (`south west north east`) for every mapper
+that can emit a four-number box in this PR (INSPIRE + PhenoRoam).
 
 **Non-Goals:** Parsing WKT/GeoJSON into boxes; MODS/Regal/ckanext inventing boxes; keeping Assays as the catalog spatial
 surface for PhenoRoam.
@@ -20,9 +20,10 @@ surface for PhenoRoam.
    #553 contract. Prefer over bracketed lists / comma lists so dumps and docs share one prose form. Alternatives
    rejected: keep `[w,s,e,n]` (wrong order); `[s,w,n,e]` brackets (non-standard vs GeoShape.box text).
 
-2. **Shared formatter `schema_org_box(west, south, east, north) -> str`** Single helper used by INSPIRE (from
-   `spatial_extent`) and PhenoRoam (from bbox sides). Returns `None` if any required float is missing/unparseable.
-   Rationale: one grammar, two sources. Alternative rejected: duplicate f-strings per mapper.
+2. **Shared formatter `bounding_box(west, south, east, north) -> str`** Single helper used by INSPIRE (from
+   `spatial_extent`) and PhenoRoam (from bbox sides). Returns `None` if any required float is missing/unparseable. Name
+   is the ARC ParameterValue concept; schema.org compatibility stays in docs. Alternative rejected: `schema_org_box`
+   (couples the helper to one consumer vocabulary).
 
 3. **PhenoRoam: Study Spatial Sampling + drop Assay Geographic Bounding Box comment** Catalog reads Study `Bounding Box`
    only. Dual Assay comment in WENS labels would confuse operators and diverge. Alternative rejected: keep both formats.
