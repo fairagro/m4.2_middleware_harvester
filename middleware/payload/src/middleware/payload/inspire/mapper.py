@@ -206,6 +206,9 @@ class InspireMapper(DataMapper[MappingContext]):
         if person.ORCID and orcid_id(url) == person.ORCID:
             return
         name = contact.online_resource_name or "Online Resource"
+        # When ORCID came from the resource name, do not reuse that iD as the Comment name.
+        if person.ORCID and orcid_id(name) == person.ORCID:
+            name = "Online Resource"
         person.Comments.append(Comment.create(name, url))
 
     def map_investigation(self, record: InspireRecord) -> ArcInvestigation:

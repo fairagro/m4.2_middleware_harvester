@@ -378,7 +378,7 @@ def test_orcid_online_resource_url_sets_person_orcid() -> None:
     assert len(list(inv.Contacts)) == 1
     person = inv.Contacts[0]
     assert person.ORCID == "0000-0002-1825-0097"
-    assert not any(orcid_like_comment(c.Value) for c in person.Comments)
+    assert not list(person.Comments)
 
 
 def test_orcid_online_resource_name_sets_person_orcid() -> None:
@@ -392,6 +392,26 @@ def test_orcid_online_resource_name_sets_person_orcid() -> None:
     assert not list(inv.Contacts[0].Comments)
 
 
+def test_orcid_name_with_website_url_uses_generic_comment_name() -> None:
+    url = "https://example.org/people/jane"
+    record = _minimal_record(
+        contacts=[
+            Contact(
+                name="Jane Doe",
+                role="author",
+                online_resource_url=url,
+                online_resource_name="0000-0002-1825-0097",
+            )
+        ]
+    )
+
+    inv = InspireMapper().map_investigation(record)
+
+    person = inv.Contacts[0]
+    assert person.ORCID == "0000-0002-1825-0097"
+    assert [(c.Name, c.Value) for c in person.Comments] == [("Online Resource", url)]
+
+
 def test_non_orcid_online_resource_stays_comment() -> None:
     url = "https://example.org/people/jane"
     record = _minimal_record(
@@ -403,11 +423,6 @@ def test_non_orcid_online_resource_stays_comment() -> None:
     person = inv.Contacts[0]
     assert not person.ORCID
     assert [(c.Name, c.Value) for c in person.Comments] == [("Homepage", url)]
-
-
-def orcid_like_comment(value: str | None) -> bool:
-    text = (value or "").casefold()
-    return "orcid.org" in text or text == "0000-0002-1825-0097"
 
 
 # --- no invented data files (#353) ------------------------------------------
