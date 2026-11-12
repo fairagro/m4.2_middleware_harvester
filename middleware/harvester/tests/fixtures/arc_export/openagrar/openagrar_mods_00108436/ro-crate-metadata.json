@@ -1,0 +1,317 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_Thünen-Institute_|_Coordination_Unit_Climate,_Soil,_Biodiversity",
+      "@type": "Organization",
+      "name": "Thünen-Institute | Coordination Unit Climate, Soil, Biodiversity"
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-9926-8028",
+      "@type": "Person",
+      "givenName": "Bastian",
+      "affiliation": {
+        "@id": "#Organization_Thünen-Institute_|_Coordination_Unit_Climate,_Soil,_Biodiversity"
+      },
+      "familyName": "Steinhoff-Knopp",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1112297235\"}"
+    },
+    {
+      "@id": "#Organization_Thünen-Institute_of_Farm_Economics",
+      "@type": "Organization",
+      "name": "Thünen-Institute of Farm Economics"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-7536-6635",
+      "@type": "Person",
+      "givenName": "Sebastian",
+      "affiliation": {
+        "@id": "#Organization_Thünen-Institute_of_Farm_Economics"
+      },
+      "familyName": "Neuenfeldt",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1018969896\"}"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-6393-6071",
+      "@type": "Person",
+      "givenName": "Stefan",
+      "affiliation": {
+        "@id": "#Organization_Thünen-Institute_of_Farm_Economics"
+      },
+      "familyName": "Erasmi",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"124078672\"}"
+    },
+    {
+      "@id": "#Organization_Roma_Tre_University",
+      "@type": "Organization",
+      "name": "Roma Tre University"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-4648-1650",
+      "@type": "Person",
+      "givenName": "Philipp",
+      "affiliation": {
+        "@id": "#Organization_Roma_Tre_University"
+      },
+      "familyName": "Saggau",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00108436",
+      "@type": "URI",
+      "name": "https://www.openagrar.de/receive/openagrar_mods_00108436"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_r_usle_c_factor_datasets_for_germany_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00108436"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#cc_by_4.0\"}",
+        "Comment {Name = \"Datafile Name\", Value = \"Metadaten_openagrar_mods_00108436_v1.pdf\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_MODS",
+      "@type": "DefinedTerm",
+      "name": "MODS"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/r_usle_c_factor_datasets_for_germany/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "r_usle_c_factor_datasets_for_germany",
+      "hasPart": [],
+      "name": "(R)USLE C Factor Datasets for Germany",
+      "about": {
+        "@id": "#Process_A_r_usle_c_factor_datasets_for_germany_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_MODS"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_soil_erosion_modelling,_C_factor,_crop_rotation,_remote_sensing",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "soil erosion modelling, C factor, crop rotation, remote sensing",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_r_usle_c_factor_datasets_for_germany_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_soil_erosion_modelling,_C_factor,_crop_rotation,_remote_sensing"
+      }
+    },
+    {
+      "@id": "studies/r_usle_c_factor_datasets_for_germany/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "r_usle_c_factor_datasets_for_germany",
+      "description": "This dataset contains maps (vector and raster data) of the crop cover and management factor (C factor) of the (Revised) Universal Soil Loss Equation (R)USLE for German cropland and different time-intervalls. Mean C factors for German municipalities based on agricultural statistic data (vector data) Vector data for German municipalities with fixed extend of the year 2010 based on data from the Thünen Agraratlas (https://zenodo.org/records/14197441) Available years: 1999, 2003, 2007, 2010, 2016, 2020 File: c1000_municipalities_germany.gpkg Fields: AGS_2010: Official municipality code (Amtilicher Gemeindeschlüssel: AGS) for German municipalities of the year 2010 (Information on Destatis (Federal Statistical Office of Germany) on AGS) MUN_NAME: Name of the municipality c1000_1999: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2003: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2007: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2010: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2016: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2020: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 Units: Mean c1000 (C factor * 1000) for cropland in German municipalities. NoData for municipalities with cropland <50 ha. The vector datasets are available as xxx C factors for German Cropland based on five-year crop sequences derived from crop type maps (raster data) Raster data in 10 x 10 m resolution for German cropland Derived from National-scale crop type maps for Germany (https://zenodo.org/records/10640528, https://zenodo.org/records/10645427, https://zenodo.org/records/15309479) Available time intervals: 2017 - 2021; 2018 - 2022; 2019 - 2023 Files: c1000_2017_2021.tif c1000_2018_2022.tif c1000_2019_2023.tif Units: c1000 (C factor * 1000) for the crop sequencen of all cropland raster cells within the given time intervals The raster datasets are available as cloud optimized GeoTiffs (COG). The rasters can be directly be accessed in QGIS, R, Python or any supported software of your choice using the URLs (right click on the file -> “copy link address”). The method for creating the C factor datasets is described in detail in https://doi.org/10.1016/j.iswcr.2025.06.002",
+      "hasPart": [],
+      "name": "(R)USLE C Factor Datasets for Germany",
+      "about": {
+        "@id": "#Process_S_r_usle_c_factor_datasets_for_germany_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "10.5281/zenodo.13951344",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.5281/zenodo.13951344",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_B. Steinhoff-Knopp; S. Neuenfeldt; S. Erasmi; P. Saggau",
+      "@type": "Person",
+      "givenName": "B. Steinhoff-Knopp; S. Neuenfeldt; S. Erasmi; P. Saggau"
+    },
+    {
+      "@id": "#(R)USLE_C_Factor_Datasets_for_Germany",
+      "@type": "ScholarlyArticle",
+      "headline": "(R)USLE C Factor Datasets for Germany",
+      "identifier": {
+        "@id": "10.5281/zenodo.13951344"
+      },
+      "author": {
+        "@id": "#Author_B. Steinhoff-Knopp; S. Neuenfeldt; S. Erasmi; P. Saggau"
+      }
+    },
+    {
+      "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00108436",
+      "@type": "Comment",
+      "name": "Source URL",
+      "text": "https://www.openagrar.de/receive/openagrar_mods_00108436"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0",
+      "@type": "Comment",
+      "name": "License",
+      "text": "http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "openagrar_mods_00108436",
+      "creator": [
+        {
+          "@id": "http://orcid.org/0000-0002-9926-8028"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-7536-6635"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-6393-6071"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-4648-1650"
+        }
+      ],
+      "dateCreated": "2025",
+      "datePublished": "2025",
+      "description": "This dataset contains maps (vector and raster data) of the crop cover and management factor (C factor) of the (Revised) Universal Soil Loss Equation (R)USLE for German cropland and different time-intervalls. Mean C factors for German municipalities based on agricultural statistic data (vector data) Vector data for German municipalities with fixed extend of the year 2010 based on data from the Thünen Agraratlas (https://zenodo.org/records/14197441) Available years: 1999, 2003, 2007, 2010, 2016, 2020 File: c1000_municipalities_germany.gpkg Fields: AGS_2010: Official municipality code (Amtilicher Gemeindeschlüssel: AGS) for German municipalities of the year 2010 (Information on Destatis (Federal Statistical Office of Germany) on AGS) MUN_NAME: Name of the municipality c1000_1999: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2003: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2007: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2010: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2016: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 c1000_2020: Mean c1000 (C factor * 1000) for cropland in German municipalities in the year 1999 Units: Mean c1000 (C factor * 1000) for cropland in German municipalities. NoData for municipalities with cropland <50 ha. The vector datasets are available as xxx C factors for German Cropland based on five-year crop sequences derived from crop type maps (raster data) Raster data in 10 x 10 m resolution for German cropland Derived from National-scale crop type maps for Germany (https://zenodo.org/records/10640528, https://zenodo.org/records/10645427, https://zenodo.org/records/15309479) Available time intervals: 2017 - 2021; 2018 - 2022; 2019 - 2023 Files: c1000_2017_2021.tif c1000_2018_2022.tif c1000_2019_2023.tif Units: c1000 (C factor * 1000) for the crop sequencen of all cropland raster cells within the given time intervals The raster datasets are available as cloud optimized GeoTiffs (COG). The rasters can be directly be accessed in QGIS, R, Python or any supported software of your choice using the URLs (right click on the file -> “copy link address”). The method for creating the C factor datasets is described in detail in https://doi.org/10.1016/j.iswcr.2025.06.002",
+      "hasPart": [
+        {
+          "@id": "assays/r_usle_c_factor_datasets_for_germany/"
+        },
+        {
+          "@id": "studies/r_usle_c_factor_datasets_for_germany/"
+        }
+      ],
+      "name": "(R)USLE C Factor Datasets for Germany",
+      "citation": {
+        "@id": "#(R)USLE_C_Factor_Datasets_for_Germany"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00108436"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T13:37:46.2336320",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

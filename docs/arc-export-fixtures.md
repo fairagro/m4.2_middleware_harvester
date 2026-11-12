@@ -45,7 +45,8 @@ nested cases). The first path segment is the RDI id.
 preferred OpenAgrar live path tracked as #614). Technology family is secondary — sibling RDIs can diverge even when they
 share a mapper.
 
-Minimal MVP smoke crates may remain for `bonares` / `openagrar` / `publisso` alongside real-data sets.
+Minimal MVP smoke crates may remain for `bonares` / `publisso` alongside real-data sets. `openagrar` is nested real-data
+only (smoke removed in #614).
 
 ### Real-data suites (status)
 
@@ -56,7 +57,7 @@ Minimal MVP smoke crates may remain for `bonares` / `openagrar` / `publisso` alo
 | publisso                | Real-data cases under `fixtures/arc_export/publisso/<frl-slug>/` (+ smoke at folder root); see that folder’s `README.md` (#611) |
 | sradi                   | Deferred — #612                                                                                                                 |
 | plabipd                 | Real-data cases under `fixtures/arc_export/plabipd/<composite-id>/`; see that folder’s `README.md` (#613)                       |
-| openagrar (live / MODS) | Deferred — #614                                                                                                                 |
+| openagrar (live / MODS) | Real-data cases under `fixtures/arc_export/openagrar/<mods-id>/` (no root smoke); see that folder’s `README.md` (#614)          |
 | phenoroam               | Deferred — #615                                                                                                                 |
 | openagrar-fixture       | Local fixture-server stand-in only; does not satisfy the OpenAgrar live suite (#614)                                            |
 

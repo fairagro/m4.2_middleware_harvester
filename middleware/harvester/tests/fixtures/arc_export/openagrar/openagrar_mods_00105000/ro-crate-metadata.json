@@ -1,0 +1,380 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany",
+      "@type": "Organization",
+      "name": "Julius Kühn-Institute (JKI), Institute for Epidemiology and Pathogen Diagnostics, Germany"
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_Andrea_Braun-Kiewnick",
+      "@type": "Person",
+      "givenName": "Andrea",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Braun-Kiewnick",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1179793692\"}"
+    },
+    {
+      "@id": "#Person_Adriana_Giongo",
+      "@type": "Person",
+      "givenName": "Adriana",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Giongo",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1252276923\"}"
+    },
+    {
+      "@id": "#Person_Mena_Zamberlan",
+      "@type": "Person",
+      "givenName": "Mena",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Zamberlan",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1355612691\"}"
+    },
+    {
+      "@id": "#Person_Patrick_Pluta",
+      "@type": "Person",
+      "givenName": "Patrick",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Pluta",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Organization_Institute_of_Sugar_Beet_Research_(IFZ),_Germany",
+      "@type": "Organization",
+      "name": "Institute of Sugar Beet Research (IFZ), Germany"
+    },
+    {
+      "@id": "#Person_Heinz-Josef_Koch",
+      "@type": "Person",
+      "givenName": "Heinz-Josef",
+      "affiliation": {
+        "@id": "#Organization_Institute_of_Sugar_Beet_Research_(IFZ),_Germany"
+      },
+      "familyName": "Koch",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Organization_Christian-Albrechts-University_Kiel,_Agronomy_and_Crop_Science_Group,_Institute_of_Crop_Science_and_Plant_Breeding,_Germany",
+      "@type": "Organization",
+      "name": "Christian-Albrechts-University Kiel, Agronomy and Crop Science Group, Institute of Crop Science and Plant Breeding, Germany"
+    },
+    {
+      "@id": "#Person_Henning_Kage",
+      "@type": "Person",
+      "givenName": "Henning",
+      "affiliation": {
+        "@id": "#Organization_Christian-Albrechts-University_Kiel,_Agronomy_and_Crop_Science_Group,_Institute_of_Crop_Science_and_Plant_Breeding,_Germany"
+      },
+      "familyName": "Kage",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"113728565\"}"
+    },
+    {
+      "@id": "#Person_Kornelia_Smalla",
+      "@type": "Person",
+      "givenName": "Kornelia",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Smalla",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1058967878\"}"
+    },
+    {
+      "@id": "#Person_Doreen_Babin",
+      "@type": "Person",
+      "givenName": "Doreen",
+      "affiliation": {
+        "@id": "#Organization_Julius_Kühn-Institute_(JKI),_Institute_for_Epidemiology_and_Pathogen_Diagnostics,_Germany"
+      },
+      "familyName": "Babin",
+      "jobTitle": {
+        "@id": "#OA_author"
+      },
+      "disambiguatingDescription": "Comment {Name = \"GND\", Value = \"1014430453\"}"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00105000",
+      "@type": "URI",
+      "name": "https://www.openagrar.de/receive/openagrar_mods_00105000"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://www.openagrar.de/receive/openagrar_mods_00105000"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#cc_by-nc-nd_4.0\"}",
+        "Comment {Name = \"Datafile Name\", Value = \"2025_0129.pdf\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_MODS",
+      "@type": "DefinedTerm",
+      "name": "MODS"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa",
+      "hasPart": [],
+      "name": "The microbiome of continuous wheat rotations: minor shifts in bacterial and archaeal communities but a source for functionally active plant-beneficial bacteria",
+      "about": {
+        "@id": "#Process_A_the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_MODS"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_16S_rRNA_gene,_continuous_cropping,_crop_yield,_Gaeumannomyces_tritici,_microbiome,_monocropping,_PGPR,_rhizosphere",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "16S rRNA gene, continuous cropping, crop yield, Gaeumannomyces tritici, microbiome, monocropping, PGPR, rhizosphere",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_16S_rRNA_gene,_continuous_cropping,_crop_yield,_Gaeumannomyces_tritici,_microbiome,_monocropping,_PGPR,_rhizosphere"
+      }
+    },
+    {
+      "@id": "studies/the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa",
+      "description": "Continuous wheat cropping often leads to yield decline, with suspected causes including increased pathogen susceptibility, decreased root growth, or low nutrient use efficiency, though the exact causes remain unknown. Here, we investigated soil and root-associated bacterial and archaeal communities in wheat under rotation versus continuous cultivation, monitored fungal pathogen presence, and used beneficial bacteria to mitigate Gaeumannomyces tritici (Ggt) symptoms in greenhouse experiments. Sampling was conducted at two field sites with different soil textures over two years and at two plant developmental stages, capturing site-specific and seasonal fluctuations. By cultivation, 767 bacterial isolates were screened for plant-beneficial traits. Amplicon sequencing revealed minor effects on community structure due to wheat rotational position but pronounced effects related to site, year, and microhabitat. Rhizoplane isolates with plant-beneficial traits were mainly Flavobacterium, Microbacterium, Pedobacter, Pseudomonas, Stenotrophomonas, and Variovorax. Continuous wheat rotations showed the highest proportion of bacteria with fungal antagonistic potential, indicating plant roots’ recruitment of beneficial bacteria. Introducing Ggt in the greenhouse experiment altered the bacterial and archaeal community, confirming field study results and demonstrating that applying beneficial bacteria early in the season at the seedling stage can control Ggt and improve plant growth. This study highlights the dynamic nature of wheat's below-ground bacterial and archaeal community, influenced by soil type, season, and microhabitat, with wheat rotation playing a minor role. In addition, it confirms the potential of selected Bacillus and Pseudomonas isolates, whether used individually or in consortia, for microbe-assisted mitigation of yield decline in intensive wheat production.",
+      "hasPart": [],
+      "name": "The microbiome of continuous wheat rotations: minor shifts in bacterial and archaeal communities but a source for functionally active plant-beneficial bacteria",
+      "about": {
+        "@id": "#Process_S_the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "10.1094/PBIOMES-05-24-0054-R",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.1094/PBIOMES-05-24-0054-R",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_A. Braun-Kiewnick; A. Giongo; M. Zamberlan; P. Pluta; H. Koch; H. Kage; K. Smalla; D. Babin",
+      "@type": "Person",
+      "givenName": "A. Braun-Kiewnick; A. Giongo; M. Zamberlan; P. Pluta; H. Koch; H. Kage; K. Smalla; D. Babin"
+    },
+    {
+      "@id": "#The_microbiome_of_continuous_wheat_rotations:_minor_shifts_in_bacterial_and_archaeal_communities_but_a_source_for_functionally_active_plant-beneficial_bacteria",
+      "@type": "ScholarlyArticle",
+      "headline": "The microbiome of continuous wheat rotations: minor shifts in bacterial and archaeal communities but a source for functionally active plant-beneficial bacteria",
+      "identifier": {
+        "@id": "10.1094/PBIOMES-05-24-0054-R"
+      },
+      "author": {
+        "@id": "#Author_A. Braun-Kiewnick; A. Giongo; M. Zamberlan; P. Pluta; H. Koch; H. Kage; K. Smalla; D. Babin"
+      }
+    },
+    {
+      "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00105000",
+      "@type": "Comment",
+      "name": "Source URL",
+      "text": "https://www.openagrar.de/receive/openagrar_mods_00105000"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by-nc-nd_4.0",
+      "@type": "Comment",
+      "name": "License",
+      "text": "http://www.mycore.org/classifications/mir_licenses#cc_by-nc-nd_4.0"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "openagrar_mods_00105000",
+      "creator": [
+        {
+          "@id": "#Person_Andrea_Braun-Kiewnick"
+        },
+        {
+          "@id": "#Person_Adriana_Giongo"
+        },
+        {
+          "@id": "#Person_Mena_Zamberlan"
+        },
+        {
+          "@id": "#Person_Patrick_Pluta"
+        },
+        {
+          "@id": "#Person_Heinz-Josef_Koch"
+        },
+        {
+          "@id": "#Person_Henning_Kage"
+        },
+        {
+          "@id": "#Person_Kornelia_Smalla"
+        },
+        {
+          "@id": "#Person_Doreen_Babin"
+        }
+      ],
+      "dateCreated": "2025",
+      "datePublished": "2025",
+      "description": "Continuous wheat cropping often leads to yield decline, with suspected causes including increased pathogen susceptibility, decreased root growth, or low nutrient use efficiency, though the exact causes remain unknown. Here, we investigated soil and root-associated bacterial and archaeal communities in wheat under rotation versus continuous cultivation, monitored fungal pathogen presence, and used beneficial bacteria to mitigate Gaeumannomyces tritici (Ggt) symptoms in greenhouse experiments. Sampling was conducted at two field sites with different soil textures over two years and at two plant developmental stages, capturing site-specific and seasonal fluctuations. By cultivation, 767 bacterial isolates were screened for plant-beneficial traits. Amplicon sequencing revealed minor effects on community structure due to wheat rotational position but pronounced effects related to site, year, and microhabitat. Rhizoplane isolates with plant-beneficial traits were mainly Flavobacterium, Microbacterium, Pedobacter, Pseudomonas, Stenotrophomonas, and Variovorax. Continuous wheat rotations showed the highest proportion of bacteria with fungal antagonistic potential, indicating plant roots’ recruitment of beneficial bacteria. Introducing Ggt in the greenhouse experiment altered the bacterial and archaeal community, confirming field study results and demonstrating that applying beneficial bacteria early in the season at the seedling stage can control Ggt and improve plant growth. This study highlights the dynamic nature of wheat's below-ground bacterial and archaeal community, influenced by soil type, season, and microhabitat, with wheat rotation playing a minor role. In addition, it confirms the potential of selected Bacillus and Pseudomonas isolates, whether used individually or in consortia, for microbe-assisted mitigation of yield decline in intensive wheat production.",
+      "hasPart": [
+        {
+          "@id": "assays/the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa/"
+        },
+        {
+          "@id": "studies/the_microbiome_of_continuous_wheat_rotations_minor_shifts_in_bacterial_and_archa/"
+        }
+      ],
+      "name": "The microbiome of continuous wheat rotations: minor shifts in bacterial and archaeal communities but a source for functionally active plant-beneficial bacteria",
+      "citation": {
+        "@id": "#The_microbiome_of_continuous_wheat_rotations:_minor_shifts_in_bacterial_and_archaeal_communities_but_a_source_for_functionally_active_plant-beneficial_bacteria"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Source_URL_https://www.openagrar.de/receive/openagrar_mods_00105000"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by-nc-nd_4.0"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T13:37:46.7338430",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

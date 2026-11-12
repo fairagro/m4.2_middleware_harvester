@@ -89,3 +89,17 @@ def test_plabipd_real_data_suite_has_multiple_cases(
         f"expected ≥2 nested plabipd/<case>/ fixtures, found {len(plabipd_cases)}: "
         f"{[str(p.relative_to(arc_export_fixtures_root)) for p in plabipd_cases]}"
     )
+
+
+def test_openagrar_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed openagrar real-data suite must be multi-case (nested dirs), no root smoke."""
+    openagrar_cases = _nested_cases(arc_export_fixture_dirs, arc_export_fixtures_root, "openagrar")
+    assert len(openagrar_cases) >= 2, (
+        f"expected ≥2 nested openagrar/<case>/ fixtures, found {len(openagrar_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in openagrar_cases]}"
+    )
+    root_smoke = arc_export_fixtures_root / "openagrar" / "ro-crate-metadata.json"
+    assert not root_smoke.exists(), "openagrar root smoke crate must be removed once real-data suite lands"
