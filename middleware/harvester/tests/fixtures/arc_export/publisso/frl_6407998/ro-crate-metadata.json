@@ -1,0 +1,638 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_",
+      "@type": "Organization",
+      "name": ""
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-1900-4154",
+      "@type": "Person",
+      "givenName": "Francois",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "du Toit",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0001-7198-9213",
+      "@type": "Person",
+      "givenName": "Marina",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Rautenbach",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0003-2633-0537",
+      "@type": "Person",
+      "givenName": "David",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "van Niekerk",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-0405-8854",
+      "@type": "Person",
+      "givenName": "Jacob",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Snoep",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.4126/FRL01-006407998",
+      "@type": "URI",
+      "name": "https://doi.org/10.4126/FRL01-006407998"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_frl_6407998_assay_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.4126/FRL01-006407998"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0\"}",
+        "Comment {Name = \"Language\", Value = \"eng\"}",
+        "Comment {Name = \"Online Resource\", Value = \"https://repository.publisso.de/resource/frl:6408001; https://repository.publisso.de/resource/frl:6407999; https://repository.publisso.de/resource/frl:6408000; https://repository.publisso.de/resource/frl:6409743\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"124-hk-kinetic-model; Data files; Models; SOPs\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Regal_Research_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Regal Research Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/frl_6407998_assay/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "frl_6407998_assay",
+      "hasPart": [],
+      "name": "Glucose metabolism in Plasmodium falciparum trophozoites",
+      "about": {
+        "@id": "#Process_A_frl_6407998_assay_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Regal_Research_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Geographic_Region",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Geographic Region"
+    },
+    {
+      "@id": "#Sample_Selected_Location(s)",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": "Selected Location(s)"
+    },
+    {
+      "@id": "#Protocol_Spatial_Sampling",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Location_Cape_Town",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Location",
+      "value": "Cape Town",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Coordinates_http://www.openstreetmap.org/?mlat=-33.933&mlon=18.8641",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Coordinates",
+      "value": "http://www.openstreetmap.org/?mlat=-33.933&mlon=18.8641",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_frl_6407998_study_Spatial_Sampling_0",
+      "@type": "LabProcess",
+      "name": "Spatial Sampling_0",
+      "object": {
+        "@id": "#Source_Geographic_Region"
+      },
+      "result": {
+        "@id": "#Sample_Selected_Location(s)"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Spatial_Sampling"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Location_Cape_Town"
+        },
+        {
+          "@id": "#ParameterValue_Coordinates_http://www.openstreetmap.org/?mlat=-33.933&mlon=18.8641"
+        }
+      ]
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_drug_target_identification,_enzyme_kinetics,_glucose_metabolism,_glycolysis,_malaria,_mathematical_model,_model_workflow,_multi_scale_hierarchical_model,_Plasmodium_falciparum,_systems_biology,_Biowissenschaften;_Biologie",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "drug target identification, enzyme kinetics, glucose metabolism, glycolysis, malaria, mathematical model, model workflow, multi scale hierarchical model, Plasmodium falciparum, systems biology, Biowissenschaften; Biologie",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Data_Origin_Berechnung",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Data Origin",
+      "value": "Berechnung",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#ParameterValue_Temporal_Extent_Start:_2014-08-08\r\nEnd:_2017-03-09",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Temporal Extent",
+      "value": "Start: 2014-08-08\r\nEnd: 2017-03-09",
+      "columnIndex": "2"
+    },
+    {
+      "@id": "#Process_S_frl_6407998_study_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Keywords_drug_target_identification,_enzyme_kinetics,_glucose_metabolism,_glycolysis,_malaria,_mathematical_model,_model_workflow,_multi_scale_hierarchical_model,_Plasmodium_falciparum,_systems_biology,_Biowissenschaften;_Biologie"
+        },
+        {
+          "@id": "#ParameterValue_Data_Origin_Berechnung"
+        },
+        {
+          "@id": "#ParameterValue_Temporal_Extent_Start:_2014-08-08\r\nEnd:_2017-03-09"
+        }
+      ]
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Published research data metadata from a Regal repository",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "License",
+      "value": "https://creativecommons.org/licenses/by/4.0",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_frl_6407998_study_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository"
+        },
+        {
+          "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0"
+        }
+      ]
+    },
+    {
+      "@id": "studies/frl_6407998_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "frl_6407998_study",
+      "datePublished": "2018",
+      "description": "The investigation entails the construction and validation of a detailed mathematical model for glycolysis of the malaria parasite Plasmodium falciparum in the blood stage trophozoite form.",
+      "hasPart": [],
+      "name": "Glucose metabolism in Plasmodium falciparum trophozoites",
+      "about": [
+        {
+          "@id": "#Process_S_frl_6407998_study_Spatial_Sampling_0"
+        },
+        {
+          "@id": "#Process_S_frl_6407998_study_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_frl_6407998_study_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.4126/FRL01-006407998",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.4126/FRL01-006407998",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_F. du Toit; M. Rautenbach; D. van Niekerk; J. Snoep",
+      "@type": "Person",
+      "givenName": "F. du Toit; M. Rautenbach; D. van Niekerk; J. Snoep"
+    },
+    {
+      "@id": "#Glucose_metabolism_in_Plasmodium_falciparum_trophozoites",
+      "@type": "ScholarlyArticle",
+      "headline": "Glucose metabolism in Plasmodium falciparum trophozoites",
+      "identifier": {
+        "@id": "10.4126/FRL01-006407998"
+      },
+      "author": {
+        "@id": "#Author_F. du Toit; M. Rautenbach; D. van Niekerk; J. Snoep"
+      }
+    },
+    {
+      "@id": "#LDComment_Associated_Publication_https://doi.org/10.1042/BST20150145;_https://doi.org/10.1111/febs.13237;_https://doi.org/10.1111/febs.13615",
+      "@type": "Comment",
+      "name": "Associated Publication",
+      "text": "https://doi.org/10.1042/BST20150145; https://doi.org/10.1111/febs.13237; https://doi.org/10.1111/febs.13615"
+    },
+    {
+      "@id": "#LDComment_Copyright_Year_2018",
+      "@type": "Comment",
+      "name": "Copyright Year",
+      "text": "2018"
+    },
+    {
+      "@id": "#LDComment_Access_Scheme_public",
+      "@type": "Comment",
+      "name": "Access Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Publish_Scheme_public",
+      "@type": "Comment",
+      "name": "Publish Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Content_Type_researchData",
+      "@type": "Comment",
+      "name": "Content Type",
+      "text": "researchData"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Keywords_drug_target_identification,_enzyme_kinetics,_glucose_metabolism,_glycolysis,_malaria,_mathematical_model,_model_workflow,_multi_scale_hierarchical_model,_Plasmodium_falciparum,_systems_biology",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "drug target identification, enzyme kinetics, glucose metabolism, glycolysis, malaria, mathematical model, model workflow, multi scale hierarchical model, Plasmodium falciparum, systems biology"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZHJ1ZyB0YXJnZXQgaWRlbnRpZmljYXRpb24=]_drug_target_identification",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/ZHJ1ZyB0YXJnZXQgaWRlbnRpZmljYXRpb24=]",
+      "text": "drug target identification"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZW56eW1lIGtpbmV0aWNz]_enzyme_kinetics",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/ZW56eW1lIGtpbmV0aWNz]",
+      "text": "enzyme kinetics"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Z2x1Y29zZSBtZXRhYm9saXNt]_glucose_metabolism",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/Z2x1Y29zZSBtZXRhYm9saXNt]",
+      "text": "glucose metabolism"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Z2x5Y29seXNpcw==]_glycolysis",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/Z2x5Y29seXNpcw==]",
+      "text": "glycolysis"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWFsYXJpYQ==]_malaria",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bWFsYXJpYQ==]",
+      "text": "malaria"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWF0aGVtYXRpY2FsIG1vZGVs]_mathematical_model",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bWF0aGVtYXRpY2FsIG1vZGVs]",
+      "text": "mathematical model"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bW9kZWwgd29ya2Zsb3c=]_model_workflow",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bW9kZWwgd29ya2Zsb3c=]",
+      "text": "model workflow"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bXVsdGkgc2NhbGUgaGllcmFyY2hpY2FsIG1vZGVs]_multi_scale_hierarchical_model",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bXVsdGkgc2NhbGUgaGllcmFyY2hpY2FsIG1vZGVs]",
+      "text": "multi scale hierarchical model"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/UGxhc21vZGl1bSBmYWxjaXBhcnVt]_Plasmodium_falciparum",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/UGxhc21vZGl1bSBmYWxjaXBhcnVt]",
+      "text": "Plasmodium falciparum"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/c3lzdGVtcyBiaW9sb2d5]_systems_biology",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/c3lzdGVtcyBiaW9sb2d5]",
+      "text": "systems biology"
+    },
+    {
+      "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/570/]_Biowissenschaften;_Biologie",
+      "@type": "Comment",
+      "name": "keyword [DDC:http://dewey.info/class/570/]",
+      "text": "Biowissenschaften; Biologie"
+    },
+    {
+      "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset",
+      "@type": "Comment",
+      "name": "medium",
+      "text": "http://purl.org/dc/dcmitype/Dataset"
+    },
+    {
+      "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6407998",
+      "@type": "Comment",
+      "name": "itemID",
+      "text": "oai:frl.publisso.de:frl:6407998"
+    },
+    {
+      "@id": "#LDComment_isDescribedBy_frl:6407998.rdf",
+      "@type": "Comment",
+      "name": "isDescribedBy",
+      "text": "frl:6407998.rdf"
+    },
+    {
+      "@id": "#LDComment_isLike_http://doi.org/10.15490/seek.1.investigation.56",
+      "@type": "Comment",
+      "name": "isLike",
+      "text": "http://doi.org/10.15490/seek.1.investigation.56"
+    },
+    {
+      "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6407998/edit",
+      "@type": "Comment",
+      "name": "isPrimaryTopicOf",
+      "text": "https://repository.publisso.de/resource/frl:6407998/edit"
+    },
+    {
+      "@id": "#LDComment_primaryTopic_frl:6407998",
+      "@type": "Comment",
+      "name": "primaryTopic",
+      "text": "frl:6407998"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6407998",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://repository.publisso.de/resource/frl:6407998"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "frl_6407998",
+      "creator": [
+        {
+          "@id": "http://orcid.org/0000-0002-1900-4154"
+        },
+        {
+          "@id": "http://orcid.org/0000-0001-7198-9213"
+        },
+        {
+          "@id": "http://orcid.org/0000-0003-2633-0537"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-0405-8854"
+        }
+      ],
+      "datePublished": "2018",
+      "dateModified": "2026-10-03T06:12:52.180+0200",
+      "description": "The investigation entails the construction and validation of a detailed mathematical model for glycolysis of the malaria parasite Plasmodium falciparum in the blood stage trophozoite form.",
+      "hasPart": [
+        {
+          "@id": "assays/frl_6407998_assay/"
+        },
+        {
+          "@id": "studies/frl_6407998_study/"
+        }
+      ],
+      "name": "Glucose metabolism in Plasmodium falciparum trophozoites",
+      "citation": {
+        "@id": "#Glucose_metabolism_in_Plasmodium_falciparum_trophozoites"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Associated_Publication_https://doi.org/10.1042/BST20150145;_https://doi.org/10.1111/febs.13237;_https://doi.org/10.1111/febs.13615"
+        },
+        {
+          "@id": "#LDComment_Copyright_Year_2018"
+        },
+        {
+          "@id": "#LDComment_Access_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Publish_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Content_Type_researchData"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Keywords_drug_target_identification,_enzyme_kinetics,_glucose_metabolism,_glycolysis,_malaria,_mathematical_model,_model_workflow,_multi_scale_hierarchical_model,_Plasmodium_falciparum,_systems_biology"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZHJ1ZyB0YXJnZXQgaWRlbnRpZmljYXRpb24=]_drug_target_identification"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZW56eW1lIGtpbmV0aWNz]_enzyme_kinetics"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Z2x1Y29zZSBtZXRhYm9saXNt]_glucose_metabolism"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Z2x5Y29seXNpcw==]_glycolysis"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWFsYXJpYQ==]_malaria"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWF0aGVtYXRpY2FsIG1vZGVs]_mathematical_model"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bW9kZWwgd29ya2Zsb3c=]_model_workflow"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bXVsdGkgc2NhbGUgaGllcmFyY2hpY2FsIG1vZGVs]_multi_scale_hierarchical_model"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/UGxhc21vZGl1bSBmYWxjaXBhcnVt]_Plasmodium_falciparum"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/c3lzdGVtcyBiaW9sb2d5]_systems_biology"
+        },
+        {
+          "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/570/]_Biowissenschaften;_Biologie"
+        },
+        {
+          "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset"
+        },
+        {
+          "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6407998"
+        },
+        {
+          "@id": "#LDComment_isDescribedBy_frl:6407998.rdf"
+        },
+        {
+          "@id": "#LDComment_isLike_http://doi.org/10.15490/seek.1.investigation.56"
+        },
+        {
+          "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6407998/edit"
+        },
+        {
+          "@id": "#LDComment_primaryTopic_frl:6407998"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6407998"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T09:26:55.1191410",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
