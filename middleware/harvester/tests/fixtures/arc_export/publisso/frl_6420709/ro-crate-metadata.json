@@ -1,0 +1,574 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_",
+      "@type": "Organization",
+      "name": ""
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-4211-3404",
+      "@type": "Person",
+      "givenName": "David",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Janke",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Dilya_Willink",
+      "@type": "Person",
+      "givenName": "Dilya",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Willink",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0002-8398-4820",
+      "@type": "Person",
+      "givenName": "Sabrina",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Hempel",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0001-5650-1806",
+      "@type": "Person",
+      "givenName": "Barbara",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Amon",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Anke_Römer",
+      "@type": "Person",
+      "givenName": "Anke",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Römer",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "http://orcid.org/0000-0003-2468-3160",
+      "@type": "Person",
+      "givenName": "Thomas",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Amon",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.4126/FRL01-006420709",
+      "@type": "URI",
+      "name": "https://doi.org/10.4126/FRL01-006420709"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_frl_6420709_assay_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.4126/FRL01-006420709"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"http://opendatacommons.org/licenses/by/1.0/\"}",
+        "Comment {Name = \"Language\", Value = \"eng\"}",
+        "Comment {Name = \"Online Resource\", Value = \"https://repository.publisso.de/resource/frl:6420710\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn\"}",
+        "Comment {Name = \"Institution\", Value = \"Institut für Tierproduktion (Dummerstorf); Leibniz-Institut für Agrartechnik und Bioökonomie\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Regal_Research_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Regal Research Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/frl_6420709_assay/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "frl_6420709_assay",
+      "hasPart": [],
+      "name": "High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn",
+      "about": {
+        "@id": "#Process_A_frl_6420709_assay_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Regal_Research_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_ammonia_(NH3),_carbon_dioxide_(CO2),_dairy_barn,_high_resolution,_long-term_measurements,_measurement,_naturally_ventilated_dairy_barn,_Agriculture_and_related_technologies,_Natural_resources,_energy_&_environment",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "ammonia (NH3), carbon dioxide (CO2), dairy barn, high resolution, long-term measurements, measurement, naturally ventilated dairy barn, Agriculture and related technologies, Natural resources, energy & environment",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Temporal_Extent_2016-11-01_-_2017-08-30",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Temporal Extent",
+      "value": "2016-11-01 - 2017-08-30",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_frl_6420709_study_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Keywords_ammonia_(NH3),_carbon_dioxide_(CO2),_dairy_barn,_high_resolution,_long-term_measurements,_measurement,_naturally_ventilated_dairy_barn,_Agriculture_and_related_technologies,_Natural_resources,_energy_&_environment"
+        },
+        {
+          "@id": "#ParameterValue_Temporal_Extent_2016-11-01_-_2017-08-30"
+        }
+      ]
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Published research data metadata from a Regal repository",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_License_http://opendatacommons.org/licenses/by/1.0/",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "License",
+      "value": "http://opendatacommons.org/licenses/by/1.0/",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_frl_6420709_study_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository"
+        },
+        {
+          "@id": "#ParameterValue_License_http://opendatacommons.org/licenses/by/1.0/"
+        }
+      ]
+    },
+    {
+      "@id": "studies/frl_6420709_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "frl_6420709_study",
+      "datePublished": "2020",
+      "description": "",
+      "hasPart": [],
+      "name": "High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn",
+      "about": [
+        {
+          "@id": "#Process_S_frl_6420709_study_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_frl_6420709_study_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.4126/FRL01-006420709",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.4126/FRL01-006420709",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon",
+      "@type": "Person",
+      "givenName": "D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon"
+    },
+    {
+      "@id": "#High_resolution_long-term_measurements_of_carbon_dioxide_and_ammonia_concentrations__in_a_naturally_ventilated_dairy_barn",
+      "@type": "ScholarlyArticle",
+      "headline": "High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn",
+      "identifier": {
+        "@id": "10.4126/FRL01-006420709"
+      },
+      "author": {
+        "@id": "#Author_D. Janke; D. Willink; S. Hempel; B. Amon; A. Römer; T. Amon"
+      }
+    },
+    {
+      "@id": "#LDComment_Copyright_Year_2020",
+      "@type": "Comment",
+      "name": "Copyright Year",
+      "text": "2020"
+    },
+    {
+      "@id": "#LDComment_Access_Scheme_public",
+      "@type": "Comment",
+      "name": "Access Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Publish_Scheme_public",
+      "@type": "Comment",
+      "name": "Publish Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Content_Type_researchData",
+      "@type": "Comment",
+      "name": "Content Type",
+      "text": "researchData"
+    },
+    {
+      "@id": "#LDComment_License_http://opendatacommons.org/licenses/by/1.0/",
+      "@type": "Comment",
+      "name": "License",
+      "text": "http://opendatacommons.org/licenses/by/1.0/"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Keywords_ammonia_(NH3),_carbon_dioxide_(CO2),_dairy_barn,_high_resolution,_long-term_measurements,_measurement,_naturally_ventilated_dairy_barn",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "ammonia (NH3), carbon dioxide (CO2), dairy barn, high resolution, long-term measurements, measurement, naturally ventilated dairy barn"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/YW1tb25pYSAoTkgzKQ==]_ammonia_(NH3)",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/YW1tb25pYSAoTkgzKQ==]",
+      "text": "ammonia (NH3)"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Y2FyYm9uIGRpb3hpZGUgKENPMik=]_carbon_dioxide_(CO2)",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/Y2FyYm9uIGRpb3hpZGUgKENPMik=]",
+      "text": "carbon dioxide (CO2)"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZGFpcnkgYmFybg==]_dairy_barn",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/ZGFpcnkgYmFybg==]",
+      "text": "dairy barn"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/aGlnaCByZXNvbHV0aW9uIA==]_high_resolution",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/aGlnaCByZXNvbHV0aW9uIA==]",
+      "text": "high resolution"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bG9uZy10ZXJtIG1lYXN1cmVtZW50cw==]_long-term_measurements",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bG9uZy10ZXJtIG1lYXN1cmVtZW50cw==]",
+      "text": "long-term measurements"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWVhc3VyZW1lbnQ=]_measurement",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bWVhc3VyZW1lbnQ=]",
+      "text": "measurement"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bmF0dXJhbGx5IHZlbnRpbGF0ZWQgZGFpcnkgYmFybg==]_naturally_ventilated_dairy_barn",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/bmF0dXJhbGx5IHZlbnRpbGF0ZWQgZGFpcnkgYmFybg==]",
+      "text": "naturally ventilated dairy barn"
+    },
+    {
+      "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/630/]_Agriculture_and_related_technologies",
+      "@type": "Comment",
+      "name": "keyword [DDC:http://dewey.info/class/630/]",
+      "text": "Agriculture and related technologies"
+    },
+    {
+      "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/333/7/]_Natural_resources,_energy_&_environment",
+      "@type": "Comment",
+      "name": "keyword [DDC:http://dewey.info/class/333/7/]",
+      "text": "Natural resources, energy & environment"
+    },
+    {
+      "@id": "#LDComment_Institution_Institut_für_Tierproduktion_(Dummerstorf)_(https://d-nb.info/gnd/16030598-6);_Leibniz-Institut_für_Agrartechnik_und_Bioökonomie_(https://d-nb.info/gnd/1119361486)",
+      "@type": "Comment",
+      "name": "Institution",
+      "text": "Institut für Tierproduktion (Dummerstorf) (https://d-nb.info/gnd/16030598-6); Leibniz-Institut für Agrartechnik und Bioökonomie (https://d-nb.info/gnd/1119361486)"
+    },
+    {
+      "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset",
+      "@type": "Comment",
+      "name": "medium",
+      "text": "http://purl.org/dc/dcmitype/Dataset"
+    },
+    {
+      "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6420709",
+      "@type": "Comment",
+      "name": "itemID",
+      "text": "oai:frl.publisso.de:frl:6420709"
+    },
+    {
+      "@id": "#LDComment_isDescribedBy_frl:6420709.rdf",
+      "@type": "Comment",
+      "name": "isDescribedBy",
+      "text": "frl:6420709.rdf"
+    },
+    {
+      "@id": "#LDComment_isPrimaryTopicOf_http://localhost:8080/resource/frl:6420709/edit",
+      "@type": "Comment",
+      "name": "isPrimaryTopicOf",
+      "text": "http://localhost:8080/resource/frl:6420709/edit"
+    },
+    {
+      "@id": "#LDComment_primaryTopic_frl:6420709",
+      "@type": "Comment",
+      "name": "primaryTopic",
+      "text": "frl:6420709"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6420709",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://repository.publisso.de/resource/frl:6420709"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "http://opendatacommons.org/licenses/by/1.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "frl_6420709",
+      "creator": [
+        {
+          "@id": "http://orcid.org/0000-0002-4211-3404"
+        },
+        {
+          "@id": "#Person_Dilya_Willink"
+        },
+        {
+          "@id": "http://orcid.org/0000-0002-8398-4820"
+        },
+        {
+          "@id": "http://orcid.org/0000-0001-5650-1806"
+        },
+        {
+          "@id": "#Person_Anke_Römer"
+        },
+        {
+          "@id": "http://orcid.org/0000-0003-2468-3160"
+        }
+      ],
+      "datePublished": "2020",
+      "dateModified": "2026-09-29T10:28:31.145+0200",
+      "description": "",
+      "hasPart": [
+        {
+          "@id": "assays/frl_6420709_assay/"
+        },
+        {
+          "@id": "studies/frl_6420709_study/"
+        }
+      ],
+      "name": "High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn",
+      "citation": {
+        "@id": "#High_resolution_long-term_measurements_of_carbon_dioxide_and_ammonia_concentrations__in_a_naturally_ventilated_dairy_barn"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Copyright_Year_2020"
+        },
+        {
+          "@id": "#LDComment_Access_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Publish_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Content_Type_researchData"
+        },
+        {
+          "@id": "#LDComment_License_http://opendatacommons.org/licenses/by/1.0/"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Keywords_ammonia_(NH3),_carbon_dioxide_(CO2),_dairy_barn,_high_resolution,_long-term_measurements,_measurement,_naturally_ventilated_dairy_barn"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/YW1tb25pYSAoTkgzKQ==]_ammonia_(NH3)"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Y2FyYm9uIGRpb3hpZGUgKENPMik=]_carbon_dioxide_(CO2)"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/ZGFpcnkgYmFybg==]_dairy_barn"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/aGlnaCByZXNvbHV0aW9uIA==]_high_resolution"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bG9uZy10ZXJtIG1lYXN1cmVtZW50cw==]_long-term_measurements"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bWVhc3VyZW1lbnQ=]_measurement"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/bmF0dXJhbGx5IHZlbnRpbGF0ZWQgZGFpcnkgYmFybg==]_naturally_ventilated_dairy_barn"
+        },
+        {
+          "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/630/]_Agriculture_and_related_technologies"
+        },
+        {
+          "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/333/7/]_Natural_resources,_energy_&_environment"
+        },
+        {
+          "@id": "#LDComment_Institution_Institut_für_Tierproduktion_(Dummerstorf)_(https://d-nb.info/gnd/16030598-6);_Leibniz-Institut_für_Agrartechnik_und_Bioökonomie_(https://d-nb.info/gnd/1119361486)"
+        },
+        {
+          "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset"
+        },
+        {
+          "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6420709"
+        },
+        {
+          "@id": "#LDComment_isDescribedBy_frl:6420709.rdf"
+        },
+        {
+          "@id": "#LDComment_isPrimaryTopicOf_http://localhost:8080/resource/frl:6420709/edit"
+        },
+        {
+          "@id": "#LDComment_primaryTopic_frl:6420709"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6420709"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T09:26:55.0737260",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

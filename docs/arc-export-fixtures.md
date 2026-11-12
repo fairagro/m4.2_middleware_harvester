@@ -49,16 +49,16 @@ Minimal MVP smoke crates may remain for `bonares` / `openagrar` / `publisso` alo
 
 ### Real-data suites (status)
 
-| RDI                     | Status                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| bonares                 | Real-data cases under `fixtures/arc_export/bonares/<uuid>/` (+ smoke at folder root); see that folder’s `README.md` |
-| edal                    | Real-data cases under `fixtures/arc_export/edal/<doi-slug>/`; see that folder’s `README.md` (#610)                  |
-| publisso                | Deferred — #611                                                                                                     |
-| sradi                   | Deferred — #612                                                                                                     |
-| plabipd                 | Deferred — #613                                                                                                     |
-| openagrar (live / MODS) | Deferred — #614                                                                                                     |
-| phenoroam               | Deferred — #615                                                                                                     |
-| openagrar-fixture       | Local fixture-server stand-in only; does not satisfy the OpenAgrar live suite (#614)                                |
+| RDI                     | Status                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| bonares                 | Real-data cases under `fixtures/arc_export/bonares/<uuid>/` (+ smoke at folder root); see that folder’s `README.md`             |
+| edal                    | Real-data cases under `fixtures/arc_export/edal/<doi-slug>/`; see that folder’s `README.md` (#610)                              |
+| publisso                | Real-data cases under `fixtures/arc_export/publisso/<frl-slug>/` (+ smoke at folder root); see that folder’s `README.md` (#611) |
+| sradi                   | Deferred — #612                                                                                                                 |
+| plabipd                 | Deferred — #613                                                                                                                 |
+| openagrar (live / MODS) | Deferred — #614                                                                                                                 |
+| phenoroam               | Deferred — #615                                                                                                                 |
+| openagrar-fixture       | Local fixture-server stand-in only; does not satisfy the OpenAgrar live suite (#614)                                            |
 
 ## Generate a real-data fixture
 

@@ -65,3 +65,15 @@ def test_edal_real_data_suite_has_multiple_cases(
         f"expected ≥2 nested edal/<case>/ fixtures, found {len(edal_cases)}: "
         f"{[str(p.relative_to(arc_export_fixtures_root)) for p in edal_cases]}"
     )
+
+
+def test_publisso_real_data_suite_has_multiple_cases(
+    arc_export_fixture_dirs: list[Path],
+    arc_export_fixtures_root: Path,
+) -> None:
+    """Landed publisso real-data suite must be multi-case (nested dirs), not smoke alone."""
+    publisso_cases = _nested_cases(arc_export_fixture_dirs, arc_export_fixtures_root, "publisso")
+    assert len(publisso_cases) >= 2, (
+        f"expected ≥2 nested publisso/<case>/ fixtures, found {len(publisso_cases)}: "
+        f"{[str(p.relative_to(arc_export_fixtures_root)) for p in publisso_cases]}"
+    )

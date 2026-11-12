@@ -1,0 +1,885 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)",
+      "@type": "Organization",
+      "name": "NFDI4Health - Nationale Forschungsdateninfrastruktur für personenbezogene Gesundheitsdaten (Projekt)"
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_Haitham_Abaza",
+      "@type": "Person",
+      "givenName": "Haitham",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Abaza",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Aliaksandra_Shutsko",
+      "@type": "Person",
+      "givenName": "Aliaksandra",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Shutsko",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Martin_Golebiewski",
+      "@type": "Person",
+      "givenName": "Martin",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Golebiewski",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Sophie_A._I._Klopfenstein",
+      "@type": "Person",
+      "givenName": "Sophie A. I.",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Klopfenstein",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Carsten_Oliver_Schmidt",
+      "@type": "Person",
+      "givenName": "Carsten Oliver",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Schmidt",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Carina_N._Vorisek",
+      "@type": "Person",
+      "givenName": "Carina N.",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Vorisek",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Claudia_Brünings-Kuppe",
+      "@type": "Person",
+      "givenName": "Claudia",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Brünings-Kuppe",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Vera_Clemens",
+      "@type": "Person",
+      "givenName": "Vera",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Clemens",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Johannes_Darms",
+      "@type": "Person",
+      "givenName": "Johannes",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Darms",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Sabine_Hanß",
+      "@type": "Person",
+      "givenName": "Sabine",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Hanß",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Timm_Intemann",
+      "@type": "Person",
+      "givenName": "Timm",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Intemann",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Franziska_Jannasch",
+      "@type": "Person",
+      "givenName": "Franziska",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Jannasch",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Elisa_Kasbohm",
+      "@type": "Person",
+      "givenName": "Elisa",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Kasbohm",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Birte_Lindstädt",
+      "@type": "Person",
+      "givenName": "Birte",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Lindstädt",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Matthias_Löbe",
+      "@type": "Person",
+      "givenName": "Matthias",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Löbe",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Ester_Orban",
+      "@type": "Person",
+      "givenName": "Ester",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Orban",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Ines_Perrar",
+      "@type": "Person",
+      "givenName": "Ines",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Perrar",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Manuela_Peters",
+      "@type": "Person",
+      "givenName": "Manuela",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Peters",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Ulrich_Sax",
+      "@type": "Person",
+      "givenName": "Ulrich",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Sax",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Matthias_Schulze",
+      "@type": "Person",
+      "givenName": "Matthias",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Schulze",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Claudia_Schupp",
+      "@type": "Person",
+      "givenName": "Claudia",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Schupp",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Florian_Schwarz",
+      "@type": "Person",
+      "givenName": "Florian",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Schwarz",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Carolina_Schwedhelm",
+      "@type": "Person",
+      "givenName": "Carolina",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Schwedhelm",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Stefan_Strathmann",
+      "@type": "Person",
+      "givenName": "Stefan",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Strathmann",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Dagmar_Waltemath",
+      "@type": "Person",
+      "givenName": "Dagmar",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Waltemath",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Hannes_Wünsche",
+      "@type": "Person",
+      "givenName": "Hannes",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Wünsche",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_Atinkut_A._Zeleke",
+      "@type": "Person",
+      "givenName": "Atinkut A.",
+      "affiliation": {
+        "@id": "#Organization_NFDI4Health_-_Nationale_Forschungsdateninfrastruktur_für_personenbezogene_Gesundheitsdaten_(Projekt)"
+      },
+      "familyName": "Zeleke",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.4126/FRL01-006472531",
+      "@type": "URI",
+      "name": "https://doi.org/10.4126/FRL01-006472531"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_frl_6472531_assay_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.4126/FRL01-006472531"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0\"}",
+        "Comment {Name = \"Language\", Value = \"eng\"}",
+        "Comment {Name = \"Online Resource\", Value = \"https://repository.publisso.de/resource/frl:6472624\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"The NFDI4Health Metadata Schema (V3_3)\"}",
+        "Comment {Name = \"Institution\", Value = \"NFDI4Health - Nationale Forschungsdateninfrastruktur für personenbezogene Gesundheitsdaten (Projekt)\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Regal_Research_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Regal Research Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/frl_6472531_assay/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "frl_6472531_assay",
+      "hasPart": [],
+      "name": "The NFDI4Health Metadata Schema (V3_3)",
+      "about": {
+        "@id": "#Process_A_frl_6472531_assay_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Regal_Research_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Clinical_trials,_COVID-19,_Epidemiology,_FAIR_principles,_Metadata,_Metadata_model,_Public_Health,_Standard,_Bibliotheks-_und_Informationswissenschaften,_Medizin_und_Gesundheit",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Clinical trials, COVID-19, Epidemiology, FAIR principles, Metadata, Metadata model, Public Health, Standard, Bibliotheks- und Informationswissenschaften, Medizin und Gesundheit",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_frl_6472531_study_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Clinical_trials,_COVID-19,_Epidemiology,_FAIR_principles,_Metadata,_Metadata_model,_Public_Health,_Standard,_Bibliotheks-_und_Informationswissenschaften,_Medizin_und_Gesundheit"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Published research data metadata from a Regal repository",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "License",
+      "value": "https://creativecommons.org/licenses/by/4.0",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_frl_6472531_study_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository"
+        },
+        {
+          "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0"
+        }
+      ]
+    },
+    {
+      "@id": "studies/frl_6472531_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "frl_6472531_study",
+      "datePublished": "2023",
+      "description": "Originally developed by the NFDI4Health Task Force COVID-19, the Metadata Schema of the NFDI4Health contains a list of properties \r\nthat describe a resource to be registered in the German Central Health Study Hub.  Currently, two main types of resources are distinguished: a) study descriptions (i.e., metadata set describing a study) and b) study documents. However, due to the generic character of the Metadata Schema, other types of resources may also be described and registered. The metadata properties are divided into mandatory and recommended ones. Along with bibliographic information such as title and description of the resource, the related persons and organizations contributing to the development of the resource can also be specified. The results of studies published in journal articles or other text publications can be linked too. For studies, information about study design and accessibility of the collected data should be additionally provided. The Metadata Schema consists mainly of properties adapted from established standards and models such as DataCite Metadata Schema 4.4, data models of the ClinicalTrials.gov, German Clinical Trials Register, International Clinical Trials Registry, HL7® FHIR, MIABIS, Maelstrom Research cataloguing toolkit and DDI Controlled Vocabularies. This is an updated version V3_3 of the Metadata Schema, which improves the modules of the previous version via refined display names, description and additional information texts, and short input helps and examples. The new version also introduces a new url item in the data sharing section for linking to data request applications. The undertaken changes are described within the document.",
+      "hasPart": [],
+      "name": "The NFDI4Health Metadata Schema (V3_3)",
+      "about": [
+        {
+          "@id": "#Process_S_frl_6472531_study_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_frl_6472531_study_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.4126/FRL01-006472531",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.4126/FRL01-006472531",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_H. Abaza; A. Shutsko; M. Golebiewski; S. Klopfenstein; C. Schmidt; C. Vorisek; C. Brünings-Kuppe; V. Clemens; J. Darms; S. Hanß; T. Intemann; F. Jannasch; E. Kasbohm; B. Lindstädt; M. Löbe; E. Orban; I. Perrar; M. Peters; U. Sax; M. Schulze; C. Schupp; F. Schwarz; C. Schwedhelm; S. Strathmann; D. Waltemath; H. Wünsche; A. Zeleke",
+      "@type": "Person",
+      "givenName": "H. Abaza; A. Shutsko; M. Golebiewski; S. Klopfenstein; C. Schmidt; C. Vorisek; C. Brünings-Kuppe; V. Clemens; J. Darms; S. Hanß; T. Intemann; F. Jannasch; E. Kasbohm; B. Lindstädt; M. Löbe; E. Orban; I. Perrar; M. Peters; U. Sax; M. Schulze; C. Schupp; F. Schwarz; C. Schwedhelm; S. Strathmann; D. Waltemath; H. Wünsche; A. Zeleke"
+    },
+    {
+      "@id": "#The_NFDI4Health_Metadata_Schema_(V3_3)",
+      "@type": "ScholarlyArticle",
+      "headline": "The NFDI4Health Metadata Schema (V3_3)",
+      "identifier": {
+        "@id": "10.4126/FRL01-006472531"
+      },
+      "author": {
+        "@id": "#Author_H. Abaza; A. Shutsko; M. Golebiewski; S. Klopfenstein; C. Schmidt; C. Vorisek; C. Brünings-Kuppe; V. Clemens; J. Darms; S. Hanß; T. Intemann; F. Jannasch; E. Kasbohm; B. Lindstädt; M. Löbe; E. Orban; I. Perrar; M. Peters; U. Sax; M. Schulze; C. Schupp; F. Schwarz; C. Schwedhelm; S. Strathmann; D. Waltemath; H. Wünsche; A. Zeleke"
+      }
+    },
+    {
+      "@id": "#LDComment_Copyright_Year_2023",
+      "@type": "Comment",
+      "name": "Copyright Year",
+      "text": "2023"
+    },
+    {
+      "@id": "#LDComment_Access_Scheme_public",
+      "@type": "Comment",
+      "name": "Access Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Publish_Scheme_public",
+      "@type": "Comment",
+      "name": "Publish Scheme",
+      "text": "public"
+    },
+    {
+      "@id": "#LDComment_Content_Type_researchData",
+      "@type": "Comment",
+      "name": "Content Type",
+      "text": "researchData"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Keywords_Clinical_trials,_COVID-19,_Epidemiology,_FAIR_principles,_Metadata,_Metadata_model,_Public_Health,_Standard",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "Clinical trials, COVID-19, Epidemiology, FAIR principles, Metadata, Metadata model, Public Health, Standard"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Q2xpbmljYWwgdHJpYWxz]_Clinical_trials",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/Q2xpbmljYWwgdHJpYWxz]",
+      "text": "Clinical trials"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://d-nb.info/gnd/1206347392]_COVID-19",
+      "@type": "Comment",
+      "name": "keyword [https://d-nb.info/gnd/1206347392]",
+      "text": "COVID-19"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/RXBpZGVtaW9sb2d5]_Epidemiology",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/RXBpZGVtaW9sb2d5]",
+      "text": "Epidemiology"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/RkFJUiBwcmluY2lwbGVz]_FAIR_principles",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/RkFJUiBwcmluY2lwbGVz]",
+      "text": "FAIR principles"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/TWV0YWRhdGE=]_Metadata",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/TWV0YWRhdGE=]",
+      "text": "Metadata"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/TWV0YWRhdGEgbW9kZWw=]_Metadata_model",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/TWV0YWRhdGEgbW9kZWw=]",
+      "text": "Metadata model"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/UHVibGljIEhlYWx0aA==]_Public_Health",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/UHVibGljIEhlYWx0aA==]",
+      "text": "Public Health"
+    },
+    {
+      "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/U3RhbmRhcmQ=]_Standard",
+      "@type": "Comment",
+      "name": "keyword [https://frl.publisso.de/adhoc/uri/U3RhbmRhcmQ=]",
+      "text": "Standard"
+    },
+    {
+      "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/020/]_Bibliotheks-_und_Informationswissenschaften",
+      "@type": "Comment",
+      "name": "keyword [DDC:http://dewey.info/class/020/]",
+      "text": "Bibliotheks- und Informationswissenschaften"
+    },
+    {
+      "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/610/]_Medizin_und_Gesundheit",
+      "@type": "Comment",
+      "name": "keyword [DDC:http://dewey.info/class/610/]",
+      "text": "Medizin und Gesundheit"
+    },
+    {
+      "@id": "#LDComment_previousVersion_https://repository.publisso.de/resource/frl%3A6453422",
+      "@type": "Comment",
+      "name": "previousVersion",
+      "text": "https://repository.publisso.de/resource/frl%3A6453422"
+    },
+    {
+      "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset",
+      "@type": "Comment",
+      "name": "medium",
+      "text": "http://purl.org/dc/dcmitype/Dataset"
+    },
+    {
+      "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6472531",
+      "@type": "Comment",
+      "name": "itemID",
+      "text": "oai:frl.publisso.de:frl:6472531"
+    },
+    {
+      "@id": "#LDComment_isDescribedBy_frl:6472531.rdf",
+      "@type": "Comment",
+      "name": "isDescribedBy",
+      "text": "frl:6472531.rdf"
+    },
+    {
+      "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6472531/edit",
+      "@type": "Comment",
+      "name": "isPrimaryTopicOf",
+      "text": "https://repository.publisso.de/resource/frl:6472531/edit"
+    },
+    {
+      "@id": "#LDComment_primaryTopic_frl:6472531",
+      "@type": "Comment",
+      "name": "primaryTopic",
+      "text": "frl:6472531"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6472531",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://repository.publisso.de/resource/frl:6472531"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "frl_6472531",
+      "creator": [
+        {
+          "@id": "#Person_Haitham_Abaza"
+        },
+        {
+          "@id": "#Person_Aliaksandra_Shutsko"
+        },
+        {
+          "@id": "#Person_Martin_Golebiewski"
+        },
+        {
+          "@id": "#Person_Sophie_A._I._Klopfenstein"
+        },
+        {
+          "@id": "#Person_Carsten_Oliver_Schmidt"
+        },
+        {
+          "@id": "#Person_Carina_N._Vorisek"
+        },
+        {
+          "@id": "#Person_Claudia_Brünings-Kuppe"
+        },
+        {
+          "@id": "#Person_Vera_Clemens"
+        },
+        {
+          "@id": "#Person_Johannes_Darms"
+        },
+        {
+          "@id": "#Person_Sabine_Hanß"
+        },
+        {
+          "@id": "#Person_Timm_Intemann"
+        },
+        {
+          "@id": "#Person_Franziska_Jannasch"
+        },
+        {
+          "@id": "#Person_Elisa_Kasbohm"
+        },
+        {
+          "@id": "#Person_Birte_Lindstädt"
+        },
+        {
+          "@id": "#Person_Matthias_Löbe"
+        },
+        {
+          "@id": "#Person_Ester_Orban"
+        },
+        {
+          "@id": "#Person_Ines_Perrar"
+        },
+        {
+          "@id": "#Person_Manuela_Peters"
+        },
+        {
+          "@id": "#Person_Ulrich_Sax"
+        },
+        {
+          "@id": "#Person_Matthias_Schulze"
+        },
+        {
+          "@id": "#Person_Claudia_Schupp"
+        },
+        {
+          "@id": "#Person_Florian_Schwarz"
+        },
+        {
+          "@id": "#Person_Carolina_Schwedhelm"
+        },
+        {
+          "@id": "#Person_Stefan_Strathmann"
+        },
+        {
+          "@id": "#Person_Dagmar_Waltemath"
+        },
+        {
+          "@id": "#Person_Hannes_Wünsche"
+        },
+        {
+          "@id": "#Person_Atinkut_A._Zeleke"
+        }
+      ],
+      "datePublished": "2023",
+      "dateModified": "2026-09-28T11:31:41.187+0200",
+      "description": "Originally developed by the NFDI4Health Task Force COVID-19, the Metadata Schema of the NFDI4Health contains a list of properties \r\nthat describe a resource to be registered in the German Central Health Study Hub.  Currently, two main types of resources are distinguished: a) study descriptions (i.e., metadata set describing a study) and b) study documents. However, due to the generic character of the Metadata Schema, other types of resources may also be described and registered. The metadata properties are divided into mandatory and recommended ones. Along with bibliographic information such as title and description of the resource, the related persons and organizations contributing to the development of the resource can also be specified. The results of studies published in journal articles or other text publications can be linked too. For studies, information about study design and accessibility of the collected data should be additionally provided. The Metadata Schema consists mainly of properties adapted from established standards and models such as DataCite Metadata Schema 4.4, data models of the ClinicalTrials.gov, German Clinical Trials Register, International Clinical Trials Registry, HL7® FHIR, MIABIS, Maelstrom Research cataloguing toolkit and DDI Controlled Vocabularies. This is an updated version V3_3 of the Metadata Schema, which improves the modules of the previous version via refined display names, description and additional information texts, and short input helps and examples. The new version also introduces a new url item in the data sharing section for linking to data request applications. The undertaken changes are described within the document.",
+      "hasPart": [
+        {
+          "@id": "assays/frl_6472531_assay/"
+        },
+        {
+          "@id": "studies/frl_6472531_study/"
+        }
+      ],
+      "name": "The NFDI4Health Metadata Schema (V3_3)",
+      "citation": {
+        "@id": "#The_NFDI4Health_Metadata_Schema_(V3_3)"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Copyright_Year_2023"
+        },
+        {
+          "@id": "#LDComment_Access_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Publish_Scheme_public"
+        },
+        {
+          "@id": "#LDComment_Content_Type_researchData"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Keywords_Clinical_trials,_COVID-19,_Epidemiology,_FAIR_principles,_Metadata,_Metadata_model,_Public_Health,_Standard"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/Q2xpbmljYWwgdHJpYWxz]_Clinical_trials"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://d-nb.info/gnd/1206347392]_COVID-19"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/RXBpZGVtaW9sb2d5]_Epidemiology"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/RkFJUiBwcmluY2lwbGVz]_FAIR_principles"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/TWV0YWRhdGE=]_Metadata"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/TWV0YWRhdGEgbW9kZWw=]_Metadata_model"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/UHVibGljIEhlYWx0aA==]_Public_Health"
+        },
+        {
+          "@id": "#LDComment_keyword_[https://frl.publisso.de/adhoc/uri/U3RhbmRhcmQ=]_Standard"
+        },
+        {
+          "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/020/]_Bibliotheks-_und_Informationswissenschaften"
+        },
+        {
+          "@id": "#LDComment_keyword_[DDC:http://dewey.info/class/610/]_Medizin_und_Gesundheit"
+        },
+        {
+          "@id": "#LDComment_previousVersion_https://repository.publisso.de/resource/frl%3A6453422"
+        },
+        {
+          "@id": "#LDComment_medium_http://purl.org/dc/dcmitype/Dataset"
+        },
+        {
+          "@id": "#LDComment_itemID_oai:frl.publisso.de:frl:6472531"
+        },
+        {
+          "@id": "#LDComment_isDescribedBy_frl:6472531.rdf"
+        },
+        {
+          "@id": "#LDComment_isPrimaryTopicOf_https://repository.publisso.de/resource/frl:6472531/edit"
+        },
+        {
+          "@id": "#LDComment_primaryTopic_frl:6472531"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://repository.publisso.de/resource/frl:6472531"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T09:26:55.2745090",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
