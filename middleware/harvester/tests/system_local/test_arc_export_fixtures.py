@@ -30,9 +30,16 @@ def test_mvp_mapper_family_fixtures_present(
     arc_export_fixture_dirs: list[Path],
     arc_export_fixtures_root: Path,
 ) -> None:
-    """MVP covers inspire / schema.org-generic / regal representative RDI ids."""
+    """MVP covers inspire / schema.org-generic / regal; openagrar is MODS real-data (#614)."""
     rdi_ids = {path.relative_to(arc_export_fixtures_root).parts[0] for path in arc_export_fixture_dirs}
-    assert {"bonares", "openagrar", "publisso"} <= rdi_ids
+    # INSPIRE + Regal stand-ins (historical smoke RDI ids).
+    assert {"bonares", "publisso"} <= rdi_ids
+    # Schema.org/generic: edal/plabipd — not openagrar (live suite is MODS-mapped).
+    assert {"edal", "plabipd"} & rdi_ids, (
+        f"expected a Schema.org/generic RDI fixture (edal or plabipd), found {sorted(rdi_ids)}"
+    )
+    # OpenAgrar live MODS suite folder must remain present after smoke removal.
+    assert "openagrar" in rdi_ids
 
 
 def _nested_cases(arc_export_fixture_dirs: list[Path], root: Path, rdi: str) -> list[Path]:

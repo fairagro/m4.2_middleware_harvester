@@ -41,9 +41,9 @@ middleware/harvester/tests/fixtures/arc_export/<rdi>/<case-id>/ro-crate-metadata
 `system_local` discovers **every** leaf directory under `arc_export/` that contains `ro-crate-metadata.json` (smoke and
 nested cases). The first path segment is the RDI id.
 
-**Active RDI inventory** for real-data suites: enabled repositories in `dev_environment/config.all-rdis.yaml` (plus the
-preferred OpenAgrar live path tracked as #614). Technology family is secondary — sibling RDIs can diverge even when they
-share a mapper.
+**Active RDI inventory** for real-data suites: enabled repositories in `dev_environment/config.all-rdis.yaml` (OpenAgrar
+live MODS suite landed in #614). Technology family is secondary — sibling RDIs can diverge even when they share a
+mapper.
 
 Minimal MVP smoke crates may remain for `bonares` / `publisso` alongside real-data sets. `openagrar` is nested real-data
 only (smoke removed in #614).
