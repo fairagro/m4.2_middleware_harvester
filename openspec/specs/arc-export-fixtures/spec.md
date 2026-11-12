@@ -145,8 +145,8 @@ production or `arc-export` gap appears.
   `fixtures/arc_export/phenoroam/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
   temporarily covering the full curated breadth with a follow-up to expand), cases MUST originate from the live OAI-PMH
   - `phenoroam_xml` + `phenoroam_general` client path (not synthetic one-field Investigations), docs/`README` state
-    which PhenoRoam input features each file covers (for example bbox / spatial, multi-Person contacts±affiliation,
-    keywords, license, datafile-link comments, study-parent titles), no root smoke crate is required, and
+    which PhenoRoam input features each file covers (for example bbox / spatial, Person contacts±affiliation, keywords,
+    license, datafile-link comments, study-parent titles), no root smoke crate is required, and
     `docs/arc-export-fixtures.md` no longer lists phenoroam as deferred-only
 
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
