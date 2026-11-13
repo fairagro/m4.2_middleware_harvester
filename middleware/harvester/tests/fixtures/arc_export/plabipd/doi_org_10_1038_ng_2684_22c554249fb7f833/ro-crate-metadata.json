@@ -1,0 +1,330 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_",
+      "@type": "Organization",
+      "name": ""
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_M_Blanchette",
+      "@type": "Person",
+      "givenName": "M",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Blanchette",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_A_Haudry",
+      "@type": "Person",
+      "givenName": "A",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Haudry",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_AE_Platts",
+      "@type": "Person",
+      "givenName": "AE",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Platts",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.1038/ng.2684",
+      "@type": "URI",
+      "name": "https://doi.org/10.1038/ng.2684"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.1038/ng.2684"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0/\"}",
+        "Comment {Name = \"Publisher\", Value = \"Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc",
+      "hasPart": [],
+      "name": "An atlas of over 90,000 conserved noncoding sequences provides insight into crucifer regulatory regions.",
+      "about": {
+        "@id": "#Process_A_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Leavenworthia_alabamica,_rosid,_1,_Gladecress",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Leavenworthia alabamica, rosid, 1, Gladecress",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Leavenworthia_alabamica,_rosid,_1,_Gladecress"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+      }
+    },
+    {
+      "@id": "studies/an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc",
+      "datePublished": "2013-06-30",
+      "description": "Genomic dataset for Leavenworthia alabamica. Commonly known as Gladecress. Genome size: 320 Mb. Originally published in: Nat Genet. 2013 Aug 45(8): 891-8. Epub 2013 Jun 30.",
+      "hasPart": [],
+      "name": "An atlas of over 90,000 conserved noncoding sequences provides insight into crucifer regulatory regions.",
+      "about": [
+        {
+          "@id": "#Process_S_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.1038/ng.2684",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.1038/ng.2684",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_M. Blanchette; A. Haudry; A. Platts",
+      "@type": "Person",
+      "givenName": "M. Blanchette; A. Haudry; A. Platts"
+    },
+    {
+      "@id": "#An_atlas_of_over_90,000_conserved_noncoding_sequences_provides_insight_into_crucifer_regulatory_regions.",
+      "@type": "ScholarlyArticle",
+      "headline": "An atlas of over 90,000 conserved noncoding sequences provides insight into crucifer regulatory regions.",
+      "identifier": {
+        "@id": "10.1038/ng.2684"
+      },
+      "author": {
+        "@id": "#Author_M. Blanchette; A. Haudry; A. Platts"
+      }
+    },
+    {
+      "@id": "#Nat_Genet._2013_Aug_45(8):_891-8._Epub_2013_Jun_30.",
+      "@type": "ScholarlyArticle",
+      "headline": "Nat Genet. 2013 Aug 45(8): 891-8. Epub 2013 Jun 30.",
+      "identifier": []
+    },
+    {
+      "@id": "#LDComment_Keywords_Leavenworthia_alabamica,_rosid,_1,_Gladecress",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "Leavenworthia alabamica, rosid, 1, Gladecress"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "doi_org_10_1038_ng_2684:22c554249fb7f833",
+      "creator": [
+        {
+          "@id": "#Person_M_Blanchette"
+        },
+        {
+          "@id": "#Person_A_Haudry"
+        },
+        {
+          "@id": "#Person_AE_Platts"
+        }
+      ],
+      "datePublished": "2013-06-30",
+      "description": "Genomic dataset for Leavenworthia alabamica. Commonly known as Gladecress. Genome size: 320 Mb. Originally published in: Nat Genet. 2013 Aug 45(8): 891-8. Epub 2013 Jun 30.",
+      "hasPart": [
+        {
+          "@id": "assays/an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc/"
+        },
+        {
+          "@id": "studies/an_atlas_of_over_90_000_conserved_noncoding_sequences_provides_insight_into_cruc/"
+        }
+      ],
+      "name": "An atlas of over 90,000 conserved noncoding sequences provides insight into crucifer regulatory regions.",
+      "citation": [
+        {
+          "@id": "#An_atlas_of_over_90,000_conserved_noncoding_sequences_provides_insight_into_crucifer_regulatory_regions."
+        },
+        {
+          "@id": "#Nat_Genet._2013_Aug_45(8):_891-8._Epub_2013_Jun_30."
+        }
+      ],
+      "comment": [
+        {
+          "@id": "#LDComment_Keywords_Leavenworthia_alabamica,_rosid,_1,_Gladecress"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T12:13:26.1299790",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

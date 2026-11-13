@@ -1,0 +1,366 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "http://purl.obolibrary.org/obo/NCIT_C70902",
+      "@type": "DefinedTerm",
+      "name": "Point of Contact",
+      "termCode": "http://purl.obolibrary.org/obo/NCIT_C70902"
+    },
+    {
+      "@id": "#Person_Kevin_Urbasch",
+      "@type": "Person",
+      "givenName": "Kevin",
+      "email": "redacted@example.invalid",
+      "familyName": "Urbasch",
+      "jobTitle": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C70902"
+      }
+    },
+    {
+      "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2391",
+      "@type": "URI",
+      "name": "https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2391"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_crops_2057_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": [],
+      "result": {
+        "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2391"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"Online Resource\", Value = \"https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Acrops_2057&format=image%2Fpng&height=550&width=550&srs=EPSG%3A25832&bbox=280356.8482333%2C5235360.5568000%2C921356.8482333%2C6101360.5568000;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WCS&request=GetCoverage&coverageid=geonode__crops_2057&format=image%2Ftiff&version=2.0.1&compression=DEFLATE&tileWidth=512&tileHeight=512;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetLegendGraphic&format=image/png&WIDTH=20&HEIGHT=20&LAYER=geonode:crops_2057&STYLE=crops_2057&version=1.3.0&sld_version=1.1.0&legend_options=fontAntiAliasing:true;fontSize:12;forceLabels:on;https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-7743f5cf-dafe-4193-bd84-d80dcf1c3405-thumb-d473c114-b28c-4f67-a9e7-d0de3f71ada8.jpg;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Acrops_2057&format=image%2Fjpeg&height=550&width=550&srs=EPSG%3A25832&bbox=280356.8482333%2C5235360.5568000%2C921356.8482333%2C6101360.5568000;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Acrops_2057&format=application%2Fpdf&height=550&width=550&srs=EPSG%3A25832&bbox=280356.8482333%2C5235360.5568000%2C921356.8482333%2C6101360.5568000;https://repository-e.dataservice.zalf.de/api/v2/assets/1453/link;https://repository-e.dataservice.zalf.de/geoserver/ows;https://repository-e.dataservice.zalf.de/geoserver/ows\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"crops_2057.png;crops_2057.geotiff;crops_2057.png;crops_2057.png;crops_2057.jpg;crops_2057.pdf;crops_2057.tif;geonode:crops_2057;geonode:crops_2057\"}",
+        "Comment {Name = \"Online Resource Protocol\", Value = \"WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;OGC:WMS;OGC:WCS\"}",
+        "Comment {Name = \"Online Resource Description\", Value = \"crops_2057 (PNG Format);crops_2057 (GeoTIFF Format);crops_2057 (Legend Format);crops_2057 (Thumbnail Format);crops_2057 (JPEG Format);crops_2057 (PDF Format);crops_2057 (Original Format);geonode Service - Provides Layer: crops_2057;geonode Service - Provides Layer: crops_2057\"}",
+        "Comment {Name = \"Graphic Overview\", Value = \"https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-7743f5cf-dafe-4193-bd84-d80dcf1c3405-thumb-d473c114-b28c-4f67-a9e7-d0de3f71ada8.jpg\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Collection",
+      "@type": "DefinedTerm",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "#OA_Satellite/Sensor_Acquisition",
+      "@type": "DefinedTerm",
+      "name": "Satellite/Sensor Acquisition"
+    },
+    {
+      "@id": "#PV_Agricultural_Measurement",
+      "@type": "PropertyValue",
+      "name": "Agricultural Measurement",
+      "propertyID": "http://purl.obolibrary.org/obo/AGRO_00000001"
+    },
+    {
+      "@id": "assays/crops_2057/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "crops_2057",
+      "hasPart": [],
+      "name": "crops_2057",
+      "about": {
+        "@id": "#Process_A_crops_2057_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Collection"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Satellite/Sensor_Acquisition"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Agricultural_Measurement"
+      }
+    },
+    {
+      "@id": "#Source_Geographic_Region",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Geographic Region"
+    },
+    {
+      "@id": "#Sample_Selected_Location",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": "Selected Location"
+    },
+    {
+      "@id": "#Protocol_Spatial_Sampling",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Bounding_Box_[5.564783468449568,_47.136744790334255,_15.572418807944247,_55.05548285943231]",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Bounding Box",
+      "value": "[5.564783468449568, 47.136744790334255, 15.572418807944247, 55.05548285943231]",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Coordinate Reference System",
+      "value": "EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_crops_2057_Spatial_Sampling_0",
+      "@type": "LabProcess",
+      "name": "Spatial Sampling_0",
+      "object": {
+        "@id": "#Source_Geographic_Region"
+      },
+      "result": {
+        "@id": "#Sample_Selected_Location"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Spatial_Sampling"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Bounding_Box_[5.564783468449568,_47.136744790334255,_15.572418807944247,_55.05548285943231]"
+        },
+        {
+          "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326"
+        }
+      ]
+    },
+    {
+      "@id": "#Protocol_Data_Acquisition",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Temporal_Extent_2016-12-31T23:00:00+00:00_to_2069-12-30T23:00:00+00:00",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Temporal Extent",
+      "value": "2016-12-31T23:00:00+00:00 to 2069-12-30T23:00:00+00:00",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_crops_2057_Data_Acquisition_0",
+      "@type": "LabProcess",
+      "name": "Data Acquisition_0",
+      "object": {
+        "@id": "#Sample_Selected_Location"
+      },
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Acquisition"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Temporal_Extent_2016-12-31T23:00:00+00:00_to_2069-12-30T23:00:00+00:00"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Date_2026-09-30T08:01:00Z",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Date",
+      "value": "2026-09-30T08:01:00Z",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_crops_2057_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Date_2026-09-30T08:01:00Z"
+      }
+    },
+    {
+      "@id": "studies/crops_2057/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "crops_2057",
+      "datePublished": "2026-09-30T08:01:00Z",
+      "description": "Imported from INSPIRE metadata",
+      "hasPart": [],
+      "name": "crops_2057",
+      "about": [
+        {
+          "@id": "#Process_S_crops_2057_Spatial_Sampling_0"
+        },
+        {
+          "@id": "#Process_S_crops_2057_Data_Acquisition_0"
+        },
+        {
+          "@id": "#Process_S_crops_2057_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.20387/dc400d21-efd8-48b5-8ce8-43831f5a9735",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.20387/dc400d21-efd8-48b5-8ce8-43831f5a9735",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#crops_2057",
+      "@type": "ScholarlyArticle",
+      "headline": "crops_2057",
+      "identifier": {
+        "@id": "10.20387/dc400d21-efd8-48b5-8ce8-43831f5a9735"
+      }
+    },
+    {
+      "@id": "#LDComment_Publisher_Leibniz_Centre_for_Agricultural_Landscape_Research",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Leibniz Centre for Agricultural Landscape Research"
+    },
+    {
+      "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata",
+      "@type": "Comment",
+      "name": "Metadata Standard",
+      "text": "ISO 19115:2003 - Geographic information - Metadata"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Status_completed",
+      "@type": "Comment",
+      "name": "Status",
+      "text": "completed"
+    },
+    {
+      "@id": "#LDComment_Alternate_Title_geonode:crops_2057",
+      "@type": "Comment",
+      "name": "Alternate Title",
+      "text": "geonode:crops_2057"
+    },
+    {
+      "@id": "#LDComment_Metadata_Date_2026-10-20T07:50:12Z",
+      "@type": "Comment",
+      "name": "Metadata Date",
+      "text": "2026-10-20T07:50:12Z"
+    },
+    {
+      "@id": "#LDComment_Use_Constraints_license",
+      "@type": "Comment",
+      "name": "Use Constraints",
+      "text": "license"
+    },
+    {
+      "@id": "#LDComment_Other_Constraints_CC-BY_(CC-BY):_https://creativecommons.org/licenses/by/4.0/_(https://creativecommons.org/licenses/by/4.0/legalcode)",
+      "@type": "Comment",
+      "name": "Other Constraints",
+      "text": "CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (https://creativecommons.org/licenses/by/4.0/legalcode)"
+    },
+    {
+      "@id": "#LDComment_Keywords_crop_rotation,_Germany,_spatial_distribution",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "crop rotation, Germany, spatial distribution"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "CC-BY (CC-BY): https://creativecommons.org/licenses/by/4.0/ (https://creativecommons.org/licenses/by/4.0/legalcode)"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "7743f5cf-dafe-4193-bd84-d80dcf1c3405",
+      "creator": {
+        "@id": "#Person_Kevin_Urbasch"
+      },
+      "datePublished": "2026-09-30T08:01:00Z",
+      "description": "This dataset provides gridded crop presence information for Germany as yearly GeoTIFFs (1 km resolution) with one TIFF per year, crops represented by the bands.  A cell value of 1 represents crop cultivation in for that raster cell. Raster information is the result of aggregating field-based, vectorised crop areas to the 1 km raster resolution. Crop presence is recorded when crops cover at least 25% of a pixel, meaning at least 25 hectares within that pixel. This threshold-approach determines suitable pixels rather than deterministic crop cover information and might result in more than one crop being present per pixel. Missing crops in a given year (`CA`, `ON` after 2023) are represented as bands filled with `NA` values to ensure a consistent structure across time.",
+      "hasPart": [
+        {
+          "@id": "assays/crops_2057/"
+        },
+        {
+          "@id": "studies/crops_2057/"
+        }
+      ],
+      "name": "crops_2057",
+      "citation": {
+        "@id": "#crops_2057"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Publisher_Leibniz_Centre_for_Agricultural_Landscape_Research"
+        },
+        {
+          "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Status_completed"
+        },
+        {
+          "@id": "#LDComment_Alternate_Title_geonode:crops_2057"
+        },
+        {
+          "@id": "#LDComment_Metadata_Date_2026-10-20T07:50:12Z"
+        },
+        {
+          "@id": "#LDComment_Use_Constraints_license"
+        },
+        {
+          "@id": "#LDComment_Other_Constraints_CC-BY_(CC-BY):_https://creativecommons.org/licenses/by/4.0/_(https://creativecommons.org/licenses/by/4.0/legalcode)"
+        },
+        {
+          "@id": "#LDComment_Keywords_crop_rotation,_Germany,_spatial_distribution"
+        }
+      ],
+      "sdDatePublished": "2026-11-11T16:31:22.0675010",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
