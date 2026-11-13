@@ -138,3 +138,15 @@ def test_mods_mapper_gnd_only_leaves_orcid_empty() -> None:
     person = arc.Contacts[0]
     assert not person.ORCID
     assert [(c.Name, c.Value) for c in person.Comments] == [("GND", "123456789")]
+
+
+def test_mods_assay_does_not_invent_dataset_source_input() -> None:
+    record = ModsRecord(object_id="fixture_mods_2", title="No source dataset", doi="10.5073/no-source")
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_2",
+        harvest_source_id="fixture_mods_2",
+    )
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())

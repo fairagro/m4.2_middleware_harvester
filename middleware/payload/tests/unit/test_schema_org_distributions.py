@@ -240,3 +240,16 @@ def test_no_landing_page_comment_without_usable_schema_url(url: str | None) -> N
     harvested = first_harvest(mapper.map_graph(graph, NO_DISCOVERY))
 
     assert comment_text(harvested.arc_json, "Landing Page") is None
+
+
+def test_assay_does_not_invent_dataset_source_input() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/no-source")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("No Source Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/no-source")))
+
+    harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
+
+    assert "Source_Dataset_Source" not in harvested.arc_json
