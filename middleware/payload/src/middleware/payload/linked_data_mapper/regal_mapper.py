@@ -357,10 +357,6 @@ class _RegalRun:
         output_uri = self._output_uri(regal_id=regal_id, doi=doi)
         table = ArcTable.init("Measurement")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
-        table.AddColumn(
             CompositeHeader.output(IOType.of_string("URI")),
             [CompositeCell.free_text(output_uri)],
         )

@@ -2,9 +2,9 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a minimal e!DAL schema.org dataset maps with no `#Source_Dataset_Source` entity in the RO-Crate (repro;
+- [x] 1.1 T1: a minimal e!DAL schema.org dataset maps with no `#Source_Dataset_Source` entity in the RO-Crate (repro;
       fails on `main`)
-- [ ] 1.2 T2: the same for a minimal Regal record
+- [x] 1.2 T2: the same for a minimal Regal record
 - [ ] 1.3 T3: the same for a minimal MODS record
 - [ ] 1.4 T4: the same for a minimal PhenoROAM record
 - [ ] 1.5 Update `docs/mappers/regal.md` and regenerate fixtures that contain `#Source_Dataset_Source`
