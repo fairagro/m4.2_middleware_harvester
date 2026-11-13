@@ -11,5 +11,5 @@ material the dataset was produced from. `Output [URI]` and the Assay comments ar
 
 - **GIVEN** a Regal ResearchData record with a DOI
 - **WHEN** it is mapped
-- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no
-  `#Source_Dataset_Source` entity, and `Output [URI]` is unchanged
+- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no `#Source_Dataset_Source`
+  entity, and `Output [URI]` is unchanged

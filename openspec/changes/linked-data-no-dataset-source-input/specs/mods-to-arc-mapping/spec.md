@@ -11,5 +11,5 @@ material the dataset was produced from. `Output [URI]` and the Assay comments ar
 
 - **GIVEN** a MODS record harvested from an http(s) source URL
 - **WHEN** it is mapped
-- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no
-  `#Source_Dataset_Source` entity, and `Output [URI]` is that source URL
+- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no `#Source_Dataset_Source`
+  entity, and `Output [URI]` is that source URL
