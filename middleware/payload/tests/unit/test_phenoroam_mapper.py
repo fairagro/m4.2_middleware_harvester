@@ -275,3 +275,11 @@ def test_map_rejects_wrong_kind_eagerly() -> None:
             ParsedPayload(kind=PayloadKind.rdf_graph, value=object(), identifier="x"),
             MappingContext(),
         )
+
+
+def test_phenoroam_assay_does_not_invent_dataset_source_input() -> None:
+    record = PhenoroamRecord(item_uuid="5bc8b6f0-b74b-4100-8211-a564c8f3d7c2", title="No source dataset")
+
+    arc = PhenoroamMapper().map_record(record)
+
+    assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
