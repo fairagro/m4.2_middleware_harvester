@@ -11,6 +11,6 @@
 
 ## 2. Verify and close
 
-- [ ] 2.1 Manual: e!DAL, Publisso, OpenAgrar and PhenoROAM harvests from the branch vs `main`; only the Assay input
+- [x] 2.1 Manual: e!DAL, Publisso, OpenAgrar and PhenoROAM harvests from the branch vs `main`; only the Assay input
       entity changes; source vs container identical for one ARC
 - [ ] 2.2 Archive after merge
