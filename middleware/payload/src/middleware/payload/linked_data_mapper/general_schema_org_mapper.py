@@ -688,10 +688,6 @@ class _SchemaOrgRun:
 
         table = ArcTable.init("Measurement")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
-        table.AddColumn(
             CompositeHeader.output(IOType.of_string("URI")),
             [CompositeCell.free_text(url)],
         )
