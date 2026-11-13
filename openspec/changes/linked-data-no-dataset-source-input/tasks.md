@@ -7,7 +7,7 @@
 - [x] 1.2 T2: the same for a minimal Regal record
 - [x] 1.3 T3: the same for a minimal MODS record
 - [x] 1.4 T4: the same for a minimal PhenoROAM record
-- [ ] 1.5 Update `docs/mappers/regal.md` and regenerate fixtures that contain `#Source_Dataset_Source`
+- [x] 1.5 Update `docs/mappers/regal.md` and regenerate fixtures that contain `#Source_Dataset_Source`
 
 ## 2. Verify and close
 

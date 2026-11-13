@@ -211,7 +211,6 @@ One Regal ResearchData record = one Study.
 - **TechnologyPlatform**: `Regal Research Data Repository` (or institution `prefLabel` when a single clear platform name
   is desired)
 - **Annotation Table** (exactly one row):
-  - **Input [Source Name]**: `"Dataset Source"`
   - **Output [URI]**: `https://doi.org/{doi}` if DOI present → else landing page
     `https://repository.publisso.de/resource/{@id}` → else raw `@id`
   - **Comment [License]**: license `@id` or label
