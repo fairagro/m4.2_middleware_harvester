@@ -828,3 +828,23 @@ def test_regal_record_id_becomes_landing_page_comment() -> None:
 
 def test_regal_assay_does_not_invent_dataset_source_input() -> None:
     assert "Source_Dataset_Source" not in _mapped_arc_json(_base_graph())
+
+
+def test_regal_data_collection_invents_no_source_or_sample() -> None:
+    """Data Collection keeps its parameters but no hardcoded ``Research Subject`` source or empty sample (#353)."""
+    graph = _base_graph()
+    agrovoc = URIRef("http://aims.fao.org/aos/agrovoc/c_158")
+    origin = URIRef("https://example.org/origin/field")
+    graph.add((SUBJECT, DCTERMS.subject, agrovoc))
+    graph.add((agrovoc, SKOS.prefLabel, Literal("aerosols")))
+    graph.add((SUBJECT, REGAL.dataOrigin, origin))
+    graph.add((origin, SKOS.prefLabel, Literal("Field experiment")))
+    graph.add((SUBJECT, REGAL.recordingPeriod, Literal("2019-2021")))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert "Source_Research_Subject" not in arc_json
+    assert "#Sample_" not in arc_json
+    assert keywords_comment_text(arc_json) == "aerosols"
+    assert "#ParameterValue_Data_Origin_Field_experiment" in arc_json
+    assert "#ParameterValue_Temporal_Extent_2019-2021" in arc_json
