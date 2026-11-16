@@ -283,3 +283,17 @@ def test_phenoroam_assay_does_not_invent_dataset_source_input() -> None:
     arc = PhenoroamMapper().map_record(record)
 
     assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
+
+
+def test_phenoroam_keywords_data_collection_invents_no_source_or_sample() -> None:
+    record = PhenoroamRecord(
+        item_uuid="5bc8b6f0-b74b-4100-8211-a564c8f3d7c2",
+        title="Keyworded dataset",
+        keywords=["nutrient deficiency", "RGB image"],
+    )
+
+    arc_json = str(PhenoroamMapper().map_record(record).ToROCrateJsonString())
+
+    assert "Source_Research_Subject" not in arc_json
+    assert "#Sample_" not in arc_json
+    assert '"name":"Keywords","value":"nutrient deficiency, RGB image"' in arc_json
