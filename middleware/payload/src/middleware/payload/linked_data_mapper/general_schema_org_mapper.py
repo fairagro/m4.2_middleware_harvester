@@ -619,16 +619,8 @@ class _SchemaOrgRun:
 
         table = ArcTable.init("Data Collection")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
             [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
         )
         return table
 
