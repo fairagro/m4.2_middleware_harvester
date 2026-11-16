@@ -709,3 +709,16 @@ def test_keywords_data_collection_invents_no_source_or_sample() -> None:
     assert "Source_Research_Subject" not in arc_json
     assert "#Sample_" not in arc_json
     assert keywords_comment_text(arc_json) == "barley"
+
+
+def test_no_keywords_means_no_data_collection_table() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/edal/2")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("e!DAL Dataset without keywords")))
+    graph.add((dataset, schema.identifier, Literal("10.9/edal-nokw")))
+
+    arc_json = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
+
+    assert "#Protocol_Data_Collection" not in arc_json
