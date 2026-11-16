@@ -693,3 +693,19 @@ def test_blank_node_creators_sort_stable_without_bnode_labels() -> None:
         )
     ).arc_json
     assert contact_name_pairs(first) == contact_name_pairs(second) == [("Ada", "Lovelace"), ("Zed", "Zebra")]
+
+
+def test_keywords_data_collection_invents_no_source_or_sample() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = URIRef("https://example.org/edal/1")
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("e!DAL Dataset")))
+    graph.add((dataset, schema.identifier, Literal("10.9/edal")))
+    graph.add((dataset, schema.keywords, Literal("barley")))
+
+    arc_json = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY)).arc_json
+
+    assert "Source_Research_Subject" not in arc_json
+    assert "#Sample_" not in arc_json
+    assert keywords_comment_text(arc_json) == "barley"
