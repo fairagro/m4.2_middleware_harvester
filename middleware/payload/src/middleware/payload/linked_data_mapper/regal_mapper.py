@@ -288,10 +288,6 @@ class _RegalRun:
             return None
 
         table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
         if keywords:
             table.AddColumn(
                 CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
@@ -308,10 +304,6 @@ class _RegalRun:
                 CompositeHeader.parameter(OntologyAnnotation(name="Temporal Extent")),
                 [CompositeCell.term(OntologyAnnotation(name=temporal))],
             )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
         return table
 
     def _create_data_processing_table(self, subject: Node) -> ArcTable:
