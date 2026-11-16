@@ -222,16 +222,8 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             return None
         table = ArcTable.init("Data Collection")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
             [CompositeCell.term(OntologyAnnotation(name=", ".join(record.keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
         )
         return table
 
