@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from mapper_test_helpers import assay_output_uri
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
 import middleware.payload.register_builtin_mappers as _register_mappers
@@ -289,6 +290,16 @@ def test_phenoroam_assay_does_not_invent_dataset_source_input() -> None:
     arc = PhenoroamMapper().map_record(record)
 
     assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
+
+
+def test_phenoroam_assay_output_uri_is_unchanged() -> None:
+    record = PhenoroamRecord(item_uuid="abc-uuid", title="With catalog id")
+
+    arc = PhenoroamMapper().map_record(record)
+
+    assert assay_output_uri(arc.ToROCrateJsonString()) == (
+        "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/abc-uuid"
+    )
 
 
 def test_phenoroam_keywords_data_collection_invents_no_source_or_sample() -> None:

@@ -130,7 +130,9 @@ class ModsMapper(DataMapper[MappingContext]):
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="MODS")
-        assay.AddTable(self._create_assay_table(record, context))
+        table = self._create_assay_table(record, context)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
     @staticmethod
@@ -268,12 +270,13 @@ class ModsMapper(DataMapper[MappingContext]):
 
     def _create_assay_table(self, record: ModsRecord, context: MappingContext) -> ArcTable:
         """Annotation table: source URI + metadata comments — no data-file Outputs."""
-        source = self._http_source_url(context.source_url) or ""
+        source = self._http_source_url(context.source_url)
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(source)],
-        )
+        if source:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(source)],
+            )
         if record.license_uri and record.license_uri.strip():
             table.AddColumn(
                 CompositeHeader.comment("License"),

@@ -72,6 +72,9 @@ with element text.
 | **`license_uri`**      | Licence URI              | Assay table `Comment("License")`                                                           |
 | **`datafile_names`**   | Derivate `maindoc` names | Assay table `Comment("Datafile Name")` joined with `;` — **not** Outputs                   |
 
+`Output [URI]` is written only when `source_url` is an http(s) URL; there is no empty placeholder. A record with no such
+URL, no `license_uri` and no `datafile_names` gets no `Measurement` table at all.
+
 ## Contacts
 
 Contacts come from `mods:name` (typically `type="personal"`). Roles use marcrelator codes so `publication_authors` can

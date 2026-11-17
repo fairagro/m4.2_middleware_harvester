@@ -631,11 +631,13 @@ class _SchemaOrgRun:
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-        assay.AddTable(self._create_assay_table(subject, context, doi=doi))
+        table = self._create_assay_table(subject, context, doi=doi)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
-    def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str:
-        """Resolve the landing-page URL for the Measurement output URI cell."""
+    def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str | None:
+        """Resolve the landing-page URL for the Measurement output URI cell, or ``None`` when unknown."""
         for term in ("url", "sameAs"):
             iri = self._canonical_http_identifier(subject, term)
             if iri:
@@ -651,7 +653,7 @@ class _SchemaOrgRun:
         if context.source_url is not None:
             return context.source_url
 
-        return ""
+        return None
 
     def _create_assay_table(
         self,
@@ -663,10 +665,11 @@ class _SchemaOrgRun:
         url = self._resolve_assay_url(subject, context, doi)
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(url)],
-        )
+        if url:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(url)],
+            )
 
         license_val = self.view(subject)["license"]
         if license_val and not self.mapper.placeholders.matches(license_val):

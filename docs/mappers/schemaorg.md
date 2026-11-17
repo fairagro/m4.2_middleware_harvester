@@ -141,6 +141,10 @@ AUTHORS" stays.
 | **`schema:publisher`**    | Publisher name                  | Assay Measurement column `Comment("Publisher")`                                 |
 | **`schema:inLanguage`**   | Language code                   | Assay Measurement column `Comment("Language")`                                  |
 
+`Output [URI]` takes the first of `url`, `sameAs`, an http(s) `@id`, the DOI, then the page `source_url`. When none
+resolves the column is omitted; there is no empty placeholder. A Dataset with no such URL and no distribution, licence,
+publisher or language gets no `Measurement` table at all.
+
 ## Source placeholders
 
 Values matching the repository's `mapper.placeholders` (whole value, case-insensitive, surrounding whitespace ignored;
