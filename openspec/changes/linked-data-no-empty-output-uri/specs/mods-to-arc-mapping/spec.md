@@ -4,8 +4,8 @@
 
 ### Requirement: Assay Output URI MUST NOT be empty
 
-The MODS Assay `Measurement` table MUST have an `Output [URI]` column only when a URL is known for the record, and
-MUST NOT write an empty `Output [URI]` value. When the table would then have no columns, the Assay MUST NOT have an
+The MODS Assay `Measurement` table MUST have an `Output [URI]` column only when a URL is known for the record, and MUST
+NOT write an empty `Output [URI]` value. When the table would then have no columns, the Assay MUST NOT have an
 annotation table.
 
 #### Scenario: Record without a URL

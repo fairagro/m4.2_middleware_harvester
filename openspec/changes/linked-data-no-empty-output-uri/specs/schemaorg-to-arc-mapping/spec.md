@@ -23,7 +23,8 @@ annotation table.
 
 #### Scenario: Record without a URL and without comments
 
-- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, and no field that yields an Assay comment
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, and no field that yields an
+  Assay comment
 - **WHEN** it is mapped
 - **THEN** the Assay has no annotation table
 

@@ -8,12 +8,12 @@ mappers still write `Output [URI] = ""` in that case, so the ARC carries an empt
 
 ## What Changes
 
-- The schema.org and MODS Assay tables have an `Output [URI]` column only when a URL is known. The URL resolution
-  itself is unchanged.
+- The schema.org and MODS Assay tables have an `Output [URI]` column only when a URL is known. The URL resolution itself
+  is unchanged.
 - When the Assay table would then have no columns, the Assay has no annotation table (as INSPIRE).
-- The PhenoROAM mapper has the same `""` fallback, but it is unreachable: a record with neither `itemUUID` nor a
-  harvest source id is refused before the Assay is built, so the Assay table always has a landing URL. The dead
-  fallback is removed; behaviour does not change and there is no spec delta.
+- The PhenoROAM mapper has the same `""` fallback, but it is unreachable: a record with neither `itemUUID` nor a harvest
+  source id is refused before the Assay is built, so the Assay table always has a landing URL. The dead fallback is
+  removed; behaviour does not change and there is no spec delta.
 - **Non-goals:** new URI fallbacks (e.g. MODS → DOI); the Regal mapper, which fails a record without a URI.
 
 ## Capabilities
