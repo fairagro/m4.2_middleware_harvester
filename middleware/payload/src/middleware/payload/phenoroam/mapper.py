@@ -237,8 +237,8 @@ class PhenoroamMapper(DataMapper[MappingContext]):
 
     def _create_assay_table(self, record: PhenoroamRecord, context: MappingContext) -> ArcTable:
         """Annotation table: landing URI + metadata comments — no data-file Outputs (#353)."""
-        catalog_id = self._catalog_id(record, context)
-        output_uri = self._landing_url(catalog_id) if catalog_id else ""
+        # ``resolve_identifier`` already refused records without a catalog id, so the URL is always known here.
+        output_uri = self._landing_url(self._catalog_id(record, context))
 
         table = ArcTable.init("Measurement")
         table.AddColumn(
