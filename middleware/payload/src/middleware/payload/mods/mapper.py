@@ -132,7 +132,9 @@ class ModsMapper(DataMapper[MappingContext]):
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="MODS")
-        assay.AddTable(self._create_assay_table(record, context))
+        table = self._create_assay_table(record, context)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
     @staticmethod
