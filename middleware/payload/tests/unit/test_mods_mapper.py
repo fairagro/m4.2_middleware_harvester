@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from mapper_test_helpers import assay_output_uri
 
 from middleware.parsing.parser.mods_xml import ModsXmlParser
 from middleware.payload.mapping_context import MappingContext
@@ -161,3 +162,12 @@ def test_mods_assay_without_source_url_has_no_empty_output_uri() -> None:
 
     graph = json.loads(arc.ToROCrateJsonString())["@graph"]
     assert [node for node in graph if node.get("@type") == "URI"] == []
+
+
+def test_mods_assay_output_uri_is_unchanged() -> None:
+    record = ModsRecord(object_id="with_url_1", title="With source URL", doi="10.5073/with-url")
+    context = MappingContext(source_url="https://www.openagrar.de/receive/with_url_1", harvest_source_id="with_url_1")
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    assert assay_output_uri(arc.ToROCrateJsonString()) == "https://www.openagrar.de/receive/with_url_1"
