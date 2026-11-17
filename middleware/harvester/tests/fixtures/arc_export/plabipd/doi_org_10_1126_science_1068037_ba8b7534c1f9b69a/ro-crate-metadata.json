@@ -1,0 +1,330 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_",
+      "@type": "Organization",
+      "name": ""
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#Person_S_Hu",
+      "@type": "Person",
+      "givenName": "S",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Hu",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_H_Yang",
+      "@type": "Person",
+      "givenName": "H",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Yang",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Person_J_Yu",
+      "@type": "Person",
+      "givenName": "J",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Yu",
+      "jobTitle": {
+        "@id": "#OA_author"
+      }
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.1126/science.1068037",
+      "@type": "URI",
+      "name": "https://doi.org/10.1126/science.1068037"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.1126/science.1068037"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0/\"}",
+        "Comment {Name = \"Publisher\", Value = \"Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica",
+      "hasPart": [],
+      "name": "A draft sequence of the rice genome (Oryza sativa L. ssp. indica).",
+      "about": {
+        "@id": "#Process_A_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Oryza_sativa_ssp._indica,_monocotyledon,_2,_Indian_rice",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Oryza sativa ssp. indica, monocotyledon, 2, Indian rice",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Oryza_sativa_ssp._indica,_monocotyledon,_2,_Indian_rice"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+      }
+    },
+    {
+      "@id": "studies/a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica",
+      "datePublished": "2002-04-05",
+      "description": "Genomic dataset for Oryza sativa ssp. indica. Commonly known as Indian rice. Genome size: 430 Mb. Originally published in: Science. 2002 Apr 5 296(5565): 79-92.",
+      "hasPart": [],
+      "name": "A draft sequence of the rice genome (Oryza sativa L. ssp. indica).",
+      "about": [
+        {
+          "@id": "#Process_S_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.1126/science.1068037",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.1126/science.1068037",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_S. Hu; H. Yang; J. Yu",
+      "@type": "Person",
+      "givenName": "S. Hu; H. Yang; J. Yu"
+    },
+    {
+      "@id": "#A_draft_sequence_of_the_rice_genome_(Oryza_sativa_L._ssp._indica).",
+      "@type": "ScholarlyArticle",
+      "headline": "A draft sequence of the rice genome (Oryza sativa L. ssp. indica).",
+      "identifier": {
+        "@id": "10.1126/science.1068037"
+      },
+      "author": {
+        "@id": "#Author_S. Hu; H. Yang; J. Yu"
+      }
+    },
+    {
+      "@id": "#Science._2002_Apr_5_296(5565):_79-92.",
+      "@type": "ScholarlyArticle",
+      "headline": "Science. 2002 Apr 5 296(5565): 79-92.",
+      "identifier": []
+    },
+    {
+      "@id": "#LDComment_Keywords_Oryza_sativa_ssp._indica,_monocotyledon,_2,_Indian_rice",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "Oryza sativa ssp. indica, monocotyledon, 2, Indian rice"
+    },
+    {
+      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/",
+      "@type": "Comment",
+      "name": "License",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Forschungszentrum Juelich GmbH, IBG-4 Bioinformatics, Wilhelm-Johnen-Str., D-52428 Juelich, Germany"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "doi_org_10_1126_science_1068037:ba8b7534c1f9b69a",
+      "creator": [
+        {
+          "@id": "#Person_S_Hu"
+        },
+        {
+          "@id": "#Person_H_Yang"
+        },
+        {
+          "@id": "#Person_J_Yu"
+        }
+      ],
+      "datePublished": "2002-04-05",
+      "description": "Genomic dataset for Oryza sativa ssp. indica. Commonly known as Indian rice. Genome size: 430 Mb. Originally published in: Science. 2002 Apr 5 296(5565): 79-92.",
+      "hasPart": [
+        {
+          "@id": "assays/a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica/"
+        },
+        {
+          "@id": "studies/a_draft_sequence_of_the_rice_genome_oryza_sativa_l_ssp_indica/"
+        }
+      ],
+      "name": "A draft sequence of the rice genome (Oryza sativa L. ssp. indica).",
+      "citation": [
+        {
+          "@id": "#A_draft_sequence_of_the_rice_genome_(Oryza_sativa_L._ssp._indica)."
+        },
+        {
+          "@id": "#Science._2002_Apr_5_296(5565):_79-92."
+        }
+      ],
+      "comment": [
+        {
+          "@id": "#LDComment_Keywords_Oryza_sativa_ssp._indica,_monocotyledon,_2,_Indian_rice"
+        },
+        {
+          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "@id": "#LDComment_Publisher_Forschungszentrum_Juelich_GmbH,_IBG-4_Bioinformatics,_Wilhelm-Johnen-Str.,_D-52428_Juelich,_Germany"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T12:13:26.0888400",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

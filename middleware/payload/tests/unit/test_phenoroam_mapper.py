@@ -167,8 +167,10 @@ def test_keywords_map_to_study_annotation_table() -> None:
             )
         )
     )
-    assert "nutrient deficiency, RGB image, soil mini plots" in harvested.arc_json
     assert "Keywords" in harvested.arc_json
+    for term in ("nutrient deficiency", "RGB image", "soil mini plots"):
+        assert term in harvested.arc_json
+        assert f"keyword [{term}]" in harvested.arc_json
 
 
 def test_bbox_maps_to_assay_geographic_comment() -> None:
@@ -236,7 +238,11 @@ async def test_bbox_fixture_round_trip_parse_and_map() -> None:
     )
     assert len(harvested) == 1
     blob = harvested[0].arc_json
-    assert "multi-temporal, orthomosaic, mixed cropping, rgb imagery" in blob
+    # Aggregate Keywords Comment (sorted); Study Data Collection Keywords parameter removed (#603).
+    assert "Keywords" in blob
+    for term in ("multi-temporal", "orthomosaic", "mixed cropping", "rgb imagery"):
+        assert term in blob
+        assert f"keyword [{term}]" in blob
     assert "Geographic Bounding Box" in blob
     assert "W:6.9895" in blob
     assert "E:6.9922" in blob

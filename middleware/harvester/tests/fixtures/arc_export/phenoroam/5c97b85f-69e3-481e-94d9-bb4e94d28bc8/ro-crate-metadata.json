@@ -1,0 +1,243 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_University_of_Bonn",
+      "@type": "Organization",
+      "name": "University of Bonn"
+    },
+    {
+      "@id": "#Person_Dario_Schulz",
+      "@type": "Person",
+      "givenName": "Dario",
+      "affiliation": {
+        "@id": "#Organization_University_of_Bonn"
+      },
+      "email": "redacted@example.invalid",
+      "familyName": "Schulz"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8",
+      "@type": "URI",
+      "name": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_replication_data_innovation_context_and_technology_traits_explain_heterogeneity__Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"DATA PROVISION * All data collected or created within the framework of PhenoRob must be made available to the PhenoRob Database immediately. * The datasets must be sufficiently documented including data format, structure and quality to allow for easy access and use, if possible adhering to existing standards. * Datasets submitted to the PhenoRob Database must be accompanied by metadata. The metadata are open access. DATA USE *Users have to inform the owner of the data of their intended use, and, in case of planned publication, the owner of the data has to be involved. Authorship needs to be negotiated with the owner of the data. * Users agree not to distribute datasets of the PhenoRob Database to others (third persons) without prior consent by the owner of the data. * Users agree to use PhenoRob data only for non-commercial scientific purposes. In case of conflict the PhenoRob Executive Board should mediate.\"}",
+        "Comment {Name = \"Datafile Link\", Value = \"https://phenoroam.phenorob.de:/geonetwork/srv/api/records/5c97b85f-69e3-481e-94d9-bb4e94d28bc8/attachments/JAE_meta_analysis.zip\"}",
+        "Comment {Name = \"Geographic Bounding Box\", Value = \"W:-120.8807 E:156.5505 S:-37.594 N:83.00\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_PhenoRoam",
+      "@type": "DefinedTerm",
+      "name": "PhenoRoam"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/replication_data_innovation_context_and_technology_traits_explain_heterogeneity_/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "replication_data_innovation_context_and_technology_traits_explain_heterogeneity_",
+      "hasPart": [],
+      "name": "Replication data: Innovation context and technology traits explain heterogeneity across studies of agricultural technology adoption",
+      "about": {
+        "@id": "#Process_A_replication_data_innovation_context_and_technology_traits_explain_heterogeneity__Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_PhenoRoam"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_innovation,_review,_adoption,_global,_determinants",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "innovation, review, adoption, global, determinants",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_agricultural_innovation_adoption_determinants_global_meta_study_Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_innovation,_review,_adoption,_global,_determinants"
+      }
+    },
+    {
+      "@id": "studies/agricultural_innovation_adoption_determinants_global_meta_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "agricultural_innovation_adoption_determinants_global_meta_study",
+      "description": "To learn about the adoption of agricultural technologies, we systematically take stock of past adoption literature. Using a systematic search string, we identified relevant studies of innovation adoption and extracted quantitative estimates from eligible studies. For a detailed description of the process refer to:\n-\tSchulz, D., & Börner, J. (2022). Innovation context and technology traits explain heterogeneity across studies of agricultural technology adoption: A meta‐analysis. Journal of Agricultural Economics, 1477-9552.12521. https://doi.org/10.1111/1477-9552.12521",
+      "hasPart": [],
+      "name": "Agricultural innovation adoption determinants - global meta study",
+      "about": {
+        "@id": "#Process_S_agricultural_innovation_adoption_determinants_global_meta_study_Data_Collection_0"
+      }
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8"
+    },
+    {
+      "@id": "#LDComment_How_To_Cite_Schulz,_D.,_&_Börner,_J._(2022)._Innovation_context_and_technology_traits_explain_heterogeneity_across_studies_of_agricultural_technology_adoption:_A_meta‐analysis._Journal_of_Agricultural_Economics,_1477-9552.12521._https://doi.org/10.1111/1477-9552.12521",
+      "@type": "Comment",
+      "name": "How To Cite",
+      "text": "Schulz, D., & Börner, J. (2022). Innovation context and technology traits explain heterogeneity across studies of agricultural technology adoption: A meta‐analysis. Journal of Agricultural Economics, 1477-9552.12521. https://doi.org/10.1111/1477-9552.12521"
+    },
+    {
+      "@id": "#LDComment_Funded_By_This_work_has_been_funded_by_the_Deutsche_Forschungsgemeinschaft_(DFG,_German_Research_Foundation)_under_Germany’s_Excellence_Strategy_–_EXC_2070_–_390732324.",
+      "@type": "Comment",
+      "name": "Funded By",
+      "text": "This work has been funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy – EXC 2070 – 390732324."
+    },
+    {
+      "@id": "#LDComment_Core_Project_CP6:_Technology_Adoption_and_Impac",
+      "@type": "Comment",
+      "name": "Core Project",
+      "text": "CP6: Technology Adoption and Impac"
+    },
+    {
+      "@id": "#LDComment_Thumbnail_https://phenoroam.phenorob.de:/geonetwork/srv/api/records/5c97b85f-69e3-481e-94d9-bb4e94d28bc8/attachments/fig02.png",
+      "@type": "Comment",
+      "name": "Thumbnail",
+      "text": "https://phenoroam.phenorob.de:/geonetwork/srv/api/records/5c97b85f-69e3-481e-94d9-bb4e94d28bc8/attachments/fig02.png"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "5c97b85f-69e3-481e-94d9-bb4e94d28bc8",
+      "creator": {
+        "@id": "#Person_Dario_Schulz"
+      },
+      "dateCreated": "2023-02-02",
+      "datePublished": "2026-11-12T14:14:26.6052920",
+      "description": "Global patterns of agricultural innovation adoption",
+      "hasPart": [
+        {
+          "@id": "assays/replication_data_innovation_context_and_technology_traits_explain_heterogeneity_/"
+        },
+        {
+          "@id": "studies/agricultural_innovation_adoption_determinants_global_meta_study/"
+        }
+      ],
+      "name": "Feasibility and Impact Assessment of PhenoRob Innovations",
+      "comment": [
+        {
+          "@id": "#LDComment_Landing_Page_https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/5c97b85f-69e3-481e-94d9-bb4e94d28bc8"
+        },
+        {
+          "@id": "#LDComment_How_To_Cite_Schulz,_D.,_&_Börner,_J._(2022)._Innovation_context_and_technology_traits_explain_heterogeneity_across_studies_of_agricultural_technology_adoption:_A_meta‐analysis._Journal_of_Agricultural_Economics,_1477-9552.12521._https://doi.org/10.1111/1477-9552.12521"
+        },
+        {
+          "@id": "#LDComment_Funded_By_This_work_has_been_funded_by_the_Deutsche_Forschungsgemeinschaft_(DFG,_German_Research_Foundation)_under_Germany’s_Excellence_Strategy_–_EXC_2070_–_390732324."
+        },
+        {
+          "@id": "#LDComment_Core_Project_CP6:_Technology_Adoption_and_Impac"
+        },
+        {
+          "@id": "#LDComment_Thumbnail_https://phenoroam.phenorob.de:/geonetwork/srv/api/records/5c97b85f-69e3-481e-94d9-bb4e94d28bc8/attachments/fig02.png"
+        }
+      ],
+      "sdDatePublished": "2026-11-12T14:14:26.6070090",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
