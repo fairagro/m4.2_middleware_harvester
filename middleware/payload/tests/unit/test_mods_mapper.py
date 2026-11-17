@@ -182,3 +182,17 @@ def test_mods_assay_without_url_and_comments_has_no_annotation_table() -> None:
 
     read_back = ARC.from_rocrate_json_string(arc.ToROCrateJsonString())
     assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
+
+
+def test_mods_assay_without_url_keeps_comment_columns_only() -> None:
+    licence = "https://creativecommons.org/licenses/by/4.0/"
+    record = ModsRecord(object_id="licensed_1", title="No URL, licensed", doi="10.5073/licensed", license_uri=licence)
+    context = MappingContext(harvest_source_id="licensed_1")
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    read_back = ARC.from_rocrate_json_string(arc.ToROCrateJsonString())
+    (table,) = [table for assay in read_back.Assays for table in assay.Tables]
+    assert [(str(col.header), [str(cell) for cell in col.cells]) for col in table.Columns] == [
+        ("Comment [License]", [licence])
+    ]

@@ -285,3 +285,21 @@ def test_assay_without_url_and_comments_has_no_annotation_table() -> None:
 
     read_back = ARC.from_rocrate_json_string(harvested.arc_json)
     assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
+
+
+def test_assay_without_url_keeps_comment_columns_only() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Licensed Dataset")))
+    graph.add((dataset, schema.license, Literal("CC-BY-4.0")))
+
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
+    harvested = first_harvest(mapper.map_graph(graph, MappingContext(harvest_source_id="page-1")))
+
+    read_back = ARC.from_rocrate_json_string(harvested.arc_json)
+    (table,) = [table for assay in read_back.Assays for table in assay.Tables]
+    assert [(str(col.header), [str(cell) for cell in col.cells]) for col in table.Columns] == [
+        ("Comment [License]", ["CC-BY-4.0"])
+    ]
