@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -150,3 +151,13 @@ def test_mods_assay_does_not_invent_dataset_source_input() -> None:
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
 
     assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
+
+
+def test_mods_assay_without_source_url_has_no_empty_output_uri() -> None:
+    record = ModsRecord(object_id="no_url_1", title="No source URL", doi="10.5073/no-url")
+    context = MappingContext(harvest_source_id="no_url_1")
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    graph = json.loads(arc.ToROCrateJsonString())["@graph"]
+    assert [node for node in graph if node.get("@type") == "URI"] == []
