@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from mapper_test_helpers import (
     NO_DISCOVERY,
@@ -19,6 +21,7 @@ from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF
 
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
+from middleware.payload.mapping_context import MappingContext
 from middleware.payload.placeholders import PlaceholderConfig
 
 
@@ -253,3 +256,17 @@ def test_assay_does_not_invent_dataset_source_input() -> None:
     harvested = first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(graph, NO_DISCOVERY))
 
     assert "Source_Dataset_Source" not in harvested.arc_json
+
+
+def test_assay_without_any_url_has_no_empty_output_uri() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("No URL Dataset")))
+
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
+    harvested = first_harvest(mapper.map_graph(graph, MappingContext(harvest_source_id="page-1")))
+
+    graph_nodes = json.loads(harvested.arc_json)["@graph"]
+    assert [node for node in graph_nodes if node.get("@type") == "URI"] == []
