@@ -655,7 +655,9 @@ class _SchemaOrgRun:
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-        assay.AddTable(self._create_assay_table(subject, context, doi=doi))
+        table = self._create_assay_table(subject, context, doi=doi)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
     def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str | None:
