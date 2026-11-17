@@ -92,6 +92,25 @@ def test_mods_mapper_refuses_missing_title() -> None:
         ModsMapper().map_record(ModsRecord(object_id="x", doi="10.1/x"))
 
 
+def test_mods_keywords_become_investigation_comments() -> None:
+    record = ModsRecord(
+        object_id="fixture_mods_kw",
+        title="Keyworded dataset",
+        keywords=["Soil", "soil", "Water"],
+    )
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_kw",
+        harvest_source_id="fixture_mods_kw",
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+    by_name = {c.Name: c.Value for c in arc.Comments if c.Name}
+    assert by_name["Keywords"] == "Soil, Water"
+    assert by_name["keyword [Soil]"] == "Soil"
+    assert by_name["keyword [Water]"] == "Water"
+    assert "keyword [soil]" not in by_name
+    assert all(table.Name != "Data Collection" for study in arc.Studies for table in study.Tables)
+
+
 def test_mods_mapper_orcid_url_normalizes_to_bare_id() -> None:
     record = ModsRecord(
         object_id="orcid_url_1",
@@ -196,3 +215,23 @@ def test_mods_assay_without_url_keeps_comment_columns_only() -> None:
     assert [(str(col.header), [str(cell) for cell in col.cells]) for col in table.Columns] == [
         ("Comment [License]", [licence])
     ]
+
+
+def test_mods_keywords_data_collection_invents_no_source_or_sample() -> None:
+    record = ModsRecord(
+        object_id="fixture_mods_3",
+        title="Keyworded dataset",
+        doi="10.5073/keywords",
+        keywords=["barley", "drought"],
+    )
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_3",
+        harvest_source_id="fixture_mods_3",
+    )
+
+    arc_json = str(ModsMapper(PlaceholderConfig()).map_record(record, context).ToROCrateJsonString())
+
+    assert "Source_Research_Subject" not in arc_json
+    assert "#Sample_" not in arc_json
+    assert '"keyword [barley]"' in arc_json
+    assert '"keyword [drought]"' in arc_json

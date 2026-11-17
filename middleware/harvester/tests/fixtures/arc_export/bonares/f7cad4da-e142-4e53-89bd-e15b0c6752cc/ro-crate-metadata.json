@@ -1,0 +1,326 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_Leibniz_Centre_for_Agricultural_Landscape_Research",
+      "@type": "Organization",
+      "name": "Leibniz Centre for Agricultural Landscape Research"
+    },
+    {
+      "@id": "http://purl.obolibrary.org/obo/NCIT_C70902",
+      "@type": "DefinedTerm",
+      "name": "Point of Contact",
+      "termCode": "http://purl.obolibrary.org/obo/NCIT_C70902"
+    },
+    {
+      "@id": "#Person_Marcel_Wallschlaeger",
+      "@type": "Person",
+      "givenName": "Marcel",
+      "affiliation": {
+        "@id": "#Organization_Leibniz_Centre_for_Agricultural_Landscape_Research"
+      },
+      "email": "redacted@example.invalid",
+      "familyName": "Wallschlaeger",
+      "jobTitle": {
+        "@id": "http://purl.obolibrary.org/obo/NCIT_C70902"
+      }
+    },
+    {
+      "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2072",
+      "@type": "URI",
+      "name": "https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2072"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_geonode_usergroup_de_partners_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": [],
+      "result": {
+        "@id": "URI=https://repository-e.dataservice.zalf.de/catalogue/#/dataset/2072"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"Online Resource\", Value = \"https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Ageonode_usergroup_de_partners&format=image%2Fjpeg&height=550&width=550&srs=EPSG%3A4326&bbox=14.1138575%2C52.5159978%2C14.1140575%2C52.5161978;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Ageonode_usergroup_de_partners&format=application%2Fpdf&height=550&width=550&srs=EPSG%3A4326&bbox=14.1138575%2C52.5159978%2C14.1140575%2C52.5161978;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetMap&layers=geonode%3Ageonode_usergroup_de_partners&format=image%2Fpng&height=550&width=550&srs=EPSG%3A4326&bbox=14.1138575%2C52.5159978%2C14.1140575%2C52.5161978;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=SHAPE-ZIP&srs=EPSG%3A4326&format_options=charset%3AUTF-8;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=gml2&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=text%2Fxml%3B+subtype%3Dgml%2F3.1.1&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=csv&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=excel&srs=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WFS&version=1.0.0&request=GetFeature&typename=geonode%3Ageonode_usergroup_de_partners&outputFormat=json&srs=EPSG%3A4326&srsName=EPSG%3A4326;https://repository-e.dataservice.zalf.de/geoserver/ows?service=WMS&request=GetLegendGraphic&format=image/png&WIDTH=20&HEIGHT=20&LAYER=geonode:geonode_usergroup_de_partners&STYLE=geonode_usergroup_de_partners&version=1.3.0&sld_version=1.1.0&legend_options=fontAntiAliasing:true;fontSize:12;forceLabels:on;https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-f7cad4da-e142-4e53-89bd-e15b0c6752cc-thumb-caacf6cb-3950-4f17-9246-07e844538593.jpg;https://repository-e.dataservice.zalf.de/api/v2/assets/1194/link;https://repository-e.dataservice.zalf.de/geoserver/ows;https://repository-e.dataservice.zalf.de/geoserver/ows\"}",
+        "Comment {Name = \"Online Resource Name\", Value = \"geonode_usergroup_de_partners.jpg;geonode_usergroup_de_partners.pdf;geonode_usergroup_de_partners.png;geonode_usergroup_de_partners.zip;geonode_usergroup_de_partners.gml;geonode_usergroup_de_partners.gml;geonode_usergroup_de_partners.csv;geonode_usergroup_de_partners.excel;geonode_usergroup_de_partners.json;geonode_usergroup_de_partners.png;geonode_usergroup_de_partners.png;geonode_usergroup_de_partners.dbf;geonode:geonode_usergroup_de_partners;geonode:geonode_usergroup_de_partners\"}",
+        "Comment {Name = \"Online Resource Protocol\", Value = \"WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;WWW:DOWNLOAD-1.0-http--download;OGC:WMS;OGC:WFS\"}",
+        "Comment {Name = \"Online Resource Description\", Value = \"geonode_usergroup_de_partners (JPEG Format);geonode_usergroup_de_partners (PDF Format);geonode_usergroup_de_partners (PNG Format);geonode_usergroup_de_partners (Zipped Shapefile Format);geonode_usergroup_de_partners (GML 2.0 Format);geonode_usergroup_de_partners (GML 3.1.1 Format);geonode_usergroup_de_partners (CSV Format);geonode_usergroup_de_partners (Excel Format);geonode_usergroup_de_partners (GeoJSON Format);geonode_usergroup_de_partners (Legend Format);geonode_usergroup_de_partners (Thumbnail Format);geonode_usergroup_de_partners (Original Format);geonode Service - Provides Layer: geonode_usergroup_de_partners;geonode Service - Provides Layer: geonode_usergroup_de_partners\"}",
+        "Comment {Name = \"Graphic Overview\", Value = \"https://repository-e.dataservice.zalf.de/uploaded/thumbs/dataset-f7cad4da-e142-4e53-89bd-e15b0c6752cc-thumb-caacf6cb-3950-4f17-9246-07e844538593.jpg\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Collection",
+      "@type": "DefinedTerm",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "#OA_Satellite/Sensor_Acquisition",
+      "@type": "DefinedTerm",
+      "name": "Satellite/Sensor Acquisition"
+    },
+    {
+      "@id": "#PV_Spatial_Data_Acquisition",
+      "@type": "PropertyValue",
+      "name": "Spatial Data Acquisition",
+      "propertyID": "http://purl.obolibrary.org/obo/NCIT_C19026"
+    },
+    {
+      "@id": "assays/geonode_usergroup_de_partners/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "geonode_usergroup_de_partners",
+      "hasPart": [],
+      "name": "geonode_usergroup_de_partners",
+      "about": {
+        "@id": "#Process_A_geonode_usergroup_de_partners_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Collection"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Satellite/Sensor_Acquisition"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Spatial_Data_Acquisition"
+      }
+    },
+    {
+      "@id": "#Source_Geographic_Region",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Geographic Region"
+    },
+    {
+      "@id": "#Sample_Selected_Location",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": "Selected Location"
+    },
+    {
+      "@id": "#Protocol_Spatial_Sampling",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Bounding_Box_[14.113857462527479,_52.5159978279967,_14.114057462527478,_52.516197827996706]",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Bounding Box",
+      "value": "[14.113857462527479, 52.5159978279967, 14.114057462527478, 52.516197827996706]",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Coordinate Reference System",
+      "value": "EPSG:http://www.opengis.net/def/crs/EPSG/0/4326",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_geonode_usergroup_de_partners_Spatial_Sampling_0",
+      "@type": "LabProcess",
+      "name": "Spatial Sampling_0",
+      "object": {
+        "@id": "#Source_Geographic_Region"
+      },
+      "result": {
+        "@id": "#Sample_Selected_Location"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Spatial_Sampling"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Bounding_Box_[14.113857462527479,_52.5159978279967,_14.114057462527478,_52.516197827996706]"
+        },
+        {
+          "@id": "#ParameterValue_Coordinate_Reference_System_EPSG:http://www.opengis.net/def/crs/EPSG/0/4326"
+        }
+      ]
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Date_2026-07-15T13:05:16Z",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Date",
+      "value": "2026-07-15T13:05:16Z",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_geonode_usergroup_de_partners_Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Date_2026-07-15T13:05:16Z"
+      }
+    },
+    {
+      "@id": "studies/geonode_usergroup_de_partners/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "geonode_usergroup_de_partners",
+      "datePublished": "2026-07-15T13:05:16Z",
+      "description": "Imported from INSPIRE metadata",
+      "hasPart": [],
+      "name": "geonode_usergroup_de_partners",
+      "about": [
+        {
+          "@id": "#Process_S_geonode_usergroup_de_partners_Spatial_Sampling_0"
+        },
+        {
+          "@id": "#Process_S_geonode_usergroup_de_partners_Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.20387/9db39b66-93e6-4d80-b394-ce53b38b1139",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.20387/9db39b66-93e6-4d80-b394-ce53b38b1139",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#geonode_usergroup_de_partners",
+      "@type": "ScholarlyArticle",
+      "headline": "geonode_usergroup_de_partners",
+      "identifier": {
+        "@id": "10.20387/9db39b66-93e6-4d80-b394-ce53b38b1139"
+      }
+    },
+    {
+      "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata",
+      "@type": "Comment",
+      "name": "Metadata Standard",
+      "text": "ISO 19115:2003 - Geographic information - Metadata"
+    },
+    {
+      "@id": "#LDComment_Language_eng",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "eng"
+    },
+    {
+      "@id": "#LDComment_Status_completed",
+      "@type": "Comment",
+      "name": "Status",
+      "text": "completed"
+    },
+    {
+      "@id": "#LDComment_Alternate_Title_geonode:geonode_usergroup_de_partners",
+      "@type": "Comment",
+      "name": "Alternate Title",
+      "text": "geonode:geonode_usergroup_de_partners"
+    },
+    {
+      "@id": "#LDComment_Metadata_Date_2026-10-02T07:22:19Z",
+      "@type": "Comment",
+      "name": "Metadata Date",
+      "text": "2026-10-02T07:22:19Z"
+    },
+    {
+      "@id": "#LDComment_Use_Constraints_license",
+      "@type": "Comment",
+      "name": "Use Constraints",
+      "text": "license"
+    },
+    {
+      "@id": "#LDComment_Other_Constraints_Not_Specified:_The_original_author_did_not_specify_a_license.",
+      "@type": "Comment",
+      "name": "Other Constraints",
+      "text": "Not Specified: The original author did not specify a license."
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "f7cad4da-e142-4e53-89bd-e15b0c6752cc",
+      "creator": {
+        "@id": "#Person_Marcel_Wallschlaeger"
+      },
+      "datePublished": "2026-07-15T13:05:16Z",
+      "description": "No abstract provided",
+      "hasPart": [
+        {
+          "@id": "assays/geonode_usergroup_de_partners/"
+        },
+        {
+          "@id": "studies/geonode_usergroup_de_partners/"
+        }
+      ],
+      "name": "geonode_usergroup_de_partners",
+      "citation": {
+        "@id": "#geonode_usergroup_de_partners"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Metadata_Standard_ISO_19115:2003_-_Geographic_information_-_Metadata"
+        },
+        {
+          "@id": "#LDComment_Language_eng"
+        },
+        {
+          "@id": "#LDComment_Status_completed"
+        },
+        {
+          "@id": "#LDComment_Alternate_Title_geonode:geonode_usergroup_de_partners"
+        },
+        {
+          "@id": "#LDComment_Metadata_Date_2026-10-02T07:22:19Z"
+        },
+        {
+          "@id": "#LDComment_Use_Constraints_license"
+        },
+        {
+          "@id": "#LDComment_Other_Constraints_Not_Specified:_The_original_author_did_not_specify_a_license."
+        }
+      ],
+      "sdDatePublished": "2026-11-11T16:31:22.0060300",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

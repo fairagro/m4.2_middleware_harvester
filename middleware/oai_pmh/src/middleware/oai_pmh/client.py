@@ -29,7 +29,7 @@ def build_retry_config(config: Config) -> RetryConfig:
     """Map plugin retry fields onto Scythe ``RetryConfig``."""
     return RetryConfig(
         max_retries=config.max_retries,
-        retry_status_codes=config.retry_status_codes,
+        retry_status_codes=set(config.retry_status_codes),
         default_retry_after=config.default_retry_after,
         retry_on_transport_error=config.retry_on_transport_error,
         initial_backoff=config.initial_backoff,

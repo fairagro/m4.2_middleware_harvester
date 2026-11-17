@@ -53,6 +53,17 @@ it and MUST NOT duplicate full field tables.
 - **WHEN** this capability cites field placement rules
 - **THEN** it references `docs/mappers/mods.md` rather than copying the full table
 
+### Requirement: MODS mapper MUST follow keyword-comments contract
+
+`ModsMapper` MUST emit Investigation keyword Comments for MODS topics/keywords according to `keyword-comments`. It MUST
+NOT add a Study `Data Collection` Keywords parameter for those terms. `docs/mappers/mods.md` MUST match.
+
+#### Scenario: MODS topics become Investigation Comments only
+
+- **WHEN** a MODS record has topics `Soil` and `Water`
+- **THEN** the Investigation MUST include keyword Comments per `keyword-comments`, and the Study MUST NOT have a Data
+  Collection Keywords parameter
+
 ### Requirement: Creator ORCID identifiers MUST become Person.ORCID via orcid_id
 
 When a MODS `name` carries a `nameIdentifier` of type ORCID (parsed onto the intermediate contact), `mods_general` MUST
@@ -82,3 +93,22 @@ material the dataset was produced from. `Output [URI]` and the Assay comments ar
 - **WHEN** it is mapped
 - **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no `#Source_Dataset_Source`
   entity, and `Output [URI]` is that source URL
+
+### Requirement: Data Collection table MUST NOT invent a source or sample
+
+The MODS Study `Data Collection` table MUST NOT contain an `Input [Source Name]` or an `Output [Sample Name]` column,
+because no source field names the material studied or the sample produced. The `Keywords` parameter MUST be unchanged,
+and the table MUST still be omitted when the record has no value for any of them.
+
+#### Scenario: Record with keywords mapped without invented samples
+
+- **GIVEN** a MODS record with keywords
+- **WHEN** it is mapped
+- **THEN** the `Data Collection` table has no `Input [Source Name]` or `Output [Sample Name]` column, the RO-Crate
+  `@graph` has no `#Source_Research_Subject` or `#Sample_` entity, and the `Keywords` parameter keeps its values
+
+#### Scenario: Record without those fields has no Data Collection table
+
+- **GIVEN** a MODS record with no keywords
+- **WHEN** it is mapped
+- **THEN** the Study has no `Data Collection` table
