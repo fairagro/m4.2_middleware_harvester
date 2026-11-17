@@ -40,8 +40,8 @@ repositories:
   #   generic:
   #     protocol:
   #       http:
-  #         # robots.txt allows /api/; keep polite defaults unless an overlay proves otherwise.
-  #         respect_robots_txt: true
+  #         # #464 workaround: robots.txt disallows /api/v2/ (only /api/v1/objects/ is allowed).
+  #         respect_robots_txt: false
   #       mycore_rest:
   #         entry_url: "https://www.openagrar.de/api/v2/objects?category=state:published&type=mods"
   #         # page_size: 200
