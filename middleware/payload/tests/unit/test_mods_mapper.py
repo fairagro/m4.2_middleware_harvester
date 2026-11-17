@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from arctrl import ARC
 from mapper_test_helpers import assay_output_uri
 
 from middleware.parsing.parser.mods_xml import ModsXmlParser
@@ -171,3 +172,13 @@ def test_mods_assay_output_uri_is_unchanged() -> None:
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
 
     assert assay_output_uri(arc.ToROCrateJsonString()) == "https://www.openagrar.de/receive/with_url_1"
+
+
+def test_mods_assay_without_url_and_comments_has_no_annotation_table() -> None:
+    record = ModsRecord(object_id="bare_1", title="No URL, no comments", doi="10.5073/bare")
+    context = MappingContext(harvest_source_id="bare_1")
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    read_back = ARC.from_rocrate_json_string(arc.ToROCrateJsonString())
+    assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
