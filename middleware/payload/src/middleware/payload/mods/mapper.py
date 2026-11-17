@@ -288,12 +288,13 @@ class ModsMapper(DataMapper[MappingContext]):
 
     def _create_assay_table(self, record: ModsRecord, context: MappingContext) -> ArcTable:
         """Annotation table: source URI + metadata comments — no data-file Outputs."""
-        source = self._http_source_url(context.source_url) or ""
+        source = self._http_source_url(context.source_url)
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(source)],
-        )
+        if source:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(source)],
+            )
         if record.license_uri and record.license_uri.strip():
             table.AddColumn(
                 CompositeHeader.comment("License"),
