@@ -169,3 +169,23 @@ def test_mods_assay_does_not_invent_dataset_source_input() -> None:
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
 
     assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
+
+
+def test_mods_keywords_data_collection_invents_no_source_or_sample() -> None:
+    record = ModsRecord(
+        object_id="fixture_mods_3",
+        title="Keyworded dataset",
+        doi="10.5073/keywords",
+        keywords=["barley", "drought"],
+    )
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_3",
+        harvest_source_id="fixture_mods_3",
+    )
+
+    arc_json = str(ModsMapper(PlaceholderConfig()).map_record(record, context).ToROCrateJsonString())
+
+    assert "Source_Research_Subject" not in arc_json
+    assert "#Sample_" not in arc_json
+    assert '"keyword [barley]"' in arc_json
+    assert '"keyword [drought]"' in arc_json

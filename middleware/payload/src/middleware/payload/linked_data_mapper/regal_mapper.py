@@ -288,10 +288,6 @@ class _RegalRun:
             return None
 
         table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
         if data_origins:
             labels = ", ".join(label for label, _ in data_origins)
             table.AddColumn(
