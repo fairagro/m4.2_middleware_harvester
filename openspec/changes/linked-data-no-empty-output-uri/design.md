@@ -2,9 +2,12 @@
 
 ## Context
 
-See proposal.md. Each of the three mappers resolves a URL for the Assay `Measurement` table and falls back to `""`
-when none is found, then adds comment columns from the source. Since `linked-data-no-dataset-source-input`,
+See proposal.md. The schema.org and MODS mappers resolve a URL for the Assay `Measurement` table and fall back to `""`
+when none is found, then add comment columns from the source. Since `linked-data-no-dataset-source-input`,
 `Output [URI]` is the only column that is always present.
+
+PhenoROAM has the same fallback, but its catalog id comes from `itemUUID` or the harvest source id, and a record with
+neither is refused when the Investigation identifier is resolved. The fallback can never run.
 
 ## Goals / Non-Goals
 
@@ -18,6 +21,9 @@ when none is found, then adds comment columns from the source. Since `linked-dat
   resolvable URL.
 - **Empty table → no table.** Without `Output [URI]` a record with no comments would yield a table with no columns;
   follow the INSPIRE rule and leave the Assay without an annotation table.
+- **PhenoROAM: remove the dead fallback, no spec delta, no test.** There is no input that reaches the branch through
+  `map()` or `map_record()`, so there is no behaviour to specify or pin; the existing URL-present test keeps the cell
+  covered.
 
 ## Risks / Trade-offs
 
