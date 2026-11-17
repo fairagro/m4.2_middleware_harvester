@@ -7,17 +7,33 @@ under `system_local` tests and a Docker-capable CI job, so client CI catches exp
 
 ## Requirements
 
-### Requirement: Per-RDI RO-Crate fixtures exist for active mapper families
+### Requirement: Per-RDI RO-Crate fixtures exist for active RDIs
 
-The repository SHALL commit at least one representative RO-Crate fixture per active mapper family covered by this
-capability (INSPIRE, Schema.org/generic, Regal). Each fixture SHALL be stored under a stable per-RDI path suitable for
-tests (for example `tests/fixtures/arc_export/<rdi>/…`). Fixtures MAY use Git LFS when size warrants it.
+The repository SHALL commit RO-Crate fixtures under a stable per-RDI path (for example
+`tests/fixtures/arc_export/<rdi>/…`) for each **active RDI** used in harvest comparison configs (enabled entries in
+`dev_environment/config.all-rdis.yaml`, plus any RDI this capability explicitly tracks as active). Fixtures MAY use Git
+LFS when size warrants it. Technology family (INSPIRE, Schema.org, Regal, DCAT, OAI-PMH, …) MUST NOT be used as a
+substitute for a missing per-RDI suite: RDIs that share a mapper family MAY still require distinct fixture sets. Minimal
+synthetic smoke crates MAY remain alongside real-data sets.
 
 #### Scenario: Three family fixtures present
 
 - **WHEN** a developer inspects the fixture tree for this capability
 - **THEN** there is at least one RO-Crate artifact for an INSPIRE-shaped RDI, one for a Schema.org/generic-shaped RDI,
   and one for a Regal-shaped RDI
+
+#### Scenario: Active RDI folders are present when suites are claimed complete
+
+- **WHEN** a developer inspects the fixture tree after all planned RDI suites for this capability have landed
+- **THEN** there is at least one RO-Crate artifact path for each active RDI covered by the landed suites (not merely one
+  folder per technology family)
+
+#### Scenario: Three family smoke fixtures remain allowed
+
+- **WHEN** only the MVP smoke crates for bonares / openagrar / publisso exist and real-data suites for other RDIs are
+  still deferred
+- **THEN** the smoke crates alone MUST still satisfy the historical three-family presence check used by `system_local`
+  until those RDIs’ real-data suites replace or extend them
 
 ### Requirement: system_local tests validate fixtures with shared arc-export check
 
@@ -66,3 +82,86 @@ a production or DataHUB `arc-export` failure appears (failing test first, then m
 
 - **WHEN** a developer reads the documented arc-export fixture guidance
 - **THEN** Docker requirement and the “add fixture on DataHUB failure” loop are described
+
+### Requirement: Real-data fixture sets MUST cover RDI input feature breadth
+
+For each active RDI whose real-data suite has landed, the repository MUST commit a **set** of RO-Crate fixtures derived
+from **real** source records (live or archived harvest inputs) mapped through the real client mapping path — not
+synthetic one-field Investigations. The set MUST exercise the feature breadth of that RDI’s input shapes as used in
+harvest/mapping (contacts, licenses, keywords, spatial, nested plugin fields, and other RDI-specific edges as
+applicable). Project documentation MUST describe which cases each fixture file covers. Prefer failing-test-first when a
+production or `arc-export` gap appears.
+
+#### Scenario: Bonares real-data suite is multi-case
+
+- **WHEN** the bonares real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for bonares (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), and docs state which input features each
+  file covers
+
+#### Scenario: Edal real-data suite is multi-case
+
+- **WHEN** the edal real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for edal under
+  `fixtures/arc_export/edal/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as temporarily
+  covering the full curated breadth with a follow-up to expand), docs/`README` state which e!DAL input features each
+  file covers (for example license placeholder, person/ORCID or flat address, organization-only, DOI/`@id` edges), and
+  `docs/arc-export-fixtures.md` no longer lists edal as deferred-only
+
+#### Scenario: Publisso real-data suite is multi-case
+
+- **WHEN** the publisso real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for publisso under
+  `fixtures/arc_export/publisso/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), docs/`README` state which Regal/PUBLISSO
+  input features each file covers (for example person/agent given-name edges, license, subjects±DDC, funding), the
+  optional root smoke crate MAY remain, and `docs/arc-export-fixtures.md` no longer lists publisso as deferred-only
+
+#### Scenario: Plabipd real-data suite is multi-case
+
+- **WHEN** the plabipd real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for plabipd under
+  `fixtures/arc_export/plabipd/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), docs/`README` state which PlabiPD/pubplant
+  input features each file covers (for example Organization-only vs multi-Person creators, givenName/familyName,
+  license, keywords, shared-DOI / composite discovery identifier edges), and `docs/arc-export-fixtures.md` no longer
+  lists plabipd as deferred-only
+
+#### Scenario: Openagrar real-data suite is multi-case
+
+- **WHEN** the openagrar real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for openagrar under
+  `fixtures/arc_export/openagrar/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), cases MUST originate from the live MyCoRe
+  REST + MODS client path (not the local `openagrar-fixture` stand-in or synthetic Schema.org smoke), docs/`README`
+  state which OpenAgrar/MODS input features each file covers (for example title/identifier, person vs organization
+  creators, license, subjects/keywords, related items), the root smoke crate MUST NOT remain once the suite lands, and
+  `docs/arc-export-fixtures.md` no longer lists openagrar (live / MODS) as deferred-only
+
+#### Scenario: Phenoroam real-data suite is multi-case
+
+- **WHEN** the phenoroam real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for phenoroam under
+  `fixtures/arc_export/phenoroam/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as
+  temporarily covering the full curated breadth with a follow-up to expand), cases MUST originate from the live OAI-PMH
+  - `phenoroam_xml` + `phenoroam_general` client path (not synthetic one-field Investigations), docs/`README` state
+    which PhenoRoam input features each file covers (for example bbox / spatial, Person contacts±affiliation, keywords,
+    license, datafile-link comments, study-parent titles), no root smoke crate is required, and
+    `docs/arc-export-fixtures.md` no longer lists phenoroam as deferred-only
+
+#### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
+
+- **WHEN** a landed real-data suite folder for an active RDI is inspected
+- **THEN** at least one fixture in that suite MUST originate from a real source record mapping (smoke crates alone do
+  not satisfy the suite)
+
+### Requirement: Document real-data fixture generation and redaction
+
+`docs/arc-export-fixtures.md` MUST describe how to generate real-data fixtures (curate source → map via real client path
+→ commit), when to use Git LFS, and any redaction/anonymisation rules. The existing Docker / regression-loop guidance
+MUST remain.
+
+#### Scenario: Doc covers generation and redaction
+
+- **WHEN** a developer reads `docs/arc-export-fixtures.md`
+- **THEN** real-data generation, optional LFS, redaction notes, and the DataHUB failure add-fixture loop are described

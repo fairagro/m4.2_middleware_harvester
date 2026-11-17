@@ -1,0 +1,328 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "#Organization_",
+      "@type": "Organization",
+      "name": ""
+    },
+    {
+      "@id": "#OA_author",
+      "@type": "DefinedTerm",
+      "name": "author"
+    },
+    {
+      "@id": "#OA_contributor",
+      "@type": "DefinedTerm",
+      "name": "contributor"
+    },
+    {
+      "@id": "#Person_Rico_Lippmann",
+      "@type": "Person",
+      "givenName": "Rico",
+      "affiliation": {
+        "@id": "#Organization_"
+      },
+      "familyName": "Lippmann",
+      "jobTitle": [
+        {
+          "@id": "#OA_author"
+        },
+        {
+          "@id": "#OA_contributor"
+        }
+      ],
+      "address": "Leibniz Institute of Plant Genetics and Crop Plant Research (IPK), Seeland OT Gatersleben, Corrensstraße 3, D-06466, Germany"
+    },
+    {
+      "@id": "#Source_Dataset_Source",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Dataset Source"
+    },
+    {
+      "@id": "URI=https://doi.org/10.5447/ipk/2012/1",
+      "@type": "URI",
+      "name": "https://doi.org/10.5447/ipk/2012/1"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": {
+        "@id": "#Source_Dataset_Source"
+      },
+      "result": {
+        "@id": "URI=https://doi.org/10.5447/ipk/2012/1"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"License\", Value = \"GNU GENERAL PUBLIC LICENSE Version 2, June 1991\"}",
+        "Comment {Name = \"Publisher\", Value = \"e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben\"}",
+        "Comment {Name = \"Language\", Value = \"de\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_Schema.org_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Schema.org Data Repository"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "assays/physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_",
+      "hasPart": [],
+      "name": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat 1",
+      "about": {
+        "@id": "#Process_A_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_Schema.org_Data_Repository"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Source_Research_Subject",
+      "@type": "Sample",
+      "additionalType": "Source",
+      "name": "Research Subject"
+    },
+    {
+      "@id": "#Sample_",
+      "@type": "Sample",
+      "additionalType": "Sample",
+      "name": ""
+    },
+    {
+      "@id": "#Protocol_Data_Collection",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Keywords_Hordeum_vulgare,_Mikrosporen,_Pollen_Embryogenese,_Proteinanalyse",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Keywords",
+      "value": "Hordeum vulgare, Mikrosporen, Pollen Embryogenese, Proteinanalyse",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Data_Collection_0",
+      "@type": "LabProcess",
+      "name": "Data Collection_0",
+      "object": {
+        "@id": "#Source_Research_Subject"
+      },
+      "result": {
+        "@id": "#Sample_"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Collection"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Keywords_Hordeum_vulgare,_Mikrosporen,_Pollen_Embryogenese,_Proteinanalyse"
+      }
+    },
+    {
+      "@id": "#Protocol_Data_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Data processing and publication according to Schema.org metadata standard | Publisher: e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#Process_S_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Data_Processing_0",
+      "@type": "LabProcess",
+      "name": "Data Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Data_Processing"
+      },
+      "parameterValue": {
+        "@id": "#ParameterValue_Processing_Description_Data_processing_and_publication_according_to_Schema.org_metadata_standard_|_Publisher:_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben"
+      }
+    },
+    {
+      "@id": "studies/physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_",
+      "dateCreated": "2011-04-30",
+      "datePublished": "2012-01-01",
+      "description": "Vergleichende Proteinanalyse ('shot gun') zwischen Pollenembryogenese nach Kältestress-Induktion und gametophytischer Entwicklung von Hordeum vulgare. Replikat 1 der Untersuchung. Nach tryptischen Verdaus erfolgte die Trennung auf einer RP18-Säule (BEH 1,7µm, 100 mm x 100 µm) gekoppelt an eine RP-18 Vorsäule (Symmetry 5µm, 20mm x 180 µm) an einer nanoLC-ESI-QTOF-MS/MS (Waters) modifiziert nach Kaspar et al. (2010). Die Auswertung der Daten Eine weitere Auswertung der Chromatogramme wurde mit dem Programm LC-MS Progenesis (Nonlinear, Großbritannien) durchgeführt.",
+      "hasPart": [],
+      "name": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat 1",
+      "about": [
+        {
+          "@id": "#Process_S_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Data_Collection_0"
+        },
+        {
+          "@id": "#Process_S_physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese__Data_Processing_0"
+        }
+      ]
+    },
+    {
+      "@id": "10.5447/ipk/2012/1",
+      "@type": "PropertyValue",
+      "name": "DOI",
+      "value": "10.5447/ipk/2012/1",
+      "propertyID": "http://purl.obolibrary.org/obo/OBI_0002110"
+    },
+    {
+      "@id": "#Author_R. Lippmann",
+      "@type": "Person",
+      "givenName": "R. Lippmann"
+    },
+    {
+      "@id": "#Physiologische_und_bioanalytische_Untersuchungen_während_der_Pollenembryogenese_von_Hordeum_vulgare._Average_Normalised_Abundances._Replikat_1",
+      "@type": "ScholarlyArticle",
+      "headline": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat 1",
+      "identifier": {
+        "@id": "10.5447/ipk/2012/1"
+      },
+      "author": {
+        "@id": "#Author_R. Lippmann"
+      }
+    },
+    {
+      "@id": "#LDComment_Keywords_Hordeum_vulgare,_Mikrosporen,_Pollen_Embryogenese,_Proteinanalyse",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "Hordeum vulgare, Mikrosporen, Pollen Embryogenese, Proteinanalyse"
+    },
+    {
+      "@id": "#LDComment_License_GNU_GENERAL_PUBLIC_LICENSE_Version_2,_June_1991",
+      "@type": "Comment",
+      "name": "License",
+      "text": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991"
+    },
+    {
+      "@id": "#LDComment_Language_de",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "de"
+    },
+    {
+      "@id": "#LDComment_URL_https://doi.org/10.5447/ipk/2012/1",
+      "@type": "Comment",
+      "name": "URL",
+      "text": "https://doi.org/10.5447/ipk/2012/1"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://doi.org/10.5447/ipk/2012/1",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://doi.org/10.5447/ipk/2012/1"
+    },
+    {
+      "@id": "#LDComment_Publisher_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "e!DAL - Plant Genomics and Phenomics Research Data Repository (PGP), IPK Gatersleben"
+    },
+    {
+      "@id": "LICENSE",
+      "@type": "CreativeWork",
+      "text": "GNU GENERAL PUBLIC LICENSE Version 2, June 1991"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "10.5447/ipk/2012/1",
+      "creator": {
+        "@id": "#Person_Rico_Lippmann"
+      },
+      "dateCreated": "2011-04-30",
+      "datePublished": "2012-01-01",
+      "description": "Vergleichende Proteinanalyse ('shot gun') zwischen Pollenembryogenese nach Kältestress-Induktion und gametophytischer Entwicklung von Hordeum vulgare. Replikat 1 der Untersuchung. Nach tryptischen Verdaus erfolgte die Trennung auf einer RP18-Säule (BEH 1,7µm, 100 mm x 100 µm) gekoppelt an eine RP-18 Vorsäule (Symmetry 5µm, 20mm x 180 µm) an einer nanoLC-ESI-QTOF-MS/MS (Waters) modifiziert nach Kaspar et al. (2010). Die Auswertung der Daten Eine weitere Auswertung der Chromatogramme wurde mit dem Programm LC-MS Progenesis (Nonlinear, Großbritannien) durchgeführt.",
+      "hasPart": [
+        {
+          "@id": "assays/physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_/"
+        },
+        {
+          "@id": "studies/physiologische_und_bioanalytische_untersuchungen_w_hrend_der_pollenembryogenese_/"
+        }
+      ],
+      "name": "Physiologische und bioanalytische Untersuchungen während der Pollenembryogenese von Hordeum vulgare. Average Normalised Abundances. Replikat 1",
+      "citation": {
+        "@id": "#Physiologische_und_bioanalytische_Untersuchungen_während_der_Pollenembryogenese_von_Hordeum_vulgare._Average_Normalised_Abundances._Replikat_1"
+      },
+      "comment": [
+        {
+          "@id": "#LDComment_Keywords_Hordeum_vulgare,_Mikrosporen,_Pollen_Embryogenese,_Proteinanalyse"
+        },
+        {
+          "@id": "#LDComment_License_GNU_GENERAL_PUBLIC_LICENSE_Version_2,_June_1991"
+        },
+        {
+          "@id": "#LDComment_Language_de"
+        },
+        {
+          "@id": "#LDComment_URL_https://doi.org/10.5447/ipk/2012/1"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://doi.org/10.5447/ipk/2012/1"
+        },
+        {
+          "@id": "#LDComment_Publisher_e!DAL_-_Plant_Genomics_and_Phenomics_Research_Data_Repository_(PGP),_IPK_Gatersleben"
+        }
+      ],
+      "sdDatePublished": "2026-11-11T18:27:12.1318190",
+      "license": {
+        "@id": "LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
