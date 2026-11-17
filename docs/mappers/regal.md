@@ -39,7 +39,8 @@ Regal record → one Investigation with one Study and one Assay.
 > encodes laboratory steps; we still model publication as process:
 >
 > - **Spatial Sampling** — only when recording location / coordinates exist
-> - **Data Collection** — subjects, data origin / measurement technique
+> - **Data Collection** — data origin / measurement technique and temporal extent (subjects/DDC are Investigation
+>   Comments, not protocol parameters)
 > - **Data Processing** — repository publication, license, funding context
 
 ## Available Regal Metadata Fields
@@ -106,12 +107,12 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 ### 5. Subjects, classification, and techniques
 
-| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                                                                                                                   |
-| ---------------- | ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`subject`**    | `dcterms:subject`       | Subject headings            | Investigation comment `Keywords` (comma-joined labels; the API exports it as `keywords`); per-term comments `keyword [{@id or subject}]` = `prefLabel` keep the URI; **Data Collection** parameter `Keywords` |
-| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Per-term comments `keyword [DDC:{@id}]` = `prefLabel` (classification, not in `Keywords`); **Data Collection** parameter `Keywords`                                                                           |
-| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                                                                                                                    |
-| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`                                                                                                   |
+| Regal Field      | Context / IRI (typical) | Description                 | ARC Mapping                                                                                                          |
+| ---------------- | ----------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **`subject`**    | `dcterms:subject`       | Subject headings            | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<@id\|label>]` = `prefLabel` |
+| **`ddc`**        | `regal:ddc`             | Dewey Decimal class         | Per-term `keyword [DDC:<@id>]` when `@id` present (not in aggregate `Keywords`); no Keywords protocol parameter      |
+| **`dataOrigin`** | `regal:dataOrigin`      | Data origin / Erhebungsform | **Data Collection** protocol parameter `Data Origin` (`prefLabel` + `@id`)                                           |
+| **`language`**   | `dcterms:language`      | Resource language           | Assay / Investigation comment `Language`: ISO 639 code from an `id.loc.gov` `@id` (`eng`), else `prefLabel`          |
 
 ### 6. Funding
 
@@ -192,9 +193,9 @@ One Regal ResearchData record = one Study.
 
 #### Protocol 2: "Data Collection"
 
-- **Parameters**: Keywords / subjects / DDC; Data Origin; Temporal Extent (`recordingPeriod`)
-- Omit the protocol only if none of these parameters would be non-empty **and** Spatial Sampling is also
-  omitted—otherwise keep a minimal Data Collection table when subjects or dataOrigin exist
+- **Parameters**: Data Origin; Temporal Extent (`recordingPeriod`) — not Keywords / subjects / DDC (those are
+  Investigation Comments per #603)
+- Omit the protocol when neither Data Origin nor Temporal Extent is non-empty (subjects alone do not create this table)
 
 #### Protocol 3: "Data Processing"
 

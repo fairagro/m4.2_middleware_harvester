@@ -42,7 +42,7 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 | **`dcterms:identifier`**                           | Source identifier               | `Investigation.Comment("Source Identifier")`                                                                             |
 | **`dcat:landingPage`**                             | Landing page                    | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise               |
 | **`dcterms:modified`**                             | Modified date                   | `Investigation.Comment("Modified")`                                                                                      |
-| **`dcat:keyword`**                                 | Keywords                        | `Investigation.Comment("Keywords")` (semicolon-joined)                                                                   |
+| **`dcat:keyword`**                                 | Keywords                        | Shared Investigation keyword Comments (#603): aggregate `Keywords` (`", "`-joined) + per-term `keyword [<label>]`        |
 | **`dcterms:language`**                             | Languages                       | `Investigation.Comment("Language")` (semicolon-joined)                                                                   |
 | **`dcterms:publisher`**                            | Publisher org                   | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                                    |
 | **`dcat:contactPoint`**                            | Contact                         | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                                 |
@@ -62,11 +62,11 @@ has no comment.
 
 ## Study
 
-| Source field            | Description  | ARC Mapping                                                                                                                                                                                                                                     |
-| ----------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Title / description     | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                                                                            |
-| **`dcterms:issued`**    | Issue date   | `Study.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                                                                                             |
-| (fixed + keywords/lang) | Processing   | Table `Dataset Processing`: Parameter `Processing Description` = “Published dataset metadata harvested via DCAT-AP.” (no Input / Output: no data file is invented); optional `Keywords` (`", "`-joined) / `Language` (`"; "`-joined) parameters |
+| Source field         | Description  | ARC Mapping                                                                                                                                                                                                                                              |
+| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title / description  | From dataset | `Study.Title` / `Study.Description`; `Study.Identifier` = `{investigation_id}_study`                                                                                                                                                                     |
+| **`dcterms:issued`** | Issue date   | `Study.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                                                                                                      |
+| (fixed + lang)       | Processing   | Table `Dataset Processing`: Parameter `Processing Description` = “Published dataset metadata harvested via DCAT-AP.” (no Input / Output: no data file is invented); optional `Language` (`"; "`-joined); keywords are Investigation Comments only (#603) |
 
 ## Assay
 

@@ -34,6 +34,7 @@ from rdflib.term import Node
 from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.iso_dates import iso_date
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
@@ -523,9 +524,7 @@ class _SchemaOrgRun:
                 inv.Publications.append(Publication.create(title=citation[:200], authors=None))
 
     def _add_investigation_comments(self, inv: ArcInvestigation, subject: Node) -> None:
-        keywords = self.view(subject).schema_texts("keywords")
-        if keywords:
-            inv.Comments.append(Comment.create("Keywords", ", ".join(keywords)))
+        add_keyword_comments(inv, subjects=[(label, None) for label in self.view(subject).schema_texts("keywords")])
 
         for label, term in [
             ("License", "license"),
@@ -606,31 +605,8 @@ class _SchemaOrgRun:
             public_release_date=release_date,
         )
 
-        collection_table = self._create_data_collection_table(subject)
-        if collection_table:
-            study.AddTable(collection_table)
         study.AddTable(self._create_data_processing_table(subject))
         return study
-
-    def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
-        keywords = self.view(subject).schema_texts("keywords")
-        if not keywords:
-            return None
-
-        table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-            [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
-        return table
 
     def _create_data_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
