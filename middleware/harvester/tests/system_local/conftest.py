@@ -48,11 +48,14 @@ def _ensure_path_wrapper_image() -> str:
 
 
 def _discover_fixture_dirs() -> list[Path]:
+    """Leaf dirs under ``arc_export/`` that contain ``ro-crate-metadata.json``.
+
+    Supports both ``<rdi>/ro-crate-metadata.json`` (smoke) and
+    ``<rdi>/<case>/ro-crate-metadata.json`` (real-data suites).
+    """
     if not FIXTURES_ROOT.is_dir():
         return []
-    return sorted(
-        path for path in FIXTURES_ROOT.iterdir() if path.is_dir() and (path / "ro-crate-metadata.json").is_file()
-    )
+    return sorted({path.parent for path in FIXTURES_ROOT.rglob("ro-crate-metadata.json") if path.is_file()})
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
@@ -63,7 +66,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     metafunc.parametrize(
         "arc_export_fixture_dir",
         dirs,
-        ids=[path.name for path in dirs],
+        ids=[str(path.relative_to(FIXTURES_ROOT)) for path in dirs],
     )
 
 
@@ -80,10 +83,16 @@ def arc_export_image() -> str:
 
 @pytest.fixture(scope="session")
 def arc_export_fixture_dirs() -> list[Path]:
-    """Per-RDI directories that contain ``ro-crate-metadata.json``."""
+    """Fixture directories that contain ``ro-crate-metadata.json`` (smoke or case)."""
     dirs = _discover_fixture_dirs()
     if not FIXTURES_ROOT.is_dir():
         pytest.fail(f"Missing fixtures root: {FIXTURES_ROOT}")
     if not dirs:
         pytest.fail(f"No ro-crate-metadata.json fixtures under {FIXTURES_ROOT}")
     return dirs
+
+
+@pytest.fixture(scope="session")
+def arc_export_fixtures_root() -> Path:
+    """Root of committed arc-export RO-Crate fixtures."""
+    return FIXTURES_ROOT
