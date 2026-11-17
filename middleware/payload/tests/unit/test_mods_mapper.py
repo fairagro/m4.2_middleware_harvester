@@ -106,3 +106,66 @@ def test_mods_keywords_become_investigation_comments() -> None:
     assert by_name["keyword [Water]"] == "Water"
     assert "keyword [soil]" not in by_name
     assert all(table.Name != "Data Collection" for study in arc.Studies for table in study.Tables)
+
+
+def test_mods_mapper_orcid_url_normalizes_to_bare_id() -> None:
+    record = ModsRecord(
+        object_id="orcid_url_1",
+        title="ORCID URL creator",
+        doi="10.1/orcid-url",
+        names=[
+            ModsName(
+                given="Jane",
+                family="Doe",
+                orcid="https://orcid.org/0000-0002-1825-0097",
+                role_codes=["aut"],
+            )
+        ],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/orcid_url_1", harvest_source_id="orcid_url_1"),
+    )
+    assert arc.Contacts[0].ORCID == "0000-0002-1825-0097"
+
+
+def test_mods_mapper_invalid_orcid_string_leaves_orcid_empty() -> None:
+    record = ModsRecord(
+        object_id="orcid_bad_1",
+        title="Invalid ORCID creator",
+        doi="10.1/orcid-bad",
+        names=[ModsName(given="Jane", family="Doe", orcid="not-an-orcid", role_codes=["aut"])],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/orcid_bad_1", harvest_source_id="orcid_bad_1"),
+    )
+    assert not arc.Contacts[0].ORCID
+
+
+def test_mods_mapper_gnd_only_leaves_orcid_empty() -> None:
+    record = ModsRecord(
+        object_id="gnd_only_1",
+        title="GND only creator",
+        doi="10.1/gnd-only",
+        names=[ModsName(given="Jane", family="Doe", gnd="123456789", role_codes=["aut"])],
+    )
+    arc = ModsMapper(PlaceholderConfig()).map_record(
+        record,
+        MappingContext(source_url="https://example.org/receive/gnd_only_1", harvest_source_id="gnd_only_1"),
+    )
+    person = arc.Contacts[0]
+    assert not person.ORCID
+    assert [(c.Name, c.Value) for c in person.Comments] == [("GND", "123456789")]
+
+
+def test_mods_assay_does_not_invent_dataset_source_input() -> None:
+    record = ModsRecord(object_id="fixture_mods_2", title="No source dataset", doi="10.5073/no-source")
+    context = MappingContext(
+        source_url="https://www.openagrar.de/receive/fixture_mods_2",
+        harvest_source_id="fixture_mods_2",
+    )
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+
+    assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())

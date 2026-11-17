@@ -1,5 +1,6 @@
-# Pre-commit configuration (shared Devinfra skeleton for product sync).
-# See https://pre-commit.com
+# Pre-commit for Devinfra + python-product consumers (foundation + python-product + gitops hooks).
+# See https://pre-commit.com and docs/quality.md.
+# Infra uses `.pre-commit-config.infrastructure.yaml` instead (#351) — do not sync this blob there.
 #
 # Commit stage: fast checks / autofixes.
 # Pre-push: pytest (excludes system_external/system_local) + container-structure-test
@@ -17,8 +18,8 @@ repos:
       - id: end-of-file-fixer
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-yaml
-        # Vendor skills + Go-templated Helm (canonical charts/*; deprecated helm|helmchart). Harmless if absent (#63/#349).
-        exclude: ^(\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/|(charts|helm|helmchart)(/[^/]+)*/templates/.*\.ya?ml$)
+        # Vendor skills + Go-templated Helm under charts/**/templates. Harmless if absent (#63/#349/#361).
+        exclude: ^(\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/|charts(/[^/]+)*/templates/.*\.ya?ml$)
       - id: check-added-large-files
         exclude: ^\.agents/skills/(gh|docker|hadolint|uv|scan-secrets)/
       - id: check-merge-conflict
@@ -49,10 +50,17 @@ repos:
 
       - id: gitleaks
         name: gitleaks secret scan
-        # Binary from versions.env (Dev Container / scripts/install-gitleaks.sh); no SaaS API key
+        # Binary from versions.env (Dev Container / scripts/install-pinned-tool.sh gitleaks); no SaaS API key
         entry: gitleaks protect --staged --verbose
         language: system
         pass_filenames: false
+
+      - id: actionlint
+        name: actionlint (GitHub Actions workflows)
+        # Binary from versions.env (Dev Container / scripts/install-pinned-tool.sh actionlint)
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/
 
       - id: ruff
         name: ruff lint
@@ -142,10 +150,10 @@ repos:
 
       - id: helm-lint
         name: helm lint
-        # Discovers charts/<chart>/ (canonical) plus deprecated helmchart|helm; no-op without charts.
+        # Discovers charts/<chart>/ only; no-op without charts (#361).
         entry: bash scripts/run-helm-lint.sh
         language: system
-        files: ^(charts|helm|helmchart)/
+        files: ^charts/
         pass_filenames: false
 
       - id: pytest

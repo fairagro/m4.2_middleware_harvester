@@ -82,7 +82,7 @@ fill `Publications[].authors`.
 | **`namePart[@type=given/family]`** | `Person` first/last name (preferred)                                |
 | **`displayForm`**                  | Split via shared display-name helper when given/family parts absent |
 | **`affiliation`**                  | `Person.affiliation`                                                |
-| **`nameIdentifier[@type=orcid]`**  | `Person.orcid`                                                      |
+| **`nameIdentifier[@type=orcid]`**  | `Person.ORCID` (bare iD via shared `orcid_id`; URL or bare iD)      |
 | **`nameIdentifier[@type=gnd]`**    | `Person.Comment("GND")`                                             |
 | **`role/roleTerm`**                | `author` for `aut`/`cre`/empty; `contributor` for `ctb`             |
 

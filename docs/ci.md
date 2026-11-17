@@ -143,8 +143,8 @@ license scan) pass `version:` into `aquasecurity/trivy-action` from the **caller
 independent: bumping `TRIVY_VERSION` moves the scanned binary without waiting for a new Action release.
 
 **CST binary pin:** `reusable-check.yml` **Container Structure Tests** install the official `container-structure-test`
-release via `scripts/install-cst.sh` from the **caller** checkout’s `versions.env` (`CST_VERSION`), fail closed if
-missing — same SoT as the Dev Container / Renovate pin. This replaces the former
+release via `scripts/install-pinned-tool.sh cst` from the **caller** checkout’s `versions.env` (`CST_VERSION`), fail
+closed if missing — same SoT as the Dev Container / Renovate pin. This replaces the former
 `plexsystems/container-structure-test-action` (opaque bundled binary). Products that temporarily vendor
 `reusable-check-local.yml` should mirror both wirings when syncing.
 
@@ -162,6 +162,9 @@ a substitute for Trivy on images. See
 
 **Secret scan:** the same reusable installs `gitleaks` from caller `GITLEAKS_VERSION` and fails on findings (no
 GitGuardian API key). See [quality.md](quality.md) (gitleaks section).
+
+**Actionlint:** the same reusable installs `actionlint` from caller `ACTIONLINT_VERSION` and fails the job on workflow
+findings (blocking). Same pin as Dev Container / commit-stage — see [quality.md](quality.md) (actionlint section).
 
 Bump the product `uses:` ref after this policy lands so callers pick up report-only Licence Check.
 
@@ -212,7 +215,6 @@ jobs:
               # Do NOT put chart paths only here — that forces Docker build/check without linting charts.
             helm:
               - 'charts/**'
-              # Deprecated until rename PRs land: 'helmchart/**' or 'helm/**'
 
   code-quality:
     needs: [detect-changes]
@@ -253,17 +255,13 @@ jobs:
       # values_file: path/to/ci-values.yaml
 ```
 
-Update `chart_dir` / the `helm` path filter to `charts/` **only after** the product renames its chart root (e.g.
-[api#653](https://github.com/fairagro/m4.2_advanced_middleware_api/issues/653)); until then keep the existing
-`helmchart/` or `helm/` paths so CI does not fail closed on a missing directory.
-
 `detect-changes` / `skip` stay a **caller** responsibility. Suggested `code` paths above are a fleet default — extend
 for product-only trees (e.g. `stubs/`, `dev_environment/**`). Chart-only PRs should skip Docker build/check via `code`
-while still running `helm-lint` when the `helm` filter matches. Fleet chart root is **`charts/`** (see #349); do not
-treat “add `charts/**` to the Docker `code` filter alone” as chart validation. Optional `values_file` passes a
-checkout-relative overlay into `helm lint` / `helm template` (fail closed if missing); empty keeps bare-chart behaviour.
-Local commit-stage parity uses `HELM_VALUES_FILE` on [`scripts/run-helm-lint.sh`](../scripts/run-helm-lint.sh) — see
-[`docs/quality.md`](quality.md).
+while still running `helm-lint` when the `helm` filter matches. Fleet chart root is **`charts/`** only (see #349/#361);
+do not treat “add `charts/**` to the Docker `code` filter alone” as chart validation, and do not use `helm/`,
+`helmchart/`, or `helmcharts/` as path filters. Optional `values_file` passes a checkout-relative overlay into
+`helm lint` / `helm template` (fail closed if missing); empty keeps bare-chart behaviour. Local commit-stage parity uses
+`HELM_VALUES_FILE` on [`scripts/run-helm-lint.sh`](../scripts/run-helm-lint.sh) — see [`docs/quality.md`](quality.md).
 
 ### Post-merge main (Docker build + check → Code Scanning)
 
@@ -430,10 +428,8 @@ jobs:
     secrets: inherit
 ```
 
-Same rename caveat as Feature PR: keep legacy `chart_dir` until the product chart root is actually `charts/`.
-
 Order: publish a **Docker** release (so a `*-docker-v*` tag exists) before Helm final/pre-release. Helm sets chart
-`appVersion` from the latest Docker tag.
+`appVersion` from the latest Docker tag. Use `charts/<chart>/` for `chart_dir` (fleet root only).
 
 **Helm ↔ `tag_prefix`:** Shared Helm reusables discover Docker tags with the fixed pattern `*-docker-v*` (semver /
 optional `-rc.…` on pre-release). Callers MUST keep `reusable-release.yml` `tag_prefix` at the default `docker-v`. A
@@ -465,10 +461,15 @@ invoke (**file wins** over a stale Compose `env_file` snapshot) unless `QUALITY_
 [quality.md](quality.md#lockfile-cves-vs-trivy-vs-malware-check).
 
 **gitleaks (secret scan):** when `skip` is false, the job installs the caller’s `GITLEAKS_VERSION` via
-`scripts/install-gitleaks.sh` and runs `gitleaks detect --source . --no-git --verbose --redact` (fail closed; honors
-synced `.gitleaksignore`). `--no-git` scans the PR tip tree (avoids empty scans on shallow merge checkouts); `--redact`
-keeps secret values out of Actions logs. No GitGuardian API key. Same tool as the commit-stage
+`scripts/install-pinned-tool.sh gitleaks` and runs `gitleaks detect --source . --no-git --verbose --redact` (fail
+closed; honors synced `.gitleaksignore`). `--no-git` scans the PR tip tree (avoids empty scans on shallow merge
+checkouts); `--redact` keeps secret values out of Actions logs. No GitGuardian API key. Same tool as the commit-stage
 `gitleaks protect --staged` hook — see [quality.md](quality.md).
+
+**actionlint:** when `skip` is false, the job installs the caller’s `ACTIONLINT_VERSION` via
+`scripts/install-pinned-tool.sh actionlint` and runs `actionlint` (fail closed / blocking). Same pin as the Dev
+Container image and commit-stage hook. Devinfra-only `.github/actionlint.yaml` ignores false positives on
+`$/.github/workflows/…` nested reusable `uses:` — see [quality.md](quality.md).
 
 **pytest vs pre-push:** this workflow runs `uv run pytest "${PKG}" …` **without** the synced pre-push marker filter
 (`-m "not system_external and not system_local"`). CI stays the broader gate; local push excludes `system_*` by default
@@ -555,11 +556,11 @@ Feature-PR chart gate (lint + optional template smoke). Does **not** package or 
 | `values_file`  | `""`       | Optional checkout-relative overlay (`-f`); empty = bare chart        |
 
 Helm CLI version comes from the caller’s `versions.env` (`HELM_VERSION`). Wire with a **separate** detect-changes output
-for chart roots (`charts/**`; deprecated callers may still use `helmchart/**` or `helm/**` until rename); see the
-Feature PR example above. **`helmcharts/` is not a fleet chart root.** When `values_file` is non-empty, the job fails if
-the path is missing and passes `-f` to both `helm lint` and (when enabled) `helm template`. Local commit-stage lint is
-the synced `helm-lint` hook (`scripts/run-helm-lint.sh`) with the matching env `HELM_VALUES_FILE` — see
-[`docs/quality.md`](quality.md); it does **not** replace this Feature-PR reusable.
+for chart roots (`charts/**` only); see the Feature PR example above. `helm/`, `helmchart/`, and `helmcharts/` are not
+fleet chart roots. When `values_file` is non-empty, the job fails if the path is missing and passes `-f` to both
+`helm lint` and (when enabled) `helm template`. Local commit-stage lint is the synced `helm-lint` hook
+(`scripts/run-helm-lint.sh`) with the matching env `HELM_VALUES_FILE` — see [`docs/quality.md`](quality.md); it does
+**not** replace this Feature-PR reusable.
 
 ### `reusable-helm-release.yml` / `reusable-helm-pre-release.yml`
 

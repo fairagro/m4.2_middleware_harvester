@@ -824,3 +824,7 @@ def test_regal_record_id_becomes_landing_page_comment() -> None:
     arc_json = _mapped_arc_json(_base_graph())
 
     assert comment_text(arc_json, "Landing Page") == "https://example.org/resource/frl:123"
+
+
+def test_regal_assay_does_not_invent_dataset_source_input() -> None:
+    assert "Source_Dataset_Source" not in _mapped_arc_json(_base_graph())
