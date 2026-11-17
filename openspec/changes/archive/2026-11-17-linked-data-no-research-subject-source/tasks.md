@@ -13,4 +13,4 @@
 
 - [x] 2.1 Manual: OpenAgrar fixtures (schema.org + MODS) from container and source on the branch vs `main`; only the two
       entities and the process `object`/`result` refs change; keywords still in the dump
-- [ ] 2.2 Archive after merge
+- [x] 2.2 Archive after merge
