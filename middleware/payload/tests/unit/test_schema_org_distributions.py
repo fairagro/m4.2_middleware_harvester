@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from arctrl import ARC
 from mapper_test_helpers import (
     NO_DISCOVERY,
     OPENAGRAR_PROPERTYVALUE_DOI,
@@ -270,3 +271,17 @@ def test_assay_without_any_url_has_no_empty_output_uri() -> None:
 
     graph_nodes = json.loads(harvested.arc_json)["@graph"]
     assert [node for node in graph_nodes if node.get("@type") == "URI"] == []
+
+
+def test_assay_without_url_and_comments_has_no_annotation_table() -> None:
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Bare Dataset")))
+
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
+    harvested = first_harvest(mapper.map_graph(graph, MappingContext(harvest_source_id="page-1")))
+
+    read_back = ARC.from_rocrate_json_string(harvested.arc_json)
+    assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
