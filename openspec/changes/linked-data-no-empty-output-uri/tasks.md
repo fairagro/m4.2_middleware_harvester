@@ -11,5 +11,6 @@
 
 ## 2. Verify and close
 
-- [x] 2.1 Manual: OpenAgrar fixture harvest from the branch vs the merge-base: 0 content changes of 6 ARCs (e!DAL skipped)
+- [x] 2.1 Manual: OpenAgrar fixture harvest from the branch vs the merge-base: 0 content changes of 6 ARCs (e!DAL
+      skipped)
 - [ ] 2.2 Archive after merge
