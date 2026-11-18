@@ -312,3 +312,20 @@ async def test_pubplant_json_array_protocol_spaced_record_and_fixed_twin_share_i
     assert isinstance(fixed[0], JsonLdDiscoveryResult)
     assert spaced[0].identifier == fixed[0].identifier
     assert spaced[0].payload == fixed[0].payload
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_record_without_whitespace_keeps_identifier_and_payload() -> None:
+    record = {
+        "@id": "https://doi.org/10.1038/s41597-026-06582-z",
+        "identifier": "10.1038/s41597-026-06582-z",
+        "name": "Species A genome",
+    }
+
+    results = await _discover([dict(record)])
+
+    assert len(results) == 1
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    # Pinned from the pre-fix implementation on main: existing ARCs must keep their identity.
+    assert results[0].identifier == "doi_org_10_1038_s41597-026-06582-z:8013671013bd2823"
+    assert results[0].payload == record
