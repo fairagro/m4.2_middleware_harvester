@@ -384,3 +384,16 @@ async def test_pubplant_json_array_protocol_repairs_spaced_identifier_when_id_is
     assert isinstance(results[0], JsonLdDiscoveryResult)
     assert results[0].payload["identifier"] == "10.1038/s41597-026-06582-z"
     assert len([entry for entry in caplog.records if entry.levelno == logging.WARNING]) == 1
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warning_names_only_the_repaired_field(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+
+    await _discover([{"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}])
+
+    message = next(entry for entry in caplog.records if entry.levelno == logging.WARNING).getMessage()
+    assert "identifier='10.1038/ s41597-026-06582-z'" in message
+    assert "@id" not in message
