@@ -49,11 +49,11 @@ def _strip_identifier_whitespace(item: object) -> object:
     if not isinstance(item, dict):
         return item
     repaired = {key: "".join(value.split()) if _is_repairable(key, value) else value for key, value in item.items()}
-    if repaired != item:
+    changed = {key: value for key, value in item.items() if repaired[key] != value}
+    if changed:
         logger.warning(
-            "PubPlant record has whitespace in its identifier; repaired (@id=%r, identifier=%r)",
-            item.get("@id"),
-            item.get("identifier"),
+            "PubPlant record has whitespace in its identifier; repaired (%s)",
+            ", ".join(f"{key}={value!r}" for key, value in changed.items()),
         )
     return repaired
 

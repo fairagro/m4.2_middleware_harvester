@@ -392,7 +392,9 @@ async def test_pubplant_json_array_protocol_warning_names_only_the_repaired_fiel
 ) -> None:
     caplog.set_level(logging.WARNING)
 
-    await _discover([{"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}])
+    await _discover([
+        {"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+    ])
 
     message = next(entry for entry in caplog.records if entry.levelno == logging.WARNING).getMessage()
     assert "identifier='10.1038/ s41597-026-06582-z'" in message
