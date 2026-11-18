@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import httpx
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
@@ -329,3 +331,16 @@ async def test_pubplant_json_array_protocol_record_without_whitespace_keeps_iden
     # Pinned from the pre-fix implementation on main: existing ARCs must keep their identity.
     assert results[0].identifier == "doi_org_10_1038_s41597-026-06582-z:8013671013bd2823"
     assert results[0].payload == record
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warns_once_per_repaired_record(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING)
+    clean = {"@id": "https://doi.org/10.1/clean", "identifier": "10.1/clean", "name": "Clean"}
+    spaced = {"@id": "https://doi.org/10.1038/ s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+
+    await _discover([clean, spaced])
+
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "https://doi.org/10.1038/ s41597-026-06582-z" in warnings[0].getMessage()
