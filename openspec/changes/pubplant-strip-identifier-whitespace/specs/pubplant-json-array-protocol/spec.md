@@ -4,8 +4,8 @@
 
 ### Requirement: Repair whitespace in record identifiers
 
-Before computing identity and yielding a record, the Protocol SHALL remove every whitespace character from the
-record's top-level `@id` string value and from its top-level `identifier` string value when that value is DOI-like
+Before computing identity and yielding a record, the Protocol SHALL remove every whitespace character from the record's
+top-level `@id` string value and from its top-level `identifier` string value when that value is DOI-like
 (`10.<digits>/…`), and SHALL log one WARNING per repaired record naming each repaired field with its original value.
 Other fields, and any `identifier` that is not DOI-like, MUST be left unchanged.
 

@@ -2,8 +2,8 @@
 
 ## Context
 
-See proposal.md. Reproduced on `main`: with the space, `JsonLdParser` raises `JSON-LD produced an empty graph`;
-without it the record parses.
+See proposal.md. Reproduced on `main`: with the space, `JsonLdParser` raises `JSON-LD produced an empty graph`; without
+it the record parses.
 
 ## Goals / Non-Goals
 
