@@ -344,3 +344,17 @@ async def test_pubplant_json_array_protocol_warns_once_per_repaired_record(caplo
     warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
     assert len(warnings) == 1
     assert "https://doi.org/10.1038/ s41597-026-06582-z" in warnings[0].getMessage()
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_keeps_free_text_identifier_unchanged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+    record = {"@id": "https://example.org/genome/12", "identifier": "Genome Assembly 12", "name": "Species A genome"}
+
+    results = await _discover([dict(record)])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == record
+    assert not [entry for entry in caplog.records if entry.levelno == logging.WARNING]
