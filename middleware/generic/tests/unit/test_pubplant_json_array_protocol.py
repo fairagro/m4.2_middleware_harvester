@@ -298,3 +298,17 @@ async def test_generic_plugin_pubplant_json_array_arc_carries_doi_without_whites
     assert isinstance(results[0], HarvestedArc), results
     dois = [pub.DOI for pub in ARC.from_rocrate_json_string(results[0].arc_json).Publications]
     assert dois == ["10.1038/s41597-026-06582-z"]
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_spaced_record_and_fixed_twin_share_identifier() -> None:
+    def record(doi: str) -> dict[str, object]:
+        return {"@id": f"https://doi.org/{doi}", "identifier": doi, "name": "Species A genome"}
+
+    spaced = await _discover([record("10.1038/ s41597-026-06582-z")])
+    fixed = await _discover([record("10.1038/s41597-026-06582-z")])
+
+    assert isinstance(spaced[0], JsonLdDiscoveryResult)
+    assert isinstance(fixed[0], JsonLdDiscoveryResult)
+    assert spaced[0].identifier == fixed[0].identifier
+    assert spaced[0].payload == fixed[0].payload
