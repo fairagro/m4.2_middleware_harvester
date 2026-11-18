@@ -5,8 +5,9 @@
 ### Requirement: Repair whitespace in record identifiers
 
 Before computing identity and yielding a record, the Protocol SHALL remove every whitespace character from the
-record's top-level `@id` and `identifier` string values, and SHALL log one WARNING per repaired record naming the
-original value. Other fields MUST be left unchanged.
+record's top-level `@id` string value and from its top-level `identifier` string value when that value is DOI-like
+(`10.<digits>/…`), and SHALL log one WARNING per repaired record naming each repaired field with its original value.
+Other fields, and any `identifier` that is not DOI-like, MUST be left unchanged.
 
 #### Scenario: DOI with a space is harvested
 
@@ -22,9 +23,15 @@ original value. Other fields MUST be left unchanged.
 
 #### Scenario: Repair is logged
 
-- **GIVEN** an element whose `@id` or `identifier` contains whitespace
+- **GIVEN** an element whose `@id` or DOI-like `identifier` contains whitespace
 - **WHEN** it is discovered
-- **THEN** one WARNING names the original value
+- **THEN** one WARNING names each repaired field with its original value, and not the fields that were clean
+
+#### Scenario: Free-text identifier is untouched
+
+- **GIVEN** an element whose `identifier` is `Genome Assembly 12`
+- **WHEN** it is discovered
+- **THEN** the payload is unchanged and no WARNING is logged
 
 ## MODIFIED Requirements
 

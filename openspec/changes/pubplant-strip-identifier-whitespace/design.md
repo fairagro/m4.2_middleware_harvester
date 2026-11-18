@@ -15,7 +15,9 @@ without it the record parses.
 
 - **Repair in the PubPlant Protocol only.** It is a workaround for one provider's data defect; other sources should keep
   failing loudly so the defect is reported to them.
-- **Remove all whitespace, not just spaces.** A DOI cannot contain whitespace, so no valid value changes.
+- **Remove all whitespace, not just spaces.** An IRI or a DOI cannot contain whitespace, so no valid value changes.
+- **Repair `@id` always, `identifier` only when DOI-like.** schema.org `identifier` is free text; a value that does not
+  start with `10.<digits>/` is left as the provider wrote it.
 - **Identity from the repaired record.** When PlabiPD fixes its data, the record then hashes to the same identifier and
   its ARC is updated instead of duplicated.
 
