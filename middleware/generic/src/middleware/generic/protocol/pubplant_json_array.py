@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -29,19 +30,25 @@ from middleware.payload.linked_data_mapper import LinkedDataMapper
 
 logger = logging.getLogger(__name__)
 
+_DOI_LIKE = re.compile(r"\s*10\.\d+/")
+
+
+def _is_repairable(key: str, value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    return key == "@id" or (key == "identifier" and _DOI_LIKE.match(value) is not None)
+
 
 def _strip_identifier_whitespace(item: object) -> object:
-    """Remove whitespace from the top-level ``@id``/``identifier`` strings of a record.
+    """Remove whitespace from the top-level ``@id`` and DOI-like ``identifier`` strings of a record.
 
     PlabiPD ships a few DOIs with a stray space (``10.1038/ s41597-...``); rdflib drops a node
-    whose ``@id`` is not a valid IRI. A DOI cannot contain whitespace, so no valid value changes.
+    whose ``@id`` is not a valid IRI. Neither an IRI nor a DOI can contain whitespace, so no valid
+    value changes. Any other ``identifier`` is free text and stays as the provider wrote it.
     """
     if not isinstance(item, dict):
         return item
-    repaired = {
-        key: "".join(value.split()) if key in {"@id", "identifier"} and isinstance(value, str) else value
-        for key, value in item.items()
-    }
+    repaired = {key: "".join(value.split()) if _is_repairable(key, value) else value for key, value in item.items()}
     if repaired != item:
         logger.warning(
             "PubPlant record has whitespace in its identifier; repaired (@id=%r, identifier=%r)",
