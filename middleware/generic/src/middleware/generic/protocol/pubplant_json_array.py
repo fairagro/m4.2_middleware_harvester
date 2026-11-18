@@ -27,6 +27,20 @@ from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 
 
+def _strip_identifier_whitespace(item: object) -> object:
+    """Remove whitespace from the top-level ``@id``/``identifier`` strings of a record.
+
+    PlabiPD ships a few DOIs with a stray space (``10.1038/ s41597-...``); rdflib drops a node
+    whose ``@id`` is not a valid IRI. A DOI cannot contain whitespace, so no valid value changes.
+    """
+    if not isinstance(item, dict):
+        return item
+    return {
+        key: "".join(value.split()) if key in {"@id", "identifier"} and isinstance(value, str) else value
+        for key, value in item.items()
+    }
+
+
 class PubPlantJsonArrayProtocolConfig(ProtocolTypeConfig):
     """Type-specific config for the PubPlant JSON array Protocol."""
 
@@ -59,7 +73,10 @@ class PubPlantJsonArrayProtocol(JsonArrayProtocol):
         return None
 
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
-        yield (), await self._fetch_array(self.config.entry_url, client)
+        yield (
+            (),
+            [_strip_identifier_whitespace(item) for item in await self._fetch_array(self.config.entry_url, client)],
+        )
 
     def _discovery_result(self, identifier: str, record: dict[str, object]) -> JsonLdDiscoveryResult:  # noqa: PLR6301
         return JsonLdDiscoveryResult(identifier=identifier, payload=record, harvest_source_id=identifier)

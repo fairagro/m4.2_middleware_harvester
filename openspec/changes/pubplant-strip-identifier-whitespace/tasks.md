@@ -2,7 +2,7 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a one-record array with `https://doi.org/10.1038/ s41597-026-06582-z` in `@id`/`identifier` is harvested
+- [x] 1.1 T1: a one-record array with `https://doi.org/10.1038/ s41597-026-06582-z` in `@id`/`identifier` is harvested
       (repro; fails on `main` with `JSON-LD produced an empty graph`)
 - [ ] 1.2 T2: the mapped ARC carries the DOI without whitespace (golden: tiny array → expected ARC)
 - [ ] 1.3 T3: the spaced element and its fixed twin get the same discovery identifier
