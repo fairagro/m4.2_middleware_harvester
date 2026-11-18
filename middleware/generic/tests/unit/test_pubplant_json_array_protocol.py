@@ -358,3 +358,29 @@ async def test_pubplant_json_array_protocol_keeps_free_text_identifier_unchanged
     assert isinstance(results[0], JsonLdDiscoveryResult)
     assert results[0].payload == record
     assert not [entry for entry in caplog.records if entry.levelno == logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_removes_every_kind_of_whitespace() -> None:
+    results = await _discover([
+        {"@id": " https://doi.org/10.1038/\ts41597-\n026-06582-z ", "identifier": "10.1038/ s41597-026-06582-z\t"}
+    ])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload["@id"] == "https://doi.org/10.1038/s41597-026-06582-z"
+    assert results[0].payload["identifier"] == "10.1038/s41597-026-06582-z"
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_repairs_spaced_identifier_when_id_is_clean(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+
+    results = await _discover([
+        {"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+    ])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload["identifier"] == "10.1038/s41597-026-06582-z"
+    assert len([entry for entry in caplog.records if entry.levelno == logging.WARNING]) == 1
