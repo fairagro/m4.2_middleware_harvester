@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import re
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -25,6 +27,35 @@ from middleware.generic.protocol.json_array import JsonArrayProtocol
 from middleware.generic.protocol.protocol import Protocol, ProtocolType, ProtocolTypeConfig
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
+
+logger = logging.getLogger(__name__)
+
+_DOI_LIKE = re.compile(r"\s*10\.\d+/")
+
+
+def _is_repairable(key: str, value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    return key == "@id" or (key == "identifier" and _DOI_LIKE.match(value) is not None)
+
+
+def _strip_identifier_whitespace(item: object) -> object:
+    """Remove whitespace from the top-level ``@id`` and DOI-like ``identifier`` strings of a record.
+
+    PlabiPD ships a few DOIs with a stray space (``10.1038/ s41597-...``); rdflib drops a node
+    whose ``@id`` is not a valid IRI. Neither an IRI nor a DOI can contain whitespace, so no valid
+    value changes. Any other ``identifier`` is free text and stays as the provider wrote it.
+    """
+    if not isinstance(item, dict):
+        return item
+    repaired = {key: "".join(value.split()) if _is_repairable(key, value) else value for key, value in item.items()}
+    changed = {key: value for key, value in item.items() if repaired[key] != value}
+    if changed:
+        logger.warning(
+            "PubPlant record has whitespace in its identifier; repaired (%s)",
+            ", ".join(f"{key}={value!r}" for key, value in changed.items()),
+        )
+    return repaired
 
 
 class PubPlantJsonArrayProtocolConfig(ProtocolTypeConfig):
@@ -59,7 +90,10 @@ class PubPlantJsonArrayProtocol(JsonArrayProtocol):
         return None
 
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
-        yield (), await self._fetch_array(self.config.entry_url, client)
+        yield (
+            (),
+            [_strip_identifier_whitespace(item) for item in await self._fetch_array(self.config.entry_url, client)],
+        )
 
     def _discovery_result(self, identifier: str, record: dict[str, object]) -> JsonLdDiscoveryResult:  # noqa: PLR6301
         return JsonLdDiscoveryResult(identifier=identifier, payload=record, harvest_source_id=identifier)
