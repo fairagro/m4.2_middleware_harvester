@@ -233,3 +233,35 @@ async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_disti
     dois = [pub.DOI for item in harvested for pub in ARC.from_rocrate_json_string(item.arc_json).Publications]
     assert dois.count(shared_doi) == 2
     assert "10.1038/unique" in dois
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_harvests_record_with_whitespace_in_doi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A stray space in the DOI (PlabiPD genomes.json) must not make the record fail."""
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/10.1038/ s41597-026-06582-z",
+            "identifier": "10.1038/ s41597-026-06582-z",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
