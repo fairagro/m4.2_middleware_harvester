@@ -11,6 +11,6 @@
 
 ## 2. Verify and close
 
-- [ ] 2.1 T6: dev stack, live PlabiPD harvest: the 3 records are harvested and the failed count drops by 3
-- [ ] 2.2 `uv run ruff format middleware/` and `uv run pytest middleware/generic`
+- [x] 2.1 T6: dev stack, live PlabiPD harvest: the 3 records are harvested and the failed count drops by 3
+- [x] 2.2 `uv run ruff format middleware/` and `uv run pytest middleware/generic`
 - [ ] 2.3 Archive after merge
