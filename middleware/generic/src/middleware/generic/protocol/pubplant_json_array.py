@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
@@ -26,6 +27,8 @@ from middleware.generic.protocol.protocol import Protocol, ProtocolType, Protoco
 from middleware.parsing.discovery import JsonLdDiscoveryResult
 from middleware.payload.linked_data_mapper import LinkedDataMapper
 
+logger = logging.getLogger(__name__)
+
 
 def _strip_identifier_whitespace(item: object) -> object:
     """Remove whitespace from the top-level ``@id``/``identifier`` strings of a record.
@@ -35,10 +38,17 @@ def _strip_identifier_whitespace(item: object) -> object:
     """
     if not isinstance(item, dict):
         return item
-    return {
+    repaired = {
         key: "".join(value.split()) if key in {"@id", "identifier"} and isinstance(value, str) else value
         for key, value in item.items()
     }
+    if repaired != item:
+        logger.warning(
+            "PubPlant record has whitespace in its identifier; repaired (@id=%r, identifier=%r)",
+            item.get("@id"),
+            item.get("identifier"),
+        )
+    return repaired
 
 
 class PubPlantJsonArrayProtocolConfig(ProtocolTypeConfig):

@@ -7,7 +7,7 @@
 - [x] 1.2 T2: the mapped ARC carries the DOI without whitespace (golden: tiny array → expected ARC)
 - [x] 1.3 T3: the spaced element and its fixed twin get the same discovery identifier
 - [x] 1.4 T4: an element without whitespace gets the same identifier and payload as before
-- [ ] 1.5 T5: one WARNING per repaired element, naming the original value
+- [x] 1.5 T5: one WARNING per repaired element, naming the original value
 
 ## 2. Verify and close
 
