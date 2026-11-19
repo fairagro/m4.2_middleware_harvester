@@ -399,3 +399,36 @@ async def test_pubplant_json_array_protocol_warning_names_only_the_repaired_fiel
     message = next(entry for entry in caplog.records if entry.levelno == logging.WARNING).getMessage()
     assert "identifier='10.1038/ s41597-026-06582-z'" in message
     assert "@id" not in message
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_arc_carries_doi_when_resolver_is_doubled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+            "identifier": "doi.org/10.1093/dnares/dsx047",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+    dois = [pub.DOI for pub in ARC.from_rocrate_json_string(results[0].arc_json).Publications]
+    assert dois == ["10.1093/dnares/dsx047"]
