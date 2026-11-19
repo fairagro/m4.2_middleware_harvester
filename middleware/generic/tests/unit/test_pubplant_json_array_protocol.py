@@ -510,3 +510,23 @@ async def test_pubplant_json_array_protocol_collapses_any_stack_of_resolver_pref
         "identifier": "10.1093/dnares/dsx047",
         "name": "Species A genome",
     }
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warns_once_per_record_with_doubled_resolver(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+    clean = {"@id": "https://doi.org/10.1/clean", "identifier": "10.1/clean", "name": "Clean"}
+    doubled = {
+        "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+        "identifier": "doi.org/10.1093/dnares/dsx047",
+    }
+
+    await _discover([clean, doubled])
+
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    message = warnings[0].getMessage()
+    assert "https://doi.org/doi.org/10.1093/dnares/dsx047" in message
+    assert "doi.org/10.1093/dnares/dsx047'" in message
