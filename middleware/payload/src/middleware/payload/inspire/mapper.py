@@ -25,6 +25,7 @@ from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.dois import normalize_doi
+from middleware.payload.geo import bounding_box
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.inspire.models import Contact, InspireRecord
@@ -502,9 +503,8 @@ class InspireMapper(DataMapper[MappingContext]):
         headers = []
         cells = []
 
-        # Bounding Box
-        if record.spatial_extent:
-            bbox_str = f"[{', '.join(map(str, record.spatial_extent))}]"
+        # Bounding Box — south west north east (see middleware.payload.geo.bounding_box)
+        if record.spatial_extent and (bbox_str := bounding_box(*record.spatial_extent)):
             headers.append(CompositeHeader.parameter(OntologyAnnotation(name="Bounding Box")))
             cells.append(CompositeCell.term(OntologyAnnotation(name=bbox_str)))
 

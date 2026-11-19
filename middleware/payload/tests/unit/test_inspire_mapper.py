@@ -551,6 +551,16 @@ def test_geographic_record_with_bbox_keeps_spatial_sampling_to_acquisition_link(
     assert acquisition_inputs == ["Selected Location"]
 
 
+def test_bounding_box_parameter_uses_south_west_north_east_order() -> None:
+    record = _minimal_record(hierarchy="dataset", spatial_extent=[10.0, 48.0, 11.0, 49.0])
+
+    study = InspireMapper().map_study(record)
+
+    sampling = next(table for table in study.Tables if table.Name == "Spatial Sampling")
+    bbox_col = next(col for col in sampling.Columns if col.header.ToTerm().Name == "Bounding Box")
+    assert bbox_col.cells[0].AsTerm.Name == "48.0 10.0 49.0 11.0"
+
+
 def test_creation_date_alone_does_not_create_data_processing_protocol() -> None:
     record = _minimal_record(dates=[{"date": "2019-03-01", "datetype": "creation"}])
 

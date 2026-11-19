@@ -21,6 +21,7 @@ from arctrl import (  # type: ignore[import-untyped]
 )
 
 from middleware.payload.data_mapper import DataMapper
+from middleware.payload.geo import bounding_box
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
 from middleware.payload.keyword_comments import add_keyword_comments
@@ -97,6 +98,9 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             title=title,
             description=description,
         )
+        spatial = self._create_spatial_sampling_table(record)
+        if spatial is not None:
+            study.AddTable(spatial)
         return study
 
     def _map_assay(self, record: PhenoroamRecord, context: MappingContext) -> ArcAssay:
@@ -238,19 +242,29 @@ class PhenoroamMapper(DataMapper[MappingContext]):
                 CompositeHeader.comment("Datafile Link"),
                 [CompositeCell.free_text(";".join(valid_links))],
             )
-        if record.bbox is not None:
-            bbox_bits = [
-                f"W:{record.bbox.west}" if record.bbox.west else None,
-                f"E:{record.bbox.east}" if record.bbox.east else None,
-                f"S:{record.bbox.south}" if record.bbox.south else None,
-                f"N:{record.bbox.north}" if record.bbox.north else None,
-            ]
-            bbox_text = " ".join(bit for bit in bbox_bits if bit)
-            if bbox_text:
-                table.AddColumn(
-                    CompositeHeader.comment("Geographic Bounding Box"),
-                    [CompositeCell.free_text(bbox_text)],
-                )
+        return table
+
+    @staticmethod
+    def _create_spatial_sampling_table(record: PhenoroamRecord) -> ArcTable | None:
+        """Study Spatial Sampling with ``Bounding Box`` when bbox is complete."""
+        if record.bbox is None:
+            return None
+        bbox_str = bounding_box(record.bbox.west, record.bbox.south, record.bbox.east, record.bbox.north)
+        if bbox_str is None:
+            return None
+        table = ArcTable.init("Spatial Sampling")
+        table.AddColumn(
+            CompositeHeader.input(IOType.source()),
+            [CompositeCell.free_text("Geographic Region")],
+        )
+        table.AddColumn(
+            CompositeHeader.parameter(OntologyAnnotation(name="Bounding Box")),
+            [CompositeCell.term(OntologyAnnotation(name=bbox_str))],
+        )
+        table.AddColumn(
+            CompositeHeader.output(IOType.sample()),
+            [CompositeCell.free_text("Selected Location")],
+        )
         return table
 
     @staticmethod
