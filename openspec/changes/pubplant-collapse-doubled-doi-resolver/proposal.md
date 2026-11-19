@@ -5,9 +5,9 @@
 One of the 2,335 PlabiPD `genomes.json` records repeats the DOI resolver: `@id` is
 `https://doi.org/doi.org/10.1093/dnares/dsx047` and `identifier` is `doi.org/10.1093/dnares/dsx047`. The record parses,
 but `normalize_doi` strips `https://doi.org/` once and is left with a scheme-less `doi.org/10.1093/…`, which is not a
-DOI. The ARC therefore carries no publication DOI, and its `Output [URI]` is the doubled URL, which returns HTTP 404. The
-provider fix is requested in the PlabiPD metadata feedback; until then this genome is a DOI-less catalogue entry with a
-dead link.
+DOI. The ARC therefore carries no publication DOI, and its `Output [URI]` is the doubled URL, which returns HTTP 404.
+The provider fix is requested in the PlabiPD metadata feedback; until then this genome is a DOI-less catalogue entry
+with a dead link.
 
 ## What Changes
 
