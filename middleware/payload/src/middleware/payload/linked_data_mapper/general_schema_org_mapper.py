@@ -34,6 +34,7 @@ from rdflib.term import Node
 from middleware.payload.arc_dates import date_modified_comment
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.iso_dates import iso_date
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.linked_data_mapper.linked_data_mapper import LinkedDataMapper
 from middleware.payload.linked_data_mapper.stable_graph import (
     SCHEMA_ORG_NAMESPACES,
@@ -523,9 +524,7 @@ class _SchemaOrgRun:
                 inv.Publications.append(Publication.create(title=citation[:200], authors=None))
 
     def _add_investigation_comments(self, inv: ArcInvestigation, subject: Node) -> None:
-        keywords = self.view(subject).schema_texts("keywords")
-        if keywords:
-            inv.Comments.append(Comment.create("Keywords", ", ".join(keywords)))
+        add_keyword_comments(inv, subjects=[(label, None) for label in self.view(subject).schema_texts("keywords")])
 
         for label, term in [
             ("License", "license"),
@@ -606,31 +605,8 @@ class _SchemaOrgRun:
             public_release_date=release_date,
         )
 
-        collection_table = self._create_data_collection_table(subject)
-        if collection_table:
-            study.AddTable(collection_table)
         study.AddTable(self._create_data_processing_table(subject))
         return study
-
-    def _create_data_collection_table(self, subject: Node) -> ArcTable | None:
-        keywords = self.view(subject).schema_texts("keywords")
-        if not keywords:
-            return None
-
-        table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-            [CompositeCell.term(OntologyAnnotation(name=", ".join(keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
-        return table
 
     def _create_data_processing_table(self, subject: Node) -> ArcTable:
         table = ArcTable.init("Data Processing")
@@ -655,11 +631,13 @@ class _SchemaOrgRun:
             technology_type=OntologyAnnotation(name="Data Repository"),
         )
         assay.TechnologyPlatform = OntologyAnnotation(name="Schema.org Data Repository")
-        assay.AddTable(self._create_assay_table(subject, context, doi=doi))
+        table = self._create_assay_table(subject, context, doi=doi)
+        if table.ColumnCount:
+            assay.AddTable(table)
         return assay
 
-    def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str:
-        """Resolve the landing-page URL for the Measurement output URI cell."""
+    def _resolve_assay_url(self, subject: Node, context: MappingContext, doi: str | None) -> str | None:
+        """Resolve the landing-page URL for the Measurement output URI cell, or ``None`` when unknown."""
         for term in ("url", "sameAs"):
             iri = self._canonical_http_identifier(subject, term)
             if iri:
@@ -675,7 +653,7 @@ class _SchemaOrgRun:
         if context.source_url is not None:
             return context.source_url
 
-        return ""
+        return None
 
     def _create_assay_table(
         self,
@@ -687,14 +665,11 @@ class _SchemaOrgRun:
         url = self._resolve_assay_url(subject, context, doi)
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.of_string("URI")),
-            [CompositeCell.free_text(url)],
-        )
+        if url:
+            table.AddColumn(
+                CompositeHeader.output(IOType.of_string("URI")),
+                [CompositeCell.free_text(url)],
+            )
 
         license_val = self.view(subject)["license"]
         if license_val and not self.mapper.placeholders.matches(license_val):

@@ -194,23 +194,33 @@ the primary `Investigation.identifier` when a harvest-source identifier (1 or 2)
 
 ### Requirement: Study Data Collection protocol uses keywords, not description
 
-When `schema:keywords` are present, the system SHALL add a single-row Study protocol table named "Data Collection" with
-a Keywords parameter. Dataset `schema:description` SHALL map only to `Investigation.Description` and `Study.Description`
-— it MUST NOT be emitted as a Data Collection parameter (abstract text is not a per-process factor and would duplicate
-Study fields).
+Dataset `schema:description` SHALL map only to `Investigation.Description` and `Study.Description` — it MUST NOT be
+emitted as a Data Collection parameter. Keyword terms MUST be written as Investigation Comments per `keyword-comments`
+(not as a Study Data Collection Keywords parameter). The Study MUST NOT gain a Data Collection protocol table solely to
+carry keywords.
 
 #### Scenario: Keywords create Data Collection protocol
 
 - **GIVEN** a Dataset with `schema:keywords` "soil, moisture" and a non-empty `schema:description`
 - **WHEN** the mapper builds the Study
-- **THEN** a "Data Collection" table exists with a Keywords parameter, and the description appears on
-  Investigation/Study only (not as a protocol parameter)
+- **THEN** no "Data Collection" table exists solely for Keywords, the description appears on Investigation/Study only,
+  and Investigation Comments carry the keyword contract from `keyword-comments`
 
 #### Scenario: Description alone does not create Data Collection
 
 - **GIVEN** a Dataset with `schema:description` but no `schema:keywords`
 - **WHEN** the mapper builds the Study
 - **THEN** no "Data Collection" protocol table is created
+
+### Requirement: Schema.org mapper MUST follow keyword-comments contract
+
+`GeneralSchemaOrgMapper` MUST emit Investigation keyword Comments for `schema:keywords` literals according to
+`keyword-comments` (aggregate + per-term; plain labels use `keyword [<label>]`). `docs/mappers/schemaorg.md` MUST match.
+
+#### Scenario: Plain schema keywords become per-term Comments
+
+- **WHEN** a Dataset has keywords `Soil` and `Water`
+- **THEN** the Investigation MUST include `Keywords` aggregate and `keyword [Soil]` / `keyword [Water]` Comments
 
 ### Requirement: Handle schema:DataDownload distributions as comments
 
@@ -591,3 +601,66 @@ existing `URL` comment is kept with the same value until the basic-layout export
 
 - **WHEN** a Dataset has no `schema:url`, or its value matches a configured placeholder
 - **THEN** the Investigation has no `Landing Page` comment
+
+### Requirement: Assay table MUST NOT invent an input source
+
+The schema.org Assay `Measurement` table MUST NOT contain an `Input [Source Name]` column, because no source field names
+the material the dataset was produced from. `Output [URI]` and the Assay comments are not affected.
+
+#### Scenario: Record mapped without an invented input
+
+- **GIVEN** a schema.org `Dataset` with `url` `https://example.org/ds/1`
+- **WHEN** it is mapped
+- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no `#Source_Dataset_Source`
+  entity, and `Output [URI]` is `https://example.org/ds/1`
+
+### Requirement: Data Collection table MUST NOT invent a source or sample
+
+The schema.org Study `Data Collection` table MUST NOT contain an `Input [Source Name]` or an `Output [Sample Name]`
+column, because no source field names the material studied or the sample produced. The `Keywords` parameter MUST be
+unchanged, and the table MUST still be omitted when the record has no value for any of them.
+
+#### Scenario: Record with keywords mapped without invented samples
+
+- **GIVEN** a schema.org record with keywords
+- **WHEN** it is mapped
+- **THEN** the `Data Collection` table has no `Input [Source Name]` or `Output [Sample Name]` column, the RO-Crate
+  `@graph` has no `#Source_Research_Subject` or `#Sample_` entity, and the `Keywords` parameter keeps its values
+
+#### Scenario: Record without those fields has no Data Collection table
+
+- **GIVEN** a schema.org record with no keywords
+- **WHEN** it is mapped
+- **THEN** the Study has no `Data Collection` table
+
+### Requirement: Assay Output URI MUST NOT be empty
+
+The schema.org Assay `Measurement` table MUST have an `Output [URI]` column only when a URL is known for the record, and
+MUST NOT write an empty `Output [URI]` value. When the table would then have no columns, the Assay MUST NOT have an
+annotation table.
+
+#### Scenario: Record without a URL
+
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL
+- **WHEN** it is mapped
+- **THEN** the Assay table has no `Output [URI]` column and the RO-Crate `@graph` has no `URI` entity with an empty
+  value
+
+#### Scenario: Record with a URL
+
+- **GIVEN** a schema.org Dataset with `url` `https://example.org/ds/1`
+- **WHEN** it is mapped
+- **THEN** `Output [URI]` is `https://example.org/ds/1`, unchanged
+
+#### Scenario: Record without a URL and without comments
+
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, and no field that yields an
+  Assay comment
+- **WHEN** it is mapped
+- **THEN** the Assay has no annotation table
+
+#### Scenario: Record without a URL but with comments
+
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, with a licence
+- **WHEN** it is mapped
+- **THEN** the Assay table has one row with only the comment columns

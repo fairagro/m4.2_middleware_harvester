@@ -24,6 +24,7 @@ from middleware.payload.data_mapper import DataMapper
 from middleware.payload.geo import bounding_box
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
+from middleware.payload.keyword_comments import add_keyword_comments
 from middleware.payload.kinds import PayloadKind
 from middleware.payload.mapper_config import MapperConfig, MapperType
 from middleware.payload.mapping_context import MappingContext
@@ -97,9 +98,6 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             title=title,
             description=description,
         )
-        keywords_table = self._create_keywords_table(record)
-        if keywords_table is not None:
-            study.AddTable(keywords_table)
         spatial = self._create_spatial_sampling_table(record)
         if spatial is not None:
             study.AddTable(spatial)
@@ -219,36 +217,14 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         thumb = self._valid_http_url(record.thumbnail_url)
         if thumb:
             inv.Comments.append(Comment.create("Thumbnail", thumb))
-
-    @staticmethod
-    def _create_keywords_table(record: PhenoroamRecord) -> ArcTable | None:
-        if not record.keywords:
-            return None
-        table = ArcTable.init("Data Collection")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Research Subject")],
-        )
-        table.AddColumn(
-            CompositeHeader.parameter(OntologyAnnotation(name="Keywords")),
-            [CompositeCell.term(OntologyAnnotation(name=", ".join(record.keywords)))],
-        )
-        table.AddColumn(
-            CompositeHeader.output(IOType.sample()),
-            [CompositeCell.free_text("")],
-        )
-        return table
+        add_keyword_comments(inv, subjects=[(label, None) for label in record.keywords])
 
     def _create_assay_table(self, record: PhenoroamRecord, context: MappingContext) -> ArcTable:
         """Annotation table: landing URI + metadata comments — no data-file Outputs (#353)."""
-        catalog_id = self._catalog_id(record, context)
-        output_uri = self._landing_url(catalog_id) if catalog_id else ""
+        # ``resolve_identifier`` already refused records without a catalog id, so the URL is always known here.
+        output_uri = self._landing_url(self._catalog_id(record, context))
 
         table = ArcTable.init("Measurement")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Dataset Source")],
-        )
         table.AddColumn(
             CompositeHeader.output(IOType.of_string("URI")),
             [CompositeCell.free_text(output_uri)],

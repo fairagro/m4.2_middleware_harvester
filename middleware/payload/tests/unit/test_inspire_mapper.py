@@ -124,11 +124,32 @@ def test_publication_authors_survive_ro_crate_serialization() -> None:
 def test_keywords_comment_trim_dedupe_sort() -> None:
     inv = InspireMapper().map_investigation(_minimal_record(keywords=["Soil", "soil", " Agriculture ", "", "  "]))
     assert [(c.Name, c.Value) for c in inv.Comments if c.Name == "Keywords"] == [("Keywords", "Agriculture, Soil")]
+    by_name = {c.Name: c.Value for c in inv.Comments}
+    assert by_name["keyword [Agriculture]"] == "Agriculture"
+    assert by_name["keyword [Soil]"] == "Soil"
+    assert "keyword [soil]" not in by_name
+
+
+def test_keywords_per_term_uses_url_when_present() -> None:
+    from middleware.payload.inspire.models import KeywordTerm
+
+    inv = InspireMapper().map_investigation(
+        _minimal_record(
+            keywords=[
+                KeywordTerm(name="Germany", url="http://example.org/agrovoc/germany"),
+                KeywordTerm(name="crop"),
+            ]
+        )
+    )
+    by_name = {c.Name: c.Value for c in inv.Comments}
+    assert by_name["Keywords"] == "crop, Germany"
+    assert by_name["keyword [http://example.org/agrovoc/germany]"] == "Germany"
+    assert by_name["keyword [crop]"] == "crop"
 
 
 def test_empty_keywords_omit_keywords_comment() -> None:
     inv = InspireMapper().map_investigation(_minimal_record(keywords=[]))
-    assert [c for c in inv.Comments if c.Name == "Keywords"] == []
+    assert [c for c in inv.Comments if c.Name and (c.Name == "Keywords" or c.Name.startswith("keyword ["))] == []
 
 
 # --- Sensor Acquisition protocol (#36) --------------------------------------

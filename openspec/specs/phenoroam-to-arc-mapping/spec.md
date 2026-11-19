@@ -94,6 +94,48 @@ comments suitable for metadata-only ARCs. Geographic bounding boxes MUST follow 
 - **WHEN** the record contains keywords
 - **THEN** those keywords are present in the mapped ARC as annotation-table values or equivalent structured fields
 
+### Requirement: Phenoroam mapper MUST follow keyword-comments contract
+
+`PhenoroamMapper` MUST emit Investigation keyword Comments for phenoroam keywords according to `keyword-comments`. It
+MUST NOT add a Study `Data Collection` Keywords parameter for those terms. `docs/mappers/phenoroam.md` MUST match.
+
+#### Scenario: Phenoroam keywords become Investigation Comments only
+
+- **WHEN** a phenoroam record has keywords `Soil` and `Water`
+- **THEN** the Investigation MUST include keyword Comments per `keyword-comments`, and the Study MUST NOT have a Data
+  Collection Keywords parameter
+
+### Requirement: Assay table MUST NOT invent an input source
+
+The PhenoROAM Assay `Measurement` table MUST NOT contain an `Input [Source Name]` column, because no source field names
+the material the dataset was produced from. `Output [URI]` and the Assay comments are not affected.
+
+#### Scenario: Record mapped without an invented input
+
+- **GIVEN** a PhenoROAM record with a catalogue identifier
+- **WHEN** it is mapped
+- **THEN** the Assay table has no `Input [Source Name]` column, the RO-Crate `@graph` has no `#Source_Dataset_Source`
+  entity, and `Output [URI]` is its landing URL
+
+### Requirement: Data Collection table MUST NOT invent a source or sample
+
+The PhenoROAM Study `Data Collection` table MUST NOT contain an `Input [Source Name]` or an `Output [Sample Name]`
+column, because no source field names the material studied or the sample produced. The `Keywords` parameter MUST be
+unchanged, and the table MUST still be omitted when the record has no value for any of them.
+
+#### Scenario: Record with keywords mapped without invented samples
+
+- **GIVEN** a PhenoROAM record with keywords
+- **WHEN** it is mapped
+- **THEN** the `Data Collection` table has no `Input [Source Name]` or `Output [Sample Name]` column, the RO-Crate
+  `@graph` has no `#Source_Research_Subject` or `#Sample_` entity, and the `Keywords` parameter keeps its values
+
+#### Scenario: Record without those fields has no Data Collection table
+
+- **GIVEN** a PhenoROAM record with no keywords
+- **WHEN** it is mapped
+- **THEN** the Study has no `Data Collection` table
+
 ### Requirement: PhenoRoam bbox MUST become Study Bounding Box in south west north east order
 
 When `PhenoroamRecord.bbox` has west, south, east, and north that each parse as floats, `phenoroam_general` MUST add a

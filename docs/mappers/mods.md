@@ -55,12 +55,12 @@ with element text.
 
 ## Study
 
-| Source field   | Description | ARC Mapping                                                        |
-| -------------- | ----------- | ------------------------------------------------------------------ |
-| **`title`**    | Study title | `Study.Title` (same as investigation title)                        |
-| **`abstract`** | Description | `Study.Description`                                                |
-| Title slug     | Identifier  | `Study.Identifier` = slug of title, or `mods_study`                |
-| **`keywords`** | Topics      | Study table `Data Collection`: Parameter `Keywords` (comma-joined) |
+| Source field   | Description | ARC Mapping                                                                                                                                     |
+| -------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`title`**    | Study title | `Study.Title` (same as investigation title)                                                                                                     |
+| **`abstract`** | Description | `Study.Description`                                                                                                                             |
+| Title slug     | Identifier  | `Study.Identifier` = slug of title, or `mods_study`                                                                                             |
+| **`keywords`** | Topics      | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<label>]` (no Study Data Collection Keywords parameter) |
 
 ## Assay
 
@@ -71,6 +71,9 @@ with element text.
 | **`source_url`**       | Landing page URL         | Assay table `Measurement` `Output [URI]`                                                   |
 | **`license_uri`**      | Licence URI              | Assay table `Comment("License")`                                                           |
 | **`datafile_names`**   | Derivate `maindoc` names | Assay table `Comment("Datafile Name")` joined with `;` — **not** Outputs                   |
+
+`Output [URI]` is written only when `source_url` is an http(s) URL; there is no empty placeholder. A record with no such
+URL, no `license_uri` and no `datafile_names` gets no `Measurement` table at all.
 
 ## Contacts
 

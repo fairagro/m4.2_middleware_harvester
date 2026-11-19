@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import httpx
 import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
@@ -233,3 +235,318 @@ async def test_generic_plugin_pubplant_json_array_keeps_shared_doi_records_disti
     dois = [pub.DOI for item in harvested for pub in ARC.from_rocrate_json_string(item.arc_json).Publications]
     assert dois.count(shared_doi) == 2
     assert "10.1038/unique" in dois
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_harvests_record_with_whitespace_in_doi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A stray space in the DOI (PlabiPD genomes.json) must not make the record fail."""
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/10.1038/ s41597-026-06582-z",
+            "identifier": "10.1038/ s41597-026-06582-z",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_arc_carries_doi_without_whitespace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/10.1038/ s41597-026-06582-z",
+            "identifier": "10.1038/ s41597-026-06582-z",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+    dois = [pub.DOI for pub in ARC.from_rocrate_json_string(results[0].arc_json).Publications]
+    assert dois == ["10.1038/s41597-026-06582-z"]
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_spaced_record_and_fixed_twin_share_identifier() -> None:
+    def record(doi: str) -> dict[str, object]:
+        return {"@id": f"https://doi.org/{doi}", "identifier": doi, "name": "Species A genome"}
+
+    spaced = await _discover([record("10.1038/ s41597-026-06582-z")])
+    fixed = await _discover([record("10.1038/s41597-026-06582-z")])
+
+    assert isinstance(spaced[0], JsonLdDiscoveryResult)
+    assert isinstance(fixed[0], JsonLdDiscoveryResult)
+    assert spaced[0].identifier == fixed[0].identifier
+    assert spaced[0].payload == fixed[0].payload
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_record_without_whitespace_keeps_identifier_and_payload() -> None:
+    record = {
+        "@id": "https://doi.org/10.1038/s41597-026-06582-z",
+        "identifier": "10.1038/s41597-026-06582-z",
+        "name": "Species A genome",
+    }
+
+    results = await _discover([dict(record)])
+
+    assert len(results) == 1
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    # Pinned from the pre-fix implementation on main: existing ARCs must keep their identity.
+    assert results[0].identifier == "doi_org_10_1038_s41597-026-06582-z:8013671013bd2823"
+    assert results[0].payload == record
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warns_once_per_repaired_record(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING)
+    clean = {"@id": "https://doi.org/10.1/clean", "identifier": "10.1/clean", "name": "Clean"}
+    spaced = {"@id": "https://doi.org/10.1038/ s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+
+    await _discover([clean, spaced])
+
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "https://doi.org/10.1038/ s41597-026-06582-z" in warnings[0].getMessage()
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_keeps_free_text_identifier_unchanged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+    record = {"@id": "https://example.org/genome/12", "identifier": "Genome Assembly 12", "name": "Species A genome"}
+
+    results = await _discover([dict(record)])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == record
+    assert not [entry for entry in caplog.records if entry.levelno == logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_removes_every_kind_of_whitespace() -> None:
+    results = await _discover([
+        {"@id": " https://doi.org/10.1038/\ts41597-\n026-06582-z ", "identifier": "10.1038/ s41597-026-06582-z\t"}
+    ])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload["@id"] == "https://doi.org/10.1038/s41597-026-06582-z"
+    assert results[0].payload["identifier"] == "10.1038/s41597-026-06582-z"
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_repairs_spaced_identifier_when_id_is_clean(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+
+    results = await _discover([
+        {"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+    ])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload["identifier"] == "10.1038/s41597-026-06582-z"
+    assert len([entry for entry in caplog.records if entry.levelno == logging.WARNING]) == 1
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warning_names_only_the_repaired_field(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+
+    await _discover([
+        {"@id": "https://doi.org/10.1038/s41597-026-06582-z", "identifier": "10.1038/ s41597-026-06582-z"}
+    ])
+
+    message = next(entry for entry in caplog.records if entry.levelno == logging.WARNING).getMessage()
+    assert "identifier='10.1038/ s41597-026-06582-z'" in message
+    assert "@id" not in message
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_arc_carries_doi_when_resolver_is_doubled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+            "identifier": "doi.org/10.1093/dnares/dsx047",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+    dois = [pub.DOI for pub in ARC.from_rocrate_json_string(results[0].arc_json).Publications]
+    assert dois == ["10.1093/dnares/dsx047"]
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_arc_has_no_doubled_resolver_and_links_to_doi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+            "identifier": "doi.org/10.1093/dnares/dsx047",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+    assert "doi.org/doi.org" not in results[0].arc_json
+    assert "https://doi.org/10.1093/dnares/dsx047" in results[0].arc_json
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_doubled_resolver_record_and_fixed_twin_share_identifier() -> None:
+    doubled = {
+        "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+        "identifier": "doi.org/10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
+    fixed = {
+        "@id": "https://doi.org/10.1093/dnares/dsx047",
+        "identifier": "10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
+
+    repaired = await _discover([doubled])
+    twin = await _discover([fixed])
+
+    assert isinstance(repaired[0], JsonLdDiscoveryResult)
+    assert isinstance(twin[0], JsonLdDiscoveryResult)
+    assert repaired[0].identifier == twin[0].identifier
+    assert repaired[0].payload == twin[0].payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("record_id", "identifier"),
+    [
+        ("https://doi.org/doi.org/10.1093/dnares/dsx047", "doi.org/10.1093/dnares/dsx047"),
+        ("https://dx.doi.org/https://doi.org/10.1093/dnares/dsx047", "10.1093/dnares/dsx047"),
+        ("https://www.doi.org/dx.doi.org/10.1093/dnares/dsx047", "https://doi.org/doi.org/10.1093/dnares/dsx047"),
+    ],
+)
+async def test_pubplant_json_array_protocol_collapses_any_stack_of_resolver_prefixes(
+    record_id: str, identifier: str
+) -> None:
+    results = await _discover([{"@id": record_id, "identifier": identifier, "name": "Species A genome"}])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == {
+        "@id": "https://doi.org/10.1093/dnares/dsx047",
+        "identifier": "10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_warns_once_per_record_with_doubled_resolver(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING)
+    clean = {"@id": "https://doi.org/10.1/clean", "identifier": "10.1/clean", "name": "Clean"}
+    doubled = {
+        "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+        "identifier": "doi.org/10.1093/dnares/dsx047",
+    }
+
+    await _discover([clean, doubled])
+
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    message = warnings[0].getMessage()
+    assert "https://doi.org/doi.org/10.1093/dnares/dsx047" in message
+    assert "doi.org/10.1093/dnares/dsx047'" in message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("record_id", "identifier"),
+    [
+        ("http://dx.doi.org/10.1093/dnares/dsx047", "10.1093/dnares/dsx047"),
+        ("https://www.doi.org/10.1093/dnares/dsx047", "https://doi.org/10.1093/dnares/dsx047"),
+    ],
+)
+async def test_pubplant_json_array_protocol_single_resolver_prefix_keeps_identifier_and_payload(
+    record_id: str, identifier: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    record = {"@id": record_id, "identifier": identifier, "name": "Species A genome"}
+
+    results = await _discover([dict(record)])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == record
+    assert not [entry for entry in caplog.records if entry.levelno == logging.WARNING]
