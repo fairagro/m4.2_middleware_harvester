@@ -16,5 +16,5 @@
 
 - [x] 2.1 T7: end-to-end against a local API, live PlabiPD harvest: the record's ARC carries `10.1093/dnares/dsx047`,
       exactly one WARNING, harvested count unchanged
-- [ ] 2.2 `uv run ruff format middleware/` and `uv run pytest middleware/generic`
+- [x] 2.2 `uv run ruff format middleware/` and `uv run pytest middleware/generic`
 - [ ] 2.3 Archive after merge

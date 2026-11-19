@@ -495,7 +495,6 @@ async def test_pubplant_json_array_protocol_doubled_resolver_record_and_fixed_tw
     [
         ("https://doi.org/doi.org/10.1093/dnares/dsx047", "doi.org/10.1093/dnares/dsx047"),
         ("https://dx.doi.org/https://doi.org/10.1093/dnares/dsx047", "10.1093/dnares/dsx047"),
-        ("https://doi.org/10.1093/dnares/dsx047", "http://dx.doi.org/10.1093/dnares/dsx047"),
         ("https://www.doi.org/dx.doi.org/10.1093/dnares/dsx047", "https://doi.org/doi.org/10.1093/dnares/dsx047"),
     ],
 )

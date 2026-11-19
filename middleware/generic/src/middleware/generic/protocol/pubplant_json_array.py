@@ -31,7 +31,10 @@ from middleware.payload.linked_data_mapper import LinkedDataMapper
 logger = logging.getLogger(__name__)
 
 _DOI_LIKE = re.compile(r"\s*10\.\d+/")
-_RESOLVER_STACK = re.compile(r"(?:(?:https?://)?(?:(?:dx|www)\.)?doi\.org/)+", re.IGNORECASE)
+_RESOLVER = r"(?:https?://)?(?:(?:dx|www)\.)?doi\.org/"
+# Two or more prefixes, or a single one without a scheme (never a valid resolver URL); a lone ``https://doi.org/`` is
+# well-formed and stays untouched.
+_RESOLVER_STACK = re.compile(rf"(?:{_RESOLVER}){{2,}}|(?:(?:dx|www)\.)?doi\.org/", re.IGNORECASE)
 
 
 def _is_repairable(key: str, value: object) -> bool:
