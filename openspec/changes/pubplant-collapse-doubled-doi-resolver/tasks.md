@@ -10,7 +10,7 @@
 - [x] 1.4 T4: a well-formed element keeps its identifier and payload (covered by the US-017 test; no new test)
 - [x] 1.5 T5: other stacks (`doi.org/…` without scheme, `https://dx.doi.org/https://doi.org/…`) are repaired; a
       free-text `identifier` is untouched
-- [ ] 1.6 T6: one WARNING per repaired element, naming the original values
+- [x] 1.6 T6: one WARNING per repaired element, naming the original values
 
 ## 2. Verify and close
 

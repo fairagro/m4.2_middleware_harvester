@@ -84,6 +84,12 @@ def _collapse_doubled_resolver(item: object) -> object:
         repaired["@id"] = f"https://doi.org/{doi}"
     if (doi := _collapse_resolver_stack(item.get("identifier"))) is not None:
         repaired["identifier"] = doi
+    changed = {key: value for key, value in item.items() if repaired[key] != value}
+    if changed:
+        logger.warning(
+            "PubPlant record has a doubled DOI resolver; repaired (%s)",
+            ", ".join(f"{key}={value!r}" for key, value in changed.items()),
+        )
     return repaired
 
 
