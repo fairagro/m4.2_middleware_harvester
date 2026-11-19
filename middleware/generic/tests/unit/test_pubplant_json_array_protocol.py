@@ -487,3 +487,26 @@ async def test_pubplant_json_array_protocol_doubled_resolver_record_and_fixed_tw
     assert isinstance(twin[0], JsonLdDiscoveryResult)
     assert repaired[0].identifier == twin[0].identifier
     assert repaired[0].payload == twin[0].payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("record_id", "identifier"),
+    [
+        ("https://doi.org/doi.org/10.1093/dnares/dsx047", "doi.org/10.1093/dnares/dsx047"),
+        ("https://dx.doi.org/https://doi.org/10.1093/dnares/dsx047", "10.1093/dnares/dsx047"),
+        ("https://doi.org/10.1093/dnares/dsx047", "http://dx.doi.org/10.1093/dnares/dsx047"),
+        ("https://www.doi.org/dx.doi.org/10.1093/dnares/dsx047", "https://doi.org/doi.org/10.1093/dnares/dsx047"),
+    ],
+)
+async def test_pubplant_json_array_protocol_collapses_any_stack_of_resolver_prefixes(
+    record_id: str, identifier: str
+) -> None:
+    results = await _discover([{"@id": record_id, "identifier": identifier, "name": "Species A genome"}])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == {
+        "@id": "https://doi.org/10.1093/dnares/dsx047",
+        "identifier": "10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
