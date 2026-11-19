@@ -31,6 +31,10 @@ from middleware.payload.linked_data_mapper import LinkedDataMapper
 logger = logging.getLogger(__name__)
 
 _DOI_LIKE = re.compile(r"\s*10\.\d+/")
+_RESOLVER = r"(?:https?://)?(?:(?:dx|www)\.)?doi\.org/"
+# Two or more prefixes, or a single one without a scheme (never a valid resolver URL); a lone ``https://doi.org/`` is
+# well-formed and stays untouched.
+_RESOLVER_STACK = re.compile(rf"(?:{_RESOLVER}){{2,}}|(?:(?:dx|www)\.)?doi\.org/", re.IGNORECASE)
 
 
 def _is_repairable(key: str, value: object) -> bool:
@@ -53,6 +57,40 @@ def _strip_identifier_whitespace(item: object) -> object:
     if changed:
         logger.warning(
             "PubPlant record has whitespace in its identifier; repaired (%s)",
+            ", ".join(f"{key}={value!r}" for key, value in changed.items()),
+        )
+    return repaired
+
+
+def _collapse_resolver_stack(value: object) -> str | None:
+    """Return the bare DOI behind a stack of ``doi.org`` resolver prefixes, or None if there is none to collapse."""
+    if not isinstance(value, str):
+        return None
+    match = _RESOLVER_STACK.match(value)
+    if match is None:
+        return None
+    doi = value[match.end() :]
+    return doi if _DOI_LIKE.match(doi) else None
+
+
+def _collapse_doubled_resolver(item: object) -> object:
+    """Collapse a stack of DOI resolver prefixes in the top-level ``@id`` and ``identifier`` of a record.
+
+    PlabiPD ships one record with ``@id`` ``https://doi.org/doi.org/10.…`` and ``identifier``
+    ``doi.org/10.…``; ``normalize_doi`` strips the resolver once and rejects what is left.
+    ``@id`` becomes ``https://doi.org/<doi>`` and ``identifier`` the bare ``<doi>``.
+    """
+    if not isinstance(item, dict):
+        return item
+    repaired = dict(item)
+    if (doi := _collapse_resolver_stack(item.get("@id"))) is not None:
+        repaired["@id"] = f"https://doi.org/{doi}"
+    if (doi := _collapse_resolver_stack(item.get("identifier"))) is not None:
+        repaired["identifier"] = doi
+    changed = {key: value for key, value in item.items() if repaired[key] != value}
+    if changed:
+        logger.warning(
+            "PubPlant record has a doubled DOI resolver; repaired (%s)",
             ", ".join(f"{key}={value!r}" for key, value in changed.items()),
         )
     return repaired
@@ -92,7 +130,10 @@ class PubPlantJsonArrayProtocol(JsonArrayProtocol):
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
         yield (
             (),
-            [_strip_identifier_whitespace(item) for item in await self._fetch_array(self.config.entry_url, client)],
+            [
+                _collapse_doubled_resolver(_strip_identifier_whitespace(item))
+                for item in await self._fetch_array(self.config.entry_url, client)
+            ],
         )
 
     def _discovery_result(self, identifier: str, record: dict[str, object]) -> JsonLdDiscoveryResult:  # noqa: PLR6301
