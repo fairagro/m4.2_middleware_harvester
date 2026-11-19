@@ -30,7 +30,7 @@ middleware.shared.report   ← API repo / PyPI package
 ```
 
 Orchestration-only helpers (ARC `@graph` study/assay parsing, source-URL annotation text, exit-code “all failed”) stay
-in the harvester. They MUST NOT duplicate harvested/failed/skipped/study/assay totals outside the scope.
+in the harvester. They MUST NOT duplicate harvested/failed/skipped/warned/study/assay totals outside the scope.
 
 ## Key Decisions
 
@@ -38,7 +38,8 @@ in the harvester. They MUST NOT duplicate harvested/failed/skipped/study/assay t
    owned by the API repository so harvester and other clients stay compatible.
 
 2. **Scope is the sole counter; count from the API result** — While streaming, only track how many ARCs were submitted
-   plus study/assay sums from each yielded `HarvestedArc` (and source-URL hints). After `harvest_arcs` returns: one
+   plus study/assay sums from each yielded `HarvestedArc` (and source-URL hints), and call `record_warning` once per
+   dataset warning message carried on that ARC (no parallel warned counter). After `harvest_arcs` returns: one
    `record_failed` per API error, then `record_harvested` × `(submitted - len(errors))`, then `add_studies` /
    `add_assays` for the batch totals. If upload aborts with submitted ARCs, each is `record_failed`; if none were
    submitted, one `record_repository_issue`. Composition counts come from the plugin (arctrl `StudyCount` /
@@ -49,6 +50,10 @@ in the harvester. They MUST NOT duplicate harvested/failed/skipped/study/assay t
    repository exception, gather escape, sitemap/discovery `HarvesterError`) call `record_repository_issue`
    (`IssueKind.REPOSITORY`, no counter bump). Do not manually adjust `failed_datasets` to encode repo issues.
 
-4. **Emit after tracing shutdown** — Shared library returns a document string only; the harvester prints it to stdout
+4. **Dataset warnings stay off the fail/skip/harvest counters** — Structured non-fatal outcomes ride on
+   `HarvestedArc.warnings` and become `record_warning` (`IssueKind.DATASET`) without changing harvested, failed, or
+   skipped counts. Infra/config/HTTP-retry logs stay logs-only.
+
+5. **Emit after tracing shutdown** — Shared library returns a document string only; the harvester prints it to stdout
    after OTLP flush. Print/serialize errors are logged and ignored for exit code. Wire vocabulary is v2
    (`fairagro:failures` + `fairagro:kind`).

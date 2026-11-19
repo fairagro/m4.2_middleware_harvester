@@ -53,6 +53,8 @@ async def arc_stream(
             if not is_record_error(item):
                 plugin_error = plugin_error or item
             continue
+        for message in item.warnings:
+            scope.record_warning(message, record_id=item.identifier, url=item.source_url)
         if item.source_url is not None and item.identifier:
             counts = state.arc_id_to_url_counts.setdefault(item.identifier, {})
             counts[item.source_url] = counts.get(item.source_url, 0) + 1

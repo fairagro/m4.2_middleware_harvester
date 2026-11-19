@@ -28,6 +28,7 @@ def test_schema_name_present_no_fallback_used() -> None:
     )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert title_source_comment_text(harvested.arc_json) is None
+    assert harvested.warnings == ()
 
 
 def test_headline_fallback_used_when_name_missing(caplog: pytest.LogCaptureFixture) -> None:
@@ -41,10 +42,13 @@ def test_headline_fallback_used_when_name_missing(caplog: pytest.LogCaptureFixtu
     assert title_source_comment_text(harvested.arc_json) == "headline"
     assert any("headline" in record.message for record in caplog.records)
     assert any(record.levelno == logging.WARNING for record in caplog.records)
+    assert len(harvested.warnings) == 1
+    assert "headline" in harvested.warnings[0]
     # The fixture's Dataset has no @id, so its subject is a blank node; the log
     # must never surface the rdflib parser-local BNode label for it.
     logged_tokens = [token for record in caplog.records for token in record.message.split()]
     assert not any(BLANK_NODE_ID.fullmatch(token.strip("',")) for token in logged_tokens)
+    assert not any(BLANK_NODE_ID.fullmatch(token.strip("',")) for token in harvested.warnings[0].split())
 
 
 def test_alternative_headline_first_non_empty_used() -> None:
@@ -55,6 +59,8 @@ def test_alternative_headline_first_non_empty_used() -> None:
     )
     assert root_title(harvested.arc_json) == "Flower visitors in legume-intercrops"
     assert title_source_comment_text(harvested.arc_json) == "alternativeHeadline"
+    assert len(harvested.warnings) == 1
+    assert "alternativeHeadline" in harvested.warnings[0]
 
 
 def test_alternative_headline_picks_alphabetically_first_value() -> None:
@@ -73,6 +79,7 @@ def test_alternative_headline_picks_alphabetically_first_value() -> None:
     )
     assert root_title(harvested.arc_json) == "Alpha note about metadata"
     assert title_source_comment_text(harvested.arc_json) == "alternativeHeadline"
+    assert len(harvested.warnings) == 1
 
 
 def test_html_title_fallback_used_when_context_supplies_it() -> None:
@@ -82,6 +89,8 @@ def test_html_title_fallback_used_when_context_supplies_it() -> None:
     )
     assert root_title(harvested.arc_json) == "Citation Title From Page"
     assert title_source_comment_text(harvested.arc_json) == "html_title"
+    assert len(harvested.warnings) == 1
+    assert "html_title" in harvested.warnings[0]
 
 
 def test_html_title_provider_not_called_when_name_present() -> None:

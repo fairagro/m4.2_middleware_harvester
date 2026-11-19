@@ -219,13 +219,15 @@ Its text MUST be the distinct `locn:geometry` literals typed `gsp:wktLiteral` of
 verbatim, sorted and joined with `"; "`. When there is no such literal, or the joined text is longer than
 `mapper.ckanext_dcat.spatial_extent_max_chars` (default 15,000), the text MUST be the placeholder
 `Geographic extent provided by the source RDI (see the RDI record).`; over the cap the mapper MUST log a WARNING naming
-the dataset and the length. A dataset without `dct:spatial` MUST NOT get the comment.
+the dataset and the length and MUST attach a corresponding dataset warning on the yielded `HarvestedArc`. A dataset
+without `dct:spatial` MUST NOT get the comment.
 
 #### Scenario: Point geometry
 
 - **GIVEN** a `dcat:Dataset` whose `dct:spatial` location has `locn:geometry "POINT (11.69 48.40)"^^gsp:wktLiteral`
 - **WHEN** it is mapped
 - **THEN** the Investigation comment `Spatial Extent` is `POINT (11.69 48.40)`
+- **AND** the yielded `HarvestedArc` carries no spatial-cap warning
 
 #### Scenario: Geometry over the cap
 
@@ -233,6 +235,7 @@ the dataset and the length. A dataset without `dct:spatial` MUST NOT get the com
 - **WHEN** it is mapped
 - **THEN** `Spatial Extent` is the placeholder, the WKT is not in the ARC, and a WARNING names the dataset and the
   length
+- **AND** the yielded `HarvestedArc` carries a dataset warning about the truncated spatial extent
 
 #### Scenario: No WKT literal
 
@@ -257,3 +260,4 @@ the dataset and the length. A dataset without `dct:spatial` MUST NOT get the com
 - **GIVEN** `mapper.ckanext_dcat.spatial_extent_max_chars: 50` and a 100-character WKT literal
 - **WHEN** the dataset is mapped
 - **THEN** `Spatial Extent` is the placeholder
+- **AND** the yielded `HarvestedArc` carries a dataset warning about the truncated spatial extent
