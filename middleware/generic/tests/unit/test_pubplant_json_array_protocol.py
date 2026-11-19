@@ -432,3 +432,36 @@ async def test_generic_plugin_pubplant_json_array_arc_carries_doi_when_resolver_
     assert isinstance(results[0], HarvestedArc), results
     dois = [pub.DOI for pub in ARC.from_rocrate_json_string(results[0].arc_json).Publications]
     assert dois == ["10.1093/dnares/dsx047"]
+
+
+@pytest.mark.asyncio
+async def test_generic_plugin_pubplant_json_array_arc_has_no_doubled_resolver_and_links_to_doi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    records = [
+        {
+            "@context": _SCHEMA_ORG_CONTEXT,
+            "@type": "Dataset",
+            "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+            "identifier": "doi.org/10.1093/dnares/dsx047",
+            "name": "Species A genome",
+        }
+    ]
+    transport = _transport_for(records, context_url=_SCHEMA_ORG_CONTEXT)
+
+    def _client_factory(config: NiceHttpClientConfig) -> NiceHttpClient:
+        return NiceHttpClient(config, transport=transport)
+
+    monkeypatch.setattr(plugin_mod, "NiceHttpClient", _client_factory)
+    plugin = GenericPlugin(
+        _config(),
+        MapperConfig.model_validate({"schema_org_general": {}}),
+        ParserConfig.model_validate({"jsonld": {}}),
+    )
+
+    results = [item async for item in plugin.run()]
+
+    assert len(results) == 1
+    assert isinstance(results[0], HarvestedArc), results
+    assert "doi.org/doi.org" not in results[0].arc_json
+    assert "https://doi.org/10.1093/dnares/dsx047" in results[0].arc_json
