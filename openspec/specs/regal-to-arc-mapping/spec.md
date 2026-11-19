@@ -306,7 +306,8 @@ every list member through the same contact path as a directly attached value (li
 `skos:prefLabel` "Family, Given", `Person.ORCID` for `orcid.org` IRIs, organization labels → Comment), and MUST keep
 list order (source author order). Directly attached values (no list) keep their StableGraph order. A list head MUST NOT
 be treated as an agent itself. A creator or contributor resource without `skos:prefLabel` MUST be skipped with a logged
-warning (never silently, never with a blank-node label in the message or ARC).
+warning (never silently, never with a blank-node label in the message or ARC) and MUST attach a corresponding dataset
+warning on the yielded `HarvestedArc` when mapping still succeeds.
 
 #### Scenario: Real Publisso creator list keeps order and ORCIDs
 
@@ -323,11 +324,14 @@ warning (never silently, never with a blank-node label in the message or ARC).
 
 - **WHEN** `dcterms:creator` is `rdf:nil` (JSON-LD `"creator": []`)
 - **THEN** no Contact is created and no warning is logged
+- **AND** the yielded `HarvestedArc` carries no contact-skip warning for that empty list
 
 #### Scenario: Unlabelled list member
 
-- **WHEN** a creator list member has no `skos:prefLabel`
+- **GIVEN** a creator list member has no `skos:prefLabel` and the rest of the record still maps successfully
+- **WHEN** the mapper processes contacts
 - **THEN** it MUST be skipped with a warning, and the other members MUST still be mapped
+- **AND** the yielded `HarvestedArc` carries a dataset warning about the skipped contact
 
 ### Requirement: Regal Publication authors MUST use initial-space-last form without commas
 

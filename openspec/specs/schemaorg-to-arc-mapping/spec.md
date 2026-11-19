@@ -278,7 +278,8 @@ non-empty (trimmed) value:
    its `<title>` text
 
 When step 2, 3, or 4 is used, the system MUST append an Investigation Comment named `"Title Source"` identifying which
-fallback won, and MUST log a WARNING-level message. Neither the log message nor any ARC field MAY contain an rdflib
+fallback won, MUST log a WARNING-level message, and MUST attach a corresponding dataset warning message on the yielded
+`HarvestedArc`. Neither the log message, the report warning message, nor any ARC field MAY contain an rdflib
 parser-local blank-node label (the subject MUST be identified by its IRI when it has one, else by the resolved title).
 
 The HTML title hint (step 4) MUST be computed lazily — it MUST NOT be computed for records whose title already resolved
@@ -289,7 +290,8 @@ at step 1, 2, or 3.
 - **GIVEN** a `schema:Dataset` with a non-empty `schema:name`
 - **WHEN** the mapper processes the Dataset
 - **THEN** the title is `schema:name`
-- **AND** no `"Title Source"` Comment is added and no warning is logged
+- **AND** no `"Title Source"` Comment is added, no warning is logged, and the yielded `HarvestedArc` carries no
+  title-fallback warning
 
 #### Scenario: headline fallback
 
@@ -298,6 +300,7 @@ at step 1, 2, or 3.
 - **THEN** the title is the `schema:headline` value
 - **AND** an Investigation Comment `"Title Source"` = `"headline"` is added
 - **AND** a WARNING is logged
+- **AND** the yielded `HarvestedArc` carries a dataset warning describing the title fallback
 
 #### Scenario: alternativeHeadline fallback is order-stable across environments
 
@@ -307,6 +310,7 @@ at step 1, 2, or 3.
 - **THEN** the title is `"Alpha note about metadata"` (the casefold-alphabetically first entry), not
   `"Zebra finch population study"` (the document-first entry)
 - **AND** the same value is chosen whether the harvester runs from source or as the packaged binary
+- **AND** the yielded `HarvestedArc` carries a dataset warning describing the title fallback
 
 #### Scenario: HTML title hint fallback (html_jsonld sources only)
 
@@ -316,6 +320,7 @@ at step 1, 2, or 3.
 - **WHEN** the mapper processes the Dataset
 - **THEN** the title is `"Citation Title From Page"`
 - **AND** an Investigation Comment `"Title Source"` = `"html_title"` is added
+- **AND** the yielded `HarvestedArc` carries a dataset warning describing the title fallback
 
 #### Scenario: HTML title hint is not computed when an earlier step resolves
 
@@ -475,26 +480,30 @@ creating another.
 `GeneralSchemaOrgMapper` MUST pass `datePublished`, `dateModified` and `dateCreated` through
 `middleware.payload.iso_dates.iso_date` before writing them to an Investigation or Study date. ISO 8601 dates and
 date-times MUST pass unchanged. Java `Date.toString()` values with an unambiguous zone abbreviation MUST become an ISO
-date-time with that zone's offset, keeping the local day, and MUST log a warning. Other values MUST NOT be written as a
-date: they MUST log a warning and be kept as the Investigation Comment `Unparsed <term>`. Investigation and Study
-`PublicReleaseDate` (RO-Crate `datePublished`) is the first of `datePublished`, `dateModified`, `dateCreated` that is a
-date. `SubmissionDate` (RO-Crate `dateCreated`) is `dateCreated` only.
+date-time with that zone's offset, keeping the local day, MUST log a warning, and MUST attach a corresponding dataset
+warning on the yielded `HarvestedArc`. Other values MUST NOT be written as a date: they MUST log a warning, be kept as
+the Investigation Comment `Unparsed <term>`, and MUST attach a corresponding dataset warning on the yielded
+`HarvestedArc`. Investigation and Study `PublicReleaseDate` (RO-Crate `datePublished`) is the first of `datePublished`,
+`dateModified`, `dateCreated` that is a date. `SubmissionDate` (RO-Crate `dateCreated`) is `dateCreated` only.
 
 #### Scenario: e!DAL Java date
 
 - **WHEN** `datePublished` is `Sat Jan 01 00:00:00 CET 2011`
 - **THEN** Investigation and Study `PublicReleaseDate` MUST be `2011-01-01T00:00:00+01:00`, `SubmissionDate` MUST be
   empty and the RO-Crate root MUST NOT have `dateCreated` (not even an empty string)
+- **AND** the yielded `HarvestedArc` carries a dataset warning about the date normalisation
 
 #### Scenario: ISO year
 
 - **WHEN** `datePublished` is `2011`
 - **THEN** `PublicReleaseDate` MUST be `2011` and no warning is logged
+- **AND** the yielded `HarvestedArc` carries no date warning for that term
 
 #### Scenario: Not a date
 
 - **WHEN** `datePublished` is `sometime in 2011` and there is no other date
 - **THEN** `PublicReleaseDate` MUST be empty and the Comment `Unparsed datePublished` MUST hold `sometime in 2011`
+- **AND** the yielded `HarvestedArc` carries a dataset warning about the unparsed date
 
 #### Scenario: Creation and publication dates
 
