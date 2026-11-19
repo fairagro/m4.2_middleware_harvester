@@ -31,6 +31,7 @@ from middleware.payload.linked_data_mapper import LinkedDataMapper
 logger = logging.getLogger(__name__)
 
 _DOI_LIKE = re.compile(r"\s*10\.\d+/")
+_RESOLVER_STACK = re.compile(r"(?:(?:https?://)?(?:(?:dx|www)\.)?doi\.org/)+", re.IGNORECASE)
 
 
 def _is_repairable(key: str, value: object) -> bool:
@@ -58,20 +59,31 @@ def _strip_identifier_whitespace(item: object) -> object:
     return repaired
 
 
+def _collapse_resolver_stack(value: object) -> str | None:
+    """Return the bare DOI behind a stack of ``doi.org`` resolver prefixes, or None if there is none to collapse."""
+    if not isinstance(value, str):
+        return None
+    match = _RESOLVER_STACK.match(value)
+    if match is None:
+        return None
+    doi = value[match.end() :]
+    return doi if _DOI_LIKE.match(doi) else None
+
+
 def _collapse_doubled_resolver(item: object) -> object:
-    """Drop the repeated ``doi.org/`` from the top-level ``@id`` and ``identifier`` of a record.
+    """Collapse a stack of DOI resolver prefixes in the top-level ``@id`` and ``identifier`` of a record.
 
     PlabiPD ships one record with ``@id`` ``https://doi.org/doi.org/10.…`` and ``identifier``
     ``doi.org/10.…``; ``normalize_doi`` strips the resolver once and rejects what is left.
+    ``@id`` becomes ``https://doi.org/<doi>`` and ``identifier`` the bare ``<doi>``.
     """
     if not isinstance(item, dict):
         return item
     repaired = dict(item)
-    record_id, identifier = item.get("@id"), item.get("identifier")
-    if isinstance(record_id, str) and record_id.startswith("https://doi.org/doi.org/"):
-        repaired["@id"] = "https://doi.org/" + record_id.removeprefix("https://doi.org/doi.org/")
-    if isinstance(identifier, str) and identifier.startswith("doi.org/10."):
-        repaired["identifier"] = identifier.removeprefix("doi.org/")
+    if (doi := _collapse_resolver_stack(item.get("@id"))) is not None:
+        repaired["@id"] = f"https://doi.org/{doi}"
+    if (doi := _collapse_resolver_stack(item.get("identifier"))) is not None:
+        repaired["identifier"] = doi
     return repaired
 
 
