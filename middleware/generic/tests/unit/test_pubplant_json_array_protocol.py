@@ -530,3 +530,24 @@ async def test_pubplant_json_array_protocol_warns_once_per_record_with_doubled_r
     message = warnings[0].getMessage()
     assert "https://doi.org/doi.org/10.1093/dnares/dsx047" in message
     assert "doi.org/10.1093/dnares/dsx047'" in message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("record_id", "identifier"),
+    [
+        ("http://dx.doi.org/10.1093/dnares/dsx047", "10.1093/dnares/dsx047"),
+        ("https://www.doi.org/10.1093/dnares/dsx047", "https://doi.org/10.1093/dnares/dsx047"),
+    ],
+)
+async def test_pubplant_json_array_protocol_single_resolver_prefix_keeps_identifier_and_payload(
+    record_id: str, identifier: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    record = {"@id": record_id, "identifier": identifier, "name": "Species A genome"}
+
+    results = await _discover([dict(record)])
+
+    assert isinstance(results[0], JsonLdDiscoveryResult)
+    assert results[0].payload == record
+    assert not [entry for entry in caplog.records if entry.levelno == logging.WARNING]
