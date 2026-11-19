@@ -2,7 +2,7 @@
 
 ## 1. Tests and fix
 
-- [ ] 1.1 T1: a one-record array with `@id` `https://doi.org/doi.org/10.1093/dnares/dsx047` and `identifier`
+- [x] 1.1 T1: a one-record array with `@id` `https://doi.org/doi.org/10.1093/dnares/dsx047` and `identifier`
       `doi.org/10.1093/dnares/dsx047` yields an ARC with the publication DOI `10.1093/dnares/dsx047` (repro; on `main`
       `Publications == []`)
 - [ ] 1.2 T2: the ARC contains no `doi.org/doi.org`; the link is `https://doi.org/10.1093/dnares/dsx047`

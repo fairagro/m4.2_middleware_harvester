@@ -58,6 +58,23 @@ def _strip_identifier_whitespace(item: object) -> object:
     return repaired
 
 
+def _collapse_doubled_resolver(item: object) -> object:
+    """Drop the repeated ``doi.org/`` from the top-level ``@id`` and ``identifier`` of a record.
+
+    PlabiPD ships one record with ``@id`` ``https://doi.org/doi.org/10.…`` and ``identifier``
+    ``doi.org/10.…``; ``normalize_doi`` strips the resolver once and rejects what is left.
+    """
+    if not isinstance(item, dict):
+        return item
+    repaired = dict(item)
+    record_id, identifier = item.get("@id"), item.get("identifier")
+    if isinstance(record_id, str) and record_id.startswith("https://doi.org/doi.org/"):
+        repaired["@id"] = "https://doi.org/" + record_id.removeprefix("https://doi.org/doi.org/")
+    if isinstance(identifier, str) and identifier.startswith("doi.org/10."):
+        repaired["identifier"] = identifier.removeprefix("doi.org/")
+    return repaired
+
+
 class PubPlantJsonArrayProtocolConfig(ProtocolTypeConfig):
     """Type-specific config for the PubPlant JSON array Protocol."""
 
@@ -92,7 +109,10 @@ class PubPlantJsonArrayProtocol(JsonArrayProtocol):
     async def _pages(self, client: NiceHttpClient) -> AsyncGenerator[tuple[tuple[str, ...], list[object]], None]:
         yield (
             (),
-            [_strip_identifier_whitespace(item) for item in await self._fetch_array(self.config.entry_url, client)],
+            [
+                _collapse_doubled_resolver(_strip_identifier_whitespace(item))
+                for item in await self._fetch_array(self.config.entry_url, client)
+            ],
         )
 
     def _discovery_result(self, identifier: str, record: dict[str, object]) -> JsonLdDiscoveryResult:  # noqa: PLR6301
