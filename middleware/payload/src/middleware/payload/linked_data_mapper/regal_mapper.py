@@ -137,8 +137,7 @@ class RegalMapper(LinkedDataMapper):
         if subject is None:
             raise ValueError("Graph does not contain a Regal ResearchData entity")
 
-        arc = _RegalRun(self, stable, self._resource_base_url).map_arc(subject)
-        return [HarvestedArc.from_arctrl(arc)]
+        return [_RegalRun(self, stable, self._resource_base_url).map_arc(subject)]
 
     @staticmethod
     def _find_research_data_subject(stable: StableGraph) -> Node | None:
@@ -162,21 +161,25 @@ class _RegalRun:
         """ResourceView for ``subject`` on this call's StableGraph."""
         return self.stable.view(subject)
 
-    def map_arc(self, subject: Node) -> ARC:
+    def map_arc(self, subject: Node) -> HarvestedArc:
+        warnings: list[str] = []
         regal_id = self._regal_id(subject)
         doi = self._doi(subject)
         if not regal_id and not doi:
             raise ValueError("Regal record is missing both @id and doi")
 
-        investigation = self._map_investigation(subject, regal_id=regal_id, doi=doi)
+        investigation = self._map_investigation(subject, regal_id=regal_id, doi=doi, warnings=warnings)
         study = self._map_study(subject, investigation.Identifier)
         investigation.AddStudy(study)
         assay = self._map_assay(subject, investigation.Identifier, regal_id=regal_id, doi=doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(
-            investigation,
-            license=self.mapper.license(self._license_value(subject)),
+        return HarvestedArc.from_arctrl(
+            ARC.from_arc_investigation(
+                investigation,
+                license=self.mapper.license(self._license_value(subject)),
+            ),
+            warnings=tuple(warnings),
         )
 
     def _map_investigation(
@@ -185,6 +188,7 @@ class _RegalRun:
         *,
         regal_id: str | None,
         doi: str | None,
+        warnings: list[str],
     ) -> ArcInvestigation:
         title = self._title(subject)
         identifier = self._investigation_identifier(regal_id=regal_id, doi=doi, title=title)
@@ -200,7 +204,7 @@ class _RegalRun:
         )
         institutions = self._labelled_pairs(subject, DBO.institution)
         affiliation = institutions[0][0] if len(institutions) == 1 else None
-        self._add_contacts(inv, subject, affiliation=affiliation)
+        self._add_contacts(inv, subject, affiliation=affiliation, warnings=warnings)
         require_nonempty_person_given_names(inv)
         self._add_publications(inv, subject, title=title, doi=doi)
         self._add_investigation_comments(inv, subject, institutions=institutions)
@@ -389,6 +393,7 @@ class _RegalRun:
         subject: Node,
         *,
         affiliation: str | None,
+        warnings: list[str],
     ) -> None:
         view = self.view(subject)
         for role, predicate in (("author", DCTERMS.creator), ("contributor", DCTERMS.contributor)):
@@ -402,10 +407,12 @@ class _RegalRun:
                     if label:
                         self._append_contact_from_label(inv, label, role, affiliation=affiliation, node_id=None)
                     continue
-                self._append_contact_from_resource(inv, self.view(member), role, affiliation=affiliation)
+                self._append_contact_from_resource(
+                    inv, self.view(member), role, affiliation=affiliation, warnings=warnings
+                )
             for res in view.resources(predicate):
                 if not res.is_list:
-                    self._append_contact_from_resource(inv, res, role, affiliation=affiliation)
+                    self._append_contact_from_resource(inv, res, role, affiliation=affiliation, warnings=warnings)
 
     def _append_contact_from_label(
         self,
@@ -434,14 +441,13 @@ class _RegalRun:
         role: str,
         *,
         affiliation: str | None,
+        warnings: list[str],
     ) -> None:
         pref_label = res.text(SKOS.prefLabel) or ""
         if not pref_label:
-            logger.warning(
-                "Regal %s entry %s has no skos:prefLabel; skipping contact",
-                role,
-                res.iri or "(blank node)",
-            )
+            message = f"Regal {role} entry {res.iri or '(blank node)'} has no skos:prefLabel; skipping contact"
+            logger.warning(message)
+            warnings.append(message)
             return
         self._append_contact_from_label(
             inv,

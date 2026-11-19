@@ -108,7 +108,7 @@ class CkanextDcatMapper(LinkedDataMapper):
             raise ValueError("Graph does not contain a dcat:Dataset entity")
 
         run = _CkanextDcatRun(self, stable, self._spatial_extent_max_chars)
-        return [HarvestedArc.from_arctrl(run.map_arc(subject.node)) for subject in subjects]
+        return [run.map_arc(subject.node) for subject in subjects]
 
 
 @dataclass(frozen=True)
@@ -123,19 +123,30 @@ class _CkanextDcatRun:
         """ResourceView for ``subject`` on this call's StableGraph."""
         return self.stable.view(subject)
 
-    def map_arc(self, subject: Node) -> ARC:
+    def map_arc(self, subject: Node) -> HarvestedArc:
+        warnings: list[str] = []
         title = self._title(subject)
         identifier = self._investigation_identifier(subject, title)
 
-        investigation = self._map_investigation(subject, identifier=identifier, title=title)
+        investigation = self._map_investigation(subject, identifier=identifier, title=title, warnings=warnings)
         study = self._map_study(subject, identifier, title=title)
         investigation.AddStudy(study)
         assay = self._map_assay(subject, identifier, title=title)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation)
+        return HarvestedArc.from_arctrl(
+            ARC.from_arc_investigation(investigation),
+            warnings=tuple(warnings),
+        )
 
-    def _map_investigation(self, subject: Node, *, identifier: str, title: str) -> ArcInvestigation:
+    def _map_investigation(
+        self,
+        subject: Node,
+        *,
+        identifier: str,
+        title: str,
+        warnings: list[str],
+    ) -> ArcInvestigation:
         description = self.view(subject).text(DCTERMS.description) or ""
         inv = ArcInvestigation.create(
             identifier=identifier,
@@ -147,7 +158,7 @@ class _CkanextDcatRun:
         # publisher/contactPoint) -- Contacts stays empty; call kept for parity
         # / future-proofing if a DCAT-AP source ever adds foaf:Agent creators.
         require_nonempty_person_given_names(inv)
-        self._add_investigation_comments(inv, subject)
+        self._add_investigation_comments(inv, subject, warnings=warnings)
         self._add_ontology_sources(inv)
         return inv
 
@@ -224,7 +235,13 @@ class _CkanextDcatRun:
             )
         return table
 
-    def _add_investigation_comments(self, inv: ArcInvestigation, subject: Node) -> None:
+    def _add_investigation_comments(
+        self,
+        inv: ArcInvestigation,
+        subject: Node,
+        *,
+        warnings: list[str],
+    ) -> None:
         view = self.view(subject)
 
         source_identifier = view.text(DCTERMS.identifier)
@@ -257,9 +274,9 @@ class _CkanextDcatRun:
 
         spatial = view.resource(DCTERMS.spatial)
         if spatial is not None:
-            inv.Comments.append(Comment.create("Spatial Extent", self._spatial_extent_text(view, spatial)))
+            inv.Comments.append(Comment.create("Spatial Extent", self._spatial_extent_text(view, spatial, warnings)))
 
-    def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView) -> str:
+    def _spatial_extent_text(self, view: ResourceView, spatial: ResourceView, warnings: list[str]) -> str:
         """WKT of the dataset location, or the placeholder when it is missing or over the configured cap."""
         wkts = {
             str(geometry).strip()
@@ -270,12 +287,12 @@ class _CkanextDcatRun:
         if not wkt:
             return _SPATIAL_EXTENT_PLACEHOLDER
         if len(wkt) > self.spatial_extent_max_chars:
-            logger.warning(
-                "Spatial Extent of %s: WKT of %d characters exceeds spatial_extent_max_chars=%d; keeping placeholder",
-                view.iri,
-                len(wkt),
-                self.spatial_extent_max_chars,
+            message = (
+                f"Spatial Extent of {view.iri}: WKT of {len(wkt)} characters exceeds "
+                f"spatial_extent_max_chars={self.spatial_extent_max_chars}; keeping placeholder"
             )
+            logger.warning(message)
+            warnings.append(message)
             return _SPATIAL_EXTENT_PLACEHOLDER
         return wkt
 

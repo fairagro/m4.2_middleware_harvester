@@ -20,13 +20,21 @@ class HarvestedArc:
     identifier: str | None = None
     studies: int = 0
     assays: int = 0
+    warnings: tuple[str, ...] = ()
 
     @classmethod
-    def from_arctrl(cls, arc: ARC, *, source_url: str | None = None) -> HarvestedArc:
+    def from_arctrl(
+        cls,
+        arc: ARC,
+        *,
+        source_url: str | None = None,
+        warnings: tuple[str, ...] = (),
+    ) -> HarvestedArc:
         """Serialize an arctrl ``ARC`` and capture identifier plus composition counts.
 
         Comment names are made unique first (``arc_comments``): ARCtrl cannot write an ARC
         with repeated Comment names, and the API writes every harvested ARC.
+        Optional ``warnings`` carry structured non-fatal dataset outcomes for the harvest report.
         """
         unique_comment_names(arc)
         identifier = getattr(arc, "Identifier", None)
@@ -36,4 +44,5 @@ class HarvestedArc:
             identifier=str(identifier) if identifier else None,
             studies=int(arc.StudyCount),
             assays=int(arc.AssayCount),
+            warnings=warnings,
         )

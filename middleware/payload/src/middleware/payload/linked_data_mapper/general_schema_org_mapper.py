@@ -98,12 +98,11 @@ class GeneralSchemaOrgMapper(LinkedDataMapper):
         # not collide on Investigation.identifier (see schemaorg-to-arc-mapping).
         use_page_harvest_id = len(dataset_views) == 1
         for dataset in dataset_views:
-            arc = _SchemaOrgRun(self, stable).map_arc(
+            yield _SchemaOrgRun(self, stable).map_arc(
                 dataset.node,
                 context,
                 use_page_harvest_id=use_page_harvest_id,
             )
-            yield HarvestedArc.from_arctrl(arc)
 
 
 @dataclass(frozen=True)
@@ -123,7 +122,8 @@ class _SchemaOrgRun:
         context: MappingContext,
         *,
         use_page_harvest_id: bool = True,
-    ) -> ARC:
+    ) -> HarvestedArc:
+        warnings: list[str] = []
         title, title_fallback_source = self._resolve_dataset_title(subject, context)
         identifier_plan = self._plan_investigation_identifier(
             subject,
@@ -137,6 +137,7 @@ class _SchemaOrgRun:
             title=title,
             identifier_plan=identifier_plan,
             title_fallback_source=title_fallback_source,
+            warnings=warnings,
         )
         study = self._map_study(
             subject,
@@ -148,7 +149,10 @@ class _SchemaOrgRun:
         assay = self._map_assay(subject, context, title=title, doi=publication_doi)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
-        return ARC.from_arc_investigation(investigation, license=self._license(subject))
+        return HarvestedArc.from_arctrl(
+            ARC.from_arc_investigation(investigation, license=self._license(subject)),
+            warnings=tuple(warnings),
+        )
 
     def _license(self, subject: Node) -> License | None:
         """ARC licence from ``schema:license``: a CreativeWork's ``url`` wins over its label."""
@@ -202,16 +206,21 @@ class _SchemaOrgRun:
             "(schema:name, headline, alternativeHeadline, or page title); refusing Untitled fallback"
         )
 
-    def _add_title_fallback_comment(self, inv: ArcInvestigation, subject: Node, source: str | None, title: str) -> None:
+    def _add_title_fallback_comment(
+        self,
+        inv: ArcInvestigation,
+        subject: Node,
+        source: str | None,
+        title: str,
+        warnings: list[str],
+    ) -> None:
         """Warn and record a Comment when the title came from a fallback, not schema:name."""
         if source is None:
             return
-        logger.warning(
-            "Schema.org Dataset %s used title fallback %r: resolved title=%r",
-            self.view(subject).iri or title,
-            source,
-            title,
-        )
+        subject_id = self.view(subject).iri or title
+        message = f"Schema.org Dataset {subject_id} used title fallback {source!r}: resolved title={title!r}"
+        logger.warning(message)
+        warnings.append(message)
         inv.Comments.append(Comment.create("Title Source", source))
 
     def _study_assay_identifier(self, title: str) -> str:
@@ -269,6 +278,7 @@ class _SchemaOrgRun:
         title: str,
         identifier_plan: _IdentifierPlan,
         title_fallback_source: str | None = None,
+        warnings: list[str],
     ) -> ArcInvestigation:
         plan = identifier_plan
         identifier = plan.investigation_id
@@ -276,7 +286,10 @@ class _SchemaOrgRun:
         description = self.view(subject)["description"] or ""
         # Release date (RO-Crate datePublished): datePublished, else dateModified, else dateCreated.
         # Left as None, ARCtrl stamps the serialisation time instead (#407); "" would be written as an empty date.
-        dates = {term: self._source_date(subject, term) for term in ("datePublished", "dateModified", "dateCreated")}
+        dates = {
+            term: self._source_date(subject, term, warnings)
+            for term in ("datePublished", "dateModified", "dateCreated")
+        }
         release_date = next((iso for iso, _ in dates.values() if iso), None)
 
         inv = ArcInvestigation.create(
@@ -296,21 +309,28 @@ class _SchemaOrgRun:
         self._add_contacts(inv, subject)
         self._add_publications(inv, subject, title=title, doi=plan.publication_doi)
         self._add_alternate_identifier_comments(inv, plan.alternate_dois)
-        self._add_title_fallback_comment(inv, subject, title_fallback_source, title)
+        self._add_title_fallback_comment(inv, subject, title_fallback_source, title, warnings)
         self._add_investigation_comments(inv, subject)
         self._add_ontology_sources(inv)
         return inv
 
-    def _source_date(self, subject: Node, term: str) -> tuple[str | None, str | None]:
+    def _source_date(
+        self,
+        subject: Node,
+        term: str,
+        warnings: list[str],
+    ) -> tuple[str | None, str | None]:
         """``(iso, raw)`` for a Schema.org date term; non-ISO values are logged, never passed on raw."""
         raw = (self.view(subject)[term] or "").strip() or None
         iso = iso_date(raw)
         if raw and iso != raw:
             subject_id = self.view(subject).iri or "(blank node)"
             if iso:
-                logger.warning("Schema.org %s %r of %s is not ISO 8601; normalised to %s", term, raw, subject_id, iso)
+                message = f"Schema.org {term} {raw!r} of {subject_id} is not ISO 8601; normalised to {iso}"
             else:
-                logger.warning("Schema.org %s %r of %s is not a date; kept as Comment only", term, raw, subject_id)
+                message = f"Schema.org {term} {raw!r} of {subject_id} is not a date; kept as Comment only"
+            logger.warning(message)
+            warnings.append(message)
         return iso, raw
 
     @staticmethod

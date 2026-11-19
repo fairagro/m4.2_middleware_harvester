@@ -199,7 +199,10 @@ def test_ckanext_dcat_mapper_spatial_extent_holds_point_wkt() -> None:
     graph.add((SUBJECT, DCTERMS.spatial, location))
     graph.add((location, _LOCN.geometry, Literal("POINT (11.69 48.40)", datatype=_GSP.wktLiteral)))
 
-    assert _comment_text(_mapped_arc_json(graph), "Spatial Extent") == "POINT (11.69 48.40)"
+    results = list(_mapper().map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    assert _comment_text(results[0].arc_json, "Spatial Extent") == "POINT (11.69 48.40)"
+    assert results[0].warnings == ()
 
 
 def test_ckanext_dcat_mapper_spatial_extent_holds_multipolygon_wkt_verbatim() -> None:
@@ -251,13 +254,19 @@ def test_ckanext_dcat_mapper_from_config_applies_spatial_extent_max_chars() -> N
     assert len(wkt) == 100
     graph.add((location, _LOCN.geometry, Literal(wkt, datatype=_GSP.wktLiteral)))
 
-    arc_json = _mapped_arc_json(graph, mapper=CkanextDcatMapper.from_config(config))
+    mapper = CkanextDcatMapper.from_config(config)
+    results = list(mapper.map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    harvested = results[0]
+    arc_json = harvested.arc_json
 
     assert (
         _comment_text(arc_json, "Spatial Extent")
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
     assert wkt not in arc_json
+    assert len(harvested.warnings) == 1
+    assert "spatial_extent_max_chars=50" in harvested.warnings[0]
 
 
 def test_ckanext_dcat_mapper_default_cap_keeps_a_12000_char_wkt() -> None:
@@ -284,15 +293,21 @@ def test_ckanext_dcat_mapper_keeps_placeholder_and_warns_for_wkt_over_the_cap(
     graph.add((location, _LOCN.geometry, Literal(huge_wkt, datatype=_GSP.wktLiteral)))
 
     with caplog.at_level(logging.WARNING):
-        arc_json = _mapped_arc_json(graph)
+        results = list(_mapper().map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    harvested = results[0]
+    arc_json = harvested.arc_json
 
     assert (
         _comment_text(arc_json, "Spatial Extent")
         == "Geographic extent provided by the source RDI (see the RDI record)."
     )
     assert huge_wkt not in arc_json
-    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
-    assert any(str(SUBJECT) in m and str(len(huge_wkt)) in m for m in warnings)
+    log_warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert any(str(SUBJECT) in m and str(len(huge_wkt)) in m for m in log_warnings)
+    assert len(harvested.warnings) == 1
+    assert str(SUBJECT) in harvested.warnings[0]
+    assert str(len(huge_wkt)) in harvested.warnings[0]
 
 
 # --- no invented data files (#353) ------------------------------------------

@@ -711,9 +711,11 @@ def test_regal_mapper_empty_creator_list_maps_no_contacts(caplog: pytest.LogCapt
     graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [])))
 
     with caplog.at_level(logging.WARNING):
-        arc_json = _mapped_arc_json(graph)
-    assert not _contacts_with_roles(arc_json)
+        results = list(_mapper().map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    assert not _contacts_with_roles(results[0].arc_json)
     assert not caplog.records
+    assert not results[0].warnings
 
 
 def test_regal_mapper_unlabelled_creator_list_member_warns(caplog: pytest.LogCaptureFixture) -> None:
@@ -723,11 +725,14 @@ def test_regal_mapper_unlabelled_creator_list_member_warns(caplog: pytest.LogCap
     graph.add((SUBJECT, DCTERMS.creator, _rdf_list(graph, [BNode(), labelled])))
 
     with caplog.at_level(logging.WARNING):
-        arc_json = _mapped_arc_json(graph)
-    assert _contacts_with_roles(arc_json) == [("Fuerst", "Julia", "#OA_author")]
+        results = list(_mapper().map_graph(graph, NO_DISCOVERY))
+    assert len(results) == 1
+    harvested = results[0]
+    assert _contacts_with_roles(harvested.arc_json) == [("Fuerst", "Julia", "#OA_author")]
     assert [r.getMessage() for r in caplog.records] == [
         "Regal author entry (blank node) has no skos:prefLabel; skipping contact"
     ]
+    assert harvested.warnings == ("Regal author entry (blank node) has no skos:prefLabel; skipping contact",)
 
 
 def test_lv_contributor_order_literal_does_not_create_comment() -> None:

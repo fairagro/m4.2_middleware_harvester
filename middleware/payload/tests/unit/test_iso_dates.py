@@ -10,6 +10,7 @@ import pytest
 from arctrl import ARC  # type: ignore[import-untyped]
 from mapper_test_helpers import NO_DISCOVERY, first_harvest, parse_jsonld, root_dates
 
+from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.iso_dates import iso_date
 from middleware.payload.linked_data_mapper.general_schema_org_mapper import GeneralSchemaOrgMapper
 from middleware.payload.placeholders import PlaceholderConfig
@@ -43,7 +44,7 @@ def test_iso_date(value: str | None, expected: str | None) -> None:
     assert iso_date(value) == expected
 
 
-def _arc_json(**dates: str) -> str:
+def _harvest(**dates: str) -> HarvestedArc:
     payload = json.dumps({
         "@context": {"@vocab": "https://schema.org/"},
         "@id": "https://doi.org/10.5447/ipk/2011/0",
@@ -51,9 +52,11 @@ def _arc_json(**dates: str) -> str:
         "name": "e!DAL dataset",
         **dates,
     })
-    return first_harvest(
-        GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY)
-    ).arc_json
+    return first_harvest(GeneralSchemaOrgMapper(PlaceholderConfig()).map_graph(parse_jsonld(payload), NO_DISCOVERY))
+
+
+def _arc_json(**dates: str) -> str:
+    return _harvest(**dates).arc_json
 
 
 def _map(**dates: str) -> ARC:
@@ -66,30 +69,38 @@ def _comments(arc: ARC) -> list[tuple[str, str]]:
 
 def test_edal_java_date_becomes_iso_with_warning(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
-        arc = _map(datePublished="Sat Jan 01 00:00:00 CET 2011")
+        harvested = _harvest(datePublished="Sat Jan 01 00:00:00 CET 2011")
+    arc = ARC.from_rocrate_json_string(harvested.arc_json)
 
     assert arc.PublicReleaseDate == "2011-01-01T00:00:00+01:00"
     assert arc.Studies[0].PublicReleaseDate == "2011-01-01T00:00:00+01:00"
     assert not _comments(arc)
     assert ["normalised to 2011-01-01T00:00:00+01:00" in r.getMessage() for r in caplog.records] == [True]
+    assert len(harvested.warnings) == 1
+    assert "normalised to 2011-01-01T00:00:00+01:00" in harvested.warnings[0]
 
 
 def test_iso_date_kept_without_warning(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
-        arc = _map(datePublished="2011")
+        harvested = _harvest(datePublished="2011")
+    arc = ARC.from_rocrate_json_string(harvested.arc_json)
     assert arc.PublicReleaseDate == "2011"
     assert not caplog.records
+    assert harvested.warnings == ()
 
 
 def test_unparseable_date_is_comment_not_date(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING):
-        arc = _map(datePublished="sometime in 2011")
+        harvested = _harvest(datePublished="sometime in 2011")
+    arc = ARC.from_rocrate_json_string(harvested.arc_json)
 
     # No date at all: ARCtrl stamps the serialisation time, as before.
     assert not arc.SubmissionDate
     assert not arc.Studies[0].PublicReleaseDate
     assert _comments(arc) == [("Unparsed datePublished", "sometime in 2011")]
     assert len(caplog.records) == 1
+    assert len(harvested.warnings) == 1
+    assert "not a date" in harvested.warnings[0]
 
 
 def test_unparseable_date_published_falls_back_to_date_modified() -> None:
