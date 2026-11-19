@@ -465,3 +465,25 @@ async def test_generic_plugin_pubplant_json_array_arc_has_no_doubled_resolver_an
     assert isinstance(results[0], HarvestedArc), results
     assert "doi.org/doi.org" not in results[0].arc_json
     assert "https://doi.org/10.1093/dnares/dsx047" in results[0].arc_json
+
+
+@pytest.mark.asyncio
+async def test_pubplant_json_array_protocol_doubled_resolver_record_and_fixed_twin_share_identifier() -> None:
+    doubled = {
+        "@id": "https://doi.org/doi.org/10.1093/dnares/dsx047",
+        "identifier": "doi.org/10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
+    fixed = {
+        "@id": "https://doi.org/10.1093/dnares/dsx047",
+        "identifier": "10.1093/dnares/dsx047",
+        "name": "Species A genome",
+    }
+
+    repaired = await _discover([doubled])
+    twin = await _discover([fixed])
+
+    assert isinstance(repaired[0], JsonLdDiscoveryResult)
+    assert isinstance(twin[0], JsonLdDiscoveryResult)
+    assert repaired[0].identifier == twin[0].identifier
+    assert repaired[0].payload == twin[0].payload
