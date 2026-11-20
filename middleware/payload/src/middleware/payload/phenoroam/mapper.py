@@ -254,10 +254,6 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             return None
         table = ArcTable.init("Spatial Sampling")
         table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Geographic Region")],
-        )
-        table.AddColumn(
             CompositeHeader.parameter(OntologyAnnotation(name="Bounding Box")),
             [CompositeCell.term(OntologyAnnotation(name=bbox_str))],
         )
