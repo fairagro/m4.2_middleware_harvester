@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from mapper_test_helpers import assay_output_uri
+from mapper_test_helpers import assay_output_uri, processing_parameters
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
 import middleware.payload.register_builtin_mappers as _register_mappers
@@ -330,3 +330,16 @@ def test_phenoroam_keywords_data_collection_invents_no_source_or_sample() -> Non
     assert "#Sample_" not in arc_json
     assert '"keyword [nutrient deficiency]"' in arc_json
     assert '"keyword [RGB image]"' in arc_json
+
+
+def test_phenoroam_spatial_sampling_invents_no_geographic_region_source() -> None:
+    record = PhenoroamRecord(
+        item_uuid="abc-uuid",
+        title="Dataset",
+        bbox=PhenoroamBBox(west="6.9895", east="6.9922", south="50.6152", north="50.6165"),
+    )
+
+    arc_json = str(PhenoroamMapper().map_record(record).ToROCrateJsonString())
+
+    assert "Source_Geographic_Region" not in arc_json
+    assert processing_parameters(arc_json, "Spatial Sampling") == {"Bounding Box": "50.6152 6.9895 50.6165 6.9922"}
