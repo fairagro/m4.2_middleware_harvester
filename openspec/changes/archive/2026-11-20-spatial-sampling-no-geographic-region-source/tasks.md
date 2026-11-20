@@ -12,6 +12,7 @@
 
 ## 2. Verify and close
 
-- [ ] 2.1 Manual: BonaRes and Publisso fixtures from container and source on the branch vs `main`; only the Source
+- [x] 2.1 Manual (superseded: the fixture stack has no INSPIRE/Regal/PhenoROAM; CI `ARC export fixtures` passed on the
+      edited crates): BonaRes and Publisso fixtures from container and source on the branch vs `main`; only the Source
       entity and the process `object` refs change; spatial parameter values still in the dump
-- [ ] 2.2 Archive after merge
+- [x] 2.2 Archive after merge
