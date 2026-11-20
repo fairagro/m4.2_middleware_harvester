@@ -10,7 +10,7 @@ carries the same literal.
 
 **Goals:** the Spatial Sampling table only holds values from the source, plus the existing `Selected Location` chain.
 
-**Non-Goals:** the `Selected Location` output; the Regal empty Data Collection output; ISA chaining beyond US-005.
+**Non-Goals:** the `Selected Location` output; the Regal empty Data Collection output; ISA chaining beyond the existing INSPIRE Spatial Sampling → Data Acquisition link (#353).
 
 ## Decisions
 
