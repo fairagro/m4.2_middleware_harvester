@@ -376,6 +376,18 @@ def test_spatial_sampling_invents_no_geographic_region_source(mapper: InspireMap
     assert "Input [Sample Name]" in acquisition_headers
 
 
+def test_record_without_spatial_info_has_no_spatial_sampling_table(mapper: InspireMapper) -> None:
+    """No spatial info, no Spatial Sampling table, so no Selected Location is invented either (#353)."""
+    record = _create_minimal_record(temporal_extent=("2020-01-01", None))
+
+    study = mapper.map_study(record)
+
+    tables = {table.Name: table for table in study.Tables}
+    assert "Spatial Sampling" not in tables
+    acquisition_headers = [str(col.header) for col in tables["Data Acquisition"].Columns]
+    assert not any(h.startswith("Input") for h in acquisition_headers)
+
+
 def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test creation of Data Acquisition protocol."""
     table = mapper._create_data_acquisition_protocol(sample_record)
