@@ -482,7 +482,6 @@ class InspireMapper(DataMapper[MappingContext]):
         """Create Spatial Sampling protocol if spatial information is available.
 
         Represents: Selection of geographic location(s) for data collection.
-        Input: Geographic Region / Area of Interest
         Output: Selected Location(s)
 
         Note: Only created for geographic datasets, not for nonGeographicDataset hierarchy level.
@@ -530,11 +529,6 @@ class InspireMapper(DataMapper[MappingContext]):
             cells.append(CompositeCell.term(OntologyAnnotation(name=dist_str)))
 
         if headers:
-            # Add Input Column
-            table.AddColumn(
-                CompositeHeader.input(IOType.source()),
-                [CompositeCell.free_text("Geographic Region")],
-            )
             for i, header in enumerate(headers):
                 table.AddColumn(header, [cells[i]])
             # Add Output Column

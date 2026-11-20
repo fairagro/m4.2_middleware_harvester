@@ -434,8 +434,8 @@ def test_create_spatial_sampling_complex(mapper: InspireMapper, sample_record: I
     table = mapper._create_spatial_sampling_protocol(sample_record)
 
     assert table is not None
-    # Input, BBox, CRS, Scale, Distance, Output
-    assert table.ColumnCount == 6
+    # BBox, CRS, Scale, Distance, Output
+    assert table.ColumnCount == 5
 
 
 def test_create_data_processing_complex(mapper: InspireMapper, sample_record: InspireRecord) -> None:
