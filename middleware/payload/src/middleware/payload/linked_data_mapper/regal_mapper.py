@@ -264,10 +264,6 @@ class _RegalRun:
             return None
 
         table = ArcTable.init("Spatial Sampling")
-        table.AddColumn(
-            CompositeHeader.input(IOType.source()),
-            [CompositeCell.free_text("Geographic Region")],
-        )
         if locations:
             labels = ", ".join(label for label, _ in locations)
             table.AddColumn(
