@@ -7,7 +7,7 @@
 - [x] 1.2 T2: the same for a minimal Regal record with recording location and coordinates
 - [x] 1.3 T3: the same for a minimal PhenoROAM record with a complete bbox
 - [x] 1.4 T4: a record without spatial information has no Spatial Sampling table
-- [ ] 1.5 Update `docs/mappers/inspire.md` and `docs/mappers/regal.md`; regenerate fixtures that contain
+- [x] 1.5 Update `docs/mappers/inspire.md` and `docs/mappers/regal.md`; regenerate fixtures that contain
       `#Source_Geographic_Region`
 
 ## 2. Verify and close
