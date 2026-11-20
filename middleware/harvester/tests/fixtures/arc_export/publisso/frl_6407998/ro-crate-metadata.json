@@ -144,12 +144,6 @@
       }
     },
     {
-      "@id": "#Source_Geographic_Region",
-      "@type": "Sample",
-      "additionalType": "Source",
-      "name": "Geographic Region"
-    },
-    {
       "@id": "#Sample_Selected_Location(s)",
       "@type": "Sample",
       "additionalType": "Sample",
@@ -179,9 +173,7 @@
       "@id": "#Process_S_frl_6407998_study_Spatial_Sampling_0",
       "@type": "LabProcess",
       "name": "Spatial Sampling_0",
-      "object": {
-        "@id": "#Source_Geographic_Region"
-      },
+      "object": [],
       "result": {
         "@id": "#Sample_Selected_Location(s)"
       },

@@ -821,6 +821,19 @@ def test_regal_data_processing_keeps_its_parameters() -> None:
     }
 
 
+def test_regal_spatial_sampling_invents_no_geographic_region_source() -> None:
+    graph = _base_graph()
+    place = URIRef("https://example.org/place/1")
+    graph.add((SUBJECT, REGAL.recordingLocation, place))
+    graph.add((place, SKOS.prefLabel, Literal("Cologne")))
+    graph.add((SUBJECT, REGAL.recordingCoordinates, Literal("50.94 6.96")))
+
+    arc_json = _mapped_arc_json(graph)
+
+    assert "Source_Geographic_Region" not in arc_json
+    assert processing_parameters(arc_json, "Spatial Sampling") == {"Location": "Cologne", "Coordinates": "50.94 6.96"}
+
+
 def test_regal_assay_output_uri_is_unchanged() -> None:
     assert assay_output_uri(_mapped_arc_json(_base_graph())) == "https://doi.org/10.4126/FRL01-0000123"
 

@@ -189,7 +189,7 @@ One Regal ResearchData record = one Study.
 
 - Present only if spatial fields exist
 - **Parameters**: Location, Coordinates (as available)
-- **Input / Output**: Geographic Region → Selected Location(s) (same pattern as INSPIRE where applicable)
+- **Input / Output**: no input (no source is invented for the region, #353) → Output Selected Location(s)
 
 #### Protocol 2: "Data Collection"
 

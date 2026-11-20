@@ -360,6 +360,37 @@ def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: Inspire
     assert bbox_col.cells[0].AsTerm.Name == "48.0 10.0 49.0 11.0"
 
 
+def test_spatial_sampling_invents_no_geographic_region_source(mapper: InspireMapper) -> None:
+    """Spatial Sampling has no hardcoded Source input; Selected Location still feeds Data Acquisition (#353)."""
+    record = _create_minimal_record(
+        spatial_extent=[10.0, 48.0, 11.0, 49.0],
+        temporal_extent=("2020-01-01", None),
+    )
+
+    study = mapper.map_study(record)
+
+    tables = {table.Name: table for table in study.Tables}
+    spatial = tables["Spatial Sampling"]
+    headers = [str(col.header) for col in spatial.Columns]
+    assert not any(h.startswith("Input") for h in headers)
+    assert "Parameter [Bounding Box]" in headers
+    assert "Output [Sample Name]" in headers
+    acquisition_headers = [str(col.header) for col in tables["Data Acquisition"].Columns]
+    assert "Input [Sample Name]" in acquisition_headers
+
+
+def test_record_without_spatial_info_has_no_spatial_sampling_table(mapper: InspireMapper) -> None:
+    """No spatial info, no Spatial Sampling table, so no Selected Location is invented either (#353)."""
+    record = _create_minimal_record(temporal_extent=("2020-01-01", None))
+
+    study = mapper.map_study(record)
+
+    tables = {table.Name: table for table in study.Tables}
+    assert "Spatial Sampling" not in tables
+    acquisition_headers = [str(col.header) for col in tables["Data Acquisition"].Columns]
+    assert not any(h.startswith("Input") for h in acquisition_headers)
+
+
 def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test creation of Data Acquisition protocol."""
     table = mapper._create_data_acquisition_protocol(sample_record)
@@ -418,8 +449,8 @@ def test_create_spatial_sampling_complex(mapper: InspireMapper, sample_record: I
     table = mapper._create_spatial_sampling_protocol(sample_record)
 
     assert table is not None
-    # Input, BBox, CRS, Scale, Distance, Output
-    assert table.ColumnCount == 6
+    # BBox, CRS, Scale, Distance, Output
+    assert table.ColumnCount == 5
 
 
 def test_create_data_processing_complex(mapper: InspireMapper, sample_record: InspireRecord) -> None:

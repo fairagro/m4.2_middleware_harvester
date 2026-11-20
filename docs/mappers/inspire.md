@@ -248,7 +248,7 @@ One INSPIRE record = One Study representing the data creation workflow.
 
 #### Protocol 1: "Spatial Sampling"
 
-- **Input**: Geographic Region / Area of Interest
+- **Input**: none (no source is invented for the region; it lives in the parameters below, #353)
 - **Output**: Selected Location(s)
 - **Parameters**:
   - Bounding Box — string `south west north east` (converted from `EX_GeographicBoundingBox` / OWSLib
