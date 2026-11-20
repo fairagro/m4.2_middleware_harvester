@@ -361,8 +361,11 @@ def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: Inspire
 
 
 def test_spatial_sampling_invents_no_geographic_region_source(mapper: InspireMapper) -> None:
-    """Spatial Sampling carries no hardcoded Source input; Selected Location still chains into Data Acquisition (#353)."""
-    record = _create_minimal_record(spatial_extent=[10.0, 48.0, 11.0, 49.0], temporal_extent=("2020-01-01", None))
+    """Spatial Sampling has no hardcoded Source input; Selected Location still feeds Data Acquisition (#353)."""
+    record = _create_minimal_record(
+        spatial_extent=[10.0, 48.0, 11.0, 49.0],
+        temporal_extent=("2020-01-01", None),
+    )
 
     study = mapper.map_study(record)
 
