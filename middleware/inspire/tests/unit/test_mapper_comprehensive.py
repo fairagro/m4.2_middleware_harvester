@@ -360,6 +360,22 @@ def test_spatial_sampling_protocol(mapper: InspireMapper, sample_record: Inspire
     assert bbox_col.cells[0].AsTerm.Name == "48.0 10.0 49.0 11.0"
 
 
+def test_spatial_sampling_invents_no_geographic_region_source(mapper: InspireMapper) -> None:
+    """Spatial Sampling carries no hardcoded Source input; Selected Location still chains into Data Acquisition (#353)."""
+    record = _create_minimal_record(spatial_extent=[10.0, 48.0, 11.0, 49.0], temporal_extent=("2020-01-01", None))
+
+    study = mapper.map_study(record)
+
+    tables = {table.Name: table for table in study.Tables}
+    spatial = tables["Spatial Sampling"]
+    headers = [str(col.header) for col in spatial.Columns]
+    assert not any(h.startswith("Input") for h in headers)
+    assert "Parameter [Bounding Box]" in headers
+    assert "Output [Sample Name]" in headers
+    acquisition_headers = [str(col.header) for col in tables["Data Acquisition"].Columns]
+    assert "Input [Sample Name]" in acquisition_headers
+
+
 def test_data_acquisition_protocol(mapper: InspireMapper, sample_record: InspireRecord) -> None:
     """Test creation of Data Acquisition protocol."""
     table = mapper._create_data_acquisition_protocol(sample_record)
