@@ -41,7 +41,7 @@ Regal record → one Investigation with one Study and one Assay.
 > - **Spatial Sampling** — only when recording location / coordinates exist
 > - **Data Collection** — data origin / measurement technique and temporal extent (subjects/DDC are Investigation
 >   Comments, not protocol parameters)
-> - **Data Processing** — repository publication, license, funding context
+> - **Data Processing** — repository publication and funding context
 
 ## Available Regal Metadata Fields
 
@@ -95,15 +95,15 @@ Labelled agent nodes: `prefLabel` is typically `"FamilyName, Given Name(s)"`; `@
 
 ### 4. Dates, access, and rights
 
-| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                             |
-| --------------------- | ---------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
-| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.PublicReleaseDate`, `Study.PublicReleaseDate` (RO-Crate `datePublished`) |
-| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                                |
-| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                                       |
-| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                                 |
-| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                                |
-| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | Assay Annotation `Comment [License]`; also Investigation comment `License`              |
-| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                                        |
+| Regal Field           | Context / IRI (typical)            | Description                      | ARC Mapping                                                                                                                                            |
+| --------------------- | ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`issued`**          | `dcterms:issued`                   | Publication / issue year or date | `Investigation.PublicReleaseDate`, `Study.PublicReleaseDate` (RO-Crate `datePublished`)                                                                |
+| **`yearOfCopyright`** | `regal:yearOfCopyright`            | Copyright year                   | `Investigation` comment `Copyright Year`                                                                                                               |
+| **`embargoTime`**     | —                                  | Embargo end                      | `Investigation` comment `Embargo`                                                                                                                      |
+| **`accessScheme`**    | —                                  | Access scheme                    | `Investigation` comment `Access Scheme`                                                                                                                |
+| **`publishScheme`**   | —                                  | Publish scheme (`public`, …)     | `Investigation` comment `Publish Scheme`                                                                                                               |
+| **`license`**         | `regal:license` (labelled / `@id`) | License URI (preferred) or label | `ARC.License` only via `LinkedDataMapper.license` — no Investigation / Assay `Comment("License")` or Data Processing Parameter `License` (#673 / #672) |
+| **`medium`**          | labelled node                      | Carrier / medium (e.g. Text)     | `Investigation` comment `Medium`                                                                                                                       |
 
 ### 5. Subjects, classification, and techniques
 
@@ -172,8 +172,8 @@ an explicit mapping update to this document.
   date), as the Comment `dateModified`, which ARCtrl writes as the RO-Crate root `dateModified`
 - **Contacts**: creators + contributors (ordered)
 - **Publications**: DOI publication when `doi` present; plus associated publications when resolvable
-- **Comments**: alternative title, license, language, medium, access/publish scheme, copyright year, embargo,
-  OAI/catalog ids, institutions (when not affiliation), version links, opaque facets
+- **Comments**: alternative title, language, medium, access/publish scheme, copyright year, embargo, OAI/catalog ids,
+  institutions (when not affiliation), version links, opaque facets (licence is `ARC.License` only — #673 / #672)
 
 ### Study (Publication / Processing Workflow)
 
@@ -201,7 +201,7 @@ One Regal ResearchData record = one Study.
 
 - Always present for ResearchData
 - **Parameters**: Processing Description (fixed note that metadata comes from Regal/PUBLISSO-style repository); Funder;
-  Funding Program; Project ID; License URI when not only on Assay
+  Funding Program; Project ID (no License parameter — licence is `ARC.License` only)
 - **Input / Output**: none (no data file is invented)
 
 ### Assay (Data Output)
@@ -214,7 +214,6 @@ One Regal ResearchData record = one Study.
 - **Annotation Table** (exactly one row):
   - **Output [URI]**: `https://doi.org/{doi}` if DOI present → else landing page
     `https://repository.publisso.de/resource/{@id}` → else raw `@id`
-  - **Comment [License]**: license `@id` or label
   - **Comment [Language]**: ISO 639 code from the `id.loc.gov/vocabulary/iso639-2/<code>` `@id` (e.g. `eng`), else
     prefLabel; codes are deduplicated and semicolon-joined
   - **Comment [Online Resource]**: semicolon-joined `hasPart` URLs
@@ -256,9 +255,10 @@ comments.
 
 ### 5. License shape
 
-`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string. The same
-value sets the ARC licence (`ARC.License`, RO-Crate node `{"@id": "LICENSE", "text": …}`); without a licence the ARCtrl
-default "ALL RIGHTS RESERVED BY THE AUTHORS" stays. See `docs/mappers/schemaorg.md` for why the URL is not the `@id`.
+`license` may be an array of labelled nodes. Prefer `@id` (URI). If only `prefLabel` exists, use that string. That value
+sets `ARC.License` only (RO-Crate node `{"@id": "LICENSE", "text": …}`); without a licence the ARCtrl default "ALL
+RIGHTS RESERVED BY THE AUTHORS" stays. There is no Investigation / Assay `Comment("License")` or Data Processing
+Parameter `License` dual write (#673 / #672). See `docs/mappers/schemaorg.md` for why the URL is not the `@id`.
 
 ### 6. Funding duplication
 
@@ -277,9 +277,9 @@ Field _coverage_ may mirror the old Publisso→schema.org jq crosswalk, but the 
 
 ### 9. Source placeholders
 
-A `license` value matching the repository's `mapper.placeholders` is treated as absent (no ARC licence, no `License`
-comment), through `LinkedDataMapper.license()` as in [schemaorg.md](schemaorg.md#source-placeholders). Nothing counts as
-a placeholder by default; the per-RDI strings live in the deployment config, not here.
+A `license` value matching the repository's `mapper.placeholders` is treated as absent (no ARC licence), through
+`LinkedDataMapper.license()` as in [schemaorg.md](schemaorg.md#source-placeholders). Nothing counts as a placeholder by
+default; the per-RDI strings live in the deployment config, not here.
 
 ## Traceability to basic middleware
 
@@ -297,5 +297,5 @@ a placeholder by default; the per-RDI strings live in the deployment config, not
 | `funder` / `funding`              | `fundingId`, `joinedFunding`, …             | Data Processing parameters        |
 | `distribution`                    | `hasPart`                                   | Assay Online Resource comments    |
 | `inLanguage`                      | `language`                                  | Language comment (ISO 639 code)   |
-| `license`                         | `license`                                   | License comment                   |
+| `license`                         | `license`                                   | `ARC.License` only                |
 | `spatial`                         | `recordingCoordinates`, `recordingLocation` | Spatial Sampling protocol         |

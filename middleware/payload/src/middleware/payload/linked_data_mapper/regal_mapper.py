@@ -329,12 +329,7 @@ class _RegalRun:
                 [CompositeCell.term(OntologyAnnotation(name="; ".join(project_ids)))],
             )
 
-        license_value = self._license_value(subject)
-        if license_value:
-            table.AddColumn(
-                CompositeHeader.parameter(OntologyAnnotation(name="License")),
-                [CompositeCell.term(OntologyAnnotation(name=license_value))],
-            )
+        # Licence is on ``ARC.License`` only (#673 / #672) — no Data Processing Parameter License.
 
         return table
 
@@ -352,9 +347,7 @@ class _RegalRun:
             [CompositeCell.free_text(output_uri)],
         )
 
-        license_value = self._license_value(subject)
-        if license_value:
-            table.AddColumn(CompositeHeader.comment("License"), [CompositeCell.free_text(license_value)])
+        # Licence is on ``ARC.License`` only (#673 / #672) — no Assay Comment [License].
 
         languages = self._language_value(subject)
         if languages:
@@ -542,9 +535,7 @@ class _RegalRun:
             if value:
                 inv.Comments.append(Comment.create(label, value))
 
-        license_value = self._license_value(subject)
-        if license_value:
-            inv.Comments.append(Comment.create("License", license_value))
+        # ``regal:license`` feeds ``ARC.License`` only (#673 / #672) — no Investigation Comment.
 
         languages = self._language_value(subject)
         if languages:

@@ -346,14 +346,18 @@ The RO-Crate writer splits `Publication.authors` on `,`. `RegalMapper` MUST form
 
 ### Requirement: The ARC licence MUST come from the Regal license
 
-`RegalMapper` MUST set `ARC.License` from the Regal `license` value (the same value as the `License` Comment) via
-`middleware.payload.arc_license.license_from_value`, keeping ARCtrl's default `LICENSE` path. Without a licence the
-ARCtrl default stays.
+`RegalMapper` MUST set `ARC.License` from the Regal `license` value via `LinkedDataMapper.license` /
+`middleware.payload.arc_license.license_from_value`, keeping ARCtrl's default `LICENSE` path. Without a licence (or when
+the value is a configured placeholder) the ARCtrl default stays. The mapper MUST NOT dual-write that licence as
+Investigation `Comment("License")`, Assay `Comment [License]`, a Study/Assay Parameter `License`, or any other
+annotation-table licence field (#673, parent #672).
 
 #### Scenario: Publisso licence
 
 - **WHEN** a record has `license` `http://opendatacommons.org/licenses/by/1.0/`
 - **THEN** the RO-Crate licence node text MUST be `http://opendatacommons.org/licenses/by/1.0/`
+- **AND** the ARC MUST NOT include Investigation `Comment("License")`, Assay `Comment [License]`, or a Data Processing
+  Parameter `License` for that value
 
 ### Requirement: Regal person ORCIDs MUST be Person.ORCID
 
@@ -422,8 +426,8 @@ not present in the source record. Its parameter columns MUST still be emitted. T
 #### Scenario: Protocol parameters are kept
 
 - **WHEN** the same record is mapped
-- **THEN** the Data Processing protocol still carries the Processing Description, Funder, Funding Program, Project ID
-  and License parameters where the record has them
+- **THEN** the Data Processing protocol still carries the Processing Description, Funder, Funding Program and Project ID
+  parameters where the record has them (not License — see ARC licence requirement)
 
 #### Scenario: Assay output unchanged
 

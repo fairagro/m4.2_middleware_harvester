@@ -309,6 +309,28 @@ def test_regal_mapper_license_blank_node_uses_pref_label() -> None:
     assert "_:" not in text
 
 
+def _rocrate_license_text(arc_json: str) -> str | None:
+    graph = json.loads(arc_json)["@graph"]
+    root = next(node for node in graph if node.get("@id") == "./")
+    license_id = root["license"]["@id"]
+    node = next(node for node in graph if node.get("@id") == license_id)
+    text = node.get("text")
+    return str(text) if text is not None else None
+
+
+def test_regal_mapper_license_sets_arc_license_without_comment_or_parameter_dual_write() -> None:
+    """#673 / #672: regal:license → ARC.License only; no Comment / Parameter dual-write."""
+    graph = _base_graph()
+    licence = "https://creativecommons.org/licenses/by/4.0/"
+    graph.add((SUBJECT, REGAL.license, URIRef(licence)))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _rocrate_license_text(arc_json) == licence
+    assert comment_text(arc_json, "License") is None
+    assert 'Comment {Name = "License"' not in arc_json
+    assert "License" not in processing_parameters(arc_json, "Data Processing")
+
+
 def test_regal_mapper_org_style_pref_label_is_comment_not_empty_given_person() -> None:
     graph = _base_graph()
     org = URIRef("https://example.org/org/zenodo")
@@ -817,7 +839,6 @@ def test_regal_data_processing_keeps_its_parameters() -> None:
         "Funder": "Deutsche Forschungsgemeinschaft",
         "Funding Program": "NFDI4Health Consortium",
         "Project ID": "442326535",
-        "License": "https://creativecommons.org/licenses/by/4.0/",
     }
 
 
