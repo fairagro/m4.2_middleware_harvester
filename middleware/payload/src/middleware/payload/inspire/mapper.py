@@ -22,12 +22,16 @@ from arctrl import (  # type: ignore[import-untyped]
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
 
 from middleware.payload.arc_dates import date_modified_comment
-from middleware.payload.arc_license import inspire_license
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.dois import normalize_doi
 from middleware.payload.geo import bounding_box
 from middleware.payload.harvested_arc import HarvestedArc
 from middleware.payload.identifiers import sanitize_identifier, to_identifier_slug
+from middleware.payload.inspire.license import (
+    inspire_license,
+    is_inspire_licence_constraint,
+    is_inspire_licence_url,
+)
 from middleware.payload.inspire.models import Contact, InspireRecord
 from middleware.payload.keyword_comments import KeywordSubject, add_keyword_comments
 from middleware.payload.kinds import PayloadKind
@@ -410,17 +414,24 @@ class InspireMapper(DataMapper[MappingContext]):
 
     @staticmethod
     def _add_constraint_comments(comments: list[Comment], record: InspireRecord) -> None:
-        """Add constraint-related comments."""
+        """Add constraint-related comments.
+
+        Licence-bearing ``otherConstraints`` / URLs that feed ``ARC.License`` are omitted
+        here (#485 / #672): Search Hub must read the RO-Crate licence node, not dual Comments.
+        Non-licence access notes remain.
+        """
         if record.access_constraints:
             comments.append(Comment.create("Access Constraints", ", ".join(record.access_constraints)))
         if record.use_constraints:
             comments.append(Comment.create("Use Constraints", ", ".join(record.use_constraints)))
         if record.classification:
             comments.append(Comment.create("Classification", ", ".join(record.classification)))
-        if record.other_constraints:
-            comments.append(Comment.create("Other Constraints", "; ".join(record.other_constraints[:3])))
-        if record.other_constraints_url:
-            comments.append(Comment.create("Other Constraints URLs", "; ".join(record.other_constraints_url[:3])))
+        other = [c for c in record.other_constraints if c.strip() and not is_inspire_licence_constraint(c)]
+        if other:
+            comments.append(Comment.create("Other Constraints", "; ".join(other[:3])))
+        urls = [u for u in record.other_constraints_url if u.strip() and not is_inspire_licence_url(u)]
+        if urls:
+            comments.append(Comment.create("Other Constraints URLs", "; ".join(urls[:3])))
 
     @staticmethod
     def _record_slug(record: InspireRecord) -> str:

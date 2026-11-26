@@ -861,25 +861,32 @@ def test_generate_comments(mapper: InspireMapper) -> None:
 
 
 def test_add_constraint_comments(mapper: InspireMapper) -> None:
-    """Test adding constraint-related comments."""
+    """Test adding constraint-related comments.
+
+    Licence-bearing otherConstraints / non-registry licence URLs are omitted (#485); keep an
+    access note and an INSPIRE code-list anchor so both Comment channels still appear.
+    """
+    registry_anchor = "http://inspire.ec.europa.eu/metadata-codelist/ConditionsApplyingToAccessAndUse/noConditionsApply"
     record = _create_minimal_record(
         access_constraints=["restricted"],
         use_constraints=["license"],
         classification=["confidential"],
-        other_constraints=["Data available on request."],
-        other_constraints_url=["https://example.com/constraints"],
+        other_constraints=["Data available on request.", "https://creativecommons.org/licenses/by/4.0/"],
+        other_constraints_url=["https://creativecommons.org/licenses/by/4.0/", registry_anchor],
     )
 
     comments: list[Comment] = []
     mapper._add_constraint_comments(comments, record)
 
     assert len(comments) == 5
-    comment_names = [c.Name for c in comments]
-    assert "Access Constraints" in comment_names
-    assert "Use Constraints" in comment_names
-    assert "Classification" in comment_names
-    assert "Other Constraints" in comment_names
-    assert "Other Constraints URLs" in comment_names
+    by_name = {c.Name: c.Value for c in comments}
+    assert by_name["Access Constraints"] == "restricted"
+    assert by_name["Use Constraints"] == "license"
+    assert by_name["Classification"] == "confidential"
+    assert by_name["Other Constraints"] == "Data available on request."
+    assert by_name["Other Constraints URLs"] == registry_anchor
+    assert "creativecommons.org" not in by_name["Other Constraints"]
+    assert "creativecommons.org" not in by_name["Other Constraints URLs"]
 
 
 def test_measurement_type_ontology_mapping(mapper: InspireMapper) -> None:
