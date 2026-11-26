@@ -40,15 +40,15 @@ Investigation identifier.
 
 ## Investigation
 
-| Source field                                               | Description               | ARC Mapping                                                                               |
-| ---------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
-| **`title`** (`mods:titleInfo/mods:title` with text)        | Dataset title             | `Investigation.Title`                                                                     |
-| **`abstract`** (`mods:abstract` with text)                 | Description               | `Investigation.Description`                                                               |
-| **`date_issued`** (`mods:originInfo/mods:dateIssued`)      | Publication / issued date | `SubmissionDate` and `PublicReleaseDate`                                                  |
-| **`doi`**                                                  | DOI                       | `Publications[]` with bare DOI                                                            |
-| **`language`**                                             | Language code             | `Comment("Language")`                                                                     |
-| **`license_uri`** (`accessCondition` use and reproduction) | Licence URI               | `Comment("License")` (raw); `ARC.License` uses CC deed URL when `mir_licenses#…` is known |
-| **`source_url`**                                           | Landing page URL          | `Comment("Source URL")`                                                                   |
+| Source field                                               | Description               | ARC Mapping                                                                                                                              |
+| ---------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`title`** (`mods:titleInfo/mods:title` with text)        | Dataset title             | `Investigation.Title`                                                                                                                    |
+| **`abstract`** (`mods:abstract` with text)                 | Description               | `Investigation.Description`                                                                                                              |
+| **`date_issued`** (`mods:originInfo/mods:dateIssued`)      | Publication / issued date | `SubmissionDate` and `PublicReleaseDate`                                                                                                 |
+| **`doi`**                                                  | DOI                       | `Publications[]` with bare DOI                                                                                                           |
+| **`language`**                                             | Language code             | `Comment("Language")`                                                                                                                    |
+| **`license_uri`** (`accessCondition` use and reproduction) | Licence URI               | `ARC.License` via `license_from_value` (CC deed URL when `mir_licenses#…` is known); no Investigation `Comment("License")` (#674 / #672) |
+| **`source_url`**                                           | Landing page URL          | `Comment("Source URL")`                                                                                                                  |
 
 Empty `titleInfo` / `abstract` nodes that only carry `altFormat` base64 companions are ignored in favour of siblings
 with element text.
@@ -69,11 +69,10 @@ with element text.
 | **`title`**            | Assay title              | `Assay.Title`; identifier slug of title or `mods_assay`                                    |
 | (fixed)                | Measurement / technology | `measurement_type` = Data Collection; `technology_type` = Data Repository; platform = MODS |
 | **`source_url`**       | Landing page URL         | Assay table `Measurement` `Output [URI]`                                                   |
-| **`license_uri`**      | Licence URI              | Assay table `Comment("License")`                                                           |
 | **`datafile_names`**   | Derivate `maindoc` names | Assay table `Comment("Datafile Name")` joined with `;` — **not** Outputs                   |
 
 `Output [URI]` is written only when `source_url` is an http(s) URL; there is no empty placeholder. A record with no such
-URL, no `license_uri` and no `datafile_names` gets no `Measurement` table at all.
+URL and no `datafile_names` gets no `Measurement` table at all (licence alone is not an Assay comment).
 
 ## Contacts
 

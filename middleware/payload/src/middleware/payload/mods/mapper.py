@@ -245,8 +245,7 @@ class ModsMapper(DataMapper[MappingContext]):
             inv.Comments.append(Comment.create("Source URL", source))
         if record.language and record.language.strip():
             inv.Comments.append(Comment.create("Language", record.language.strip()))
-        if record.license_uri and record.license_uri.strip():
-            inv.Comments.append(Comment.create("License", record.license_uri.strip()))
+        # ``license_uri`` feeds ``ARC.License`` only (#674 / #672) — no Investigation Comment.
         add_keyword_comments(inv, subjects=[(label, None) for label in record.keywords])
 
     def _license(self, record: ModsRecord) -> License | None:
@@ -277,11 +276,7 @@ class ModsMapper(DataMapper[MappingContext]):
                 CompositeHeader.output(IOType.of_string("URI")),
                 [CompositeCell.free_text(source)],
             )
-        if record.license_uri and record.license_uri.strip():
-            table.AddColumn(
-                CompositeHeader.comment("License"),
-                [CompositeCell.free_text(record.license_uri.strip())],
-            )
+        # Licence is on ``ARC.License`` only (#674 / #672) — no Assay Comment [License].
         if record.datafile_names:
             table.AddColumn(
                 CompositeHeader.comment("Datafile Name"),

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from arctrl import ARC
-from mapper_test_helpers import assay_output_uri
+from mapper_test_helpers import assay_output_uri, comment_text
 
 from middleware.parsing.parser.mods_xml import ModsXmlParser
 from middleware.payload.mapping_context import MappingContext
@@ -204,17 +204,37 @@ def test_mods_assay_without_url_and_comments_has_no_annotation_table() -> None:
 
 
 def test_mods_assay_without_url_keeps_comment_columns_only() -> None:
-    licence = "https://creativecommons.org/licenses/by/4.0/"
-    record = ModsRecord(object_id="licensed_1", title="No URL, licensed", doi="10.5073/licensed", license_uri=licence)
-    context = MappingContext(harvest_source_id="licensed_1")
+    record = ModsRecord(
+        object_id="named_1",
+        title="No URL, with datafile",
+        doi="10.5073/named",
+        datafile_names=["readme.txt"],
+    )
+    context = MappingContext(harvest_source_id="named_1")
 
     arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
 
     read_back = ARC.from_rocrate_json_string(arc.ToROCrateJsonString())
     (table,) = [table for assay in read_back.Assays for table in assay.Tables]
     assert [(str(col.header), [str(cell) for cell in col.cells]) for col in table.Columns] == [
-        ("Comment [License]", [licence])
+        ("Comment [Datafile Name]", ["readme.txt"])
     ]
+
+
+def test_mods_license_alone_sets_arc_license_without_assay_or_investigation_comment() -> None:
+    """#674 / #672: license_uri → ARC.License only; no Comment dual-write."""
+    licence = "https://creativecommons.org/licenses/by/4.0/"
+    record = ModsRecord(object_id="licensed_1", title="No URL, licensed", doi="10.5073/licensed", license_uri=licence)
+    context = MappingContext(harvest_source_id="licensed_1")
+
+    arc = ModsMapper(PlaceholderConfig()).map_record(record, context)
+    arc_json = str(arc.ToROCrateJsonString())
+
+    read_back = ARC.from_rocrate_json_string(arc_json)
+    assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
+    assert comment_text(arc_json, "License") is None
+    assert arc.License is not None
+    assert arc.License.Content == licence
 
 
 def test_mods_keywords_data_collection_invents_no_source_or_sample() -> None:
