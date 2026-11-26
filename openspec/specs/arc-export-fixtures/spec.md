@@ -157,8 +157,8 @@ production or `arc-export` gap appears.
   covering the full curated breadth with a follow-up to expand), cases MUST originate from the live DCAT-AP /
   ckanext-dcat client path (`dcat_ap` + jsonld + `ckanext_dcat`, not synthetic one-field Investigations), docs/`README`
   state which SRADI/DCAT input features each file covers (for example multi-distribution / formats, spatial WKT, org
-  publisher/contact unwrap, landing page / identifier, with vs without `dcterms:license`), no root smoke crate is
-  required, and `docs/arc-export-fixtures.md` no longer lists sradi as deferred-only
+  publisher/contact unwrap, landing page / identifier, and whether `dcterms:license` is present or absent in the
+  source), no root smoke crate is required, and `docs/arc-export-fixtures.md` no longer lists sradi as deferred-only
 
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
 
