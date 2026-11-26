@@ -149,6 +149,17 @@ production or `arc-export` gap appears.
     license, datafile-link comments, study-parent titles), no root smoke crate is required, and
     `docs/arc-export-fixtures.md` no longer lists phenoroam as deferred-only
 
+#### Scenario: Sradi real-data suite is multi-case
+
+- **WHEN** the sradi real-data suite has landed under the arc-export fixture tree
+- **THEN** more than one real mapped RO-Crate case is present for sradi under
+  `fixtures/arc_export/sradi/<case-id>/ro-crate-metadata.json` (or a single case is explicitly documented as temporarily
+  covering the full curated breadth with a follow-up to expand), cases MUST originate from the live DCAT-AP /
+  ckanext-dcat client path (`dcat_ap` + jsonld + `ckanext_dcat`, not synthetic one-field Investigations), docs/`README`
+  state which SRADI/DCAT input features each file covers (for example multi-distribution / formats, spatial WKT, org
+  publisher/contact unwrap, landing page / identifier, with vs without `dcterms:license`), no root smoke crate is
+  required, and `docs/arc-export-fixtures.md` no longer lists sradi as deferred-only
+
 #### Scenario: Synthetic-only Investigation is not sufficient for a landed real-data suite
 
 - **WHEN** a landed real-data suite folder for an active RDI is inspected
