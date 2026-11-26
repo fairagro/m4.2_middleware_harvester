@@ -38,19 +38,20 @@ catalog id is available for the landing-URL identifier fallback. A DOI is **not*
 
 ## Investigation
 
-| Source field                          | Description                       | ARC Mapping                                                     |
-| ------------------------------------- | --------------------------------- | --------------------------------------------------------------- |
-| **`study.investigation_title`**       | Nested investigation title        | `Investigation.Title` (preferred when non-empty)                |
-| **`title`**                           | Dataset title                     | `Investigation.Title` fallback                                  |
-| **`study.investigation_description`** | Nested investigation description  | `Investigation.Description` (preferred when set)                |
-| **`description`**                     | Dataset description               | `Investigation.Description` fallback                            |
-| **`md_change_date`**                  | Metadata change date              | `Investigation.SubmissionDate`                                  |
-| **`item_uuid` / catalog id**          | Catalog identity                  | `Investigation.Comment("Landing Page")` → landing URL           |
-| **`how_to_cite`**                     | Citation text                     | `Investigation.Comment("How To Cite")`                          |
-| **`funded_by`**                       | Funding note                      | `Investigation.Comment("Funded By")`                            |
-| **`download_information`**            | Download instructions             | `Investigation.Comment("Download Information")`                 |
-| **`core_projects`**                   | Project names                     | one `Investigation.Comment("Core Project")` per non-empty entry |
-| **`thumbnail_url`**                   | Thumbnail (http(s) with hostname) | `Investigation.Comment("Thumbnail")` when URL validates         |
+| Source field                          | Description                         | ARC Mapping                                                                                                             |
+| ------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **`study.investigation_title`**       | Nested investigation title          | `Investigation.Title` (preferred when non-empty)                                                                        |
+| **`title`**                           | Dataset title                       | `Investigation.Title` fallback                                                                                          |
+| **`study.investigation_description`** | Nested investigation description    | `Investigation.Description` (preferred when set)                                                                        |
+| **`description`**                     | Dataset description                 | `Investigation.Description` fallback                                                                                    |
+| **`md_change_date`**                  | Metadata change date                | `Investigation.SubmissionDate`                                                                                          |
+| **`item_uuid` / catalog id**          | Catalog identity                    | `Investigation.Comment("Landing Page")` → landing URL                                                                   |
+| **`how_to_cite`**                     | Citation text                       | `Investigation.Comment("How To Cite")`                                                                                  |
+| **`funded_by`**                       | Funding note                        | `Investigation.Comment("Funded By")`                                                                                    |
+| **`download_information`**            | Download instructions               | `Investigation.Comment("Download Information")`                                                                         |
+| **`core_projects`**                   | Project names                       | one `Investigation.Comment("Core Project")` per non-empty entry                                                         |
+| **`thumbnail_url`**                   | Thumbnail (http(s) with hostname)   | `Investigation.Comment("Thumbnail")` when URL validates                                                                 |
+| **`license_text`**                    | License / rights (`pr:itemLicense`) | `ARC.License` via `license_from_value` (ARCtrl default when empty); no Investigation `Comment("License")` (#559 / #672) |
 
 ## Study
 
@@ -69,7 +70,6 @@ catalog id is available for the landing-URL identifier fallback. A DOI is **not*
 | **`title`** / inv. title | Assay title                   | `Assay.Title`; identifier slug of title or `phenoroam_assay`                                            |
 | (fixed)                  | Measurement / technology      | `measurement_type` = Data Collection; `technology_type` = Data Repository; platform = PhenoRoam         |
 | Landing URL              | Catalog landing page          | Assay table `Measurement` `Output [URI]`                                                                |
-| **`license_text`**       | License / rights text         | Assay table `Comment("License")` (whitespace collapsed)                                                 |
 | **`datafile_links`**     | Remote file URLs (`itemLink`) | Assay table `Comment("Datafile Link")` — valid http(s) URLs joined with `;` — **not** Data File Outputs |
 
 Empty-port URLs such as `https://host:/path` are accepted (PhenoRoam fixture shape).

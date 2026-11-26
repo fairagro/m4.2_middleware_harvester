@@ -85,14 +85,34 @@ sources.
 
 ### Requirement: Annotation tables carry harvestable metadata fields
 
-The mapper SHALL represent keywords and, when present, license/rights via Assay (or Investigation) annotation tables or
-comments suitable for metadata-only ARCs. Geographic bounding boxes MUST follow the Study `Bounding Box` contract (see
-"PhenoRoam bbox MUST become Study Bounding Box in south west north east order"), not an Assay geographic comment.
+The mapper SHALL represent keywords via Investigation Comments (see keyword-comments) and other harvestable metadata via
+Assay annotation-table comments suitable for metadata-only ARCs. Geographic bounding boxes MUST follow the Study
+`Bounding Box` contract (see "PhenoRoam bbox MUST become Study Bounding Box in south west north east order"), not an
+Assay geographic comment. Licence/rights text is **not** an annotation-table field — see the ARC licence requirement.
 
 #### Scenario: Keywords appear as annotations or equivalent structured metadata
 
 - **WHEN** the record contains keywords
 - **THEN** those keywords are present in the mapped ARC as annotation-table values or equivalent structured fields
+
+### Requirement: The ARC licence MUST come from pr:itemLicense
+
+`PhenoroamMapper` MUST set `ARC.License` from `license_text` (`pr:itemLicense`) via
+`middleware.payload.arc_license.license_from_value`. Empty or whitespace-only values MUST leave ARCtrl's default "ALL
+RIGHTS RESERVED BY THE AUTHORS". The mapper MUST NOT dual-write that licence as Investigation `Comment("License")`,
+Assay `Comment [License]`, a Study/Assay Parameter `License`, or any other annotation-table licence field (#559, parent
+#672).
+
+#### Scenario: itemLicense becomes ARC.License
+
+- **WHEN** a record has `license_text` `Creative Commons Attribution-ShareAlike 4.0 International`
+- **THEN** the RO-Crate licence node text MUST be `Creative Commons Attribution-ShareAlike 4.0 International`
+- **AND** the ARC MUST NOT include Investigation `Comment("License")` or Assay `Comment [License]` for that value
+
+#### Scenario: Missing itemLicense keeps the ARCtrl default
+
+- **WHEN** a record has no `license_text`
+- **THEN** the RO-Crate licence node text MUST be "ALL RIGHTS RESERVED BY THE AUTHORS"
 
 ### Requirement: Phenoroam mapper MUST follow keyword-comments contract
 
