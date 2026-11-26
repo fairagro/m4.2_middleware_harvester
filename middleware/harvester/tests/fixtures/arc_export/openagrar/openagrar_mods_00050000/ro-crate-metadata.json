@@ -84,10 +84,7 @@
       "executesLabProtocol": {
         "@id": "#Protocol_Measurement"
       },
-      "disambiguatingDescription": [
-        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#rights_reserved\"}",
-        "Comment {Name = \"Datafile Name\", Value = \"2013_0388.pdf\"}"
-      ]
+      "disambiguatingDescription": "Comment {Name = \"Datafile Name\", Value = \"2013_0388.pdf\"}"
     },
     {
       "@id": "#OA_Data_Repository",
@@ -144,12 +141,6 @@
       "text": "de"
     },
     {
-      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#rights_reserved",
-      "@type": "Comment",
-      "name": "License",
-      "text": "http://www.mycore.org/classifications/mir_licenses#rights_reserved"
-    },
-    {
       "@id": "LICENSE",
       "@type": "CreativeWork",
       "text": "http://www.mycore.org/classifications/mir_licenses#rights_reserved"
@@ -184,9 +175,6 @@
         },
         {
           "@id": "#LDComment_Language_de"
-        },
-        {
-          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#rights_reserved"
         }
       ],
       "sdDatePublished": "2026-11-12T13:37:47.2571730",

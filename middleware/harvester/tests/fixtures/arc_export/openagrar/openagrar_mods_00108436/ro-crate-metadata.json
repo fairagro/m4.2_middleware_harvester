@@ -114,10 +114,7 @@
       "executesLabProtocol": {
         "@id": "#Protocol_Measurement"
       },
-      "disambiguatingDescription": [
-        "Comment {Name = \"License\", Value = \"http://www.mycore.org/classifications/mir_licenses#cc_by_4.0\"}",
-        "Comment {Name = \"Datafile Name\", Value = \"Metadaten_openagrar_mods_00108436_v1.pdf\"}"
-      ]
+      "disambiguatingDescription": "Comment {Name = \"Datafile Name\", Value = \"Metadaten_openagrar_mods_00108436_v1.pdf\"}"
     },
     {
       "@id": "#OA_Data_Repository",
@@ -243,12 +240,6 @@
       "text": "en"
     },
     {
-      "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0",
-      "@type": "Comment",
-      "name": "License",
-      "text": "http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
-    },
-    {
       "@id": "LICENSE",
       "@type": "CreativeWork",
       "text": "https://creativecommons.org/licenses/by/4.0/"
@@ -293,9 +284,6 @@
         },
         {
           "@id": "#LDComment_Language_en"
-        },
-        {
-          "@id": "#LDComment_License_http://www.mycore.org/classifications/mir_licenses#cc_by_4.0"
         }
       ],
       "sdDatePublished": "2026-11-12T13:37:46.2336320",

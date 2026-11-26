@@ -43,6 +43,25 @@ existing OpenAgrar ARCs are updated in place.
 - **WHEN** both a MyCoRe object id and a DOI are available
 - **THEN** `Investigation.Identifier` is derived from the object id (not the DOI)
 
+### Requirement: The ARC licence MUST come from license_uri
+
+`ModsMapper` MUST set `ARC.License` from `license_uri` via `middleware.payload.arc_license.license_from_value` (after
+MyCoRe `mir_licenses#…` → Creative Commons deed URL resolution when known). Empty values and placeholders MUST leave
+ARCtrl's default "ALL RIGHTS RESERVED BY THE AUTHORS". The mapper MUST NOT dual-write that licence as Investigation
+`Comment("License")`, Assay `Comment [License]`, a Study/Assay Parameter `License`, or any other annotation-table
+licence field (#674, parent #672).
+
+#### Scenario: mir_licenses URI becomes ARC.License
+
+- **WHEN** a record has `license_uri` `http://www.mycore.org/classifications/mir_licenses#cc_by_4.0`
+- **THEN** the RO-Crate licence node text MUST be `https://creativecommons.org/licenses/by/4.0/`
+- **AND** the ARC MUST NOT include Investigation `Comment("License")` or Assay `Comment [License]` for that value
+
+#### Scenario: Missing license_uri keeps the ARCtrl default
+
+- **WHEN** a record has no `license_uri`
+- **THEN** the RO-Crate licence node text MUST be "ALL RIGHTS RESERVED BY THE AUTHORS"
+
 ### Requirement: Authoritative mapping doc
 
 The system SHALL publish `docs/mappers/mods.md` as the authoritative MODS→ARC field contract. Feature specs MUST link to
@@ -140,6 +159,13 @@ annotation table.
 
 #### Scenario: Record without a URL but with comments
 
-- **GIVEN** a MODS record whose source URL is missing or not http(s), with a licence
+- **GIVEN** a MODS record whose source URL is missing or not http(s), with a datafile name
 - **WHEN** it is mapped
 - **THEN** the Assay table has one row with only the comment columns
+
+#### Scenario: Licence alone does not create an Assay comment table
+
+- **GIVEN** a MODS record whose source URL is missing or not http(s), with a licence and no other Assay comment fields
+- **WHEN** it is mapped
+- **THEN** the Assay has no annotation table
+- **AND** the RO-Crate licence node still carries the licence text
