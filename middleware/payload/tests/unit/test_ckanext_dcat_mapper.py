@@ -188,6 +188,57 @@ def test_ckanext_dcat_mapper_maps_distribution_table_details() -> None:
     assert "https://example.org/soil3" in arc_json
 
 
+def _rocrate_license_text(arc_json: str) -> str | None:
+    graph = json.loads(arc_json)["@graph"]
+    root = next(node for node in graph if node.get("@id") == "./")
+    license_id = root["license"]["@id"]
+    node = next(node for node in graph if node.get("@id") == license_id)
+    text = node.get("text")
+    return str(text) if text is not None else None
+
+
+def test_ckanext_dcat_mapper_sets_arc_license_from_distribution_without_comment() -> None:
+    """#530 / #672: dcterms:license → ARC.License only; no Comment dual-write."""
+    graph = _base_graph()
+    dist = URIRef("https://agrihub.example.org/dataset/0555406d/resource/a")
+    graph.add((SUBJECT, DCAT.distribution, dist))
+    graph.add((dist, RDF.type, DCAT.Distribution))
+    graph.add((dist, DCTERMS.license, URIRef("https://opendefinition.org/od/2.1/en/")))
+    graph.add((dist, DCAT.accessURL, URIRef("https://example.org/soil3")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _rocrate_license_text(arc_json) == "https://opendefinition.org/od/2.1/en/"
+    assert _comment_text(arc_json, "License") is None
+    assert 'Comment {Name = "License"' not in arc_json
+
+
+def test_ckanext_dcat_mapper_sets_arc_license_from_dataset() -> None:
+    graph = _base_graph()
+    graph.add((SUBJECT, DCTERMS.license, Literal("Other (Attribution)")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _rocrate_license_text(arc_json) == "Other (Attribution)"
+    assert _comment_text(arc_json, "License") is None
+
+
+def test_ckanext_dcat_mapper_joins_several_distribution_licenses() -> None:
+    graph = _base_graph()
+    dist = URIRef("https://agrihub.example.org/dataset/0555406d/resource/a")
+    graph.add((SUBJECT, DCAT.distribution, dist))
+    graph.add((dist, RDF.type, DCAT.Distribution))
+    graph.add((dist, DCTERMS.license, URIRef("https://opendefinition.org/od/2.1/en/")))
+    graph.add((dist, DCTERMS.license, Literal("Other (Attribution)")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _rocrate_license_text(arc_json) == ("Other (Attribution); https://opendefinition.org/od/2.1/en/")
+
+
+def test_ckanext_dcat_mapper_missing_license_keeps_arctrl_default() -> None:
+    arc_json = _mapped_arc_json(_base_graph())
+    assert _rocrate_license_text(arc_json) == "ALL RIGHTS RESERVED BY THE AUTHORS"
+    assert _comment_text(arc_json, "License") is None
+
+
 def test_ckanext_dcat_mapper_does_not_emit_data_catalog_comment() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _comment_text(arc_json, "Data Catalog") is None

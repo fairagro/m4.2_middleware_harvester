@@ -34,21 +34,22 @@ Namespaces: `dcat:` (`http://www.w3.org/ns/dcat#`), `dcterms:`, `foaf:`, `vcard:
 
 ## Investigation
 
-| Source field                                       | Description                     | ARC Mapping                                                                                                              |
-| -------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **`dcterms:title`**                                | Title                           | `Investigation.Title`                                                                                                    |
-| **`dcterms:description`**                          | Description                     | `Investigation.Description` (empty string when absent)                                                                   |
-| **`dcterms:issued`**                               | Issue date                      | `Investigation.PublicReleaseDate` (else `dcterms:modified`)                                                              |
-| **`dcterms:identifier`**                           | Source identifier               | `Investigation.Comment("Source Identifier")`                                                                             |
-| **`dcat:landingPage`**                             | Landing page                    | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise               |
-| **`dcterms:modified`**                             | Modified date                   | `Investigation.Comment("Modified")`                                                                                      |
-| **`dcat:keyword`**                                 | Keywords                        | Shared Investigation keyword Comments (#603): aggregate `Keywords` (`", "`-joined) + per-term `keyword [<label>]`        |
-| **`dcterms:language`**                             | Languages                       | `Investigation.Comment("Language")` (semicolon-joined)                                                                   |
-| **`dcterms:publisher`**                            | Publisher org                   | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                                    |
-| **`dcat:contactPoint`**                            | Contact                         | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                                 |
-| **`dcterms:spatial`**                              | Spatial extent                  | `Investigation.Comment("Spatial Extent")`: WKT of the location (see Spatial Extent), else fixed text pointing at the RDI |
-| **`mapper.ckanext_dcat.spatial_extent_max_chars`** | WKT length cap (default 15,000) | A longer WKT keeps the fixed text and logs a WARNING (see Spatial Extent)                                                |
-| **(fixed)**                                        | Ontology source                 | `OntologySourceReferences` entry for DCAT                                                                                |
+| Source field                                       | Description                     | ARC Mapping                                                                                                                                                                 |
+| -------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`dcterms:title`**                                | Title                           | `Investigation.Title`                                                                                                                                                       |
+| **`dcterms:description`**                          | Description                     | `Investigation.Description` (empty string when absent)                                                                                                                      |
+| **`dcterms:issued`**                               | Issue date                      | `Investigation.PublicReleaseDate` (else `dcterms:modified`)                                                                                                                 |
+| **`dcterms:identifier`**                           | Source identifier               | `Investigation.Comment("Source Identifier")`                                                                                                                                |
+| **`dcat:landingPage`**                             | Landing page                    | `Investigation.Comment("Landing Page")`: first http(s) value, else the http(s) dataset IRI; none otherwise                                                                  |
+| **`dcterms:modified`**                             | Modified date                   | `Investigation.Comment("Modified")`                                                                                                                                         |
+| **`dcat:keyword`**                                 | Keywords                        | Shared Investigation keyword Comments (#603): aggregate `Keywords` (`", "`-joined) + per-term `keyword [<label>]`                                                           |
+| **`dcterms:language`**                             | Languages                       | `Investigation.Comment("Language")` (semicolon-joined)                                                                                                                      |
+| **`dcterms:publisher`**                            | Publisher org                   | `Investigation.Comment("Publisher")` via `foaf:name` (see Org labels)                                                                                                       |
+| **`dcat:contactPoint`**                            | Contact                         | `Investigation.Comment("Contact Point")` via `vcard:fn` (see Org labels)                                                                                                    |
+| **`dcterms:spatial`**                              | Spatial extent                  | `Investigation.Comment("Spatial Extent")`: WKT of the location (see Spatial Extent), else fixed text pointing at the RDI                                                    |
+| **`dcterms:license`** (dataset or distribution)    | Licence                         | `ARC.License` via `LinkedDataMapper.license` (unique values sorted, `"; "`-joined); ARCtrl default when absent; no Investigation / Assay `Comment("License")` (#530 / #672) |
+| **`mapper.ckanext_dcat.spatial_extent_max_chars`** | WKT length cap (default 15,000) | A longer WKT keeps the fixed text and logs a WARNING (see Spatial Extent)                                                                                                   |
+| **(fixed)**                                        | Ontology source                 | `OntologySourceReferences` entry for DCAT                                                                                                                                   |
 
 **Spatial Extent.** The text is the `locn:geometry` literals typed `gsp:wktLiteral` of the `dcterms:spatial` location,
 copied verbatim. Several distinct literals are sorted and joined with `"; "`. GeoJSON literals are ignored. When the
@@ -70,15 +71,14 @@ has no comment.
 
 ## Assay
 
-| Source field                       | Description      | ARC Mapping                                                                                                |
-| ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| Title                              | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                       |
-| (fixed)                            | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                        |
-| **`dcat:distribution`**            | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`; column omitted if none |
-| Distribution **`dcterms:title`**   | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                         |
-| Distribution **`dcterms:format`**  | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                                     |
-| Distribution access/download URLs  | URLs             | `Comment("Access URL")`: per distribution `dcat:accessURL`, else `dcat:downloadURL`; semicolon-joined      |
-| Distribution **`dcterms:license`** | Licenses         | `Comment("License")` (unique, sorted, semicolon-joined)                                                    |
+| Source field                      | Description      | ARC Mapping                                                                                                |
+| --------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| Title                             | From dataset     | `Assay.Title`; identifier `{investigation_id}_assay`                                                       |
+| (fixed)                           | Types / platform | measurement Data Collection; technology Data Repository; platform `DCAT-AP Catalog`                        |
+| **`dcat:distribution`**           | Distributions    | Table `Measurement`: `Output [URI]` = first `dcat:accessURL` or `dcat:downloadURL`; column omitted if none |
+| Distribution **`dcterms:title`**  | Titles           | `Comment("Distribution Title")` (semicolon-joined)                                                         |
+| Distribution **`dcterms:format`** | Formats          | `Comment("Format")` (unique, sorted, semicolon-joined)                                                     |
+| Distribution access/download URLs | URLs             | `Comment("Access URL")`: per distribution `dcat:accessURL`, else `dcat:downloadURL`; semicolon-joined      |
 
 ## Org labels (publisher / contact)
 
@@ -99,7 +99,7 @@ with keys `maintainer_name` / `author_name` / `name` and `maintainer_email` / `a
 3. **Assay Output URI:** first distribution access/download URL; no URL → no `Output [URI]` column (the dataset IRI is
    never used).
 4. **Assay table:** no `Input [Source Name]` column (the dataset is not a sample); a dataset whose distributions give no
-   URL, title, format or licence gets no `Measurement` table at all.
+   URL, title or format gets no `Measurement` table at all (licence alone is not an Assay comment).
 
 ## Refusal / skip rules
 
