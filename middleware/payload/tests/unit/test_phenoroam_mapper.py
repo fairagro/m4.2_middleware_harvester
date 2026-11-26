@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from mapper_test_helpers import assay_output_uri, processing_parameters
+from mapper_test_helpers import assay_output_uri, comment_text, processing_parameters
 
 import middleware.parsing.register_builtin_parsers as _register_parsers
 import middleware.payload.register_builtin_mappers as _register_mappers
@@ -305,6 +305,40 @@ def test_phenoroam_assay_does_not_invent_dataset_source_input() -> None:
     arc = PhenoroamMapper().map_record(record)
 
     assert "Source_Dataset_Source" not in str(arc.ToROCrateJsonString())
+
+
+def _rocrate_license_text(arc_json: str) -> str | None:
+    graph = json.loads(arc_json)["@graph"]
+    root = next(node for node in graph if node.get("@id") == "./")
+    license_id = root["license"]["@id"]
+    node = next(node for node in graph if node.get("@id") == license_id)
+    text = node.get("text")
+    return str(text) if text is not None else None
+
+
+def test_phenoroam_license_sets_arc_license_without_comment_dual_write() -> None:
+    """#559 / #672: pr:itemLicense → ARC.License only; no Comment dual-write."""
+    licence = "Creative Commons Attribution-ShareAlike 4.0 International"
+    record = PhenoroamRecord(
+        item_uuid="fbaac894-ce3f-4baf-89a6-c1caf9b3017c",
+        title="Licensed dataset",
+        license_text=licence,
+    )
+
+    arc_json = str(PhenoroamMapper().map_record(record).ToROCrateJsonString())
+
+    assert _rocrate_license_text(arc_json) == licence
+    assert comment_text(arc_json, "License") is None
+    assert 'Comment {Name = "License"' not in arc_json
+
+
+def test_phenoroam_missing_license_keeps_arctrl_default() -> None:
+    record = PhenoroamRecord(item_uuid="abc-uuid", title="No licence")
+
+    arc_json = str(PhenoroamMapper().map_record(record).ToROCrateJsonString())
+
+    assert _rocrate_license_text(arc_json) == "ALL RIGHTS RESERVED BY THE AUTHORS"
+    assert comment_text(arc_json, "License") is None
 
 
 def test_phenoroam_assay_output_uri_is_unchanged() -> None:

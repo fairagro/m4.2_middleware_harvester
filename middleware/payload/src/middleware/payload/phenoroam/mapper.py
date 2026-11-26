@@ -20,6 +20,7 @@ from arctrl import (  # type: ignore[import-untyped]
     Person,
 )
 
+from middleware.payload.arc_license import license_from_value
 from middleware.payload.data_mapper import DataMapper
 from middleware.payload.geo import bounding_box
 from middleware.payload.harvested_arc import HarvestedArc
@@ -32,6 +33,7 @@ from middleware.payload.parsed_payload import ParsedPayload
 from middleware.payload.person_contacts import require_nonempty_person_given_names
 from middleware.payload.person_names import split_display_name
 from middleware.payload.phenoroam.models import PhenoroamPerson, PhenoroamRecord
+from middleware.payload.placeholders import PlaceholderConfig
 
 _LANDING_URL = "https://phenoroam.phenorob.de/geonetwork/srv/eng/catalog.search#/metadata/{id}"
 
@@ -74,7 +76,11 @@ class PhenoroamMapper(DataMapper[MappingContext]):
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
         require_nonempty_person_given_names(investigation)
-        return ARC.from_arc_investigation(investigation)
+        # ``pr:itemLicense`` / ``license_text`` → ``ARC.License`` only (#559 / #672).
+        return ARC.from_arc_investigation(
+            investigation,
+            license=license_from_value(record.license_text, placeholders=PlaceholderConfig()),
+        )
 
     def _map_investigation(self, record: PhenoroamRecord, context: MappingContext) -> ArcInvestigation:
         title = self._investigation_title(record)
@@ -229,13 +235,7 @@ class PhenoroamMapper(DataMapper[MappingContext]):
             CompositeHeader.output(IOType.of_string("URI")),
             [CompositeCell.free_text(output_uri)],
         )
-        if record.license_text and record.license_text.strip():
-            # Keep comment compact for table cell readability.
-            license_cell = " ".join(record.license_text.split())
-            table.AddColumn(
-                CompositeHeader.comment("License"),
-                [CompositeCell.free_text(license_cell)],
-            )
+        # Licence is on ``ARC.License`` only (#559 / #672) — no Assay Comment [License].
         valid_links = [link for link in record.datafile_links if self._valid_http_url(link)]
         if valid_links:
             table.AddColumn(
