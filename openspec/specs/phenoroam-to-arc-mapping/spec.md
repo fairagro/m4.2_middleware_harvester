@@ -90,10 +90,10 @@ Assay annotation-table comments suitable for metadata-only ARCs. Geographic boun
 `Bounding Box` contract (see "PhenoRoam bbox MUST become Study Bounding Box in south west north east order"), not an
 Assay geographic comment. Licence/rights text is **not** an annotation-table field — see the ARC licence requirement.
 
-#### Scenario: Keywords appear as annotations or equivalent structured metadata
+#### Scenario: Keywords appear as Investigation Comments
 
 - **WHEN** the record contains keywords
-- **THEN** those keywords are present in the mapped ARC as annotation-table values or equivalent structured fields
+- **THEN** those keywords are present in the mapped ARC as Investigation Comments per `keyword-comments`
 
 ### Requirement: The ARC licence MUST come from pr:itemLicense
 
