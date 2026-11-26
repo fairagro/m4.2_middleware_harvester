@@ -378,7 +378,6 @@
         "@id": "#Protocol_Measurement"
       },
       "disambiguatingDescription": [
-        "Comment {Name = \"License\", Value = \"https://creativecommons.org/licenses/by/4.0\"}",
         "Comment {Name = \"Language\", Value = \"eng\"}",
         "Comment {Name = \"Online Resource\", Value = \"https://repository.publisso.de/resource/frl:6472624\"}",
         "Comment {Name = \"Online Resource Name\", Value = \"The NFDI4Health Metadata Schema (V3_3)\"}",
@@ -474,14 +473,6 @@
       "columnIndex": "0"
     },
     {
-      "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0",
-      "@type": "PropertyValue",
-      "additionalType": "ParameterValue",
-      "name": "License",
-      "value": "https://creativecommons.org/licenses/by/4.0",
-      "columnIndex": "1"
-    },
-    {
       "@id": "#Process_S_frl_6472531_study_Data_Processing_0",
       "@type": "LabProcess",
       "name": "Data Processing_0",
@@ -493,9 +484,6 @@
       "parameterValue": [
         {
           "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository"
-        },
-        {
-          "@id": "#ParameterValue_License_https://creativecommons.org/licenses/by/4.0"
         }
       ]
     },
@@ -563,12 +551,6 @@
       "@type": "Comment",
       "name": "Content Type",
       "text": "researchData"
-    },
-    {
-      "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0",
-      "@type": "Comment",
-      "name": "License",
-      "text": "https://creativecommons.org/licenses/by/4.0"
     },
     {
       "@id": "#LDComment_Language_eng",
@@ -804,9 +786,6 @@
         },
         {
           "@id": "#LDComment_Content_Type_researchData"
-        },
-        {
-          "@id": "#LDComment_License_https://creativecommons.org/licenses/by/4.0"
         },
         {
           "@id": "#LDComment_Language_eng"

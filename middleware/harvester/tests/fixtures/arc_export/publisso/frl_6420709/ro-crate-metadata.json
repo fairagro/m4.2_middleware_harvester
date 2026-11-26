@@ -126,7 +126,6 @@
         "@id": "#Protocol_Measurement"
       },
       "disambiguatingDescription": [
-        "Comment {Name = \"License\", Value = \"http://opendatacommons.org/licenses/by/1.0/\"}",
         "Comment {Name = \"Language\", Value = \"eng\"}",
         "Comment {Name = \"Online Resource\", Value = \"https://repository.publisso.de/resource/frl:6420710\"}",
         "Comment {Name = \"Online Resource Name\", Value = \"High resolution long-term measurements of carbon dioxide and ammonia concentrations  in a naturally ventilated dairy barn\"}",
@@ -235,14 +234,6 @@
       "columnIndex": "0"
     },
     {
-      "@id": "#ParameterValue_License_http://opendatacommons.org/licenses/by/1.0/",
-      "@type": "PropertyValue",
-      "additionalType": "ParameterValue",
-      "name": "License",
-      "value": "http://opendatacommons.org/licenses/by/1.0/",
-      "columnIndex": "1"
-    },
-    {
       "@id": "#Process_S_frl_6420709_study_Data_Processing_0",
       "@type": "LabProcess",
       "name": "Data Processing_0",
@@ -254,9 +245,6 @@
       "parameterValue": [
         {
           "@id": "#ParameterValue_Processing_Description_Published_research_data_metadata_from_a_Regal_repository"
-        },
-        {
-          "@id": "#ParameterValue_License_http://opendatacommons.org/licenses/by/1.0/"
         }
       ]
     },
@@ -324,12 +312,6 @@
       "@type": "Comment",
       "name": "Content Type",
       "text": "researchData"
-    },
-    {
-      "@id": "#LDComment_License_http://opendatacommons.org/licenses/by/1.0/",
-      "@type": "Comment",
-      "name": "License",
-      "text": "http://opendatacommons.org/licenses/by/1.0/"
     },
     {
       "@id": "#LDComment_Language_eng",
@@ -496,9 +478,6 @@
         },
         {
           "@id": "#LDComment_Content_Type_researchData"
-        },
-        {
-          "@id": "#LDComment_License_http://opendatacommons.org/licenses/by/1.0/"
         },
         {
           "@id": "#LDComment_Language_eng"
