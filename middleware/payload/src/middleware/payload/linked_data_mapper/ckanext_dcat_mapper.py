@@ -26,6 +26,7 @@ from arctrl import (  # type: ignore[import-untyped]
     OntologyAnnotation,
 )
 from arctrl.py.Core.ontology_source_reference import OntologySourceReference  # type: ignore[import-untyped]
+from arctrl.py.license import License  # type: ignore[import-untyped]
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS
 from rdflib.term import Node
@@ -134,10 +135,23 @@ class _CkanextDcatRun:
         assay = self._map_assay(subject, identifier, title=title)
         investigation.AddAssay(assay)
         study.RegisterAssay(assay.Identifier)
+        # Dataset / distribution ``dcterms:license`` → ``ARC.License`` only (#530 / #672).
         return HarvestedArc.from_arctrl(
-            ARC.from_arc_investigation(investigation),
+            ARC.from_arc_investigation(investigation, license=self._license(subject)),
             warnings=tuple(warnings),
         )
+
+    def _license(self, subject: Node) -> License | None:
+        """ARC licence from dataset or distribution ``dcterms:license`` (unique, sorted, joined)."""
+        licenses = list(self.view(subject).texts(DCTERMS.license))
+        for dist in self.view(subject).resources(DCAT.distribution):
+            value = dist.text(DCTERMS.license)
+            if value:
+                licenses.append(value)
+        unique = sorted(set(licenses))
+        if not unique:
+            return None
+        return self.mapper.license("; ".join(unique))
 
     def _map_investigation(
         self,
@@ -228,11 +242,7 @@ class _CkanextDcatRun:
         if urls:
             table.AddColumn(CompositeHeader.comment("Access URL"), [CompositeCell.free_text("; ".join(urls))])
 
-        licenses = _present(d.text(DCTERMS.license) for d in distributions)
-        if licenses:
-            table.AddColumn(
-                CompositeHeader.comment("License"), [CompositeCell.free_text("; ".join(sorted(set(licenses))))]
-            )
+        # Licence is on ``ARC.License`` only (#530 / #672) — no Assay Comment [License].
         return table
 
     def _add_investigation_comments(

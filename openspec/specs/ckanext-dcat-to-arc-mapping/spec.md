@@ -118,6 +118,27 @@ protocol MUST NOT carry a Keywords parameter; keywords belong on Investigation C
 - **THEN** the Assay annotation table's `Output [URI]` column has the same value as before this change; records without
   such a URL follow "Assay Output URI MUST come from a distribution URL"
 
+### Requirement: The ARC licence MUST come from dcterms:license
+
+`CkanextDcatMapper` MUST set `ARC.License` from `dcterms:license` on the `dcat:Dataset` and/or its `dcat:Distribution`
+resources via `LinkedDataMapper.license` (`middleware.payload.arc_license.license_from_value`). When several distinct
+values are present they MUST be unique-sorted and joined with `"; "`. Empty values and placeholders MUST leave ARCtrl's
+default "ALL RIGHTS RESERVED BY THE AUTHORS". The mapper MUST NOT dual-write that licence as Investigation
+`Comment("License")`, Assay `Comment [License]`, a Study/Assay Parameter `License`, or any other annotation-table
+licence field (#530, parent #672). When the source DCAT graph has no licence (e.g. some SRADI exports), the ARCtrl
+default remains — the harvester MUST NOT invent a licence from CKAN `package_show`.
+
+#### Scenario: Distribution licence becomes ARC.License
+
+- **WHEN** a dataset has a distribution with `dcterms:license` `https://opendefinition.org/od/2.1/en/`
+- **THEN** the RO-Crate licence node text MUST be `https://opendefinition.org/od/2.1/en/`
+- **AND** the ARC MUST NOT include Investigation `Comment("License")` or Assay `Comment [License]` for that value
+
+#### Scenario: Missing dcterms:license keeps the ARCtrl default
+
+- **WHEN** a dataset and its distributions have no `dcterms:license`
+- **THEN** the RO-Crate licence node text MUST be "ALL RIGHTS RESERVED BY THE AUTHORS"
+
 ### Requirement: ckanext-dcat mapper MUST follow keyword-comments contract
 
 `CkanextDcatMapper` MUST emit Investigation keyword Comments for `dcat:keyword` values according to `keyword-comments`
@@ -197,7 +218,8 @@ distribution comments the dataset has. The Investigation `Landing Page` comment 
 
 The ckanext-dcat Assay `Measurement` table MUST NOT contain an `Input [Source Name]` column, because no DCAT-AP property
 names the material the distribution was produced from. When the table has no `Output [URI]` and no comment columns, the
-Assay MUST NOT have an annotation table. `Output [URI]` and the distribution comments are not affected.
+Assay MUST NOT have an annotation table. Licence is not a Measurement comment (see ARC licence requirement).
+`Output [URI]` and the remaining distribution comments are not affected.
 
 #### Scenario: Dataset with a distribution URL
 
