@@ -1,0 +1,279 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "URI=http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/202a22d9-198f-46d4-82a2-10b3d84f40a9/download/krohberg_zusammenstellung_heil_2019.xlsx",
+      "@type": "URI",
+      "name": "http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/202a22d9-198f-46d4-82a2-10b3d84f40a9/download/krohberg_zusammenstellung_heil_2019.xlsx"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": [],
+      "result": {
+        "@id": "URI=http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/202a22d9-198f-46d4-82a2-10b3d84f40a9/download/krohberg_zusammenstellung_heil_2019.xlsx"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"Distribution Title\", Value = \"Krohberg_Zusammenstellung; Krohberg Hauptprofile; Ref_Relief; Krohberg Bodenanalysen_horizontweise; Krohberg horizontweise Daten\"}",
+        "Comment {Name = \"Format\", Value = \"CSV; XLSX\"}",
+        "Comment {Name = \"Access URL\", Value = \"http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/202a22d9-198f-46d4-82a2-10b3d84f40a9/download/krohberg_zusammenstellung_heil_2019.xlsx; http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/545bf506-6967-4055-a7a3-cb17ae000a92/download/krohberg_zusammenstellung_hauptprofile.csv; http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/85235dee-83ec-4993-969b-6c8f223c7379/download/krohberg_15072014_ref_relief.xlsx; http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/a54e0313-1347-4ff6-bed4-5f4544fa928a/download/krohberg_zusammenstellung_bodenanalysen_horizontweise.csv; http://129.187.232.198:5000/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd/resource/fa3307d2-62d9-4a38-abf5-792adfa91274/download/krohberg_zusammenstellung_horizontweise-daten.csv\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_DCAT-AP_Catalog",
+      "@type": "DefinedTerm",
+      "name": "DCAT-AP Catalog"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay",
+      "hasPart": [],
+      "name": "DigiFarm - Erfassung und Auswertung der Heterogenität von Ackerschlägen (Daten von Krohberg )",
+      "about": {
+        "@id": "#Process_A_agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_DCAT-AP_Catalog"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Protocol_Dataset_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Published_dataset_metadata_harvested_via_DCAT-AP.",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Published dataset metadata harvested via DCAT-AP.",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Language_de",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Language",
+      "value": "de",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_study_Dataset_Processing_0",
+      "@type": "LabProcess",
+      "name": "Dataset Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Dataset_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_Published_dataset_metadata_harvested_via_DCAT-AP."
+        },
+        {
+          "@id": "#ParameterValue_Language_de"
+        }
+      ]
+    },
+    {
+      "@id": "./studies/agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_study",
+      "datePublished": "2025-11-25T11:35:31.908007",
+      "description": "Im Rahmen des Projektes „DigiFarm - Erfassung und Auswertung der Heterogenität von Ackerschlägen“ soll zunächst auf die Definition und Bedeutung der Schlagheterogenität eingegangen werden. Dieser Eintrag enthält nur einen Teil der Ergebnisse dieses Projekts. Er umfasst die Beobachtung des Reliefs, der Bodenheterogenität und der Ertragsvariabilität, um die tatsächliche Heterogenität des Bodens auf einem Feld am Krohberg (Thalhausen) zu bestimmen.",
+      "hasPart": {
+        "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay/"
+      },
+      "name": "DigiFarm - Erfassung und Auswertung der Heterogenität von Ackerschlägen (Daten von Krohberg )",
+      "about": {
+        "@id": "#Process_S_agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_study_Dataset_Processing_0"
+      }
+    },
+    {
+      "@id": "#LDComment_Source_Identifier_3cb09cb4-7609-4a96-b65c-9821e9abfdbd",
+      "@type": "Comment",
+      "name": "Source Identifier",
+      "text": "3cb09cb4-7609-4a96-b65c-9821e9abfdbd"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://agrihub.gis.lrg.tum.de/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://agrihub.gis.lrg.tum.de/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd"
+    },
+    {
+      "@id": "#LDComment_Modified_2025-11-25T11:35:38.147900",
+      "@type": "Comment",
+      "name": "Modified",
+      "text": "2025-11-25T11:35:38.147900"
+    },
+    {
+      "@id": "#LDComment_Keywords_DigiFarm,_Düngemitteln,_Düngeverordnung,_Nährstoffversorgung",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "DigiFarm, Düngemitteln, Düngeverordnung, Nährstoffversorgung"
+    },
+    {
+      "@id": "#LDComment_keyword_[DigiFarm]_DigiFarm",
+      "@type": "Comment",
+      "name": "keyword [DigiFarm]",
+      "text": "DigiFarm"
+    },
+    {
+      "@id": "#LDComment_keyword_[Düngemitteln]_Düngemitteln",
+      "@type": "Comment",
+      "name": "keyword [Düngemitteln]",
+      "text": "Düngemitteln"
+    },
+    {
+      "@id": "#LDComment_keyword_[Düngeverordnung]_Düngeverordnung",
+      "@type": "Comment",
+      "name": "keyword [Düngeverordnung]",
+      "text": "Düngeverordnung"
+    },
+    {
+      "@id": "#LDComment_keyword_[Nährstoffversorgung]_Nährstoffversorgung",
+      "@type": "Comment",
+      "name": "keyword [Nährstoffversorgung]",
+      "text": "Nährstoffversorgung"
+    },
+    {
+      "@id": "#LDComment_Language_de",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "de"
+    },
+    {
+      "@id": "#LDComment_Publisher_WZW_-_Lehrstuhl_für_Pflanzenernährung",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "WZW - Lehrstuhl für Pflanzenernährung"
+    },
+    {
+      "@id": "#LDComment_Contact_Point_Dr._Kurt_Heil_<redacted@example.invalid>",
+      "@type": "Comment",
+      "name": "Contact Point",
+      "text": "Dr. Kurt Heil <redacted@example.invalid>"
+    },
+    {
+      "@id": "#LDComment_Spatial_Extent_MULTIPOLYGON_(((11.6654_48.4259,_11.6662_48.4262,_11.6693_48.4258,_11.6698_48.4249,_11.6678_48.4249,_11.6676_48.4244,_11.6676_48.4240,_11.6673_48.4232,_11.6652_48.4242,_11.6650_48.4244,_11.6653_48.4250,_11.6654_48.4259)))",
+      "@type": "Comment",
+      "name": "Spatial Extent",
+      "text": "MULTIPOLYGON (((11.6654 48.4259, 11.6662 48.4262, 11.6693 48.4258, 11.6698 48.4249, 11.6678 48.4249, 11.6676 48.4244, 11.6676 48.4240, 11.6673 48.4232, 11.6652 48.4242, 11.6650 48.4244, 11.6653 48.4250, 11.6654 48.4259)))"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd",
+      "datePublished": "2025-11-25T11:35:31.908007",
+      "description": "Im Rahmen des Projektes „DigiFarm - Erfassung und Auswertung der Heterogenität von Ackerschlägen“ soll zunächst auf die Definition und Bedeutung der Schlagheterogenität eingegangen werden. Dieser Eintrag enthält nur einen Teil der Ergebnisse dieses Projekts. Er umfasst die Beobachtung des Reliefs, der Bodenheterogenität und der Ertragsvariabilität, um die tatsächliche Heterogenität des Bodens auf einem Feld am Krohberg (Thalhausen) zu bestimmen.",
+      "hasPart": [
+        {
+          "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_assay/"
+        },
+        {
+          "@id": "./studies/agrihub_gis_lrg_tum_de_dataset_3cb09cb4-7609-4a96-b65c-9821e9abfdbd_study/"
+        }
+      ],
+      "name": "DigiFarm - Erfassung und Auswertung der Heterogenität von Ackerschlägen (Daten von Krohberg )",
+      "comment": [
+        {
+          "@id": "#LDComment_Source_Identifier_3cb09cb4-7609-4a96-b65c-9821e9abfdbd"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://agrihub.gis.lrg.tum.de/dataset/3cb09cb4-7609-4a96-b65c-9821e9abfdbd"
+        },
+        {
+          "@id": "#LDComment_Modified_2025-11-25T11:35:38.147900"
+        },
+        {
+          "@id": "#LDComment_Keywords_DigiFarm,_Düngemitteln,_Düngeverordnung,_Nährstoffversorgung"
+        },
+        {
+          "@id": "#LDComment_keyword_[DigiFarm]_DigiFarm"
+        },
+        {
+          "@id": "#LDComment_keyword_[Düngemitteln]_Düngemitteln"
+        },
+        {
+          "@id": "#LDComment_keyword_[Düngeverordnung]_Düngeverordnung"
+        },
+        {
+          "@id": "#LDComment_keyword_[Nährstoffversorgung]_Nährstoffversorgung"
+        },
+        {
+          "@id": "#LDComment_Language_de"
+        },
+        {
+          "@id": "#LDComment_Publisher_WZW_-_Lehrstuhl_für_Pflanzenernährung"
+        },
+        {
+          "@id": "#LDComment_Contact_Point_Dr._Kurt_Heil_<redacted@example.invalid>"
+        },
+        {
+          "@id": "#LDComment_Spatial_Extent_MULTIPOLYGON_(((11.6654_48.4259,_11.6662_48.4262,_11.6693_48.4258,_11.6698_48.4249,_11.6678_48.4249,_11.6676_48.4244,_11.6676_48.4240,_11.6673_48.4232,_11.6652_48.4242,_11.6650_48.4244,_11.6653_48.4250,_11.6654_48.4259)))"
+        }
+      ],
+      "sdDatePublished": "2026-11-26T17:22:27.4081600",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
