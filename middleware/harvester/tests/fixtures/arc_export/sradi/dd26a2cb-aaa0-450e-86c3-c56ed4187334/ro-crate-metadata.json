@@ -1,0 +1,288 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.2/context",
+    {
+      "Sample": "https://bioschemas.org/Sample",
+      "LabProtocol": "https://bioschemas.org/LabProtocol",
+      "LabProcess": "https://bioschemas.org/LabProcess",
+      "computationalTool": "https://bioschemas.org/properties/computationalTool",
+      "labEquipment": "https://bioschemas.org/properties/labEquipment",
+      "reagent": "https://bioschemas.org/properties/reagent",
+      "intendedUse": "https://bioschemas.org/properties/intendedUse",
+      "executesLabProtocol": "https://bioschemas.org/properties/executesLabProtocol",
+      "parameterValue": "https://bioschemas.org/properties/parameterValue",
+      "columnIndex": "https://w3id.org/ro/terms/arc#columnIndex"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "URI=https://www.fao.org/documents/card/en/c/cb7654en",
+      "@type": "URI",
+      "name": "https://www.fao.org/documents/card/en/c/cb7654en"
+    },
+    {
+      "@id": "#Protocol_Measurement",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#Process_A_agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay_Measurement_0",
+      "@type": "LabProcess",
+      "name": "Measurement_0",
+      "object": [],
+      "result": {
+        "@id": "URI=https://www.fao.org/documents/card/en/c/cb7654en"
+      },
+      "executesLabProtocol": {
+        "@id": "#Protocol_Measurement"
+      },
+      "disambiguatingDescription": [
+        "Comment {Name = \"Distribution Title\", Value = \"General information; Main report; Digital Report\"}",
+        "Comment {Name = \"Format\", Value = \"HTML; PDF\"}",
+        "Comment {Name = \"Access URL\", Value = \"https://www.fao.org/documents/card/en/c/cb7654en; https://www.fao.org/3/cb7654en/cb7654en.pdf; https://www.fao.org/3/cb7654en/online/cb7654en.html\"}"
+      ]
+    },
+    {
+      "@id": "#OA_Data_Repository",
+      "@type": "DefinedTerm",
+      "name": "Data Repository"
+    },
+    {
+      "@id": "#OA_DCAT-AP_Catalog",
+      "@type": "DefinedTerm",
+      "name": "DCAT-AP Catalog"
+    },
+    {
+      "@id": "#PV_Data_Collection",
+      "@type": "PropertyValue",
+      "name": "Data Collection"
+    },
+    {
+      "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay/",
+      "@type": "Dataset",
+      "additionalType": "Assay",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay",
+      "hasPart": [],
+      "name": "SOLAW 2021",
+      "about": {
+        "@id": "#Process_A_agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay_Measurement_0"
+      },
+      "measurementMethod": {
+        "@id": "#OA_Data_Repository"
+      },
+      "measurementTechnique": {
+        "@id": "#OA_DCAT-AP_Catalog"
+      },
+      "variableMeasured": {
+        "@id": "#PV_Data_Collection"
+      }
+    },
+    {
+      "@id": "#Protocol_Dataset_Processing",
+      "@type": "LabProtocol"
+    },
+    {
+      "@id": "#ParameterValue_Processing_Description_Published_dataset_metadata_harvested_via_DCAT-AP.",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Processing Description",
+      "value": "Published dataset metadata harvested via DCAT-AP.",
+      "columnIndex": "0"
+    },
+    {
+      "@id": "#ParameterValue_Language_en",
+      "@type": "PropertyValue",
+      "additionalType": "ParameterValue",
+      "name": "Language",
+      "value": "en",
+      "columnIndex": "1"
+    },
+    {
+      "@id": "#Process_S_agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_study_Dataset_Processing_0",
+      "@type": "LabProcess",
+      "name": "Dataset Processing_0",
+      "object": [],
+      "result": [],
+      "executesLabProtocol": {
+        "@id": "#Protocol_Dataset_Processing"
+      },
+      "parameterValue": [
+        {
+          "@id": "#ParameterValue_Processing_Description_Published_dataset_metadata_harvested_via_DCAT-AP."
+        },
+        {
+          "@id": "#ParameterValue_Language_en"
+        }
+      ]
+    },
+    {
+      "@id": "./studies/agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_study/",
+      "@type": "Dataset",
+      "additionalType": "Study",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_study",
+      "datePublished": "2025-11-25T11:58:33.323132",
+      "description": "“The state of the world’s land and water resources for food and agriculture: Systems at breaking point (SOLAW 2021)” Synthesis Report comes at a time when human pressures on the systems of land, soils and fresh water are intensifying, just when they are being pushed to their productive limits. The impacts of climate change are already constraining rainfed and irrigated production over and above the environmental consequences resulting from decades of unsustainable use.\r\nSOLAW 2021 provides solutions away from the business-as-usual approach, injecting a sense of urgency in making the necessary transformation at the roots of the global food systems - water, land and soils – and inspiring uptake by decision-makers at the global, regional and national levels. The SOLAW 2021 Synthesis Report presents the main findings and recommendations of the full SOLAW 2021 report and background studies, which will be published in early 2022.",
+      "hasPart": {
+        "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay/"
+      },
+      "name": "SOLAW 2021",
+      "about": {
+        "@id": "#Process_S_agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_study_Dataset_Processing_0"
+      }
+    },
+    {
+      "@id": "#LDComment_Source_Identifier_dd26a2cb-aaa0-450e-86c3-c56ed4187334",
+      "@type": "Comment",
+      "name": "Source Identifier",
+      "text": "dd26a2cb-aaa0-450e-86c3-c56ed4187334"
+    },
+    {
+      "@id": "#LDComment_Landing_Page_https://agrihub.gis.lrg.tum.de/dataset/dd26a2cb-aaa0-450e-86c3-c56ed4187334",
+      "@type": "Comment",
+      "name": "Landing Page",
+      "text": "https://agrihub.gis.lrg.tum.de/dataset/dd26a2cb-aaa0-450e-86c3-c56ed4187334"
+    },
+    {
+      "@id": "#LDComment_Modified_2025-11-25T11:58:35.098721",
+      "@type": "Comment",
+      "name": "Modified",
+      "text": "2025-11-25T11:58:35.098721"
+    },
+    {
+      "@id": "#LDComment_Keywords_land_degradation,_land_governance,_land_resources,_sustainable_use_of_water,_water_resources,_water_scarcity",
+      "@type": "Comment",
+      "name": "Keywords",
+      "text": "land degradation, land governance, land resources, sustainable use of water, water resources, water scarcity"
+    },
+    {
+      "@id": "#LDComment_keyword_[land_degradation]_land_degradation",
+      "@type": "Comment",
+      "name": "keyword [land degradation]",
+      "text": "land degradation"
+    },
+    {
+      "@id": "#LDComment_keyword_[land_governance]_land_governance",
+      "@type": "Comment",
+      "name": "keyword [land governance]",
+      "text": "land governance"
+    },
+    {
+      "@id": "#LDComment_keyword_[land_resources]_land_resources",
+      "@type": "Comment",
+      "name": "keyword [land resources]",
+      "text": "land resources"
+    },
+    {
+      "@id": "#LDComment_keyword_[sustainable_use_of_water]_sustainable_use_of_water",
+      "@type": "Comment",
+      "name": "keyword [sustainable use of water]",
+      "text": "sustainable use of water"
+    },
+    {
+      "@id": "#LDComment_keyword_[water_resources]_water_resources",
+      "@type": "Comment",
+      "name": "keyword [water resources]",
+      "text": "water resources"
+    },
+    {
+      "@id": "#LDComment_keyword_[water_scarcity]_water_scarcity",
+      "@type": "Comment",
+      "name": "keyword [water scarcity]",
+      "text": "water scarcity"
+    },
+    {
+      "@id": "#LDComment_Language_en",
+      "@type": "Comment",
+      "name": "Language",
+      "text": "en"
+    },
+    {
+      "@id": "#LDComment_Publisher_Hans_Eisenmann-Forum_für_Agrarwissenschaften",
+      "@type": "Comment",
+      "name": "Publisher",
+      "text": "Hans Eisenmann-Forum für Agrarwissenschaften"
+    },
+    {
+      "@id": "#LDComment_Contact_Point_Merve_Mentese_<redacted@example.invalid>",
+      "@type": "Comment",
+      "name": "Contact Point",
+      "text": "Merve Mentese <redacted@example.invalid>"
+    },
+    {
+      "@id": "#LICENSE",
+      "@type": "CreativeWork",
+      "text": "ALL RIGHTS RESERVED BY THE AUTHORS"
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "additionalType": "Investigation",
+      "identifier": "agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334",
+      "datePublished": "2025-11-25T11:58:33.323132",
+      "description": "“The state of the world’s land and water resources for food and agriculture: Systems at breaking point (SOLAW 2021)” Synthesis Report comes at a time when human pressures on the systems of land, soils and fresh water are intensifying, just when they are being pushed to their productive limits. The impacts of climate change are already constraining rainfed and irrigated production over and above the environmental consequences resulting from decades of unsustainable use.\r\nSOLAW 2021 provides solutions away from the business-as-usual approach, injecting a sense of urgency in making the necessary transformation at the roots of the global food systems - water, land and soils – and inspiring uptake by decision-makers at the global, regional and national levels. The SOLAW 2021 Synthesis Report presents the main findings and recommendations of the full SOLAW 2021 report and background studies, which will be published in early 2022.",
+      "hasPart": [
+        {
+          "@id": "./assays/agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_assay/"
+        },
+        {
+          "@id": "./studies/agrihub_gis_lrg_tum_de_dataset_dd26a2cb-aaa0-450e-86c3-c56ed4187334_study/"
+        }
+      ],
+      "name": "SOLAW 2021",
+      "comment": [
+        {
+          "@id": "#LDComment_Source_Identifier_dd26a2cb-aaa0-450e-86c3-c56ed4187334"
+        },
+        {
+          "@id": "#LDComment_Landing_Page_https://agrihub.gis.lrg.tum.de/dataset/dd26a2cb-aaa0-450e-86c3-c56ed4187334"
+        },
+        {
+          "@id": "#LDComment_Modified_2025-11-25T11:58:35.098721"
+        },
+        {
+          "@id": "#LDComment_Keywords_land_degradation,_land_governance,_land_resources,_sustainable_use_of_water,_water_resources,_water_scarcity"
+        },
+        {
+          "@id": "#LDComment_keyword_[land_degradation]_land_degradation"
+        },
+        {
+          "@id": "#LDComment_keyword_[land_governance]_land_governance"
+        },
+        {
+          "@id": "#LDComment_keyword_[land_resources]_land_resources"
+        },
+        {
+          "@id": "#LDComment_keyword_[sustainable_use_of_water]_sustainable_use_of_water"
+        },
+        {
+          "@id": "#LDComment_keyword_[water_resources]_water_resources"
+        },
+        {
+          "@id": "#LDComment_keyword_[water_scarcity]_water_scarcity"
+        },
+        {
+          "@id": "#LDComment_Language_en"
+        },
+        {
+          "@id": "#LDComment_Publisher_Hans_Eisenmann-Forum_für_Agrarwissenschaften"
+        },
+        {
+          "@id": "#LDComment_Contact_Point_Merve_Mentese_<redacted@example.invalid>"
+        }
+      ],
+      "sdDatePublished": "2026-11-26T17:23:01.8321130",
+      "license": {
+        "@id": "#LICENSE"
+      }
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.2"
+      },
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}

@@ -55,7 +55,7 @@ only (smoke removed in #614).
 | bonares                 | Real-data cases under `fixtures/arc_export/bonares/<uuid>/` (+ smoke at folder root); see that folder’s `README.md`             |
 | edal                    | Real-data cases under `fixtures/arc_export/edal/<doi-slug>/`; see that folder’s `README.md` (#610)                              |
 | publisso                | Real-data cases under `fixtures/arc_export/publisso/<frl-slug>/` (+ smoke at folder root); see that folder’s `README.md` (#611) |
-| sradi                   | Deferred — #612                                                                                                                 |
+| sradi                   | Real-data cases under `fixtures/arc_export/sradi/<package-uuid>/` (no root smoke); see that folder’s `README.md` (#612)         |
 | plabipd                 | Real-data cases under `fixtures/arc_export/plabipd/<composite-id>/`; see that folder’s `README.md` (#613)                       |
 | openagrar (live / MODS) | Real-data cases under `fixtures/arc_export/openagrar/<mods-id>/` (no root smoke); see that folder’s `README.md` (#614)          |
 | phenoroam               | Real-data cases under `fixtures/arc_export/phenoroam/<uuid>/`; see that folder’s `README.md` (#615)                             |
