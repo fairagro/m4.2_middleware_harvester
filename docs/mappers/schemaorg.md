@@ -103,7 +103,7 @@ contributors get the roles author and contributor.
 | Schema.org Field          | Description                         | ARC Mapping                                                                                                                                                                  |
 | ------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`schema:keywords`**     | Keywords (deduped, sorted casefold) | Shared Investigation keyword Comments (#603): aggregate `Keywords` + per-term `keyword [<label>]` (no Study Data Collection Keywords parameter)                              |
-| **`schema:license`**      | License identifier or URL           | `ARC.License` (see below) and `Investigation.Comment("License")`                                                                                                             |
+| **`schema:license`**      | License identifier or URL           | `ARC.License` only (see below) — no Investigation `Comment("License")` (#571 / #672)                                                                                         |
 | **`schema:inLanguage`**   | Language code                       | `Investigation.Comment("Language")`                                                                                                                                          |
 | **`schema:version`**      | Dataset version                     | `Investigation.Comment("Version")`                                                                                                                                           |
 | **`schema:url`**          | Landing page URL                    | `Investigation.Comment("URL")` and `Investigation.Comment("Landing Page")` (same value; `URL` is kept until API #617 is live; none when the value is empty or a placeholder) |
@@ -112,12 +112,12 @@ contributors get the roles author and contributor.
 | **(title fallback used)** | Which fallback supplied the title   | `Investigation.Comment("Title Source")` — only when `schema:name` did not win; see [Title Resolution Cascade](#title-resolution-cascade)                                     |
 | **`schema:distribution`** | `schema:DataDownload` resources     | `Investigation.Comment("Distribution")` (format: `encodingFormat: contentUrl`; several entries semicolon-joined in one Comment)                                              |
 
-**ARC licence (`ARC.License`).** `schema:license` also sets the ARC licence (`middleware.payload.arc_license`): a
+**ARC licence (`ARC.License`).** `schema:license` sets the ARC licence (`middleware.payload.arc_license`): a
 CreativeWork with `url` gives `name (url)`, otherwise the URL or text is used. The licence keeps ARCtrl's `LICENSE` path
 (the RO-Crate licence node is `{"@id": "LICENSE", "text": …}`); a URL `@id` would make `ARC.Write` create `https:/…`
-directories. Empty values and [source placeholders](#source-placeholders) are ignored, for the ARC licence and for the
-`License`, `Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE
-AUTHORS" stays.
+directories. Empty values and [source placeholders](#source-placeholders) are ignored for the ARC licence and for the
+`Language`, `Version` and `URL` comments; without a licence the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS"
+stays. There is no Investigation `Comment("License")` or Assay `Comment [License]` dual write (#571 / #672).
 
 ### 5. Study
 
@@ -137,19 +137,18 @@ AUTHORS" stays.
 | **`@id`**                 | Subject IRI                     | Assay `Output [URI]` fallback                                                   |
 | **DOI**                   | Canonical DOI                   | Assay `Output [URI]` fallback (`https://doi.org/{doi}`)                         |
 | **`schema:distribution`** | `schema:DataDownload` resources | Assay Measurement column `Comment("Distribution")` (entries joined in one cell) |
-| **`schema:license`**      | License                         | Assay Measurement column `Comment("License")`                                   |
 | **`schema:publisher`**    | Publisher name                  | Assay Measurement column `Comment("Publisher")`                                 |
 | **`schema:inLanguage`**   | Language code                   | Assay Measurement column `Comment("Language")`                                  |
 
 `Output [URI]` takes the first of `url`, `sameAs`, an http(s) `@id`, the DOI, then the page `source_url`. When none
-resolves the column is omitted; there is no empty placeholder. A Dataset with no such URL and no distribution, licence,
-publisher or language gets no `Measurement` table at all.
+resolves the column is omitted; there is no empty placeholder. A Dataset with no such URL and no distribution, publisher
+or language gets no `Measurement` table at all (licence alone is not an Assay comment).
 
 ## Source placeholders
 
 Values matching the repository's `mapper.placeholders` (whole value, case-insensitive, surrounding whitespace ignored;
 `unrendered_templates` also matches `$var` / `${var}` / `{{var}}`) are treated as absent: the ARC licence and the
-`License`, `Language`, `Version` and `URL` Investigation Comments are omitted. The check runs in the mapper through
+`Language`, `Version` and `URL` Investigation Comments are omitted. The check runs in the mapper through
 `LinkedDataMapper.placeholders` / `LinkedDataMapper.license()`. Nothing counts as a placeholder by default; the per-RDI
 strings live in the deployment config, not here.
 

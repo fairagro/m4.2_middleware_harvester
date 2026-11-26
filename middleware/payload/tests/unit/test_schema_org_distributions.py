@@ -292,8 +292,8 @@ def test_assay_without_url_keeps_comment_columns_only() -> None:
     graph = Graph()
     dataset = BNode()
     graph.add((dataset, RDF.type, schema.Dataset))
-    graph.add((dataset, schema.name, Literal("Licensed Dataset")))
-    graph.add((dataset, schema.license, Literal("CC-BY-4.0")))
+    graph.add((dataset, schema.name, Literal("Published Dataset")))
+    graph.add((dataset, schema.publisher, Literal("Example Org")))
 
     mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
     harvested = first_harvest(mapper.map_graph(graph, MappingContext(harvest_source_id="page-1")))
@@ -301,5 +301,27 @@ def test_assay_without_url_keeps_comment_columns_only() -> None:
     read_back = ARC.from_rocrate_json_string(harvested.arc_json)
     (table,) = [table for assay in read_back.Assays for table in assay.Tables]
     assert [(str(col.header), [str(cell) for cell in col.cells]) for col in table.Columns] == [
-        ("Comment [License]", ["CC-BY-4.0"])
+        ("Comment [Publisher]", ["Example Org"])
     ]
+
+
+def test_license_alone_sets_arc_license_without_assay_or_investigation_comment() -> None:
+    """#571 / #672: schema:license → ARC.License only; no Comment dual-write."""
+    schema = Namespace("https://schema.org/")
+    graph = Graph()
+    dataset = BNode()
+    graph.add((dataset, RDF.type, schema.Dataset))
+    graph.add((dataset, schema.name, Literal("Licensed Dataset")))
+    graph.add((dataset, schema.license, Literal("CC-BY-4.0")))
+
+    mapper = GeneralSchemaOrgMapper(PlaceholderConfig())
+    harvested = first_harvest(mapper.map_graph(graph, MappingContext(harvest_source_id="page-1")))
+
+    read_back = ARC.from_rocrate_json_string(harvested.arc_json)
+    assert [list(assay.Tables) for assay in read_back.Assays] == [[]]
+    assert comment_text(harvested.arc_json, "License") is None
+    crate = json.loads(harvested.arc_json)
+    root = next(node for node in crate["@graph"] if node.get("@id") == "./")
+    license_id = root["license"]["@id"]
+    license_node = next(node for node in crate["@graph"] if node.get("@id") == license_id)
+    assert license_node.get("text") == "CC-BY-4.0"

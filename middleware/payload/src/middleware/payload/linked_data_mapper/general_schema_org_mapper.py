@@ -546,8 +546,8 @@ class _SchemaOrgRun:
     def _add_investigation_comments(self, inv: ArcInvestigation, subject: Node) -> None:
         add_keyword_comments(inv, subjects=[(label, None) for label in self.view(subject).schema_texts("keywords")])
 
+        # ``schema:license`` feeds ``ARC.License`` only (#571 / #672) — no Investigation Comment.
         for label, term in [
-            ("License", "license"),
             ("Language", "inLanguage"),
             ("Version", "version"),
             ("URL", "url"),
@@ -691,12 +691,7 @@ class _SchemaOrgRun:
                 [CompositeCell.free_text(url)],
             )
 
-        license_val = self.view(subject)["license"]
-        if license_val and not self.mapper.placeholders.matches(license_val):
-            table.AddColumn(
-                CompositeHeader.comment("License"),
-                [CompositeCell.free_text(license_val)],
-            )
+        # Licence is on ``ARC.License`` only (#571 / #672) — no Assay Comment [License].
 
         publisher_name = self._resolve_publisher_label(subject)
         if publisher_name:
