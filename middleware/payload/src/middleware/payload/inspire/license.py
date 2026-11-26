@@ -98,15 +98,13 @@ def is_inspire_licence_constraint(constraint: str) -> bool:
 def inspire_license(other_constraints: Iterable[str], other_constraints_url: Iterable[str]) -> License | None:
     """Return an ARC licence from ISO 19139 ``gmd:otherConstraints``, or ``None``.
 
-    In order: the first ``gmx:Anchor/@xlink:href`` that is not an INSPIRE code-list URI; the
-    first GDI-DE JSON licence (``name (url)``); the first GeoNode-style licence text
-    (``Name (id): description (url)``); the first text that contains a URL on a known licence
-    host. A GeoNode ``Not Specified`` entry, access notes and other free text yield no licence.
+    In order: the first GDI-DE JSON licence (``name (url)``); the first GeoNode-style licence
+    text (``Name (id): description (url)``); the first text that contains a URL on a known
+    licence host; else the first ``gmx:Anchor/@xlink:href`` that is not an INSPIRE code-list
+    URI. Richer ``otherConstraints`` text wins over a bare anchor so DWD-shaped records keep
+    ``name (url)`` when both JSON and a licence URL are present (#485 review). A GeoNode
+    ``Not Specified`` entry, access notes and other free text yield no licence.
     """
-    for url in other_constraints_url:
-        if is_inspire_licence_url(url):
-            return _license(url.strip())
-
     constraints = [c.strip() for c in other_constraints if c and c.strip()]
     if any(_NOT_SPECIFIED_RE.match(c) for c in constraints):
         return None
@@ -119,4 +117,7 @@ def inspire_license(other_constraints: Iterable[str], other_constraints_url: Ite
     for constraint in constraints:
         if any(_host_in(url, _LICENSE_HOSTS) for url in _URL_RE.findall(constraint)):
             return _license(constraint)
+    for url in other_constraints_url:
+        if is_inspire_licence_url(url):
+            return _license(url.strip())
     return None

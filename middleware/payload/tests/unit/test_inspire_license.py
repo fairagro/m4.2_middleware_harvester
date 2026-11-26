@@ -115,12 +115,26 @@ def test_inspire_license_prefers_non_registry_anchor_url() -> None:
     assert license_.Content == "https://www.govdata.de/dl-de/by-2-0"
 
 
+def test_inspire_license_gdi_de_json_wins_over_bare_licence_url() -> None:
+    """DWD often ships both GDI-DE JSON and a CC URL; keep name (url), not the bare URL (#485)."""
+    license_ = inspire_license(
+        [DWD_JSON_CC_BY],
+        [CC_BY],
+    )
+    assert license_ is not None
+    assert license_.Content == (
+        "Creative Commons Namensnennung – 4.0 International (CC BY 4.0) (https://creativecommons.org/licenses/by/4.0/)"
+    )
+
+
 def test_inspire_license_gdi_de_json_uses_name_and_url() -> None:
     """DWD via GDI-DE: the JSON licence wins over free text that also names the licence (#485)."""
     license_ = inspire_license(
         [
-            'Nutzungsbedingungen: Es gelten die Bedingungen der Lizenz Creative Commons BY 4.0 "CC BY 4.0". '
-            'Einzelheiten unter "https://www.dwd.de/copyright".',
+            (
+                'Nutzungsbedingungen: Es gelten die Bedingungen der Lizenz Creative Commons BY 4.0 "CC BY 4.0". '
+                'Einzelheiten unter "https://www.dwd.de/copyright".'
+            ),
             DWD_JSON_CC_BY,
             "Es gelten keine Zugriffsbeschränkungen",
         ],
@@ -201,7 +215,9 @@ def test_inspire_mapper_omits_licence_bearing_other_constraints_comments() -> No
         "other_constraints_url": [CC_BY, "https://inspire.ec.europa.eu/metadata-codelist/x"],
     })
     arc_json = InspireMapper().map_record(record).ToROCrateJsonString()
-    assert _license_text(arc_json) == CC_BY  # licence URL wins over JSON when both present
+    assert _license_text(arc_json) == (
+        "Creative Commons Namensnennung – 4.0 International (CC BY 4.0) (https://creativecommons.org/licenses/by/4.0/)"
+    )
     assert '"name": "Other Constraints"' in arc_json or "Other Constraints" in arc_json
     assert access_note in arc_json
     assert gdi not in arc_json

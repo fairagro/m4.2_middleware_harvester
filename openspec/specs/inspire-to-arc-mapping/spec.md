@@ -113,11 +113,11 @@ formatted `F. Last` (or the single available name part) and joined by `; `, via 
 ### Requirement: The ARC licence MUST come from gmd:otherConstraints
 
 `InspireMapper` MUST set `ARC.License` via `middleware.payload.inspire.license.inspire_license`, keeping ARCtrl's
-default `LICENSE` path. The licence content MUST be, in order: the first `gmx:Anchor/@xlink:href` that is not an
-`inspire.ec.europa.eu` code-list URI; the first GDI-DE JSON licence with an http(s) `url`, as `name (url)` or the URL
-alone without a name; the first GeoNode licence text `Name (id): description`; the first text that contains a URL on a
-known licence host. A GeoNode `Not Specified` entry, access notes and other free text MUST NOT become a licence; then
-the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays.
+default `LICENSE` path. The licence content MUST be, in order: the first GDI-DE JSON licence with an http(s) `url`, as
+`name (url)` or the URL alone without a name; the first GeoNode licence text `Name (id): description`; the first text
+that contains a URL on a known licence host; else the first `gmx:Anchor/@xlink:href` that is not an
+`inspire.ec.europa.eu` code-list URI. A GeoNode `Not Specified` entry, access notes and other free text MUST NOT become
+a licence; then the ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays.
 
 #### Scenario: GDI-DE JSON licence
 
@@ -164,6 +164,12 @@ Parameter `License`.
 - **WHEN** `otherConstraints` has a `gmx:Anchor/@xlink:href` `https://creativecommons.org/licenses/by/4.0/`
 - **THEN** the RO-Crate licence node text MUST be that URL
 - **AND** Investigation Comments MUST NOT list that URL under `Other Constraints URLs`
+
+#### Scenario: GDI-DE JSON wins over a bare licence URL
+
+- **WHEN** `otherConstraints` contains a GDI-DE JSON licence with name and URL and `otherConstraints` URLs also list
+  that same http(s) licence URL
+- **THEN** the RO-Crate licence node text MUST be `name (url)` from the JSON, not the bare URL alone
 
 ### Requirement: The dataset date MUST come from the citation, not gmd:dateStamp
 
