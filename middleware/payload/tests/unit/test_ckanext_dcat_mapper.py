@@ -221,6 +221,18 @@ def test_ckanext_dcat_mapper_sets_arc_license_from_dataset() -> None:
     assert _comment_text(arc_json, "License") is None
 
 
+def test_ckanext_dcat_mapper_joins_several_distribution_licenses() -> None:
+    graph = _base_graph()
+    dist = URIRef("https://agrihub.example.org/dataset/0555406d/resource/a")
+    graph.add((SUBJECT, DCAT.distribution, dist))
+    graph.add((dist, RDF.type, DCAT.Distribution))
+    graph.add((dist, DCTERMS.license, URIRef("https://opendefinition.org/od/2.1/en/")))
+    graph.add((dist, DCTERMS.license, Literal("Other (Attribution)")))
+
+    arc_json = _mapped_arc_json(graph)
+    assert _rocrate_license_text(arc_json) == ("Other (Attribution); https://opendefinition.org/od/2.1/en/")
+
+
 def test_ckanext_dcat_mapper_missing_license_keeps_arctrl_default() -> None:
     arc_json = _mapped_arc_json(_base_graph())
     assert _rocrate_license_text(arc_json) == "ALL RIGHTS RESERVED BY THE AUTHORS"

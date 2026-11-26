@@ -145,9 +145,7 @@ class _CkanextDcatRun:
         """ARC licence from dataset or distribution ``dcterms:license`` (unique, sorted, joined)."""
         licenses = list(self.view(subject).texts(DCTERMS.license))
         for dist in self.view(subject).resources(DCAT.distribution):
-            value = dist.text(DCTERMS.license)
-            if value:
-                licenses.append(value)
+            licenses.extend(dist.texts(DCTERMS.license))
         unique = sorted(set(licenses))
         if not unique:
             return None
