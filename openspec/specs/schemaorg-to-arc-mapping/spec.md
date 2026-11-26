@@ -405,14 +405,17 @@ CreativeWork node with `url` gives `name (url)` (or the URL when it has no name)
 licence content. The licence MUST keep ARCtrl's default `LICENSE` path; the URL MUST NOT be the licence path or RO-Crate
 `@id`. Empty values and the repository's configured placeholders (`mapper.placeholders`: `values`, and unrendered
 templates such as `$licenseURL` when `unrendered_templates` is set) MUST NOT become a licence; without a licence the
-ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays. Placeholder values MUST NOT become the `License`, `Language`,
-`Version` or `URL` Investigation Comments or the Assay `Comment [License]`. `RegalMapper` MUST apply the same
-placeholders to its ARC licence. Without configured placeholders, every non-empty value MUST be kept.
+ARCtrl default "ALL RIGHTS RESERVED BY THE AUTHORS" stays. The mapper MUST NOT dual-write that licence as Investigation
+`Comment("License")`, Assay `Comment [License]`, a Study/Assay Parameter `License`, or any other annotation-table
+licence field (#571, parent #672). Placeholder values MUST NOT become the `Language`, `Version` or `URL` Investigation
+Comments. `RegalMapper` MUST apply the same placeholders to its ARC licence. Without configured placeholders, every
+non-empty value MUST be kept.
 
 #### Scenario: URL licence
 
 - **WHEN** a Dataset has `schema:license <https://creativecommons.org/licenses/by/4.0/>`
 - **THEN** the RO-Crate licence node text MUST be `https://creativecommons.org/licenses/by/4.0/`
+- **AND** the ARC MUST NOT include Investigation `Comment("License")` or Assay `Comment [License]` for that value
 
 #### Scenario: Placeholder licence
 
@@ -670,6 +673,14 @@ annotation table.
 
 #### Scenario: Record without a URL but with comments
 
-- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, with a licence
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, with a publisher
 - **WHEN** it is mapped
 - **THEN** the Assay table has one row with only the comment columns
+
+#### Scenario: Licence alone does not create an Assay comment table
+
+- **GIVEN** a schema.org Dataset with no `url`, `sameAs`, http(s) `@id`, DOI or source URL, with a licence and no other
+  Assay comment fields
+- **WHEN** it is mapped
+- **THEN** the Assay has no annotation table
+- **AND** the RO-Crate licence node still carries the licence text
