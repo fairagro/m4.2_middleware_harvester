@@ -38,6 +38,11 @@ existing OpenAgrar ARCs are updated in place.
 - **WHEN** MODS contains a DOI identifier and an accessCondition / licence URI
 - **THEN** the harvested ARC includes corresponding publication DOI and licence information per `docs/mappers/mods.md`
 
+#### Scenario: Object id wins over DOI for Investigation.Identifier
+
+- **WHEN** both a MyCoRe object id and a DOI are available
+- **THEN** `Investigation.Identifier` is derived from the object id (not the DOI)
+
 ### Requirement: The ARC licence MUST come from license_uri
 
 `ModsMapper` MUST set `ARC.License` from `license_uri` via `middleware.payload.arc_license.license_from_value` (after
@@ -56,11 +61,6 @@ licence field (#674, parent #672).
 
 - **WHEN** a record has no `license_uri`
 - **THEN** the RO-Crate licence node text MUST be "ALL RIGHTS RESERVED BY THE AUTHORS"
-
-#### Scenario: Object id wins over DOI for Investigation.Identifier
-
-- **WHEN** both a MyCoRe object id and a DOI are available
-- **THEN** `Investigation.Identifier` is derived from the object id (not the DOI)
 
 ### Requirement: Authoritative mapping doc
 
